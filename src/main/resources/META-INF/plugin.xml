@@ -1,0 +1,34 @@
+<idea-plugin version="2">
+  <id>com.urswolfer.intellij.plugin.gerrit</id>
+  <name>Gerrit</name>
+  <version>0.1-SNAPSHOT</version>
+  <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
+
+  <description><![CDATA[
+      Gerrit Code Review Tool Integration
+      ]]></description>
+
+  <change-notes><![CDATA[
+      See: https://github.com/uwolfer/gerrit-intellij-plugin
+      ]]>
+  </change-notes>
+
+  <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
+  <idea-version since-build="107.105"/>
+
+  <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+       on how to target different products -->
+  <depends>com.intellij.modules.lang</depends>
+  <depends>Git4Idea</depends>
+
+  <actions>
+  </actions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"
+                        serviceImplementation="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"/>
+
+    <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
+    </toolWindow>
+  </extensions>
+</idea-plugin>

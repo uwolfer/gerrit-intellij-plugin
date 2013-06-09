@@ -26,6 +26,12 @@
   <dependencies>
     <dependency>
       <groupId>com.intellij</groupId>
+      <artifactId>idea</artifactId>
+      <version>${idea.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.intellij</groupId>
       <artifactId>openapi</artifactId>
       <version>${idea.version}</version>
       <scope>provided</scope>

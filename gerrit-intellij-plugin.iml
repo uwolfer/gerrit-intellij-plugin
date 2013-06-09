@@ -12,6 +12,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:idea:12.1.3" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:openapi:12.1.3" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:util:12.1.3" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:extensions:12.1.3" level="project" />
@@ -30,3 +31,4 @@
     <orderEntry type="library" scope="TEST" name="Maven: org.yaml:snakeyaml:1.6" level="project" />
   </component>
 </module>
+

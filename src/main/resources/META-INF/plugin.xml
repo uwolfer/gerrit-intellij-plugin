@@ -25,8 +25,12 @@
   </actions>
 
   <extensions defaultExtensionNs="com.intellij">
+    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritCheckoutProvider"/>
+    <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
+                        serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"/>
+    <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable"/>
 
     <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
     </toolWindow>

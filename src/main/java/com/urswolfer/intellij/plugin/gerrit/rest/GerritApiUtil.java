@@ -35,6 +35,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -102,8 +103,7 @@ public class GerritApiUtil {
 
     @NotNull
     public static String getApiUrl() {
-//        return getApiUrl(GerritSettings.getInstance().getHost());
-        return System.getProperty("plugins.gerrit.url");
+        return GerritSettings.getInstance().getHost();
     }
 
     @NotNull

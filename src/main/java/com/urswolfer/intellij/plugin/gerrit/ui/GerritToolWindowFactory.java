@@ -35,6 +35,7 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.util.CollectConsumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -85,8 +86,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     }
 
     private List<ChangeInfo> getChanges() {
-        return GerritUtil.getChanges(GerritApiUtil.getApiUrl(),
-                System.getProperty("plugins.gerrit.username"), System.getProperty("plugins.gerrit.password"));
+        final GerritSettings settings = GerritSettings.getInstance();
+        return GerritUtil.getChanges(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword());
     }
 
     private ActionToolbar createToolbar() {
@@ -104,8 +105,9 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
             @Override
             public void actionPerformed(AnActionEvent anActionEvent) {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+                final GerritSettings settings = GerritSettings.getInstance();
                 final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                        System.getProperty("plugins.gerrit.username"), System.getProperty("plugins.gerrit.password"),
+                        settings.getLogin(), settings.getPassword(),
                         currentChangeInfo.getNumber());
 
                 String ref = null;

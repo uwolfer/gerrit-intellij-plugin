@@ -23,9 +23,11 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.URI;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.security.validator.ValidatorException;
@@ -41,8 +43,7 @@ import sun.security.validator.ValidatorException;
 public class SslSupport {
 
     public static SslSupport getInstance() {
-//        return ServiceManager.getService(SslSupport.class);
-        return new SslSupport(); // TODO
+        return ServiceManager.getService(SslSupport.class);
     }
 
     /**
@@ -105,12 +106,11 @@ public class SslSupport {
     }
 
     private static boolean isTrusted(@NotNull String host) {
-//        return GerritSettings.getInstance().getTrustedHosts().contains(host);
-        return false;
+        return GerritSettings.getInstance().getTrustedHosts().contains(host);
     }
 
     private static void saveToTrusted(@NotNull String host) {
-//        GerritSettings.getInstance().addTrustedHost(host);
+        GerritSettings.getInstance().addTrustedHost(host);
     }
 
     @CalledInAwt

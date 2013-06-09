@@ -20,7 +20,7 @@ install the various Intellij jars located in the lib folder of your IntelliJ ins
 For your convienience there is a bash script which will do exactly this for you
 ```
     $ cd gerrit-intellij-plugin/
-    $ ./install-intellij-libs.sh <IntelliJ Version> <Path to IntelliJ
+    $ ./install-intellij-libs.sh <IntelliJ Version> <Path to IntelliJ>
 ```
 
 After you install all the jars this plugin needs into your local repo, just run
@@ -33,6 +33,7 @@ The resulting zip file will be located in the target folder.
 Credits
 ------
 * https://github.com/gshakhn/sonar-intellij-plugin/ for code examples (e.g. Maven integration, IntelliJ Plugin setup)
+* IntelliJ Github plugin (some code of this plugin is based on its code)
 
 
 Copyright and license

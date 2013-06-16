@@ -42,6 +42,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.AccountInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
@@ -100,6 +101,17 @@ public class GerritUtil {
             return result.get();
         }
         throw exception.get();
+    }
+
+    public static void postReview(@NotNull String url, @NotNull String login, @NotNull String password,
+                                  @NotNull String changeId, @NotNull String revision, @NotNull ReviewInput reviewInput) {
+        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
+        try {
+            String json = new Gson().toJson(reviewInput);
+            GerritApiUtil.postRequest(url, login, password, request, json);
+        } catch (IOException e) {
+            LOG.error(e);
+        }
     }
 
     @NotNull

@@ -41,6 +41,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.FetchInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.RevisionInfo;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
@@ -132,6 +133,23 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
             }
         };
         group.add(diffChangeAction);
+
+        final DumbAwareAction approveChangeAction = new DumbAwareAction("Approve", "Approve change", AllIcons.ToolbarDecorator.Export) {
+            @Override
+            public void actionPerformed(AnActionEvent anActionEvent) {
+                final GerritSettings settings = GerritSettings.getInstance();
+
+                final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
+                        settings.getLogin(), settings.getPassword(),
+                        currentChangeInfo.getNumber());
+
+                final ReviewInput reviewInput = new ReviewInput();
+                reviewInput.addLabel("Code-Review", 2);
+                GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
+                        changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
+            }
+        };
+        group.add(approveChangeAction);
 
         return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false);
     }

@@ -5,6 +5,7 @@ Introduction
 -----------
 
 Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool].
+Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
 [IntelliJ Platform]: http://www.jetbrains.com/idea/
 [Gerrit Code Review Tool]: http://code.google.com/p/gerrit/

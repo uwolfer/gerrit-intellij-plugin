@@ -6,6 +6,8 @@
 
   <description><![CDATA[
       Gerrit Code Review Tool Integration
+
+      Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions)
       ]]></description>
 
   <change-notes><![CDATA[

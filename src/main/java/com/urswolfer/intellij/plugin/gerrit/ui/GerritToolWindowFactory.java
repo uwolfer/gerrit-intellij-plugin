@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import java.awt.*;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
@@ -48,7 +49,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     public void createToolWindowContent(Project project, ToolWindow toolWindow) {
         Component component = toolWindow.getComponent();
 
-        changeListPanel = new GerritChangeListPanel(getChanges(), null);
+        changeListPanel = new GerritChangeListPanel(Lists.<ChangeInfo>newArrayList(), null);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(false, true);
         panel.setContent(changeListPanel);
@@ -58,6 +59,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         panel.setToolbar(toolbar.getComponent());
 
         component.getParent().add(panel);
+
+        reloadChanges();
     }
 
     private void reloadChanges() {

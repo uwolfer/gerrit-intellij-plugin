@@ -1,13 +1,44 @@
+<!--
+ * Copyright 2013 Urs Wolfer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+-->
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
-      Gerrit Code Review Tool Integration
+      <p>
+        Gerrit Code Review Tool Integration
+      </p>
 
-      Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions)
+      <p>
+        Only <strong>Gerrit 2.6 or newer</strong> is supported (missing / incomplete REST API in older versions)
+      </p>
+
+      <p>
+        <strong>IMPORTANT NOTE:</strong> This plugin is in early development state. Use at own risk.
+      </p>
+
+      <p>
+        Known Limitations:
+        <ul>
+          <li>Multi-VCS-Root Projects are not supported yet</li>
+          <li>Only Native Git Mode is supported</li>
+        </ul>
+      </p>
       ]]></description>
 
   <change-notes><![CDATA[

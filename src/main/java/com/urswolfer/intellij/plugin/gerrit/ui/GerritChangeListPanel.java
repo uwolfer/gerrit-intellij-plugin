@@ -24,12 +24,17 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DataSink;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
 import com.intellij.openapi.vcs.VcsDataKeys;
+import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
@@ -38,6 +43,9 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.CompareAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -58,6 +66,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         myChanges = changes;
 
         myTable = new TableView<ChangeInfo>();
+
+        setupActions();
+
         updateModel();
         myTable.setStriped(true);
         if (emptyText != null) {
@@ -66,6 +77,41 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         setLayout(new BorderLayout());
         add(ScrollPaneFactory.createScrollPane(myTable));
+    }
+
+    private void setupActions() {
+        final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
+
+        final AnAction fetchAction = new FetchAction(myTable);
+        contextMenuActionGroup.add(fetchAction);
+
+        final AnAction compareAction = new CompareAction(myTable);
+        contextMenuActionGroup.add(compareAction);
+
+        final AnAction reviewPlusTwoAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked);
+        final AnAction reviewPlusOneAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp);
+        final AnAction reviewMinusOneAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown);
+        final AnAction reviewMinusTwoAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel);
+
+        final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
+        reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);
+        reviewActionGroup.add(reviewPlusTwoAction);
+        reviewActionGroup.add(reviewPlusOneAction);
+        reviewActionGroup.add(reviewMinusOneAction);
+        reviewActionGroup.add(reviewMinusTwoAction);
+
+        final AnAction verifyAction = new ReviewAction(myTable, ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked);
+        final AnAction failAction = new ReviewAction(myTable, ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel);
+
+        final DefaultActionGroup verifyActionGroup = new DefaultActionGroup("Verify", true);
+        verifyActionGroup.getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
+        verifyActionGroup.add(verifyAction);
+        verifyActionGroup.add(failAction);
+
+        contextMenuActionGroup.add(reviewActionGroup);
+        contextMenuActionGroup.add(verifyActionGroup);
+
+        PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }
 
     /**

@@ -17,44 +17,29 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import java.awt.*;
-import java.util.Collection;
 import java.util.List;
-import java.util.TreeMap;
 
-import com.google.common.collect.Iterables;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.util.CollectConsumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.FetchInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.RevisionInfo;
-import git4idea.GitUtil;
-import git4idea.repo.GitRepository;
-import git4idea.repo.GitRepositoryManager;
-import git4idea.ui.branch.GitCompareBranchesDialog;
-import git4idea.util.GitCommitCompareInfo;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritToolWindowFactory implements ToolWindowFactory {
     private GerritChangeListPanel changeListPanel;
-    private ChangeInfo currentChangeInfo;
 
     public GerritToolWindowFactory() {
     }
@@ -64,12 +49,6 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         Component component = toolWindow.getComponent();
 
         changeListPanel = new GerritChangeListPanel(getChanges(), null);
-        changeListPanel.addListSelectionListener(new CollectConsumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeInfo) {
-                currentChangeInfo = changeInfo;
-            }
-        });
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(false, true);
         panel.setContent(changeListPanel);
@@ -102,68 +81,6 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         };
         group.add(refreshActionAction);
 
-        final DumbAwareAction fetchChangeButton = new DumbAwareAction("Fetch", "Fetch change", AllIcons.Actions.Download) {
-            @Override
-            public void actionPerformed(AnActionEvent anActionEvent) {
-                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                final GerritSettings settings = GerritSettings.getInstance();
-                final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                        settings.getLogin(), settings.getPassword(),
-                        currentChangeInfo.getNumber());
-
-                String ref = null;
-                final TreeMap<String,RevisionInfo> revisions = changeDetails.getRevisions();
-                for (RevisionInfo revisionInfo : revisions.values()) {
-                    final TreeMap<String,FetchInfo> fetch = revisionInfo.getFetch();
-                    for (FetchInfo fetchInfo : fetch.values()) {
-                        ref = fetchInfo.getRef();
-                    }
-                }
-
-                GerritGitUtil.fetchChange(project, ref);
-            }
-        };
-        group.add(fetchChangeButton);
-
-        final DumbAwareAction diffChangeAction = new DumbAwareAction("Compare", "Compare change", AllIcons.Actions.DiffWithCurrent) {
-            @Override
-            public void actionPerformed(AnActionEvent anActionEvent) {
-                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                diffChange(project);
-            }
-        };
-        group.add(diffChangeAction);
-
-        final DumbAwareAction approveChangeAction = new DumbAwareAction("Approve", "Approve change", AllIcons.ToolbarDecorator.Export) {
-            @Override
-            public void actionPerformed(AnActionEvent anActionEvent) {
-                final GerritSettings settings = GerritSettings.getInstance();
-
-                final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                        settings.getLogin(), settings.getPassword(),
-                        currentChangeInfo.getNumber());
-
-                final ReviewInput reviewInput = new ReviewInput();
-                reviewInput.addLabel("Code-Review", 2);
-                GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                        changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
-            }
-        };
-        group.add(approveChangeAction);
-
         return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false);
-    }
-
-    private void diffChange(Project project) {
-        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-        final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-
-        final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
-
-        final String branchName = "FETCH_HEAD";
-        final String currentBranch = gitRepository.getCurrentBranch().getFullName();
-
-        final GitCommitCompareInfo compareInfo = GerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
-        new GitCompareBranchesDialog(project, branchName, currentBranch, compareInfo, gitRepository).show();
     }
 }

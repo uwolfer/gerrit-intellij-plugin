@@ -10,6 +10,10 @@ Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older ve
 [IntelliJ Platform]: http://www.jetbrains.com/idea/
 [Gerrit Code Review Tool]: http://code.google.com/p/gerrit/
 
+You can install this plugin from the [IntelliJ Plugin Manager].
+If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
+[IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
+
 
 Building the plugin
 ------------------
@@ -24,7 +28,14 @@ For your convienience there is a bash script which will do exactly this for you
     $ ./install-intellij-libs.sh <IntelliJ Version> <Path to IntelliJ>
 ```
 
-After you install all the jars this plugin needs into your local repo, just run
+To run the maven build you'll also need to install an updated version of [ideauidesigner-maven-plugin].
+See that readme for installation instructions.
+[ideauidesigner-maven-plugin]: https://github.com/gshakhn/ideauidesigner-maven-plugin/tree/12.x
+
+Current issue: You need to change the scope of idea and forms_rt in pom.xml from provided to compile in order to
+successfully build it with maven.
+
+After you install all jars which this plugin needs into your local repo, just run
 
     mvn package
 

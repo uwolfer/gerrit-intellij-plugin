@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.1</version>
+  <version>0.1.1</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -33,11 +33,28 @@
       </p>
 
       <p>
-        Known Limitations:
+        Features:
+        <ul>
+          <li>Do reviews directly from you IDE</li>
+          <li>List open changes</li>
+          <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
+          <li>Submit changes</li>
+          <li>(Planned Feature) Notifications for new changes which are waiting for your review</li>
+          <li>(Planned Feature) Cherry-Pick / Merge change into your local clone</li>
+          <li>(Planned Feature) Add reviewers to changes</li>
+        </ul>
+      </p>
+
+      <p>
+        Limitations:
         <ul>
           <li>Multi-VCS-Root Projects are not supported yet</li>
           <li>Only Native Git Mode is supported</li>
         </ul>
+      </p>
+
+      <p>
+        If you find any issues, please report them.
       </p>
       ]]></description>
 

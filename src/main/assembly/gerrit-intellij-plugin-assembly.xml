@@ -16,6 +16,10 @@
     <dependencySet>
       <outputDirectory>${project.artifactId}-${project.version}/lib</outputDirectory>
       <scope>runtime</scope>
+      <excludes>
+        <exclude>com.intellij:idea</exclude>
+        <exclude>com.intellij:forms_rt</exclude>
+      </excludes>
     </dependencySet>
   </dependencySets>
 

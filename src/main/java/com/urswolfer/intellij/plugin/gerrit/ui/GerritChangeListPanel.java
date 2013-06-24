@@ -46,6 +46,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.CompareAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -110,6 +111,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         contextMenuActionGroup.add(reviewActionGroup);
         contextMenuActionGroup.add(verifyActionGroup);
+
+        contextMenuActionGroup.add(new SubmitAction(myTable));
 
         PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }

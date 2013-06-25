@@ -35,13 +35,15 @@
       <p>
         Features:
         <ul>
-          <li>Do reviews directly from you IDE</li>
+          <li>Do reviews directly from your IDE (voting and commenting)</li>
           <li>List open changes</li>
           <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
           <li>Submit changes</li>
           <li>(Planned Feature) Notifications for new changes which are waiting for your review</li>
           <li>(Planned Feature) Cherry-Pick / Merge change into your local clone</li>
           <li>(Planned Feature) Add reviewers to changes</li>
+          <li>(Planned Feature) Clone and setup (add hooks) Gerrit projects directly</li>
+          <li>(Planned Feature) File and line based comments</li>
         </ul>
       </p>
 
@@ -59,7 +61,7 @@
       ]]></description>
 
   <change-notes><![CDATA[
-      See: https://github.com/uwolfer/gerrit-intellij-plugin
+      See: https://github.com/uwolfer/gerrit-intellij-plugin/commits/master
       ]]>
   </change-notes>
 

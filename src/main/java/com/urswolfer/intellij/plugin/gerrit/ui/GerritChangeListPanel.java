@@ -83,16 +83,16 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private void setupActions() {
         final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
 
-        final AnAction fetchAction = new FetchAction(myTable);
+        final AnAction fetchAction = new FetchAction();
         contextMenuActionGroup.add(fetchAction);
 
-        final AnAction compareAction = new CompareAction(myTable);
+        final AnAction compareAction = new CompareAction();
         contextMenuActionGroup.add(compareAction);
 
-        final AnAction reviewPlusTwoAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked);
-        final AnAction reviewPlusOneAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp);
-        final AnAction reviewMinusOneAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown);
-        final AnAction reviewMinusTwoAction = new ReviewAction(myTable, ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel);
+        final AnAction reviewPlusTwoAction = new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked);
+        final AnAction reviewPlusOneAction = new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp);
+        final AnAction reviewMinusOneAction = new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown);
+        final AnAction reviewMinusTwoAction = new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel);
 
         final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
         reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);
@@ -101,8 +101,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         reviewActionGroup.add(reviewMinusOneAction);
         reviewActionGroup.add(reviewMinusTwoAction);
 
-        final AnAction verifyAction = new ReviewAction(myTable, ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked);
-        final AnAction failAction = new ReviewAction(myTable, ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel);
+        final AnAction verifyAction = new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked);
+        final AnAction failAction = new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel);
 
         final DefaultActionGroup verifyActionGroup = new DefaultActionGroup("Verify", true);
         verifyActionGroup.getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
@@ -112,7 +112,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         contextMenuActionGroup.add(reviewActionGroup);
         contextMenuActionGroup.add(verifyActionGroup);
 
-        contextMenuActionGroup.add(new SubmitAction(myTable));
+        contextMenuActionGroup.add(new SubmitAction());
 
         PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }

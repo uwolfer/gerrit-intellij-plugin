@@ -25,7 +25,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.table.TableView;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
@@ -38,14 +37,12 @@ import git4idea.util.GitCommitCompareInfo;
  */
 public class CompareAction extends AnAction implements DumbAware {
 
-    private final TableView myTable;
     private final FetchAction fetchAction;
 
-    public CompareAction(TableView table) {
+    public CompareAction() {
         super("Compare", "Compare change", AllIcons.Actions.DiffWithCurrent);
-        this.myTable = table;
 
-        fetchAction = new FetchAction(table); // fetch is required before you can compare
+        fetchAction = new FetchAction(); // fetch is required before you can compare
     }
 
     @Override

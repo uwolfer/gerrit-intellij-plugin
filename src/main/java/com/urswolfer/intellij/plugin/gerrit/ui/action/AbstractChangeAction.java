@@ -18,39 +18,38 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import javax.swing.*;
 
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.project.DumbAware;
+import com.intellij.ui.table.TableView;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
 
 /**
  * @author Urs Wolfer
  */
-public class ReviewAction extends AbstractChangeAction {
-    public static final String CODE_REVIEW = "Code-Review";
-    public static final String VERIFIED = "Verified";
+public abstract class AbstractChangeAction extends AnAction implements DumbAware {
 
-    private final String label;
-    private final int rating;
-
-    public ReviewAction(String label, int rating, Icon icon) {
-        super((rating > 0 ? "+" : "") + rating, "Review Change with " + rating, icon);
-        this.label = label;
-        this.rating = rating;
+    public AbstractChangeAction(String text, String description, Icon icon) {
+        super(text, description, icon);
     }
 
-    @Override
-    public void actionPerformed(AnActionEvent anActionEvent) {
+    protected ChangeInfo getSelectedChange(AnActionEvent anActionEvent) {
+        final TableView table = (TableView) anActionEvent.getData(PlatformDataKeys.CONTEXT_COMPONENT);
+        assert table != null;
+        final ChangeInfo selectedChange = (ChangeInfo) table.getSelectedObject();
+        assert selectedChange != null;
+        return selectedChange;
+    }
+
+    protected ChangeInfo getChangeDetail(ChangeInfo selectedChange) {
         final GerritSettings settings = GerritSettings.getInstance();
 
-        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
-
-        final ReviewInput reviewInput = new ReviewInput();
-        reviewInput.addLabel(label, rating);
-        GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
+        return GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
+                settings.getLogin(), settings.getPassword(),
+                selectedChange.getNumber());
     }
 }

@@ -17,10 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.project.DumbAware;
-import com.intellij.ui.table.TableView;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -30,24 +27,18 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
 /**
  * @author Urs Wolfer
  */
-public class SubmitAction extends AnAction implements DumbAware {
-    private final TableView myTable;
+public class SubmitAction extends AbstractChangeAction {
 
-    public SubmitAction(TableView table) {
+    public SubmitAction() {
         super("Submit", "Submit Change", AllIcons.Actions.Export);
-        this.myTable = table;
     }
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         final GerritSettings settings = GerritSettings.getInstance();
 
-        final ChangeInfo selectedChange = (ChangeInfo) myTable.getSelectedObject();
-        assert selectedChange != null;
-
-        final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(),
-                selectedChange.getNumber());
+        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
+        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
 
         final SubmitInput submitInput = new SubmitInput();
         GerritUtil.postSubmit(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),

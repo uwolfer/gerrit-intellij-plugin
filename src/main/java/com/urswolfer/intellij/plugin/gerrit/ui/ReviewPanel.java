@@ -14,22 +14,34 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest.bean;
+package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.gson.annotations.SerializedName;
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer
  */
-public class SubmitInput {
-    @SerializedName("wait_for_merge")
-    private boolean waitForMerge = true;
+public class ReviewPanel {
+    private JPanel myPane;
+    private JTextArea myMessageField;
 
-    public boolean isWaitForMerge() {
-        return waitForMerge;
+    public ReviewPanel(final ReviewDialog dialog) {
     }
 
-    public void setWaitForMerge(boolean waitForMerge) {
-        this.waitForMerge = waitForMerge;
+    public JComponent getPanel() {
+        return myPane;
+    }
+
+    public void setMessage(final String message) {
+        myMessageField.setText(message);
+    }
+
+    public String getMessage() {
+        return myMessageField.getText().trim();
+    }
+
+    public JComponent getPreferrableFocusComponent() {
+        return myMessageField;
     }
 }
+

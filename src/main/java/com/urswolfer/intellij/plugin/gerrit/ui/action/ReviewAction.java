@@ -18,12 +18,14 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import javax.swing.*;
 
+import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
+import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 /**
  * @author Urs Wolfer
@@ -34,11 +36,13 @@ public class ReviewAction extends AbstractChangeAction {
 
     private final String label;
     private final int rating;
+    private final boolean showDialog;
 
-    public ReviewAction(String label, int rating, Icon icon) {
-        super((rating > 0 ? "+" : "") + rating, "Review Change with " + rating, icon);
+    public ReviewAction(String label, int rating, Icon icon, boolean showDialog) {
+        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
+        this.showDialog = showDialog;
     }
 
     @Override
@@ -50,6 +54,19 @@ public class ReviewAction extends AbstractChangeAction {
 
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);
+
+        if (showDialog) {
+            final ReviewDialog dialog = new ReviewDialog();
+            dialog.show();
+            if (!dialog.isOK()) {
+                return;
+            }
+            final String message = dialog.getReviewPanel().getMessage();
+            if (!Strings.isNullOrEmpty(message)) {
+                reviewInput.setMessage(message);
+            }
+        }
+
         GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
                 changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
     }

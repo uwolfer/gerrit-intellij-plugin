@@ -83,31 +83,31 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private void setupActions() {
         final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
 
-        final AnAction fetchAction = new FetchAction();
-        contextMenuActionGroup.add(fetchAction);
+        contextMenuActionGroup.add(new FetchAction());
 
-        final AnAction compareAction = new CompareAction();
-        contextMenuActionGroup.add(compareAction);
-
-        final AnAction reviewPlusTwoAction = new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked);
-        final AnAction reviewPlusOneAction = new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp);
-        final AnAction reviewMinusOneAction = new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown);
-        final AnAction reviewMinusTwoAction = new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel);
+        contextMenuActionGroup.add(new CompareAction());
 
         final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
         reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);
-        reviewActionGroup.add(reviewPlusTwoAction);
-        reviewActionGroup.add(reviewPlusOneAction);
-        reviewActionGroup.add(reviewMinusOneAction);
-        reviewActionGroup.add(reviewMinusTwoAction);
-
-        final AnAction verifyAction = new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked);
-        final AnAction failAction = new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel);
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked, false));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked, true));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp, false));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp, true));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 0, AllIcons.Actions.Forward, false));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 0, AllIcons.Actions.Forward, true));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown, false));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown, true));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel, false));
+        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel, true));
 
         final DefaultActionGroup verifyActionGroup = new DefaultActionGroup("Verify", true);
         verifyActionGroup.getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
-        verifyActionGroup.add(verifyAction);
-        verifyActionGroup.add(failAction);
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked, false));
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked, true));
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 0, AllIcons.Actions.Forward, false));
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 0, AllIcons.Actions.Forward, true));
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel, false));
+        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel, true));
 
         contextMenuActionGroup.add(reviewActionGroup);
         contextMenuActionGroup.add(verifyActionGroup);

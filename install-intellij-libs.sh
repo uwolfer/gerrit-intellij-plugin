@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This script will install all files in IntelliJ IDEA's lib/ folder to the local maven .m2 repository. This way we can use them during the build
 #
 # Usage:

@@ -24,6 +24,7 @@ import javax.swing.*;
 public class ReviewPanel {
     private JPanel myPane;
     private JTextArea myMessageField;
+    private JCheckBox mySubmitCheckBox;
 
     public ReviewPanel(final ReviewDialog dialog) {
     }
@@ -38,6 +39,10 @@ public class ReviewPanel {
 
     public String getMessage() {
         return myMessageField.getText().trim();
+    }
+
+    public boolean getSubmitChange() {
+        return mySubmitCheckBox.isSelected();
     }
 
     public JComponent getPreferrableFocusComponent() {

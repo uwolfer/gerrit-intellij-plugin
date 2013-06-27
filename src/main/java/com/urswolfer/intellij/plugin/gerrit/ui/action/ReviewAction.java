@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import javax.swing.*;
-
 import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -26,6 +24,8 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
+
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer
@@ -55,6 +55,7 @@ public class ReviewAction extends AbstractChangeAction {
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);
 
+        boolean submitChange = false;
         if (showDialog) {
             final ReviewDialog dialog = new ReviewDialog();
             dialog.show();
@@ -65,9 +66,14 @@ public class ReviewAction extends AbstractChangeAction {
             if (!Strings.isNullOrEmpty(message)) {
                 reviewInput.setMessage(message);
             }
+            submitChange = dialog.getReviewPanel().getSubmitChange();
         }
 
         GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
                 changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
+
+        if (submitChange) {
+            new SubmitAction().actionPerformed(anActionEvent);
+        }
     }
 }

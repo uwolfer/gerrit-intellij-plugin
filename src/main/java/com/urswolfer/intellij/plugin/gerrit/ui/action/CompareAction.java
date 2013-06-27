@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import java.util.Collection;
-
 import com.google.common.collect.Iterables;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -32,25 +30,29 @@ import git4idea.repo.GitRepositoryManager;
 import git4idea.ui.branch.GitCompareBranchesDialog;
 import git4idea.util.GitCommitCompareInfo;
 
+import java.util.Collection;
+import java.util.concurrent.Callable;
+
 /**
  * @author Urs Wolfer
  */
 public class CompareAction extends AnAction implements DumbAware {
 
-    private final FetchAction fetchAction;
-
     public CompareAction() {
         super("Compare", "Compare change", AllIcons.Actions.DiffWithCurrent);
-
-        fetchAction = new FetchAction(); // fetch is required before you can compare
     }
 
     @Override
-    public void actionPerformed(AnActionEvent anActionEvent) {
-        fetchAction.actionPerformed(anActionEvent);
-
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-        diffChange(project);
+    public void actionPerformed(final AnActionEvent anActionEvent) {
+        Callable<Void> successCallable = new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+                diffChange(project);
+                return null;
+            }
+        };
+        new FetchAction(successCallable).actionPerformed(anActionEvent);
     }
 
     private void diffChange(Project project) {

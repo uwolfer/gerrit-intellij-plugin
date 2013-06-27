@@ -16,11 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.common.collect.Iterables;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -32,11 +27,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import git4idea.GitExecutionException;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
-import git4idea.commands.GitCommand;
-import git4idea.commands.GitLineHandlerPasswordRequestAware;
-import git4idea.commands.GitStandardProgressAnalyzer;
-import git4idea.commands.GitTask;
-import git4idea.commands.GitTaskResultHandlerAdapter;
+import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.repo.GitRemote;
@@ -47,14 +38,32 @@ import git4idea.util.GitCommitCompareInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * @author Urs Wolfer
  */
 public class GerritGitUtil {
     private static final Logger LOG = Logger.getInstance(GerritGitUtil.class);
 
-    public static void fetchChange(final Project project, final String branch) {
+    public static void fetchChange(final Project project, final String branch, @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
+            @Override
+            public void onSuccess() {
+                super.onSuccess();
+                try {
+                    if (successCallable != null) {
+                        successCallable.call();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);

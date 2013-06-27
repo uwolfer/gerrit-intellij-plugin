@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import java.util.TreeMap;
-
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -26,14 +24,26 @@ import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.FetchInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.RevisionInfo;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.TreeMap;
+import java.util.concurrent.Callable;
 
 /**
  * @author Urs Wolfer
  */
 public class FetchAction extends AbstractChangeAction {
 
+    @Nullable
+    private final Callable<Void> mySuccessCallable;
+
     public FetchAction() {
+        this(null);
+    }
+
+    public FetchAction(@Nullable Callable<Void> successCallable) {
         super("Fetch", "Fetch change", AllIcons.Actions.Download);
+        this.mySuccessCallable = successCallable;
     }
 
     @Override
@@ -52,6 +62,6 @@ public class FetchAction extends AbstractChangeAction {
             }
         }
 
-        GerritGitUtil.fetchChange(project, ref);
+        GerritGitUtil.fetchChange(project, ref, mySuccessCallable);
     }
 }

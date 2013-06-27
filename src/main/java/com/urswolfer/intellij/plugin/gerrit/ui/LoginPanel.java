@@ -18,6 +18,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -40,6 +42,15 @@ public class LoginPanel {
     private JTextPane myGerritLoginInfoTestField;
 
     public LoginPanel(final LoginDialog dialog) {
+        myHostTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                String text = myHostTextField.getText();
+                if (text.endsWith("/")) {
+                    myHostTextField.setText(text.substring(0, text.length() - 1));
+                }
+            }
+        });
         DocumentListener listener = new DocumentAdapter() {
             @Override
             protected void textChanged(DocumentEvent e) {
@@ -82,7 +93,7 @@ public class LoginPanel {
     }
 
     public JComponent getPreferrableFocusComponent() {
-        return myLoginTextField;
+        return myHostTextField.getText().isEmpty() ? myHostTextField : myLoginTextField;
     }
 }
 

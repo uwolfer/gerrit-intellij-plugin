@@ -17,17 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import java.io.IOException;
-
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -36,8 +25,18 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubApiUtil
@@ -84,7 +83,7 @@ public class GerritApiUtil {
     private static HttpMethod doREST(@NotNull String host, @Nullable String login, @Nullable String password, @NotNull String path,
                                      @Nullable final String requestBody, final boolean post) throws IOException {
         HttpClient client = getHttpClient(login, password);
-        String uri = getApiUrl() + path;
+        String uri = host + path;
         return SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, uri,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
                     @Override
@@ -101,7 +100,6 @@ public class GerritApiUtil {
                 });
     }
 
-    @NotNull
     public static String getApiUrl() {
         return GerritSettings.getInstance().getHost();
     }

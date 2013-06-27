@@ -16,16 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import java.awt.*;
-import java.util.List;
-
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.ActionToolbar;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -35,6 +29,10 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+
+import java.awt.*;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -60,17 +58,30 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
 
         component.getParent().add(panel);
 
-        reloadChanges();
+        reloadChanges(project, false);
     }
 
-    private void reloadChanges() {
-        final List<ChangeInfo> commits = getChanges();
+    private void reloadChanges(Project project, boolean requestSettingsIfNonExistent) {
+        final List<ChangeInfo> commits = getChanges(project, requestSettingsIfNonExistent);
         changeListPanel.setChanges(commits);
     }
 
-    private List<ChangeInfo> getChanges() {
+    private List<ChangeInfo> getChanges(Project project, boolean requestSettingsIfNonExistent) {
         final GerritSettings settings = GerritSettings.getInstance();
-        return GerritUtil.getChanges(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword());
+        String apiUrl = GerritApiUtil.getApiUrl();
+        if (Strings.isNullOrEmpty(apiUrl)) {
+            if (requestSettingsIfNonExistent) {
+                final LoginDialog dialog = new LoginDialog(project);
+                dialog.show();
+                if (!dialog.isOK()) {
+                    return Collections.emptyList();
+                }
+                apiUrl = GerritApiUtil.getApiUrl();
+            } else {
+                return Collections.emptyList();
+            }
+        }
+        return GerritUtil.getChanges(apiUrl, settings.getLogin(), settings.getPassword());
     }
 
     private ActionToolbar createToolbar() {
@@ -79,7 +90,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         final DumbAwareAction refreshActionAction = new DumbAwareAction("Refresh", "Refresh changes list", AllIcons.Actions.Refresh) {
             @Override
             public void actionPerformed(AnActionEvent anActionEvent) {
-                reloadChanges();
+                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+                reloadChanges(project, true);
             }
         };
         group.add(refreshActionAction);

@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.io.IOException;
 
 import javax.swing.*;
@@ -76,6 +78,16 @@ public class SettingsPanel {
                             "Login Failure");
                 }
                 setPassword(password);
+            }
+        });
+
+        myHostTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                String text = myHostTextField.getText();
+                if (text.endsWith("/")) {
+                    myHostTextField.setText(text.substring(0, text.length() - 1));
+                }
             }
         });
 

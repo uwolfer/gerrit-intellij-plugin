@@ -57,6 +57,9 @@ public class GerritSettings implements PersistentStateComponent<Element> {
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
+    private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
+    private static final String REFRESH_TIMEOUT = "RefreshTimeout";
+    private static final String REVIEW_NOTIFICATIONS = "ReviewNotifications";
     public static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
     private static final String TRUSTED_HOST = "HOST";
@@ -64,6 +67,9 @@ public class GerritSettings implements PersistentStateComponent<Element> {
 
     private String myLogin;
     private String myHost;
+    private boolean myAutomaticRefresh;
+    private int myRefreshTimeout;
+    private boolean myRefreshNotifications;
     private Collection<String> myTrustedHosts = new ArrayList<String>();
 
     private static final Logger LOG = Logger.getInstance(GerritSettings.class.getName());
@@ -95,6 +101,9 @@ public class GerritSettings implements PersistentStateComponent<Element> {
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, getLogin());
         element.setAttribute(HOST, getHost());
+        element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
+        element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
+        element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
         Element trustedHosts = new Element(TRUSTED_HOSTS);
         for (String host : myTrustedHosts) {
             Element hostEl = new Element(TRUSTED_HOST);
@@ -110,6 +119,22 @@ public class GerritSettings implements PersistentStateComponent<Element> {
         try {
             setLogin(element.getAttributeValue(LOGIN));
             setHost(element.getAttributeValue(HOST));
+
+            String automaticRefreshValue = element.getAttributeValue(AUTOMATIC_REFRESH);
+            if (automaticRefreshValue != null) {
+                setAutomaticRefresh(Boolean.valueOf(automaticRefreshValue));
+            }
+
+            String refreshTimeoutValue = element.getAttributeValue(REFRESH_TIMEOUT);
+            if (refreshTimeoutValue != null) {
+                setRefreshTimeout(Integer.valueOf(refreshTimeoutValue));
+            }
+
+            String reviewNotificationsValue = element.getAttributeValue(REVIEW_NOTIFICATIONS);
+            if (reviewNotificationsValue != null) {
+                setReviewNotifications(Boolean.valueOf(reviewNotificationsValue));
+            }
+
             for (Object trustedHost : element.getChildren(TRUSTED_HOSTS)) {
                 addTrustedHost(trustedHost.toString());
             }
@@ -155,6 +180,18 @@ public class GerritSettings implements PersistentStateComponent<Element> {
         return myHost;
     }
 
+    public boolean getAutomaticRefresh() {
+        return myAutomaticRefresh;
+    }
+
+    public int getRefreshTimeout() {
+        return myRefreshTimeout;
+    }
+
+    public boolean getReviewNotifications() {
+        return myRefreshNotifications;
+    }
+
     public void setLogin(final String login) {
         myLogin = login != null ? login : "";
     }
@@ -170,6 +207,18 @@ public class GerritSettings implements PersistentStateComponent<Element> {
 
     public void setHost(final String host) {
         myHost = host;
+    }
+
+    public void setAutomaticRefresh(final boolean automaticRefresh) {
+        myAutomaticRefresh = automaticRefresh;
+    }
+
+    public void setRefreshTimeout(final int refreshTimeout) {
+        myRefreshTimeout = refreshTimeout;
+    }
+
+    public void setReviewNotifications(final boolean reviewNotifications) {
+        myRefreshNotifications = reviewNotifications;
     }
 
     @NotNull

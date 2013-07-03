@@ -29,6 +29,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.ui.GuiUtils;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
@@ -44,9 +45,14 @@ public class SettingsPanel {
     private JTextField myLoginTextField;
     private JPasswordField myPasswordField;
     private JTextPane myGerritLoginInfoTextField;
-    private JPanel myPane;
+    private JPanel myLoginPane;
     private JButton myTestButton;
     private JTextField myHostTextField;
+    private JSpinner myRefreshTimeoutSpinner;
+    private JPanel mySettingsPane;
+    private JPanel myPane;
+    private JCheckBox myNotificationOnNewReviewsCheckbox;
+    private JCheckBox myAutomaticRefreshCheckbox;
 
     private boolean myPasswordModified;
 
@@ -89,6 +95,16 @@ public class SettingsPanel {
                 myPasswordModified = true;
             }
         });
+
+        myAutomaticRefreshCheckbox.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                updateAutomaticRefresh();
+            }
+        });
+    }
+
+    private void updateAutomaticRefresh() {
+        GuiUtils.enableChildren(myRefreshTimeoutSpinner, myAutomaticRefreshCheckbox.isSelected());
     }
 
     public JComponent getPanel() {
@@ -118,6 +134,31 @@ public class SettingsPanel {
 
     public String getHost() {
         return myHostTextField.getText().trim();
+    }
+
+    public void setAutomaticRefresh(final boolean automaticRefresh) {
+        myAutomaticRefreshCheckbox.setSelected(automaticRefresh);
+        updateAutomaticRefresh();
+    }
+
+    public boolean getAutomaticRefresh() {
+        return myAutomaticRefreshCheckbox.isSelected();
+    }
+
+    public void setRefreshTimeout(final int refreshTimeout) {
+        myRefreshTimeoutSpinner.setValue(refreshTimeout);
+    }
+
+    public int getRefreshTimeout() {
+        return (Integer) myRefreshTimeoutSpinner.getValue();
+    }
+
+    public void setReviewNotifications(final boolean reviewNotifications) {
+        myNotificationOnNewReviewsCheckbox.setSelected(reviewNotifications);
+    }
+
+    public boolean getReviewNotifications() {
+        return myNotificationOnNewReviewsCheckbox.isSelected();
     }
 
     public boolean isPasswordModified() {

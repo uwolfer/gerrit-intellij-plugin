@@ -128,7 +128,17 @@ public class GerritUtil {
 
     @NotNull
     public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password) {
-        final String request = "/a/changes/";
+        return getChanges(url, login, password, "");
+    }
+
+    @NotNull
+    public static List<ChangeInfo> getChangesToReview(@NotNull String url, @NotNull String login, @NotNull String password) {
+        return getChanges(url, login, password, "?q=is:open+reviewer:self");
+    }
+
+    @NotNull
+    public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String query) {
+        final String request = "/a/changes/" + query;
         try {
             JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
             if (result == null) {
@@ -323,6 +333,14 @@ public class GerritUtil {
     }
 
     public static void notifyError(@NotNull Project project, @NotNull String title, @NotNull String message) {
-        new Notification(GERRIT_NOTIFICATION_GROUP, title, message, NotificationType.ERROR).notify(project);
+        notify(project, title, message, NotificationType.ERROR);
+    }
+
+    public static void notifyInformation(@NotNull Project project, @NotNull String title, @NotNull String message) {
+        notify(project, title, message, NotificationType.INFORMATION);
+    }
+
+    private static void notify(@NotNull Project project, @NotNull String title, @NotNull String message, @NotNull NotificationType notificationType) {
+        new Notification(GERRIT_NOTIFICATION_GROUP, title, message, notificationType).notify(project);
     }
 }

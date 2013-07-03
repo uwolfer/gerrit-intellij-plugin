@@ -39,7 +39,7 @@
           <li>List open changes</li>
           <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
           <li>Submit changes</li>
-          <li>(Planned Feature) Notifications for new changes which are waiting for your review</li>
+          <li>Notifications for new changes which are waiting for your review</li>
           <li>(Planned Feature) Cherry-Pick / Merge change into your local clone</li>
           <li>(Planned Feature) Add reviewers to changes</li>
           <li>(Planned Feature) Clone and setup (add hooks) Gerrit projects directly</li>

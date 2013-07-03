@@ -65,7 +65,10 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     public boolean isModified() {
         return mySettingsPane != null && (!Comparing.equal(mySettings.getLogin(), mySettingsPane.getLogin()) ||
                 isPasswordModified() ||
-                !Comparing.equal(mySettings.getHost(), mySettingsPane.getHost()));
+                !Comparing.equal(mySettings.getHost(), mySettingsPane.getHost()) ||
+                !Comparing.equal(mySettings.getAutomaticRefresh(), mySettingsPane.getAutomaticRefresh()) ||
+                !Comparing.equal(mySettings.getRefreshTimeout(), mySettingsPane.getRefreshTimeout()) ||
+                !Comparing.equal(mySettings.getReviewNotifications(), mySettingsPane.getReviewNotifications()));
     }
 
     private boolean isPasswordModified() {
@@ -80,6 +83,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 mySettingsPane.resetPasswordModification();
             }
             mySettings.setHost(mySettingsPane.getHost());
+            mySettings.setAutomaticRefresh(mySettingsPane.getAutomaticRefresh());
+            mySettings.setRefreshTimeout(mySettingsPane.getRefreshTimeout());
+            mySettings.setReviewNotifications(mySettingsPane.getReviewNotifications());
         }
     }
 
@@ -90,6 +96,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             mySettingsPane.setPassword(StringUtil.isEmptyOrSpaces(login) ? "" : DEFAULT_PASSWORD_TEXT);
             mySettingsPane.resetPasswordModification();
             mySettingsPane.setHost(mySettings.getHost());
+            mySettingsPane.setAutomaticRefresh(mySettings.getAutomaticRefresh());
+            mySettingsPane.setRefreshTimeout(mySettings.getRefreshTimeout());
+            mySettingsPane.setReviewNotifications(mySettings.getReviewNotifications());
         }
     }
 

@@ -17,19 +17,28 @@
 package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.common.collect.Iterables;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vfs.VirtualFile;
 import git4idea.GitExecutionException;
+import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
+import git4idea.cherrypick.GitCherryPicker;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
+import git4idea.history.browser.SHAHash;
+import git4idea.history.wholeTree.AbstractHash;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
@@ -40,7 +49,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -76,6 +87,44 @@ public class GerritGitUtil {
                 GerritGitUtil.fetchNatively(virtualFile, gitRemote, url, branch, project, indicator);
             }
         });
+    }
+
+    public static void cherryPickChange(final Project project, final String ref, final Callable<Void> successCallable) {
+        final Git git = ServiceManager.getService(Git.class);
+        final GitPlatformFacade platformFacade = ServiceManager.getService(GitPlatformFacade.class);
+
+        FileDocumentManager.getInstance().saveAllDocuments();
+        platformFacade.getChangeListManager(project).blockModalNotifications();
+
+        new Task.Backgroundable(project, "Cherry-picking...", false) {
+            public void run(@NotNull ProgressIndicator indicator) {
+                try {
+                    GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+                    final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
+                    final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
+
+                    final VirtualFile virtualFile = gitRepository.getGitDir();
+
+                    final String notLoaded = "Not loaded";
+                    GitCommit gitCommit = new GitCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
+                            notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
+                            notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
+                            Collections.<Change>emptyList(), 0);
+
+                    Map<GitRepository, List<GitCommit>> gitRepositoryListMap =
+                            Collections.singletonMap(gitRepository, Collections.singletonList(gitCommit));
+
+                    boolean autoCommit = false;
+                    new GitCherryPicker(myProject, git, platformFacade, autoCommit).cherryPick(gitRepositoryListMap);
+                } finally {
+                    ApplicationManager.getApplication().invokeLater(new Runnable() {
+                        public void run() {
+                            platformFacade.getChangeListManager(project).unblockModalNotifications();
+                        }
+                    });
+                }
+            }
+        }.queue();
     }
 
     @NotNull

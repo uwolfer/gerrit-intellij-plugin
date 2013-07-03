@@ -43,6 +43,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.CompareAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction;
@@ -86,6 +87,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         contextMenuActionGroup.add(new FetchAction());
 
         contextMenuActionGroup.add(new CompareAction());
+
+        contextMenuActionGroup.add(new CherryPickAction());
 
         final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
         reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);

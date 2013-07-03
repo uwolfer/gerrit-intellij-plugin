@@ -24,6 +24,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import git4idea.GitLocalBranch;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
@@ -62,9 +63,16 @@ public class CompareAction extends AnAction implements DumbAware {
         final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
 
         final String branchName = "FETCH_HEAD";
-        final String currentBranch = gitRepository.getCurrentBranch().getFullName();
+        GitLocalBranch currentBranch = gitRepository.getCurrentBranch();
+        final String currentBranchName;
+        if (currentBranch != null) {
+            currentBranchName = currentBranch.getFullName();
+        } else {
+            currentBranchName = gitRepository.getCurrentRevision();
+        }
+        assert currentBranch != null : "Current branch is neither a named branch nor a revision";
 
         final GitCommitCompareInfo compareInfo = GerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
-        new GitCompareBranchesDialog(project, branchName, currentBranch, compareInfo, gitRepository).show();
+        new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
     }
 }

@@ -1,5 +1,6 @@
 /*
  * Copyright 2013 Urs Wolfer
+ * Copyright 2000-2010 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,22 +29,27 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.history.VcsRevisionNumber;
+import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import git4idea.GitExecutionException;
 import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
-import git4idea.cherrypick.GitCherryPicker;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SHAHash;
 import git4idea.history.wholeTree.AbstractHash;
+import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
 import git4idea.update.GitFetchResult;
 import git4idea.util.GitCommitCompareInfo;
+import git4idea.util.UntrackedFilesNotifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,9 +57,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
+import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
 /**
  * @author Urs Wolfer
@@ -89,7 +97,7 @@ public class GerritGitUtil {
         });
     }
 
-    public static void cherryPickChange(final Project project, final String ref, final Callable<Void> successCallable) {
+    public static void cherryPickChange(final Project project, final String ref) {
         final Git git = ServiceManager.getService(Git.class);
         final GitPlatformFacade platformFacade = ServiceManager.getService(GitPlatformFacade.class);
 
@@ -111,20 +119,113 @@ public class GerritGitUtil {
                             notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
                             Collections.<Change>emptyList(), 0);
 
-                    Map<GitRepository, List<GitCommit>> gitRepositoryListMap =
-                            Collections.singletonMap(gitRepository, Collections.singletonList(gitCommit));
-
-                    boolean autoCommit = false;
-                    new GitCherryPicker(myProject, git, platformFacade, autoCommit).cherryPick(gitRepositoryListMap);
+                    cherryPick(gitRepository, gitCommit, git, platformFacade, project);
                 } finally {
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         public void run() {
+                            VirtualFileManager.getInstance().syncRefresh();
+
                             platformFacade.getChangeListManager(project).unblockModalNotifications();
                         }
                     });
                 }
             }
         }.queue();
+    }
+
+    /**
+     * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
+     */
+    private static boolean cherryPick(@NotNull GitRepository repository, @NotNull GitCommit commit,
+                               @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
+        GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
+        GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
+        GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
+                new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
+        GitCommandResult result = git.cherryPick(repository, commit.getHash().getValue(), false,
+                conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
+        if (result.success()) {
+            return true;
+        }
+        else if (conflictDetector.hasHappened()) {
+            return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
+                    commit.getShortHash().getString(), commit.getAuthor(),
+                    commit.getSubject()).merge();
+        }
+        else if (untrackedFilesDetector.wasMessageDetected()) {
+            String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
+                    "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
+
+            UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, platformFacade, untrackedFilesDetector.getFiles(),
+                    "cherry-pick", description);
+            return false;
+        }
+        else if (localChangesOverwrittenDetector.hasHappened()) {
+            GerritUtil.notifyError(project, "Cherry-Pick Error",
+                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed.");
+            return false;
+        }
+        else {
+            GerritUtil.notifyError(project, "Cherry-Pick Error", result.getErrorOutputAsHtmlString());
+            return false;
+        }
+    }
+
+
+    /**
+     * Copy of: git4idea.cherrypick.GitCherryPicker.CherryPickConflictResolver (which is private)
+     */
+    private static class CherryPickConflictResolver extends GitConflictResolver {
+
+        public CherryPickConflictResolver(@NotNull Project project, @NotNull Git git, @NotNull GitPlatformFacade facade, @NotNull VirtualFile root,
+                                          @NotNull String commitHash, @NotNull String commitAuthor, @NotNull String commitMessage) {
+            super(project, git, facade, Collections.singleton(root), makeParams(commitHash, commitAuthor, commitMessage));
+        }
+
+        private static Params makeParams(String commitHash, String commitAuthor, String commitMessage) {
+            Params params = new Params();
+            params.setErrorNotificationTitle("Cherry-picked with conflicts");
+            params.setMergeDialogCustomizer(new CherryPickMergeDialogCustomizer(commitHash, commitAuthor, commitMessage));
+            return params;
+        }
+
+        @Override
+        protected void notifyUnresolvedRemain() {
+            // we show a [possibly] compound notification after cherry-picking all commits.
+        }
+    }
+
+
+    /**
+     * Copy of: git4idea.cherrypick.GitCherryPicker.CherryPickMergeDialogCustomizer (which is private)
+     */
+    private static class CherryPickMergeDialogCustomizer extends MergeDialogCustomizer {
+
+        private String myCommitHash;
+        private String myCommitAuthor;
+        private String myCommitMessage;
+
+        public CherryPickMergeDialogCustomizer(String commitHash, String commitAuthor, String commitMessage) {
+            myCommitHash = commitHash;
+            myCommitAuthor = commitAuthor;
+            myCommitMessage = commitMessage;
+        }
+
+        @Override
+        public String getMultipleFileMergeDescription(Collection<VirtualFile> files) {
+            return "<html>Conflicts during cherry-picking commit <code>" + myCommitHash + "</code> made by " + myCommitAuthor + "<br/>" +
+                    "<code>\"" + myCommitMessage + "\"</code></html>";
+        }
+
+        @Override
+        public String getLeftPanelTitle(VirtualFile file) {
+            return "Local changes";
+        }
+
+        @Override
+        public String getRightPanelTitle(VirtualFile file, VcsRevisionNumber lastRevisionNumber) {
+            return "<html>Changes from cherry-pick <code>" + myCommitHash + "</code>";
+        }
     }
 
     @NotNull

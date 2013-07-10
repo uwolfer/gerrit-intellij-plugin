@@ -22,6 +22,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import icons.Git4ideaIcons;
 
 import java.util.concurrent.Callable;
@@ -29,7 +30,7 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-public class CherryPickAction  extends AnAction implements DumbAware {
+public class CherryPickAction extends AbstractChangeAction {
 
     public CherryPickAction() {
         super("Cherry-Pick", "Cherry-Pick change", Git4ideaIcons.CherryPick);
@@ -37,11 +38,14 @@ public class CherryPickAction  extends AnAction implements DumbAware {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
+        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
+        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
+
         Callable<Void> successCallable = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                GerritGitUtil.cherryPickChange(project, "FETCH_HEAD", null);
+                GerritGitUtil.cherryPickChange(project, changeDetails.getCurrentRevision());
                 return null;
             }
         };

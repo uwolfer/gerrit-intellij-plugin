@@ -17,22 +17,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import java.awt.*;
-import java.util.List;
-
-import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.actionSystem.DataSink;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
@@ -43,13 +29,15 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.CompareAction;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.util.List;
 
 /**
  * A table with the list of changes.
@@ -68,6 +56,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         myChanges = changes;
 
         myTable = new TableView<ChangeInfo>();
+        myTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         setupActions();
 
@@ -128,7 +117,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
-                if (i >= 0) {
+                if (i >= 0 && e.getValueIsAdjusting()) {
                     listener.consume(myChanges.get(i));
                 }
             }
@@ -160,6 +149,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     @NotNull
     public JComponent getPreferredFocusComponent() {
+        return myTable;
+    }
+
+    public TableView<ChangeInfo> getTable() {
         return myTable;
     }
 

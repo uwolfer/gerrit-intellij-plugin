@@ -43,6 +43,7 @@ import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
 import git4idea.GitUtil;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
@@ -194,6 +195,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
             }
         };
         group.add(refreshActionAction);
+
+        group.add(new SettingsAction());
 
         return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false);
     }

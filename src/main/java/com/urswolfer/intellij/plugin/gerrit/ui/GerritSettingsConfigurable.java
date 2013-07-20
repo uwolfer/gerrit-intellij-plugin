@@ -17,8 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import javax.swing.*;
-
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -30,6 +28,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
+
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsConfigurable
  *
@@ -37,6 +37,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Urs Wolfer
  */
 public class GerritSettingsConfigurable implements SearchableConfigurable, VcsConfigurableProvider {
+    public static final String NAME = "Gerrit";
     private static final String DEFAULT_PASSWORD_TEXT = "************";
     private SettingsPanel mySettingsPane;
     private final GerritSettings mySettings;
@@ -47,7 +48,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
 
     @NotNull
     public String getDisplayName() {
-        return "Gerrit";
+        return NAME;
     }
 
     @NotNull

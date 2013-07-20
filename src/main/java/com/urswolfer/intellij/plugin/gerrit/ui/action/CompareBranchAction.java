@@ -37,10 +37,10 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-public class CompareAction extends AnAction implements DumbAware {
+public class CompareBranchAction extends AnAction implements DumbAware {
 
-    public CompareAction() {
-        super("Compare", "Compare change", AllIcons.Actions.DiffWithCurrent);
+    public CompareBranchAction() {
+        super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
     }
 
     @Override

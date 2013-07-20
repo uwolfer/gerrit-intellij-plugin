@@ -75,7 +75,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         contextMenuActionGroup.add(new FetchAction());
 
-        contextMenuActionGroup.add(new CompareAction());
+        contextMenuActionGroup.add(new CompareBranchAction());
 
         contextMenuActionGroup.add(new CherryPickAction());
 

@@ -21,12 +21,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.FetchInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.RevisionInfo;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 /**
@@ -53,14 +51,7 @@ public class FetchAction extends AbstractChangeAction {
 
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        String ref = null;
-        final TreeMap<String,RevisionInfo> revisions = changeDetails.getRevisions();
-        for (RevisionInfo revisionInfo : revisions.values()) {
-            final TreeMap<String,FetchInfo> fetch = revisionInfo.getFetch();
-            for (FetchInfo fetchInfo : fetch.values()) {
-                ref = fetchInfo.getRef();
-            }
-        }
+        String ref = GerritUtil.getRef(changeDetails);
 
         GerritGitUtil.fetchChange(project, ref, mySuccessCallable);
     }

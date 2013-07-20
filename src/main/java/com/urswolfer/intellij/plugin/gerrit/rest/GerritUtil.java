@@ -17,13 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -39,17 +32,17 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.AccountInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubUtil
@@ -305,6 +298,18 @@ public class GerritUtil {
                 return getAvailableProjects(settings.getHost(), settings.getLogin(), validPassword);
             }
         });
+    }
+
+    public static String getRef(ChangeInfo changeDetails) {
+        String ref = null;
+        final TreeMap<String,RevisionInfo> revisions = changeDetails.getRevisions();
+        for (RevisionInfo revisionInfo : revisions.values()) {
+            final TreeMap<String,FetchInfo> fetch = revisionInfo.getFetch();
+            for (FetchInfo fetchInfo : fetch.values()) {
+                ref = fetchInfo.getRef();
+            }
+        }
+        return ref;
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")

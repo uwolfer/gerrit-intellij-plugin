@@ -196,6 +196,9 @@ public class GerritUtil {
                 return Maps.newTreeMap();
             }
             return parseCommentInfos(result);
+        } catch (NotFoundException e) {
+            LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+            return Maps.newTreeMap();
         } catch (IOException e) {
             LOG.error(e);
             return Maps.newTreeMap();

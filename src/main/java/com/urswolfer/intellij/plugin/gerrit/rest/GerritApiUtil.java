@@ -135,6 +135,9 @@ public class GerritApiUtil {
         try {
             return new JsonParser().parse(response);
         } catch (JsonSyntaxException jse) {
+            if (response.startsWith("Not found")) {
+                throw new NotFoundException();
+            }
             throw new IOException(String.format("Couldn't parse response: %n%s", response), jse);
         }
     }

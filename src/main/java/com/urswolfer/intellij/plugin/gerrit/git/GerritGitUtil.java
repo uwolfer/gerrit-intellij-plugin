@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -266,7 +267,7 @@ public class GerritGitUtil {
             @Override
             protected void onFailure() {
                 LOG.info("Error fetching: " + h.errors());
-                Collection<Exception> errors = Collections.emptyList();
+                Collection<Exception> errors = Lists.newArrayList();
                 if (!h.hadAuthRequest()) {
                     errors.addAll(h.errors());
                 } else {

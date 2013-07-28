@@ -69,6 +69,12 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
 public class GerritGitUtil {
     private static final Logger LOG = Logger.getInstance(GerritGitUtil.class);
 
+    public static GitRepository getFirstGitRepository(Project project) {
+        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+        final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
+        return Iterables.get(repositoriesFromRoots, 0);
+    }
+
     public static void fetchChange(final Project project, final String branch, @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
@@ -85,10 +91,7 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-                final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-
-                final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
+                final GitRepository gitRepository = getFirstGitRepository(project);
                 final VirtualFile virtualFile = gitRepository.getGitDir();
                 final GitRemote gitRemote = Iterables.get(gitRepository.getRemotes(), 0);
                 final String url = Iterables.get(gitRepository.getRemotes(), 0).getFirstUrl();
@@ -107,9 +110,7 @@ public class GerritGitUtil {
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
-                    GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-                    final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-                    final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
+                    final GitRepository gitRepository = getFirstGitRepository(project);
 
                     final VirtualFile virtualFile = gitRepository.getGitDir();
 

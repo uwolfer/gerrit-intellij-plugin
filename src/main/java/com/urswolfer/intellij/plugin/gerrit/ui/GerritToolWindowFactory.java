@@ -49,7 +49,6 @@ import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
-import git4idea.repo.GitRepositoryManager;
 
 import java.awt.*;
 import java.util.*;
@@ -112,9 +111,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     private void updateChangesBrowser(ChangeInfo changeInfo, final Project project) {
         myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-        final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-        final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
+        final GitRepository gitRepository = GerritGitUtil.getFirstGitRepository(project);
         final VirtualFile virtualFile = gitRepository.getGitDir();
         final GerritSettings settings = GerritSettings.getInstance();
 

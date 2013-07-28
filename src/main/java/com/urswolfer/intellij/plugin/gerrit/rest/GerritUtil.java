@@ -17,6 +17,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -177,10 +179,56 @@ public class GerritUtil {
 
     @NotNull
     private static ChangeInfo parseSingleChangeInfos(@NotNull JsonObject result) {
-        final Gson gson = new GsonBuilder()
+        final Gson gson = createGson();
+        return gson.fromJson(result, ChangeInfo.class);
+    }
+
+    /**
+     * Support starting from Gerrit 2.7.
+     */
+    @NotNull
+    public static TreeMap<String, List<CommentInfo>> getComments(@NotNull String url, @NotNull String login, @NotNull String password,
+                                                                 @NotNull String changeId, @NotNull String revision) {
+        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
+        try {
+            JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
+            if (result == null) {
+                return Maps.newTreeMap();
+            }
+            return parseCommentInfos(result);
+        } catch (IOException e) {
+            LOG.error(e);
+            return Maps.newTreeMap();
+        }
+    }
+
+    @NotNull
+    private static TreeMap<String, List<CommentInfo>> parseCommentInfos(@NotNull JsonElement result) {
+        TreeMap<String, List<CommentInfo>> commentInfos = Maps.newTreeMap();
+        final JsonObject jsonObject = result.getAsJsonObject();
+
+        for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
+            List<CommentInfo> currentCommentInfos = Lists.newArrayList();
+
+            for (JsonElement jsonElement : element.getValue().getAsJsonArray()) {
+                currentCommentInfos.add(parseSingleCommentInfos(jsonElement.getAsJsonObject()));
+            }
+
+            commentInfos.put(element.getKey(), currentCommentInfos);
+        }
+        return commentInfos;
+    }
+
+    @NotNull
+    private static CommentInfo parseSingleCommentInfos(@NotNull JsonObject result) {
+        final Gson gson = createGson();
+        return gson.fromJson(result, CommentInfo.class);
+    }
+
+    private static Gson createGson() {
+        return new GsonBuilder()
                 .setDateFormat("yyyy-MM-dd hh:mm:ss")
                 .create();
-        return gson.fromJson(result, ChangeInfo.class);
     }
 
     private static boolean testConnection(final String url, final String login, final String password) throws IOException {

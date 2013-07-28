@@ -47,7 +47,6 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
-import git4idea.GitUtil;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SymbolicRefs;
@@ -67,6 +66,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     private Timer myTimer;
     private Set<String> myNotifiedChanges = new HashSet<String>();
     private ChangeInfo mySelectedChange;
+    private ReviewCommentSink myReviewCommentSink;
 
     public GerritToolWindowFactory() {
     }
@@ -75,9 +75,11 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
         DiffManager.getInstance().registerDiffTool(new CommentsDiffTool());
 
+        myReviewCommentSink = new ReviewCommentSink();
+
         Component component = toolWindow.getComponent();
 
-        changeListPanel = new GerritChangeListPanel(Lists.<ChangeInfo>newArrayList(), null);
+        changeListPanel = new GerritChangeListPanel(Lists.<ChangeInfo>newArrayList(), null, myReviewCommentSink);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(false, true);
         panel.setContent(changeListPanel);
@@ -105,9 +107,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
             @Override
             public void calcData(DataKey key, DataSink sink) {
                 super.calcData(key, sink);
-                if (key == GerritDataKeys.CHANGE) {
-                    sink.put(GerritDataKeys.CHANGE, mySelectedChange);
-                }
+                sink.put(GerritDataKeys.CHANGE, mySelectedChange);
+                sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, myReviewCommentSink);
             }
         };
         repositoryChangesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);

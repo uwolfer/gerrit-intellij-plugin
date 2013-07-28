@@ -16,6 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
+import com.google.common.collect.Lists;
+
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -25,6 +28,7 @@ import java.util.TreeMap;
 public class ReviewInput {
     private String message;
     private Map<String, Integer> labels = new TreeMap<String, Integer>();
+    private Map<String, List<CommentInput>> comments = new TreeMap<String, List<CommentInput>>();
 
     public String getMessage() {
         return message;
@@ -44,5 +48,24 @@ public class ReviewInput {
 
     public void addLabel(String key, Integer label) {
         labels.put(key, label);
+    }
+
+    public Map<String, List<CommentInput>> getComments() {
+        return comments;
+    }
+
+    public void setComments(Map<String, List<CommentInput>> comments) {
+        this.comments = comments;
+    }
+
+    public void addComment(String key, CommentInput comment) {
+        List<CommentInput> commentInputs;
+        if (comments.containsKey(key)) {
+            commentInputs = comments.get(key);
+        } else {
+            commentInputs = Lists.newArrayList();
+            comments.put(key, commentInputs);
+        }
+        commentInputs.add(comment);
     }
 }

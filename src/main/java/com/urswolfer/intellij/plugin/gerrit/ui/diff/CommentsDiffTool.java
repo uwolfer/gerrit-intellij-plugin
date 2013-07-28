@@ -18,7 +18,9 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.diff.DiffPanel;
 import com.intellij.openapi.diff.DiffRequest;
@@ -32,13 +34,17 @@ import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.PopupHandler;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
+import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.File;
@@ -49,6 +55,9 @@ import java.util.TreeMap;
 
 /**
  * @author Urs Wolfer
+ *
+ * Some parts based on code from:
+ * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
@@ -84,12 +93,28 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         final VirtualFile vFile = PlatformDataKeys.VIRTUAL_FILE.getData(context);
         FilePath filePath = new FilePathImpl(new File(vFile.getCanonicalPath()), false);
 
+        ReviewCommentSink reviewCommentSink = GerritDataKeys.REVIEW_COMMENT_SINK.getData(context);
+        addCommentAction(editor2, filePath, reviewCommentSink, myChangeInfo);
+
         TreeMap<String,List<CommentInfo>> comments = GerritUtil.getComments(GerritApiUtil.getApiUrl(),
                 settings.getLogin(), settings.getPassword(), changeDetails.getId(), changeDetails.getCurrentRevision());
-        addCommentsGutter(editor2, filePath, comments);
+        addCommentsGutter(editor2, filePath, comments, reviewCommentSink, myChangeInfo);
     }
 
-    private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments) {
+    private void addCommentAction(@Nullable final Editor editor2,
+                                  @Nullable final FilePath filePath,
+                                  ReviewCommentSink reviewCommentSink,
+                                  ChangeInfo changeInfo) {
+        if (editor2 != null) {
+            DefaultActionGroup group = new DefaultActionGroup();
+            final AddCommentAction addCommentAction = new AddCommentAction(reviewCommentSink, changeInfo, editor2, filePath);
+            addCommentAction.setContextComponent(editor2.getComponent());
+            group.add(addCommentAction);
+            PopupHandler.installUnknownPopupHandler(editor2.getContentComponent(), group, ActionManager.getInstance());
+        }
+    }
+
+    private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo) {
         List<CommentInfo> fileComments = Collections.emptyList();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             if (filePath.getName().endsWith(entry.getKey())) {
@@ -98,10 +123,15 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
             }
         }
 
+        List< CommentInput > commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
+        for (CommentInput commentInput : commentInputsFromSink) {
+            fileComments.add(commentInput.toCommentInfo());
+        }
+
         final MarkupModel markup = editor2.getMarkupModel();
         for (CommentInfo fileComment : fileComments) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(fileComment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
-            highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment));
+            highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo));
         }
     }
 }

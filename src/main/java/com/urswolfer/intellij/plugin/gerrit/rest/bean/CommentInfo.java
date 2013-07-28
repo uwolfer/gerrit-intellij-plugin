@@ -16,88 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
-import com.google.gson.annotations.SerializedName;
-
-import java.util.Date;
-
 /**
  * @author Urs Wolfer
  */
-public class CommentInfo {
-    private String kind;
-    private String id;
-    private String path;
-    private String side;
-    private int line;
-    @SerializedName("in_reply_to")
-    private String inReplyTo;
-    private String message;
-    private Date updated;
+public class CommentInfo extends CommentBase {
     private AccountInfo author;
-
-    public String getKind() {
-        return kind;
-    }
-
-    public void setKind(String kind) {
-        this.kind = kind;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
-    public String getSide() {
-        return side;
-    }
-
-    public void setSide(String side) {
-        this.side = side;
-    }
-
-    public int getLine() {
-        return line;
-    }
-
-    public void setLine(int line) {
-        this.line = line;
-    }
-
-    public String getInReplyTo() {
-        return inReplyTo;
-    }
-
-    public void setInReplyTo(String inReplyTo) {
-        this.inReplyTo = inReplyTo;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public Date getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(Date updated) {
-        this.updated = updated;
-    }
 
     public AccountInfo getAuthor() {
         return author;

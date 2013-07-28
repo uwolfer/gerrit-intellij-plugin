@@ -17,8 +17,13 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
+import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,20 +34,35 @@ import javax.swing.*;
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final CommentInfo myFileComment;
+    private final ReviewCommentSink myReviewCommentSink;
+    private final ChangeInfo myChangeInfo;
 
-    public CommentGutterIconRenderer(CommentInfo fileComment) {
+    public CommentGutterIconRenderer(CommentInfo fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo) {
         myFileComment = fileComment;
+        myReviewCommentSink = reviewCommentSink;
+        myChangeInfo = changeInfo;
     }
 
     @NotNull
     @Override
     public Icon getIcon() {
-        return AllIcons.Toolwindows.ToolWindowMessages;
+        if (isNewCommentFromMyself()) {
+            return AllIcons.Toolwindows.ToolWindowTodo;
+        } else {
+            return AllIcons.Toolwindows.ToolWindowMessages;
+        }
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return myFileComment.equals(obj);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CommentGutterIconRenderer that = (CommentGutterIconRenderer) o;
+
+        if (!myFileComment.equals(that.myFileComment)) return false;
+
+        return true;
     }
 
     @Override
@@ -54,5 +74,33 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Override
     public String getTooltipText() {
         return String.format("<strong>%s</strong><br/>%s", myFileComment.getAuthor().getName(), myFileComment.getMessage());
+    }
+
+    @Nullable
+    @Override
+    public ActionGroup getPopupMenuActions() {
+        if (isNewCommentFromMyself()) {
+            DefaultActionGroup actionGroup = new DefaultActionGroup();
+            RemoveCommentAction action = new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo);
+            action.setEnabled(true);
+            actionGroup.add(action);
+
+            actionGroup = null; // TODO FIXME: does not work yet, action is always disabled. thus do not return action. remove this line when fixes
+
+            return actionGroup;
+        } else {
+            return null;
+        }
+    }
+
+    private boolean isNewCommentFromMyself() {
+        return myFileComment.getAuthor().getName().equals("Myself");
+    }
+
+    @Nullable
+    @Override
+    public AnAction getClickAction() {
+        // TODO: remove gutter also when removing comment
+        return new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo);
     }
 }

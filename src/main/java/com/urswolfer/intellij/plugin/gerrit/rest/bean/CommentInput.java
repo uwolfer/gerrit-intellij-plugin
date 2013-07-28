@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.util;
-
-import com.intellij.openapi.actionSystem.DataKey;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
 /**
  * @author Urs Wolfer
  */
-public interface GerritDataKeys {
-    DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
-    DataKey<ReviewCommentSink> REVIEW_COMMENT_SINK = DataKey.create("gerrit.ReviewCommentSink");
+public class CommentInput extends CommentBase {
+
+    public CommentInfo toCommentInfo() {
+        CommentInfo commentInfo = new CommentInfo();
+        commentInfo.setMessage(getMessage());
+        commentInfo.setLine(getLine());
+        commentInfo.setPath(getPath());
+        AccountInfo author = new AccountInfo();
+        author.setName("Myself");
+        commentInfo.setAuthor(author);
+        return commentInfo;
+    }
 }

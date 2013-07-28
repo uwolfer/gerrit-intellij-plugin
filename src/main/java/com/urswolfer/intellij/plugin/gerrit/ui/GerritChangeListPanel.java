@@ -175,10 +175,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private ColumnInfo[] generateColumnsInfo(@NotNull List<ChangeInfo> changes) {
         ItemAndWidth hash = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
+        ItemAndWidth project = new ItemAndWidth("", 0);
+        ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
         for (ChangeInfo change : changes) {
             hash = getMax(hash, getHash(change));
             author = getMax(author, getOwner(change));
+            project = getMax(project, getProject(change));
+            branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
         }
 
@@ -199,6 +203,18 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getOwner(change);
+                    }
+                },
+                new GerritChangeColumnInfo("Project", project.myItem) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getProject(change);
+                    }
+                },
+                new GerritChangeColumnInfo("Branch", branch.myItem) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getBranch(change);
                     }
                 },
                 new GerritChangeColumnInfo("Updated", time.myItem) {
@@ -229,11 +245,19 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getHash(ChangeInfo change) {
-        return change.getChangeId();
+        return change.getChangeId().substring(0, 9);
     }
 
     private static String getOwner(ChangeInfo change) {
         return change.getOwner().getName();
+    }
+
+    private static String getProject(ChangeInfo change) {
+        return change.getProject();
+    }
+
+    private static String getBranch(ChangeInfo change) {
+        return change.getBranch();
     }
 
     private static String getTime(ChangeInfo change) {

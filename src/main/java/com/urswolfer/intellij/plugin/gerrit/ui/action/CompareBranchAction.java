@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.collect.Iterables;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -60,7 +59,7 @@ public class CompareBranchAction extends AnAction implements DumbAware {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
 
-        final GitRepository gitRepository = Iterables.get(repositoriesFromRoots, 0);
+        final GitRepository gitRepository = GerritGitUtil.getFirstGitRepository(project);
 
         final String branchName = "FETCH_HEAD";
         GitLocalBranch currentBranch = gitRepository.getCurrentBranch();

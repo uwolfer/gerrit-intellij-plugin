@@ -18,6 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
@@ -35,12 +37,16 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
     private final CommentInfo myComment;
     private final ReviewCommentSink myReviewCommentSink;
     private final ChangeInfo myChangeInfo;
+    private final RangeHighlighter myHighlighter;
+    private final MarkupModel myMarkup;
 
-    public RemoveCommentAction(CommentInfo comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo) {
+    public RemoveCommentAction(CommentInfo comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         super("Remove Comment", "Remove selected comment", AllIcons.Actions.Delete);
         myComment = comment;
         myReviewCommentSink = reviewCommentSink;
         myChangeInfo = changeInfo;
+        myHighlighter = highlighter;
+        myMarkup = markup;
     }
 
     @Override
@@ -48,9 +54,12 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
         List<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(myChangeInfo.getId());
         for (int i = 0; i < commentInputs.size(); i++) {
             CommentInput commentInput = commentInputs.get(i);
-            if (commentInput.equals(myComment)) {
+            //noinspection EqualsBetweenInconvertibleTypes
+            if (commentInput.equals(myComment)) { // implemented in base class
                 int index = commentInputs.indexOf(commentInput);
                 commentInputs.remove(index);
+                myMarkup.removeHighlighter(myHighlighter);
+                myHighlighter.dispose();
             }
         }
     }

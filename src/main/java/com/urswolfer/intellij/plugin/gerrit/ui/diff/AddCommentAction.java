@@ -81,7 +81,7 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
                 if (comment != null) {
                     final MarkupModel markup = myEditor.getMarkupModel();
                     final RangeHighlighter highlighter = markup.addLineHighlighter(comment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
-                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment.toCommentInfo(), myReviewCommentSink, myChangeInfo));
+                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment.toCommentInfo(), myReviewCommentSink, myChangeInfo, highlighter, markup));
                 }
             }
         });

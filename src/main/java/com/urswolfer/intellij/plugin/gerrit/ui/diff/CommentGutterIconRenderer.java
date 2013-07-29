@@ -21,6 +21,8 @@ import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
@@ -36,11 +38,15 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final CommentInfo myFileComment;
     private final ReviewCommentSink myReviewCommentSink;
     private final ChangeInfo myChangeInfo;
+    private final RangeHighlighter myHighlighter;
+    private final MarkupModel myMarkup;
 
-    public CommentGutterIconRenderer(CommentInfo fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo) {
+    public CommentGutterIconRenderer(CommentInfo fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         myFileComment = fileComment;
         myReviewCommentSink = reviewCommentSink;
         myChangeInfo = changeInfo;
+        myHighlighter = highlighter;
+        myMarkup = markup;
     }
 
     @NotNull
@@ -81,7 +87,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public ActionGroup getPopupMenuActions() {
         if (isNewCommentFromMyself()) {
             DefaultActionGroup actionGroup = new DefaultActionGroup();
-            RemoveCommentAction action = new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo);
+            RemoveCommentAction action = new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo, myHighlighter, myMarkup);
             action.setEnabled(true);
             actionGroup.add(action);
 
@@ -101,6 +107,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Override
     public AnAction getClickAction() {
         // TODO: remove gutter also when removing comment
-        return new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo);
+        return new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo, myHighlighter, myMarkup);
     }
 }

@@ -16,26 +16,30 @@
  */
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import java.io.IOException;
-
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.URI;
-
+import com.google.common.base.Throwables;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import org.apache.commons.httpclient.HostConfiguration;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpMethod;
+import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
+import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.security.validator.ValidatorException;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+
 /**
  * Provides various methods to work with SSL certificate protected HTTPS connections.
  *
- * Parts based on org.jetbrains.plugins.github.SslSupport
+ * Parts based on org.jetbrains.plugins.github.GithubSslSupport
  *
  * @author Kirill Likhodedov
  * @author Urs Wolfer
@@ -87,9 +91,9 @@ public class SslSupport {
         if (isTrusted(host)) {
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
             // see the javadoc to EasySSLProtocolSocketFactory for details
+            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443);
             HostConfiguration hc = new HostConfiguration();
-//            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory)new EasySSLProtocolSocketFactory(), 443);
-//            hc.setHost(host, 443, easyHttps);
+            hc.setHost(host, 443, easyHttps);
             String relativeUri = new URI(uri.getPathQuery(), false).getURI();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
@@ -110,7 +114,11 @@ public class SslSupport {
     }
 
     private static void saveToTrusted(@NotNull String host) {
-        GerritSettings.getInstance().addTrustedHost(host);
+        try {
+            GerritSettings.getInstance().addTrustedHost(new java.net.URI(host).getHost());
+        } catch (URISyntaxException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     @CalledInAwt

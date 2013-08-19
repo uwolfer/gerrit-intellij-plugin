@@ -44,15 +44,16 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
-import git4idea.GitUtil;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.Callable;
 
 /**
@@ -63,6 +64,8 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     private RepositoryChangesBrowser myRepositoryChangesBrowser;
     private Timer myTimer;
     private Set<String> myNotifiedChanges = new HashSet<String>();
+    private GerritChangeDetailsPanel myDetailsPanel;
+    private Splitter myDetailsSplitter;
 
     public GerritToolWindowFactory() {
     }
@@ -74,7 +77,6 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         changeListPanel = new GerritChangeListPanel(Lists.<ChangeInfo>newArrayList(), null);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(false, true);
-        panel.setContent(changeListPanel);
 
         ActionToolbar toolbar = createToolbar();
         toolbar.setTargetComponent(changeListPanel);
@@ -82,10 +84,25 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
 
         myRepositoryChangesBrowser = createRepositoryChangesBrowser(project);
 
-        Splitter mySplitter = new Splitter(false, 0.7f);
-        mySplitter.setFirstComponent(panel);
-        mySplitter.setSecondComponent(myRepositoryChangesBrowser);
-        component.getParent().add(mySplitter);
+        myDetailsSplitter = new Splitter(true, 0.6f);
+        myDetailsSplitter.setShowDividerControls(true);
+
+        changeListPanel.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT | SideBorder.BOTTOM));
+        myDetailsSplitter.setFirstComponent(changeListPanel);
+
+        myDetailsPanel = new GerritChangeDetailsPanel(project);
+        JPanel details = myDetailsPanel.getComponent();
+        details.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT));
+        myDetailsSplitter.setSecondComponent(details);
+
+        Splitter myHorizontalSplitter = new Splitter(false, 0.7f);
+        myHorizontalSplitter.setShowDividerControls(true);
+        myHorizontalSplitter.setFirstComponent(myDetailsSplitter);
+        myHorizontalSplitter.setSecondComponent(myRepositoryChangesBrowser);
+
+        panel.setContent(myHorizontalSplitter);
+
+        component.getParent().add(panel);
 
         reloadChanges(project, false);
 
@@ -102,22 +119,27 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeInfo) {
-                updateChangesBrowser(changeInfo, project);
+                changeSelected(changeInfo, project);
             }
         });
         return repositoryChangesBrowser;
     }
 
-    private void updateChangesBrowser(ChangeInfo changeInfo, final Project project) {
+    private void changeSelected(ChangeInfo changeInfo, final Project project) {
+        final GerritSettings settings = GerritSettings.getInstance();
+        final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
+                settings.getLogin(), settings.getPassword(), changeInfo.getNumber());
+
+        myDetailsPanel.setData(changeDetails);
+
+        updateChangesBrowser(changeDetails, project);
+    }
+
+    private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
         myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
         final GitRepository gitRepository = GerritGitUtil.getFirstGitRepository(project);
         final VirtualFile virtualFile = gitRepository.getGitDir();
-        final GerritSettings settings = GerritSettings.getInstance();
-
-        final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeInfo.getNumber());
-
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
         String ref = GerritUtil.getRef(changeDetails);

@@ -135,7 +135,7 @@ public class GerritChangeDetailsPanel {
                     .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.getStatus()).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
 
-            if (changeInfo.getMessages().length > 0) {
+            if (changeInfo.getMessages() != null && changeInfo.getMessages().length > 0) {
                 sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
                 for (ChangeMessageInfo changeMessageInfo : changeInfo.getMessages()) {
                     sb.append(changeMessageInfo.getAuthor().getName()).append(": ");

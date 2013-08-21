@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.1.5</version>
+  <version>0.1.6</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[

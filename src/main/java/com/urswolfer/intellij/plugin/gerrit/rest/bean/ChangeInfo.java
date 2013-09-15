@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.TreeMap;
 
@@ -29,6 +30,7 @@ public class ChangeInfo {
     private String id;
     private String project;
     private String branch;
+    private String topic;
     @SerializedName("change_id")
     private String changeId;
     private String subject;
@@ -41,6 +43,7 @@ public class ChangeInfo {
     @SerializedName("_number")
     private String number;
     private AccountInfo owner;
+    private ChangeMessageInfo[] messages;
 
     @SerializedName("current_revision")
     private String currentRevision;
@@ -77,6 +80,14 @@ public class ChangeInfo {
 
     public void setBranch(String branch) {
         this.branch = branch;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getChangeId() {
@@ -167,6 +178,14 @@ public class ChangeInfo {
         this.revisions = revisions;
     }
 
+    public ChangeMessageInfo[] getMessages() {
+        return messages;
+    }
+
+    public void setMessages(ChangeMessageInfo[] messages) {
+        this.messages = messages;
+    }
+
     @Override
     public String toString() {
         return "ChangeInfo{" +
@@ -174,15 +193,19 @@ public class ChangeInfo {
                 ", id='" + id + '\'' +
                 ", project='" + project + '\'' +
                 ", branch='" + branch + '\'' +
+                ", topic='" + topic + '\'' +
                 ", changeId='" + changeId + '\'' +
                 ", subject='" + subject + '\'' +
                 ", status='" + status + '\'' +
-                ", created='" + created + '\'' +
-                ", updated='" + updated + '\'' +
+                ", created=" + created +
+                ", updated=" + updated +
                 ", mergeable=" + mergeable +
                 ", sortKey='" + sortKey + '\'' +
                 ", number='" + number + '\'' +
                 ", owner=" + owner +
+                ", messages=" + Arrays.toString(messages) +
+                ", currentRevision='" + currentRevision + '\'' +
+                ", revisions=" + revisions +
                 '}';
     }
 }

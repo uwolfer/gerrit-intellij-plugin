@@ -20,6 +20,8 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.intellij.icons.AllIcons;
+import com.intellij.notification.NotificationDisplayType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diff.DiffManager;
@@ -61,6 +63,7 @@ import java.util.concurrent.Callable;
 
 /**
  * @author Urs Wolfer
+ * @author Konrad Dobrzynski
  */
 public class GerritToolWindowFactory implements ToolWindowFactory {
     private GerritChangeListPanel changeListPanel;
@@ -217,7 +220,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
                 return Collections.emptyList();
             }
         }
-        return GerritUtil.getChanges(apiUrl, settings.getLogin(), settings.getPassword());
+        return GerritUtil.getChangesForProject(apiUrl, settings.getLogin(), settings.getPassword(), project);
     }
 
     private ActionToolbar createToolbar() {

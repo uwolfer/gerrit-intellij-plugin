@@ -18,15 +18,20 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationListener;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -36,13 +41,18 @@ import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritNotificationConstant;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
+import git4idea.GitUtil;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
+import git4idea.repo.GitRemote;
+import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -51,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Parts based on org.jetbrains.plugins.github.GithubUtil
  *
  * @author Urs Wolfer
+ * @author Konrad Dobrzynski
  */
 public class GerritUtil {
 
@@ -119,6 +130,46 @@ public class GerritUtil {
     @NotNull
     public static List<ChangeInfo> getChangesToReview(@NotNull String url, @NotNull String login, @NotNull String password) {
         return getChanges(url, login, password, "?q=is:open+reviewer:self");
+    }
+
+    /**
+     * Provide information only for current project
+     */
+    @NotNull
+    public static List<ChangeInfo> getChangesForProject(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull final Project project) {
+        String projectName = "";
+        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+        if (repositories.isEmpty()) {
+            //Show notification
+            showAddGitRepositoryNotification(project);
+            return Lists.newArrayList();
+        }
+
+        GitRemote gitRemote = Iterables.getFirst(repositories.get(0).getRemotes(), null);
+        if (gitRemote == null) {
+            notifyError(project, "Don't have remote to fetch", "Git repository doesn't have any remote. <br/> Please add one and try again.");
+            return Lists.newArrayList();
+        }
+        for (String repositoryUrl : gitRemote.getUrls()) {
+            if (repositoryUrl.contains(url)) {
+                projectName = repositoryUrl.replace(url + "/", "");
+                break;
+            }
+        }
+        return getChanges(url, login, password, "?q=is:open+project:" + projectName);
+    }
+
+    public static void showAddGitRepositoryNotification(final Project project) {
+        Notifications.Bus.notify(new Notification(GerritNotificationConstant.ERROR_GROUP_ID, "Insufficient dependencies", "Please add git repository <br/> <a href='vcs'>Add vcs root</a>", NotificationType.WARNING, new NotificationListener() {
+            @Override
+            public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
+                if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    if (event.getDescription().equals("vcs")) {
+                        ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
+                    }
+                }
+            }
+        }));
     }
 
     @NotNull

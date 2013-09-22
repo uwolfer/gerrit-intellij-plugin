@@ -51,19 +51,19 @@ public class GerritApiUtil {
 
     @Nullable
     public static JsonElement getRequest(@NotNull String host, @NotNull String login, @NotNull String password,
-                                                         @NotNull String path) {
+                                         @NotNull String path) {
         return request(host, login, password, path, null, false);
     }
 
     @Nullable
     public static JsonElement postRequest(@NotNull String host, @Nullable String login, @Nullable String password,
-                                                          @NotNull String path, @Nullable String requestBody) {
+                                          @NotNull String path, @Nullable String requestBody) {
         return request(host, login, password, path, requestBody, true);
     }
 
     @Nullable
     private static JsonElement request(@NotNull String host, @Nullable String login, @Nullable String password,
-                                                       @NotNull String path, @Nullable String requestBody, boolean post) {
+                                       @NotNull String path, @Nullable String requestBody, boolean post) {
         HttpMethod method = null;
         try {
             method = doREST(host, login, password, path, requestBody, post);

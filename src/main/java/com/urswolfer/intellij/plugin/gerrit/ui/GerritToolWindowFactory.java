@@ -224,7 +224,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         final GerritSettings settings = GerritSettings.getInstance();
 
         if (!settings.getReviewNotifications()) {
-           return;
+            return;
         }
 
         String apiUrl = GerritApiUtil.getApiUrl();

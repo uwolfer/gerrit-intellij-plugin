@@ -60,15 +60,13 @@ public class GerritUtil {
                                                         @NotNull final ThrowableComputable<T, Exception> computable) {
         try {
             return doAccessToGerritWithModalProgress(project, computable);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             SslSupport sslSupport = SslSupport.getInstance();
             if (SslSupport.isCertificateException(e)) {
                 if (sslSupport.askIfShouldProceed(host)) {
                     // retry with the host being already trusted
                     return doAccessToGerritWithModalProgress(project, computable);
-                }
-                else {
+                } else {
                     return null;
                 }
             }
@@ -84,8 +82,7 @@ public class GerritUtil {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     result.set(computable.compute());
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     exception.set(e);
                 }
             }
@@ -223,14 +220,14 @@ public class GerritUtil {
 
     /**
      * Checks if user has set up correct user credentials for access in the settings.
+     *
      * @return true if we could successfully login with these credentials, false if authentication failed or in the case of some other error.
      */
     public static boolean checkCredentials(final Project project) {
         final GerritSettings settings = GerritSettings.getInstance();
         try {
             return checkCredentials(project, settings.getHost(), settings.getLogin(), settings.getPassword());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
             LOG.info(e);
@@ -239,7 +236,7 @@ public class GerritUtil {
     }
 
     public static boolean checkCredentials(Project project, final String url, final String login, final String password) {
-        if (StringUtil.isEmptyOrSpaces(url) || StringUtil.isEmptyOrSpaces(login) || StringUtil.isEmptyOrSpaces(password)){
+        if (StringUtil.isEmptyOrSpaces(url) || StringUtil.isEmptyOrSpaces(login) || StringUtil.isEmptyOrSpaces(password)) {
             return false;
         }
         Boolean result = accessToGerritWithModalProgress(project, url, new ThrowableComputable<Boolean, Exception>() {
@@ -257,10 +254,10 @@ public class GerritUtil {
      */
     @Nullable
     public static List<ProjectInfo> getAvailableProjects(final Project project) {
-        while (!checkCredentials(project)){
+        while (!checkCredentials(project)) {
             final LoginDialog dialog = new LoginDialog(project);
             dialog.show();
-            if (!dialog.isOK()){
+            if (!dialog.isOK()) {
                 return null;
             }
         }
@@ -278,9 +275,9 @@ public class GerritUtil {
 
     public static String getRef(ChangeInfo changeDetails) {
         String ref = null;
-        final TreeMap<String,RevisionInfo> revisions = changeDetails.getRevisions();
+        final TreeMap<String, RevisionInfo> revisions = changeDetails.getRevisions();
         for (RevisionInfo revisionInfo : revisions.values()) {
-            final TreeMap<String,FetchInfo> fetch = revisionInfo.getFetch();
+            final TreeMap<String, FetchInfo> fetch = revisionInfo.getFetch();
             for (FetchInfo fetchInfo : fetch.values()) {
                 ref = fetchInfo.getRef();
             }

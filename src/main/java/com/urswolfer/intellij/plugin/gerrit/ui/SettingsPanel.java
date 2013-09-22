@@ -17,16 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.io.IOException;
-
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -34,6 +24,14 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.GuiUtils;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsPanel
@@ -72,7 +70,7 @@ public class SettingsPanel {
                     } else {
                         Messages.showErrorDialog(myPane, "Can't login to " + getHost() + " using given credentials", "Login Failure");
                     }
-                } catch (IOException ex) {
+                } catch (Exception ex) {
                     LOG.info(ex);
                     Messages.showErrorDialog(myPane, String.format("Can't login to %s: %s", getHost(), GerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");

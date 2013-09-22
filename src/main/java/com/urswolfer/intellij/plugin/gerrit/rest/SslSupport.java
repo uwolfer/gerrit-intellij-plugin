@@ -35,6 +35,7 @@ import sun.security.validator.ValidatorException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.List;
 
 /**
  * Provides various methods to work with SSL certificate protected HTTPS connections.
@@ -105,8 +106,14 @@ public class SslSupport {
         throw e;
     }
 
-    public static boolean isCertificateException(IOException e) {
-        return e.getCause() instanceof ValidatorException;
+    public static boolean isCertificateException(Exception e) {
+        List<Throwable> causalChain = Throwables.getCausalChain(e);
+        for (Throwable throwable : causalChain) {
+            if (throwable instanceof ValidatorException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isTrusted(@NotNull String host) {

@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import javax.swing.*;
-
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -27,6 +25,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer

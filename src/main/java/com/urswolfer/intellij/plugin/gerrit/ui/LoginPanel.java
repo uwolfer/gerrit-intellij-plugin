@@ -17,16 +17,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import java.awt.*;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
+import com.intellij.ui.DocumentAdapter;
+import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-
-import com.intellij.ui.DocumentAdapter;
-import com.intellij.util.ui.UIUtil;
+import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubLoginPanel

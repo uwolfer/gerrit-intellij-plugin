@@ -16,9 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
-import java.util.TreeMap;
-
 import com.google.gson.annotations.SerializedName;
+
+import java.util.TreeMap;
 
 /**
  * @author Urs Wolfer

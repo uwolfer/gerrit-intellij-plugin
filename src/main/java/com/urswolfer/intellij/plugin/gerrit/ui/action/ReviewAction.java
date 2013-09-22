@@ -22,10 +22,13 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
+import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -37,12 +40,14 @@ public class ReviewAction extends AbstractChangeAction {
     private final String label;
     private final int rating;
     private final boolean showDialog;
+    private final ReviewCommentSink myReviewCommentSink;
 
-    public ReviewAction(String label, int rating, Icon icon, boolean showDialog) {
+    public ReviewAction(String label, int rating, Icon icon, boolean showDialog, ReviewCommentSink reviewCommentSink) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
+        myReviewCommentSink = reviewCommentSink;
     }
 
     @Override
@@ -54,6 +59,11 @@ public class ReviewAction extends AbstractChangeAction {
 
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);
+
+        List<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
+        for (CommentInput commentInput : commentInputs) {
+            reviewInput.addComment(commentInput.getPath(), commentInput);
+        }
 
         boolean submitChange = false;
         if (showDialog) {
@@ -75,5 +85,7 @@ public class ReviewAction extends AbstractChangeAction {
         if (submitChange) {
             new SubmitAction().actionPerformed(anActionEvent);
         }
+
+        myReviewCommentSink.getComments().remove(changeDetails.getId());
     }
 }

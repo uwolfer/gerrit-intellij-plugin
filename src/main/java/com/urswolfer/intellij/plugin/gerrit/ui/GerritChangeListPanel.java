@@ -44,7 +44,6 @@ import java.util.List;
 
 /**
  * A table with the list of changes.
- *
  * Parts based on git4idea.ui.GitCommitListPanel
  *
  * @author Kirill Likhodedov

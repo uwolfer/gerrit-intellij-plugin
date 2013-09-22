@@ -16,10 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import javax.swing.*;
-
 import com.intellij.openapi.ui.DialogWrapper;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer

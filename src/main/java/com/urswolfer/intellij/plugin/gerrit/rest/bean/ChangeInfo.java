@@ -16,11 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.Arrays;
 import java.util.Date;
 import java.util.TreeMap;
-
-import com.google.gson.annotations.SerializedName;
 
 /**
  * @author Urs Wolfer

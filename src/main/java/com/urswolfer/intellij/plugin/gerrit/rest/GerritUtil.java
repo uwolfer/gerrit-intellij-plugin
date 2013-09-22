@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -59,35 +60,32 @@ public class GerritUtil {
 
     @Nullable
     public static <T> T accessToGerritWithModalProgress(@NotNull final Project project, @NotNull String host,
-                                                        @NotNull final ThrowableComputable<T, IOException> computable) throws IOException {
+                                                        @NotNull final ThrowableComputable<T, Exception> computable) {
         try {
             return doAccessToGerritWithModalProgress(project, computable);
-        }
-        catch (IOException e) {
+        } catch (Exception e) {
             SslSupport sslSupport = SslSupport.getInstance();
             if (SslSupport.isCertificateException(e)) {
                 if (sslSupport.askIfShouldProceed(host)) {
                     // retry with the host being already trusted
                     return doAccessToGerritWithModalProgress(project, computable);
-                }
-                else {
+                } else {
                     return null;
                 }
             }
-            throw e;
+            throw Throwables.propagate(e);
         }
     }
 
     private static <T> T doAccessToGerritWithModalProgress(@NotNull final Project project,
-                                                           @NotNull final ThrowableComputable<T, IOException> computable) throws IOException {
+                                                           @NotNull final ThrowableComputable<T, Exception> computable) {
         final AtomicReference<T> result = new AtomicReference<T>();
-        final AtomicReference<IOException> exception = new AtomicReference<IOException>();
+        final AtomicReference<Exception> exception = new AtomicReference<Exception>();
         ProgressManager.getInstance().run(new Task.Modal(project, "Access to Gerrit", true) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     result.set(computable.compute());
-                }
-                catch (IOException e) {
+                } catch (Exception e) {
                     exception.set(e);
                 }
             }
@@ -96,29 +94,21 @@ public class GerritUtil {
         if (exception.get() == null) {
             return result.get();
         }
-        throw exception.get();
+        throw Throwables.propagate(exception.get());
     }
 
     public static void postReview(@NotNull String url, @NotNull String login, @NotNull String password,
                                   @NotNull String changeId, @NotNull String revision, @NotNull ReviewInput reviewInput) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
-        try {
-            String json = new Gson().toJson(reviewInput);
-            GerritApiUtil.postRequest(url, login, password, request, json);
-        } catch (IOException e) {
-            LOG.error(e);
-        }
+        String json = new Gson().toJson(reviewInput);
+        GerritApiUtil.postRequest(url, login, password, request, json);
     }
 
     public static void postSubmit(@NotNull String url, @NotNull String login, @NotNull String password,
                                   @NotNull String changeId, @NotNull SubmitInput submitInput) {
         final String request = "/a/changes/" + changeId + "/submit";
-        try {
-            String json = new Gson().toJson(submitInput);
-            GerritApiUtil.postRequest(url, login, password, request, json);
-        } catch (IOException e) {
-            LOG.error(e);
-        }
+        String json = new Gson().toJson(submitInput);
+        GerritApiUtil.postRequest(url, login, password, request, json);
     }
 
     @NotNull
@@ -134,31 +124,21 @@ public class GerritUtil {
     @NotNull
     public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String query) {
         final String request = "/a/changes/" + query;
-        try {
-            JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
-            if (result == null) {
-                return Collections.emptyList();
-            }
-            return parseChangeInfos(result);
-        } catch (IOException e) {
-            LOG.error(e);
+        JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
+        if (result == null) {
             return Collections.emptyList();
         }
+        return parseChangeInfos(result);
     }
 
     @NotNull
     public static ChangeInfo getChangeDetails(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String changeNr) {
         final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION";
-        try {
-            JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
-            if (result == null) {
-                throw new RuntimeException("No valid result available.");
-            }
-            return parseSingleChangeInfos(result.getAsJsonArray().get(0).getAsJsonObject());
-        } catch (IOException e) {
-            LOG.error(e);
-            throw new RuntimeException(e);
+        JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
+        if (result == null) {
+            throw new RuntimeException("No valid result available.");
         }
+        return parseSingleChangeInfos(result.getAsJsonArray().get(0).getAsJsonObject());
     }
 
     @NotNull
@@ -199,9 +179,6 @@ public class GerritUtil {
         } catch (NotFoundException e) {
             LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
             return Maps.newTreeMap();
-        } catch (IOException e) {
-            LOG.error(e);
-            return Maps.newTreeMap();
         }
     }
 
@@ -234,14 +211,14 @@ public class GerritUtil {
                 .create();
     }
 
-    private static boolean testConnection(final String url, final String login, final String password) throws IOException {
+    private static boolean testConnection(final String url, final String login, final String password) {
         AccountInfo user = retrieveCurrentUserInfo(url, login, password);
         return user != null;
     }
 
     @Nullable
     private static AccountInfo retrieveCurrentUserInfo(@NotNull String url, @NotNull String login,
-                                                      @NotNull String password) throws IOException {
+                                                       @NotNull String password) {
         JsonElement result = GerritApiUtil.getRequest(url, login, password, "/a/accounts/self");
         return parseUserInfo(result);
     }
@@ -263,17 +240,11 @@ public class GerritUtil {
     @NotNull
     private static List<ProjectInfo> getAvailableProjects(@NotNull String url, @NotNull String login, @NotNull String password) {
         final String request = "/a/projects/";
-        try {
-            JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
-            if (result == null) {
-                return Collections.emptyList();
-            }
-            return parseProjectInfos(result);
-        }
-        catch (IOException e) {
-            LOG.error(e);
+        JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
+        if (result == null) {
             return Collections.emptyList();
         }
+        return parseProjectInfos(result);
     }
 
     @NotNull
@@ -298,14 +269,14 @@ public class GerritUtil {
 
     /**
      * Checks if user has set up correct user credentials for access in the settings.
+     *
      * @return true if we could successfully login with these credentials, false if authentication failed or in the case of some other error.
      */
     public static boolean checkCredentials(final Project project) {
         final GerritSettings settings = GerritSettings.getInstance();
         try {
             return checkCredentials(project, settings.getHost(), settings.getLogin(), settings.getPassword());
-        }
-        catch (IOException e) {
+        } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
             LOG.info(e);
@@ -313,13 +284,13 @@ public class GerritUtil {
         }
     }
 
-    public static boolean checkCredentials(Project project, final String url, final String login, final String password) throws IOException {
-        if (StringUtil.isEmptyOrSpaces(url) || StringUtil.isEmptyOrSpaces(login) || StringUtil.isEmptyOrSpaces(password)){
+    public static boolean checkCredentials(Project project, final String url, final String login, final String password) {
+        if (StringUtil.isEmptyOrSpaces(url) || StringUtil.isEmptyOrSpaces(login) || StringUtil.isEmptyOrSpaces(password)) {
             return false;
         }
-        Boolean result = accessToGerritWithModalProgress(project, url, new ThrowableComputable<Boolean, IOException>() {
+        Boolean result = accessToGerritWithModalProgress(project, url, new ThrowableComputable<Boolean, Exception>() {
             @Override
-            public Boolean compute() throws IOException {
+            public Boolean compute() throws Exception {
                 ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
                 return testConnection(url, login, password);
             }
@@ -331,20 +302,20 @@ public class GerritUtil {
      * Shows Gerrit login settings if credentials are wrong or empty and return the list of all projects
      */
     @Nullable
-    public static List<ProjectInfo> getAvailableProjects(final Project project) throws IOException {
-        while (!checkCredentials(project)){
+    public static List<ProjectInfo> getAvailableProjects(final Project project) {
+        while (!checkCredentials(project)) {
             final LoginDialog dialog = new LoginDialog(project);
             dialog.show();
-            if (!dialog.isOK()){
+            if (!dialog.isOK()) {
                 return null;
             }
         }
         // Otherwise our credentials are valid and they are successfully stored in settings
         final GerritSettings settings = GerritSettings.getInstance();
         final String validPassword = settings.getPassword();
-        return accessToGerritWithModalProgress(project, settings.getHost(), new ThrowableComputable<List<ProjectInfo>, IOException>() {
+        return accessToGerritWithModalProgress(project, settings.getHost(), new ThrowableComputable<List<ProjectInfo>, Exception>() {
             @Override
-            public List<ProjectInfo> compute() throws IOException {
+            public List<ProjectInfo> compute() throws Exception {
                 ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
                 return getAvailableProjects(settings.getHost(), settings.getLogin(), validPassword);
             }
@@ -353,9 +324,9 @@ public class GerritUtil {
 
     public static String getRef(ChangeInfo changeDetails) {
         String ref = null;
-        final TreeMap<String,RevisionInfo> revisions = changeDetails.getRevisions();
+        final TreeMap<String, RevisionInfo> revisions = changeDetails.getRevisions();
         for (RevisionInfo revisionInfo : revisions.values()) {
-            final TreeMap<String,FetchInfo> fetch = revisionInfo.getFetch();
+            final TreeMap<String, FetchInfo> fetch = revisionInfo.getFetch();
             for (FetchInfo fetchInfo : fetch.values()) {
                 ref = fetchInfo.getRef();
             }
@@ -384,7 +355,7 @@ public class GerritUtil {
     }
 
     @NotNull
-    public static String getErrorTextFromException(@NotNull IOException e) {
+    public static String getErrorTextFromException(@NotNull Exception e) {
         return e.getMessage();
     }
 

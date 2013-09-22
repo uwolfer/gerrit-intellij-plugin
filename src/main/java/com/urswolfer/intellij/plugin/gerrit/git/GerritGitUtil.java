@@ -139,7 +139,7 @@ public class GerritGitUtil {
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
     private static boolean cherryPick(@NotNull GitRepository repository, @NotNull GitCommit commit,
-                               @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
+                                      @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
@@ -148,26 +148,22 @@ public class GerritGitUtil {
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
-        }
-        else if (conflictDetector.hasHappened()) {
+        } else if (conflictDetector.hasHappened()) {
             return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
                     commit.getShortHash().getString(), commit.getAuthor(),
                     commit.getSubject()).merge();
-        }
-        else if (untrackedFilesDetector.wasMessageDetected()) {
+        } else if (untrackedFilesDetector.wasMessageDetected()) {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
                     "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
 
             UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, platformFacade, untrackedFilesDetector.getFiles(),
                     "cherry-pick", description);
             return false;
-        }
-        else if (localChangesOverwrittenDetector.hasHappened()) {
+        } else if (localChangesOverwrittenDetector.hasHappened()) {
             GerritUtil.notifyError(project, "Cherry-Pick Error",
                     "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed.");
             return false;
-        }
-        else {
+        } else {
             GerritUtil.notifyError(project, "Cherry-Pick Error", result.getErrorOutputAsHtmlString());
             return false;
         }
@@ -281,7 +277,6 @@ public class GerritGitUtil {
     }
 
 
-
     @NotNull
     public static Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {
         final List<GitCommit> headToBranch;
@@ -289,8 +284,7 @@ public class GerritGitUtil {
         try {
             headToBranch = GitHistoryUtils.history(project, repository.getRoot(), ".." + branchName);
             branchToHead = GitHistoryUtils.history(project, repository.getRoot(), branchName + "..");
-        }
-        catch (VcsException e) {
+        } catch (VcsException e) {
             // we treat it as critical and report an error
             throw new GitExecutionException("Couldn't get [git log .." + branchName + "] on repository [" + repository.getRoot() + "]", e);
         }

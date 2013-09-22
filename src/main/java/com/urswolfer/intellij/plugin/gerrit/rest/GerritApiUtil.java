@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.base.Throwables;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -50,28 +51,37 @@ public class GerritApiUtil {
 
     @Nullable
     public static JsonElement getRequest(@NotNull String host, @NotNull String login, @NotNull String password,
-                                                         @NotNull String path) throws IOException {
+                                         @NotNull String path) {
         return request(host, login, password, path, null, false);
     }
 
     @Nullable
     public static JsonElement postRequest(@NotNull String host, @Nullable String login, @Nullable String password,
-                                                          @NotNull String path, @Nullable String requestBody) throws IOException {
+                                          @NotNull String path, @Nullable String requestBody) {
         return request(host, login, password, path, requestBody, true);
     }
 
     @Nullable
     private static JsonElement request(@NotNull String host, @Nullable String login, @Nullable String password,
-                                                       @NotNull String path, @Nullable String requestBody, boolean post) throws IOException {
+                                       @NotNull String path, @Nullable String requestBody, boolean post) {
         HttpMethod method = null;
         try {
             method = doREST(host, login, password, path, requestBody, post);
             String resp = method.getResponseBodyAsString();
+            if (method.getStatusCode() != 200) {
+                String message = String.format("Request not successful. Status-Code: %s, Message: %s.", method.getStatusCode(), method.getStatusText());
+                LOG.warn(message);
+                throw new RuntimeException(message);
+            }
             if (resp == null) {
-                LOG.info(String.format("Unexpectedly empty response: %s", resp));
-                return null;
+                String message = String.format("Unexpectedly empty response: %s.", resp);
+                LOG.warn(message);
+                throw new RuntimeException(message);
             }
             return parseResponse(resp);
+        } catch (IOException e) {
+            LOG.warn(String.format("Request failed: %s", e.getMessage()), e);
+            throw Throwables.propagate(e);
         } finally {
             if (method != null) {
                 method.releaseConnection();
@@ -131,14 +141,14 @@ public class GerritApiUtil {
 
 
     @NotNull
-    private static JsonElement parseResponse(@NotNull String response) throws IOException {
+    private static JsonElement parseResponse(@NotNull String response) {
         try {
             return new JsonParser().parse(response);
         } catch (JsonSyntaxException jse) {
             if (response.startsWith("Not found")) {
                 throw new NotFoundException();
             }
-            throw new IOException(String.format("Couldn't parse response: %n%s", response), jse);
+            throw new RuntimeException(String.format("Couldn't parse response: %n%s", response), jse);
         }
     }
 

@@ -17,16 +17,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import java.io.IOException;
-
-import javax.swing.*;
-
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubLoginDialog
@@ -91,7 +89,7 @@ public class LoginDialog extends DialogWrapper {
             } else {
                 setErrorText("Can't login with given credentials");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.info(e);
             setErrorText("Can't login: " + GerritUtil.getErrorTextFromException(e));
         }

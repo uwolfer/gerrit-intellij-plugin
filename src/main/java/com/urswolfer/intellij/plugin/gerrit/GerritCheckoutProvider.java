@@ -16,12 +16,6 @@
  */
 package com.urswolfer.intellij.plugin.gerrit;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -36,6 +30,11 @@ import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubCheckoutProvider
@@ -56,7 +55,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         List<ProjectInfo> availableProjects = null;
         try {
             availableProjects = GerritUtil.getAvailableProjects(project);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.info(e);
             GerritUtil.notifyError(project, "Couldn't get the list of Gerrit repositories", GerritUtil.getErrorTextFromException(e));
         }

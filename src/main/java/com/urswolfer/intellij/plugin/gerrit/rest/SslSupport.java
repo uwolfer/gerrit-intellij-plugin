@@ -35,10 +35,10 @@ import sun.security.validator.ValidatorException;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.List;
 
 /**
  * Provides various methods to work with SSL certificate protected HTTPS connections.
- *
  * Parts based on org.jetbrains.plugins.github.GithubSslSupport
  *
  * @author Kirill Likhodedov
@@ -69,8 +69,7 @@ public class SslSupport {
         try {
             client.executeMethod(method);
             return method;
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             HttpMethod m = handleCertificateExceptionAndRetry(e, method.getURI().getHost(), client, method.getURI(), methodCreator);
             if (m == null) {
                 throw e;
@@ -105,8 +104,14 @@ public class SslSupport {
         throw e;
     }
 
-    public static boolean isCertificateException(IOException e) {
-        return e.getCause() instanceof ValidatorException;
+    public static boolean isCertificateException(Exception e) {
+        List<Throwable> causalChain = Throwables.getCausalChain(e);
+        for (Throwable throwable : causalChain) {
+            if (throwable instanceof ValidatorException) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean isTrusted(@NotNull String host) {
@@ -126,7 +131,7 @@ public class SslSupport {
         final String BACK_TO_SAFETY = "No, I don't trust";
         final String TRUST = "Proceed anyway";
         int choice = Messages.showDialog("The security certificate of " + host + " is not trusted. Do you want to proceed anyway?",
-                "Not Trusted Certificate", new String[] { BACK_TO_SAFETY, TRUST }, 0, Messages.getErrorIcon());
+                "Not Trusted Certificate", new String[]{BACK_TO_SAFETY, TRUST}, 0, Messages.getErrorIcon());
         boolean trust = (choice == 1);
         if (trust) {
             saveToTrusted(host);

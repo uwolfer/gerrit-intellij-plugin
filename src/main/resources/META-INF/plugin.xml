@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.1.6</version>
+  <version>0.2.0</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -41,9 +41,12 @@
           <li>Submit changes</li>
           <li>Notifications for new changes which are waiting for your review</li>
           <li>Cherry-Pick / (Planned Feature) Merge change into your local clone</li>
+          <li>File and line based comments (<strong>Gerrit 2.7 or newer only</strong>)<br />
+          Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
+           click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
+          </li>
           <li>(Planned Feature) Add reviewers to changes</li>
           <li>(Planned Feature) Clone and setup (add hooks) Gerrit projects directly</li>
-          <li>(Planned Feature) File and line based comments</li>
         </ul>
       </p>
 

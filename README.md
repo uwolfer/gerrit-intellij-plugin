@@ -15,6 +15,24 @@ If you install this plugin directly in your IDE's plugin manager, you will get n
 [IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
 
 
+Architecture
+------------
+### IntelliJ Integration
+The plugin is integrated into the IntelliJ IDE with a [tool window].
+[tool window]: http://confluence.jetbrains.com/display/IDEADEV/IntelliJ+IDEA+Tool+Windows
+See package <code>com.urswolfer.intellij.plugin.gerrit.ui</code>.
+
+### REST API
+Most of the communication between the plugin and a Gerrit instance is based on the [Gerrit REST API].
+[Gerrit REST API]: https://gerrit-review.googlesource.com/Documentation/rest-api.html
+See package <code>com.urswolfer.intellij.plugin.gerrit.rest</code>.
+
+### Git
+Some actions like comparing and listing files are based on Git operations. [IntelliJ Git4Idea] is used for these operations.
+[IntelliJ Git4Idea]:http://git.jetbrains.org/?p=idea/community.git;a=tree;f=plugins/git4idea
+See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
+
+
 Building the plugin
 ------------------
 

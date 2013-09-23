@@ -43,7 +43,6 @@ import git4idea.i18n.GitBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -176,8 +175,10 @@ public class GerritUtil {
                 return Maps.newTreeMap();
             }
             return parseCommentInfos(result);
-        } catch (NotFoundException e) {
-            LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+        } catch (HttpStatusException e) {
+            if (e.getStatusCode() == 404) {
+                LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+            }
             return Maps.newTreeMap();
         }
     }

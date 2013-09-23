@@ -1,5 +1,4 @@
 /*
- * Copyright 2000-2011 JetBrains s.r.o.
  * Copyright 2013 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,5 +19,21 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 /**
  * @author Urs Wolfer
  */
-public class NotFoundException extends RuntimeException {
+public class HttpStatusException extends RuntimeException {
+    private int statusCode;
+    private String statusText;
+
+    public HttpStatusException(int statusCode, String statusText, String message) {
+        super(message);
+        this.statusCode = statusCode;
+        this.statusText = statusText;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public String getStatusText() {
+        return statusText;
+    }
 }

@@ -71,7 +71,7 @@ public class GerritApiUtil {
             if (method.getStatusCode() != 200) {
                 String message = String.format("Request not successful. Status-Code: %s, Message: %s.", method.getStatusCode(), method.getStatusText());
                 LOG.warn(message);
-                throw new RuntimeException(message);
+                throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), message);
             }
             if (resp == null) {
                 String message = String.format("Unexpectedly empty response: %s.", resp);
@@ -145,9 +145,6 @@ public class GerritApiUtil {
         try {
             return new JsonParser().parse(response);
         } catch (JsonSyntaxException jse) {
-            if (response.startsWith("Not found")) {
-                throw new NotFoundException();
-            }
             throw new RuntimeException(String.format("Couldn't parse response: %n%s", response), jse);
         }
     }

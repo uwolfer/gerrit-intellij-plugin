@@ -15,6 +15,18 @@ If you install this plugin directly in your IDE's plugin manager, you will get n
 [IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
 
 
+Important Note if you have Authentication Issues
+-----------------------------------------------
+If you have correctly set up a HTTP Password in Gerrit, but still have authentication issues, your Gerrit instance
+might be behind a HTTP Reverse Proxy (like Nginx or Apache) with enabled HTTP Authentication. You can identify that if
+you have to enter an username and password (browser password request) for opening the Gerrit web interface. Since this
+plugin uses Gerrit REST API (with authentication enabled), you need to tell your system administrator that he should
+disable HTTP Authentication for any request to <code>/a</code> path (e.g. https://git.example.com/a). For these requests
+HTTP Authentication is done by Gerrit (double HTTP Authentication will not work). For more information see
+[Gerrit documentation].
+[Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
+
+
 Architecture
 ------------
 ### IntelliJ Integration
@@ -64,6 +76,14 @@ Credits
 ------
 * https://github.com/gshakhn/sonar-intellij-plugin/ for code examples (e.g. Maven integration, IntelliJ Plugin setup)
 * IntelliJ Github plugin (some code of this plugin is based on its code)
+
+
+Donations
+--------
+If you like this work, you can support it with [this donation link]. If you don't like Paypal
+(Paypal takes 2.9% plus $0.30 per transaction fee from your donation), please contact me.
+Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verify that it is correct.
+[this donation link]: https://www.paypal.com/webscr?cmd=_s-xclick&hosted_button_id=8F2GZVBCVEDUQ
 
 
 Copyright and license

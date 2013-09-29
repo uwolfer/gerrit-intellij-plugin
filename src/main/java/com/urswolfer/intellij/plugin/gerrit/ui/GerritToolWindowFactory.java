@@ -61,6 +61,7 @@ import java.util.concurrent.Callable;
 
 /**
  * @author Urs Wolfer
+ * @author Konrad Dobrzynski
  */
 public class GerritToolWindowFactory implements ToolWindowFactory {
     private GerritChangeListPanel changeListPanel;
@@ -217,7 +218,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
                 return Collections.emptyList();
             }
         }
-        return GerritUtil.getChanges(apiUrl, settings.getLogin(), settings.getPassword());
+        return GerritUtil.getChangesForProject(apiUrl, settings.getLogin(), settings.getPassword(), project);
     }
 
     private ActionToolbar createToolbar() {

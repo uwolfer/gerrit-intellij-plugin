@@ -18,6 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -36,12 +38,13 @@ public class SubmitAction extends AbstractChangeAction {
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         final GerritSettings settings = GerritSettings.getInstance();
+        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
         final ChangeInfo changeDetails = getChangeDetail(selectedChange);
 
         final SubmitInput submitInput = new SubmitInput();
         GerritUtil.postSubmit(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), submitInput);
+                changeDetails.getId(), submitInput, project);
     }
 }

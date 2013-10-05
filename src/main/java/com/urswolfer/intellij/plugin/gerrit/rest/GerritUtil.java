@@ -108,17 +108,27 @@ public class GerritUtil {
     }
 
     public static void postReview(@NotNull String url, @NotNull String login, @NotNull String password,
-                                  @NotNull String changeId, @NotNull String revision, @NotNull ReviewInput reviewInput) {
+                                  @NotNull String changeId, @NotNull String revision, @NotNull ReviewInput reviewInput,
+                                  Project project) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
-        GerritApiUtil.postRequest(url, login, password, request, json);
+        try {
+            GerritApiUtil.postRequest(url, login, password, request, json);
+        } catch (HttpStatusException e) {
+            GerritUtil.notifyError(project, "Failed to post review.", GerritUtil.getErrorTextFromException(e));
+        }
     }
 
     public static void postSubmit(@NotNull String url, @NotNull String login, @NotNull String password,
-                                  @NotNull String changeId, @NotNull SubmitInput submitInput) {
+                                  @NotNull String changeId, @NotNull SubmitInput submitInput,
+                                  Project project) {
         final String request = "/a/changes/" + changeId + "/submit";
         String json = new Gson().toJson(submitInput);
-        GerritApiUtil.postRequest(url, login, password, request, json);
+        try {
+            GerritApiUtil.postRequest(url, login, password, request, json);
+        } catch (HttpStatusException e) {
+            GerritUtil.notifyError(project, "Failed to submit change.", GerritUtil.getErrorTextFromException(e));
+        }
     }
 
     @NotNull

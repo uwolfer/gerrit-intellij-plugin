@@ -18,6 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -53,6 +55,7 @@ public class ReviewAction extends AbstractChangeAction {
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         final GerritSettings settings = GerritSettings.getInstance();
+        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
         final ChangeInfo changeDetails = getChangeDetail(selectedChange);
@@ -80,7 +83,7 @@ public class ReviewAction extends AbstractChangeAction {
         }
 
         GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput);
+                changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput, project);
 
         if (submitChange) {
             new SubmitAction().actionPerformed(anActionEvent);

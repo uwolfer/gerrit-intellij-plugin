@@ -69,7 +69,7 @@ public class GerritApiUtil {
             method = doREST(host, login, password, path, requestBody, post);
             String resp = method.getResponseBodyAsString();
             if (method.getStatusCode() != 200) {
-                String message = String.format("Request not successful. Status-Code: %s, Message: %s.", method.getStatusCode(), method.getStatusText());
+                String message = String.format("Request not successful. Message: %s. Status-Code: %s.", method.getStatusCode(), method.getStatusText());
                 LOG.warn(message);
                 throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), message);
             }

@@ -23,6 +23,7 @@ import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.Callable;
@@ -53,6 +54,8 @@ public class FetchAction extends AbstractChangeAction {
 
         String ref = GerritUtil.getRef(changeDetails);
 
-        GerritGitUtil.fetchChange(project, ref, mySuccessCallable);
+        GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+
+        GerritGitUtil.fetchChange(project, gitRepository, ref, mySuccessCallable);
     }
 }

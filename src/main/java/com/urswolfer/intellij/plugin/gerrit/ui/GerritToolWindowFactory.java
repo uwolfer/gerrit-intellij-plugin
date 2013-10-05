@@ -156,13 +156,13 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
         myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        final GitRepository gitRepository = GerritGitUtil.getFirstGitRepository(project);
+        final GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
         final VirtualFile virtualFile = gitRepository.getGitDir();
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
         String ref = GerritUtil.getRef(changeDetails);
 
-        GerritGitUtil.fetchChange(project, ref, new Callable<Void>() {
+        GerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 final List<GitCommit> gitCommits;

@@ -34,7 +34,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.PopupHandler;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -119,7 +118,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, Project project) {
         List<CommentInfo> fileComments = Collections.emptyList();
-        GitRepository repository = GerritGitUtil.getFirstGitRepository(project);
+        GitRepository repository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             String path = repository.getRoot().getPath();
             if (filePath.getPath().equals(path + File.separator + entry.getKey())) {

@@ -35,6 +35,7 @@ import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import git4idea.GitExecutionException;
 import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
@@ -70,13 +71,24 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
 public class GerritGitUtil {
     private static final Logger LOG = Logger.getInstance(GerritGitUtil.class);
 
-    public static GitRepository getFirstGitRepository(Project project) {
+    public static GitRepository getRepositoryForGerritProject(Project project, String gerritProjectName) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-        return Iterables.get(repositoriesFromRoots, 0);
+
+        for (GitRepository repository : repositoriesFromRoots) {
+            for (GitRemote remote : repository.getRemotes()) {
+                for (String remoteUrl : remote.getUrls()) {
+                    remoteUrl = remoteUrl.replace(".git", ""); // some repositories end their name with ".git"
+                    if (remoteUrl.endsWith(gerritProjectName)) {
+                        return repository;
+                    }
+                }
+            }
+        }
+        throw new RuntimeException(String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
     }
 
-    public static void fetchChange(final Project project, final String branch, @Nullable final Callable<Void> successCallable) {
+    public static void fetchChange(final Project project, final GitRepository gitRepository, final String branch, @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
             public void onSuccess() {
@@ -92,7 +104,6 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                final GitRepository gitRepository = getFirstGitRepository(project);
                 final VirtualFile virtualFile = gitRepository.getGitDir();
                 final GitRemote gitRemote = Iterables.get(gitRepository.getRemotes(), 0);
                 final String url = Iterables.get(gitRepository.getRemotes(), 0).getFirstUrl();
@@ -101,7 +112,7 @@ public class GerritGitUtil {
         });
     }
 
-    public static void cherryPickChange(final Project project, final String ref) {
+    public static void cherryPickChange(final Project project, final ChangeInfo changeInfo) {
         final Git git = ServiceManager.getService(Git.class);
         final GitPlatformFacade platformFacade = ServiceManager.getService(GitPlatformFacade.class);
 
@@ -111,11 +122,12 @@ public class GerritGitUtil {
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
-                    final GitRepository gitRepository = getFirstGitRepository(project);
+                    final GitRepository gitRepository = getRepositoryForGerritProject(project, changeInfo.getProject());
 
                     final VirtualFile virtualFile = gitRepository.getGitDir();
 
                     final String notLoaded = "Not loaded";
+                    String ref = changeInfo.getCurrentRevision();
                     GitCommit gitCommit = new GitCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
                             notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
                             notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),

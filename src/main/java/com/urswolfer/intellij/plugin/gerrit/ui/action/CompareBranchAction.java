@@ -17,12 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import git4idea.GitLocalBranch;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
@@ -36,7 +35,7 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-public class CompareBranchAction extends AnAction implements DumbAware {
+public class CompareBranchAction extends AbstractChangeAction {
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
@@ -48,18 +47,19 @@ public class CompareBranchAction extends AnAction implements DumbAware {
             @Override
             public Void call() throws Exception {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                diffChange(project);
+                ChangeInfo selectedChange = getSelectedChange(anActionEvent);
+                diffChange(project, selectedChange);
                 return null;
             }
         };
         new FetchAction(successCallable).actionPerformed(anActionEvent);
     }
 
-    private void diffChange(Project project) {
+    private void diffChange(Project project, ChangeInfo changeInfo) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
 
-        final GitRepository gitRepository = GerritGitUtil.getFirstGitRepository(project);
+        final GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
 
         final String branchName = "FETCH_HEAD";
         GitLocalBranch currentBranch = gitRepository.getCurrentBranch();

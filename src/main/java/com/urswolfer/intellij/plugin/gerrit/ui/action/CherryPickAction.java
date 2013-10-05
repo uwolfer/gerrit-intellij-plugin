@@ -43,7 +43,7 @@ public class CherryPickAction extends AbstractChangeAction {
             @Override
             public Void call() throws Exception {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                GerritGitUtil.cherryPickChange(project, changeDetails.getCurrentRevision());
+                GerritGitUtil.cherryPickChange(project, changeDetails);
                 return null;
             }
         };

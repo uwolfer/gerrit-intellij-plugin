@@ -17,8 +17,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
@@ -52,6 +52,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -135,7 +136,6 @@ public class GerritUtil {
      */
     @NotNull
     public static List<ChangeInfo> getChangesForProject(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull final Project project) {
-        String projectName = "";
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
             //Show notification
@@ -143,18 +143,42 @@ public class GerritUtil {
             return Lists.newArrayList();
         }
 
-        GitRemote gitRemote = Iterables.getFirst(repositories.get(0).getRemotes(), null);
-        if (gitRemote == null) {
-            notifyError(project, "No remotes available to fetch", "Git repository doesn't have any remotes. <br/> Please add one and try again.");
-            return Lists.newArrayList();
+        List<GitRemote> remotes = Lists.newArrayList();
+        for (GitRepository repository : repositories) {
+            remotes.addAll(repository.getRemotes());
         }
-        for (String repositoryUrl : gitRemote.getUrls()) {
-            if (repositoryUrl.contains(url)) {
-                projectName = repositoryUrl.replace(url + "/", "");
-                break;
+
+        String host = parseUri(url).getHost();
+        List<String> projectNames = Lists.newArrayList();
+        for (GitRemote remote : remotes) {
+            for (String repositoryUrl : remote.getUrls()) {
+                String repositoryHost = parseUri(repositoryUrl).getHost();
+                if (repositoryHost != null && repositoryHost.equals(host)) {
+                    projectNames.add("project:" + getProjectName(repositoryUrl));
+                }
             }
         }
-        return getChanges(url, login, password, "?q=is:open+project:" + projectName);
+
+        if (projectNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String projectQuery = Joiner.on("+OR+").join(projectNames);
+        return getChanges(url, login, password, "?q=is:open+(" + projectQuery + ')');
+    }
+
+    private static URI parseUri(String url) {
+        if (!url.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
+            url = "git://" + url;
+        }
+        return URI.create(url);
+    }
+
+    private static String getProjectName(String url) {
+        String path = parseUri(url).getPath();
+        int index = path.lastIndexOf('/');
+        path = path.substring(index + 1);
+        path = path.replace(".git", ""); // some repositories end their name with ".git"
+        return path;
     }
 
     public static void showAddGitRepositoryNotification(final Project project) {

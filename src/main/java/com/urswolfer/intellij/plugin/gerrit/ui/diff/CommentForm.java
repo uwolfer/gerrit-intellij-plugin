@@ -32,6 +32,7 @@ import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,7 +85,8 @@ public class CommentForm extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 CommentInput comment = new CommentInput();
 
-                VirtualFile root = GerritGitUtil.getFirstGitRepository(project).getRoot();
+                GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                VirtualFile root = gitRepository.getRoot();
                 String path = myFilePath.getPath();
                 String relativePath = FileUtil.getRelativePath(new File(root.getPath()), new File(path));
 

@@ -27,7 +27,6 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
@@ -36,15 +35,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import git4idea.GitExecutionException;
-import git4idea.GitPlatformFacade;
-import git4idea.GitUtil;
-import git4idea.GitVcs;
+import git4idea.*;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
-import git4idea.history.browser.GitCommit;
-import git4idea.history.browser.SHAHash;
-import git4idea.history.wholeTree.AbstractHash;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
@@ -57,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
@@ -124,14 +116,10 @@ public class GerritGitUtil {
                 try {
                     final GitRepository gitRepository = getRepositoryForGerritProject(project, changeInfo.getProject());
 
-                    final VirtualFile virtualFile = gitRepository.getGitDir();
-
                     final String notLoaded = "Not loaded";
                     String ref = changeInfo.getCurrentRevision();
-                    GitCommit gitCommit = new GitCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
-                            notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
-                            notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
-                            Collections.<Change>emptyList(), 0);
+                    GitCommit gitCommit = new GitCommit(Hash.create(ref), notLoaded, notLoaded, 0, notLoaded,
+                            notLoaded, 0, notLoaded, notLoaded, Collections.<Hash>emptyList(), Collections.<Change>emptyList());
 
                     cherryPick(gitRepository, gitCommit, git, platformFacade, project);
                 } finally {
@@ -156,13 +144,13 @@ public class GerritGitUtil {
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = git.cherryPick(repository, commit.getHash().getValue(), false,
+        GitCommandResult result = git.cherryPick(repository, commit.getHash().asString(), false,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
             return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
-                    commit.getShortHash().getString(), commit.getAuthor(),
+                    commit.getHash().asString(), commit.getAuthorName(),
                     commit.getSubject()).merge();
         } else if (untrackedFilesDetector.wasMessageDetected()) {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +

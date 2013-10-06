@@ -68,13 +68,13 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="117.0" until-build="130.825"/>
-    <!--
-      Class GitCommit got renamed to GitHeavyCommit in 05f0c7e7bc87af7bf8500eda9cc2308fd07ec4dd
-      GitHeavyCommit got deprecated in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
-      new GitCommit got introduced in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
-      Follows: appcode/130.826, idea/130.827, idea/130.828, phpstorm/130.830, pycharm/130.829, rubymine/130.832, webstorm/130.831
-    -->
+  <idea-version since-build="130.826"/>
+  <!--
+    Class GitCommit got renamed to GitHeavyCommit in 05f0c7e7bc87af7bf8500eda9cc2308fd07ec4dd
+    GitHeavyCommit got deprecated in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
+    new GitCommit got introduced in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
+    Follows: appcode/130.826, idea/130.827, idea/130.828, phpstorm/130.830, pycharm/130.829, rubymine/130.832, webstorm/130.831
+  -->
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
        on how to target different products -->

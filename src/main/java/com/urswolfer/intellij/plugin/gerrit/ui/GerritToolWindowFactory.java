@@ -48,7 +48,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.history.GitHistoryUtils;
-import git4idea.history.browser.GitCommit;
+import git4idea.history.browser.GitHeavyCommit;
 import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
 
@@ -165,13 +165,13 @@ public class GerritToolWindowFactory implements ToolWindowFactory {
         GerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                final List<GitCommit> gitCommits;
+                final List<GitHeavyCommit> gitCommits;
                 try {
                     gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.getCurrentRevision()));
                 } catch (VcsException e) {
                     throw new RuntimeException(e);
                 }
-                final GitCommit gitCommit = Iterables.get(gitCommits, 0);
+                final GitHeavyCommit gitCommit = Iterables.get(gitCommits, 0);
 
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override

@@ -12,13 +12,13 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:idea:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:openapi:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:util:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:extensions:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:annotations:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:git4idea:12.1.5" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:forms_rt:12.1.5" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:idea:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:openapi:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:util:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:extensions:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:annotations:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:git4idea:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:forms_rt:13.eap.425" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: commons-httpclient:commons-httpclient:3.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: commons-codec:commons-codec:1.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.code.gson:gson:2.2.4" level="project" />

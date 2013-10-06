@@ -19,8 +19,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jdk.min.version>1.6</jdk.min.version>
     <ij.plugin>true</ij.plugin>
-    <idea.version>12.1.5</idea.version>
-    <idea.build>129.1328</idea.build>
+    <idea.version>13.eap.425</idea.version>
+    <idea.build>132.425</idea.build>
   </properties>
 
   <dependencies>

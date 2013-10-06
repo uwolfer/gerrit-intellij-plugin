@@ -4,7 +4,17 @@ gerrit-intellij-plugin
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool].
+Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports any product based on the IntelliJ platform:
+* IntelliJ IDEA
+* IntelliJ IDEA CE
+* RubyMine
+* WebStorm
+* PhpStorm
+* PyCharm
+* PyCharm CE
+* AppCode
+* Android Studio
+
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
 [IntelliJ Platform]: http://www.jetbrains.com/idea/

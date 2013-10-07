@@ -72,7 +72,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         final GitCloneDialog dialog = new GitCloneDialog(project);
         // Add predefined repositories to history
         for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(GerritSettings.getInstance().getHost() + '/' + availableProjects.get(i).getId());
+            dialog.prependToHistory(GerritSettings.getInstance().getHost() + '/' + availableProjects.get(i).getDecodedId());
         }
         dialog.show();
         if (!dialog.isOK()) {

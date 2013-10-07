@@ -16,6 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
+import com.google.common.base.Throwables;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 /**
  * @author Urs Wolfer
  */
@@ -34,6 +39,14 @@ public class ProjectInfo {
 
     public String getId() {
         return id;
+    }
+
+    public String getDecodedId() {
+        try {
+            return URLDecoder.decode(id, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     public void setId(String id) {

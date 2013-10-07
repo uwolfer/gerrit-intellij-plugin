@@ -185,7 +185,7 @@ public class GerritUtil {
 
     private static String getProjectName(String url) {
         String path = parseUri(url).getPath();
-        int index = path.lastIndexOf('/');
+        int index = path.indexOf('/');
         path = path.substring(index + 1);
         path = path.replace(".git", ""); // some repositories end their name with ".git"
         return path;

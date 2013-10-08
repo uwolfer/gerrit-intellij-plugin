@@ -164,7 +164,7 @@ public class GerritUtil {
             for (String repositoryUrl : remote.getUrls()) {
                 String repositoryHost = parseUri(repositoryUrl).getHost();
                 if (repositoryHost != null && repositoryHost.equals(host)) {
-                    projectNames.add("project:" + getProjectName(repositoryUrl));
+                    projectNames.add("project:" + getProjectName(url, repositoryUrl));
                 }
             }
         }
@@ -183,11 +183,22 @@ public class GerritUtil {
         return URI.create(url);
     }
 
-    private static String getProjectName(String url) {
+    private static String getProjectName(String repositoryUrl, String url) {
+
+        // Normalise the base.
+        if( !repositoryUrl.endsWith("/") )
+            repositoryUrl = repositoryUrl + "/";
+
+        String basePath = parseUri(repositoryUrl).getPath();
         String path = parseUri(url).getPath();
-        int index = path.indexOf('/');
-        path = path.substring(index + 1);
+
+        path = path.substring(basePath.length());
+
         path = path.replace(".git", ""); // some repositories end their name with ".git"
+
+        if( path.endsWith("/") )
+            path = path.substring(0, path.length()-1);
+
         return path;
     }
 

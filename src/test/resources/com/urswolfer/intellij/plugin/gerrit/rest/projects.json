@@ -1,0 +1,15 @@
+)]}'
+{
+    "packages/test": {
+        "kind": "gerritcodereview#project",
+        "id": "packages%2Ftest"
+    },
+    "repo2": {
+        "kind": "gerritcodereview#project",
+        "id": "repo2"
+    },
+    "testrepo": {
+        "kind": "gerritcodereview#project",
+        "id": "testrepo"
+    }
+}

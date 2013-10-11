@@ -16,10 +16,18 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.collect.Iterables;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.FileReader;
 import java.lang.reflect.Method;
+import java.net.URL;
 
 /**
  * @author Urs Wolfer
@@ -121,6 +129,22 @@ public class GerritUtilTest {
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project/blah/test.git"
                 ));
+    }
+
+    @Test
+    public void testParseProjectInfos() throws Exception {
+        URL url = GerritUtilTest.class.getResource("/com/urswolfer/intellij/plugin/gerrit/rest/projects.json");
+        File file = new File(url.toURI());
+        JsonElement jsonElement = new JsonParser().parse(new FileReader(file));
+        JsonObject firstElement = (JsonObject) Iterables.get(jsonElement.getAsJsonObject().entrySet(), 0, null).getValue();
+
+        final Method parseSingleRepositoryInfo = GerritUtil.class.getDeclaredMethod("parseSingleRepositoryInfo", JsonObject.class);
+        parseSingleRepositoryInfo.setAccessible(true);
+
+        ProjectInfo projectInfo = (ProjectInfo) parseSingleRepositoryInfo.invoke(null, firstElement);
+        Assert.assertEquals("gerritcodereview#project", projectInfo.getKind());
+        Assert.assertEquals("packages%2Ftest", projectInfo.getId());
+        Assert.assertEquals("packages/test", projectInfo.getDecodedId());
     }
 
 }

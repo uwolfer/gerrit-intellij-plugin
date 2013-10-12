@@ -45,8 +45,8 @@
           Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
            click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
           </li>
+          <li>Clone and set up (add commit message hook) Gerrit projects directly</li>
           <li>(Planned Feature) Add reviewers to changes</li>
-          <li>(Planned Feature) Clone and setup (add hooks) Gerrit projects directly</li>
         </ul>
       </p>
 

@@ -90,7 +90,7 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    private static HttpMethod doREST(@NotNull String host, @Nullable String login, @Nullable String password, @NotNull String path,
+    public static HttpMethod doREST(@NotNull String host, @Nullable String login, @Nullable String password, @NotNull String path,
                                      @Nullable final String requestBody, final boolean post) throws IOException {
         HttpClient client = getHttpClient(login, password);
         String uri = host + path;

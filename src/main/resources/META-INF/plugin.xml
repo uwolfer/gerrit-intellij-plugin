@@ -82,7 +82,7 @@
   <depends>Git4Idea</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritCheckoutProvider"/>
+    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"
@@ -94,7 +94,7 @@
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">
-    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritHttpAuthDataProvider"/>
+    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider"/>
   </extensions>
 
   <actions>

@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.urswolfer.intellij.plugin.gerrit;
+package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import git4idea.jgit.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;

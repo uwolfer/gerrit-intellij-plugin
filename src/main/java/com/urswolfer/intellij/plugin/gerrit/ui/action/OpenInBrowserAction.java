@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Optional;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.util.IconLoader;
@@ -33,8 +34,11 @@ public class OpenInBrowserAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
-        String urlToOpen = getUrl(selectedChange);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        if (!selectedChange.isPresent()) {
+            return;
+        }
+        String urlToOpen = getUrl(selectedChange.get());
         BrowserUtil.launchBrowser(urlToOpen);
     }
 

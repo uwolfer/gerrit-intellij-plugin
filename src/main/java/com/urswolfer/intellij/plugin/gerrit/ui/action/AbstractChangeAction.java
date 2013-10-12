@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Optional;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -27,6 +28,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
 import javax.swing.*;
+import java.awt.*;
 
 /**
  * @author Urs Wolfer
@@ -37,12 +39,18 @@ public abstract class AbstractChangeAction extends AnAction implements DumbAware
         super(text, description, icon);
     }
 
-    protected ChangeInfo getSelectedChange(AnActionEvent anActionEvent) {
-        final TableView table = (TableView) anActionEvent.getData(PlatformDataKeys.CONTEXT_COMPONENT);
-        assert table != null;
-        final ChangeInfo selectedChange = (ChangeInfo) table.getSelectedObject();
-        assert selectedChange != null;
-        return selectedChange;
+    protected Optional<ChangeInfo> getSelectedChange(AnActionEvent anActionEvent) {
+        Component component = anActionEvent.getData(PlatformDataKeys.CONTEXT_COMPONENT);
+        if (!(component instanceof TableView)) {
+            return Optional.absent();
+        }
+        final TableView table = (TableView) component;
+        Object selectedObject = table.getSelectedObject();
+        if (!(selectedObject instanceof ChangeInfo)) {
+            return Optional.absent();
+        }
+        final ChangeInfo selectedChange = (ChangeInfo) selectedObject;
+        return Optional.fromNullable(selectedChange);
     }
 
     protected ChangeInfo getChangeDetail(ChangeInfo selectedChange) {

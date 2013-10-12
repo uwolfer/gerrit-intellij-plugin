@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -35,6 +36,7 @@ import java.util.List;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // needs to be setup with correct parameters (ctor)
 public class ReviewAction extends AbstractChangeAction {
     public static final String CODE_REVIEW = "Code-Review";
     public static final String VERIFIED = "Verified";
@@ -57,8 +59,11 @@ public class ReviewAction extends AbstractChangeAction {
         final GerritSettings settings = GerritSettings.getInstance();
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        if (!selectedChange.isPresent()) {
+            return;
+        }
+        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
 
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);

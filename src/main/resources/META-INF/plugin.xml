@@ -81,9 +81,6 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
-  <actions>
-  </actions>
-
   <extensions defaultExtensionNs="com.intellij">
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritCheckoutProvider"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
@@ -95,4 +92,13 @@
     <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
     </toolWindow>
   </extensions>
+
+  <actions>
+    <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick"/>
+    <action id="Gerrit.CompareBranch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction" text="Compare with Branch"/>
+    <action id="Gerrit.Fetch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction" text="Fetch"/>
+    <action id="Gerrit.OpenInBrowser" class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction" text="Open in Gerrit"/>
+    <action id="Gerrit.Settings" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction" text="Settings"/>
+    <action id="Gerrit.Submit" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction" text="Submit"/>
+  </actions>
 </idea-plugin>

@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Optional;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
@@ -36,8 +37,11 @@ public class CherryPickAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
-        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        if (!selectedChange.isPresent()) {
+            return;
+        }
+        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
 
         Callable<Void> successCallable = new Callable<Void>() {
             @Override

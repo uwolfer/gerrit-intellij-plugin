@@ -93,6 +93,10 @@
     </toolWindow>
   </extensions>
 
+  <extensions defaultExtensionNs="Git4Idea">
+    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritHttpAuthDataProvider"/>
+  </extensions>
+
   <actions>
     <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick"/>
     <action id="Gerrit.CompareBranch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction" text="Compare with Branch"/>

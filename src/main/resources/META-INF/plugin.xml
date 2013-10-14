@@ -98,7 +98,7 @@
   </extensions>
 
   <actions>
-    <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick"/>
+    <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick (No Commit)"/>
     <action id="Gerrit.CompareBranch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction" text="Compare with Branch"/>
     <action id="Gerrit.Fetch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction" text="Fetch"/>
     <action id="Gerrit.OpenInBrowser" class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction" text="Open in Gerrit"/>

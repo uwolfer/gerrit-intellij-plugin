@@ -32,7 +32,7 @@ import java.util.concurrent.Callable;
 public class CherryPickAction extends AbstractChangeAction {
 
     public CherryPickAction() {
-        super("Cherry-Pick", "Cherry-Pick change", Git4ideaIcons.CherryPick);
+        super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", Git4ideaIcons.CherryPick);
     }
 
     @Override

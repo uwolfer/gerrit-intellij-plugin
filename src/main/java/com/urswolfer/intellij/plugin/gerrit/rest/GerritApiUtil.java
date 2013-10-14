@@ -33,7 +33,9 @@ import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
+import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -136,9 +138,19 @@ public class GerritApiUtil {
             client.getParams().setAuthenticationPreemptive(true);
             client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(login, password));
         }
+        addUserAgent(client);
         return client;
     }
 
+    private static void addUserAgent(HttpClient client) {
+        HttpClientParams httpClientParams = client.getParams();
+        Object existingUserAgent = httpClientParams.getParameter(HttpMethodParams.USER_AGENT);
+        String userAgent = "gerrit-intellij-plugin";
+        if (existingUserAgent != null) {
+            userAgent += " using " + existingUserAgent;
+        }
+        httpClientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
+    }
 
     @NotNull
     private static JsonElement parseResponse(@NotNull String response) {

@@ -127,6 +127,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         contextMenuActionGroup.add(new SubmitAction());
 
+        contextMenuActionGroup.add(new Separator());
+
+        contextMenuActionGroup.add(new OpenInBrowserAction());
+
         PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }
 

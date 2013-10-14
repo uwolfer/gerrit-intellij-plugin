@@ -14,24 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.urswolfer.intellij.plugin.gerrit;
+package com.urswolfer.intellij.plugin.gerrit.extension;
 
+import com.google.common.io.Files;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.CheckoutProvider;
+import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
+import org.apache.commons.httpclient.HttpMethod;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -88,11 +94,50 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         final String parentDirectory = dialog.getParentDirectory();
 
         Git git = ServiceManager.getService(Git.class);
-        GitCheckoutProvider.clone(project, git, listener, destinationParent, sourceRepositoryURL, directoryName, parentDirectory);
+
+        Listener listenerWrapper = addCommitMsgHookListener(listener, directoryName, parentDirectory, project);
+
+        GitCheckoutProvider.clone(project, git, listenerWrapper, destinationParent, sourceRepositoryURL, directoryName, parentDirectory);
     }
 
     @Override
     public String getVcsName() {
         return "Gerrit";
+    }
+
+    /*
+     * Since this is a listener which needs to be executed in any case, it cannot be a normal checkout-listener.
+     * Checkout-listeners only get executed when "previous" listener got not executed (returns false).
+     * Example: If user decides to setup a new project from newly created checkout, our listener does not get executed.
+     */
+    private Listener addCommitMsgHookListener(final Listener listener, final String directoryName, final String parentDirectory, final Project project) {
+        return new Listener() {
+            @Override
+            public void directoryCheckedOut(File directory, VcsKey vcs) {
+                setupCommitMsgHook(parentDirectory, directoryName, project);
+
+                if (listener != null) listener.directoryCheckedOut(directory, vcs);
+            }
+
+            @Override
+            public void checkoutCompleted() {
+                if (listener != null) listener.checkoutCompleted();
+            }
+        };
+    }
+
+    private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
+        try {
+            GerritSettings settings = GerritSettings.getInstance();
+            HttpMethod method = GerritApiUtil.doREST(GerritApiUtil.getApiUrl(),
+                    settings.getLogin(), settings.getPassword(), "/a/tools/hooks/commit-msg", null, false);
+            File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
+            Files.write(method.getResponseBody(), targetFile);
+            targetFile.setExecutable(true);
+        } catch (IOException e) {
+            LOG.info(e);
+            GerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
+                    GerritUtil.getErrorTextFromException(e));
+        }
     }
 }

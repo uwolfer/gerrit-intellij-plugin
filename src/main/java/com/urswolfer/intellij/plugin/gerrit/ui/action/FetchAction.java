@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Optional;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -47,8 +48,11 @@ public class FetchAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final ChangeInfo selectedChange = getSelectedChange(anActionEvent);
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        if (!selectedChange.isPresent()) {
+            return;
+        }
+        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
 
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 

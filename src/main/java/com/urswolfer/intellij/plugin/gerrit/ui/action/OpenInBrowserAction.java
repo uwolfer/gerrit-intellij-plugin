@@ -17,38 +17,34 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
-import com.intellij.icons.AllIcons;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.intellij.openapi.util.IconLoader;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
 
 /**
  * @author Urs Wolfer
  */
-public class SubmitAction extends AbstractChangeAction {
+public class OpenInBrowserAction extends AbstractChangeAction {
 
-    public SubmitAction() {
-        super("Submit", "Submit Change", AllIcons.Actions.Export);
+    public OpenInBrowserAction() {
+        super("Open in Gerrit", "Open corresponding link in browser", IconLoader.getIcon("/icons/gerrit.png"));
     }
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final GerritSettings settings = GerritSettings.getInstance();
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
+        String urlToOpen = getUrl(selectedChange.get());
+        BrowserUtil.launchBrowser(urlToOpen);
+    }
 
-        final SubmitInput submitInput = new SubmitInput();
-        GerritUtil.postSubmit(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), submitInput, project);
+    private String getUrl(ChangeInfo change) {
+        String url = GerritApiUtil.getApiUrl();
+        String changeNumber = change.getNumber();
+        return String.format("%s/%s", url, changeNumber);
     }
 }

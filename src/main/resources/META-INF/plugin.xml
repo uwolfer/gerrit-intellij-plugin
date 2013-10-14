@@ -45,8 +45,8 @@
           Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
            click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
           </li>
+          <li>Clone and set up (add commit message hook) Gerrit projects directly</li>
           <li>(Planned Feature) Add reviewers to changes</li>
-          <li>(Planned Feature) Clone and setup (add hooks) Gerrit projects directly</li>
         </ul>
       </p>
 
@@ -81,11 +81,8 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
-  <actions>
-  </actions>
-
   <extensions defaultExtensionNs="com.intellij">
-    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.GerritCheckoutProvider"/>
+    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"
@@ -95,4 +92,17 @@
     <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
     </toolWindow>
   </extensions>
+
+  <extensions defaultExtensionNs="Git4Idea">
+    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider"/>
+  </extensions>
+
+  <actions>
+    <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick (No Commit)"/>
+    <action id="Gerrit.CompareBranch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction" text="Compare with Branch"/>
+    <action id="Gerrit.Fetch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction" text="Fetch"/>
+    <action id="Gerrit.OpenInBrowser" class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction" text="Open in Gerrit"/>
+    <action id="Gerrit.Settings" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction" text="Settings"/>
+    <action id="Gerrit.Submit" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction" text="Submit"/>
+  </actions>
 </idea-plugin>

@@ -26,6 +26,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -33,7 +34,9 @@ import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
+import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -90,9 +93,10 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    private static HttpMethod doREST(@NotNull String host, @Nullable String login, @Nullable String password, @NotNull String path,
+    public static HttpMethod doREST(@NotNull String host, @Nullable String login, @Nullable String password, @NotNull String path,
                                      @Nullable final String requestBody, final boolean post) throws IOException {
         HttpClient client = getHttpClient(login, password);
+        tryGerritHttpAuth(host, client);
         String uri = host + path;
         return SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, uri,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
@@ -108,6 +112,47 @@ public class GerritApiUtil {
                         return new GetMethod(uri);
                     }
                 });
+    }
+
+    /*
+     * Try to authenticate against Gerrit instances with HTTP auth (not OAuth or something like that).
+     * In case of success we get a GerritAccount cookie. In that case no more login credentials need to be sent as
+     * long as we use the *same* HTTP client. Even requests against authenticated rest api (/a) will be processed
+     * with the GerritAccount cookie.
+     *
+     * This is a workaround for "double" HTTP authentication (i.e. reverse proxy *and* Gerrit do HTTP authentication
+     * for rest api (/a)).
+     *
+     * Following old notes from README about the issue:
+     * If you have correctly set up a HTTP Password in Gerrit, but still have authentication issues, your Gerrit instance
+     * might be behind a HTTP Reverse Proxy (like Nginx or Apache) with enabled HTTP Authentication. You can identify that if
+     * you have to enter an username and password (browser password request) for opening the Gerrit web interface. Since this
+     * plugin uses Gerrit REST API (with authentication enabled), you need to tell your system administrator that he should
+     * disable HTTP Authentication for any request to <code>/a</code> path (e.g. https://git.example.com/a). For these requests
+     * HTTP Authentication is done by Gerrit (double HTTP Authentication will not work). For more information see
+     * [Gerrit documentation].
+     * [Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
+     */
+    private static void tryGerritHttpAuth(String host, HttpClient client) throws IOException {
+        String loginUrl = host + "/login/";
+        HttpMethod loginRequest = SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, loginUrl,
+                new ThrowableConvertor<String, HttpMethod, IOException>() {
+                    @Override
+                    public HttpMethod convert(String loginUrl) throws IOException {
+                        GetMethod method = new GetMethod(loginUrl);
+                        method.setFollowRedirects(false); // we do not need any further information; status code and GerritAccount cookie is enough
+                        return method;
+                    }
+                });
+        if (loginRequest.getStatusCode() != 401) {
+            Cookie[] cookies = client.getState().getCookies();
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("GerritAccount")) {
+                    LOG.info("Successfully logged in with /login/ request.");
+                    break;
+                }
+            }
+        }
     }
 
     public static String getApiUrl() {
@@ -136,9 +181,19 @@ public class GerritApiUtil {
             client.getParams().setAuthenticationPreemptive(true);
             client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(login, password));
         }
+        addUserAgent(client);
         return client;
     }
 
+    private static void addUserAgent(HttpClient client) {
+        HttpClientParams httpClientParams = client.getParams();
+        Object existingUserAgent = httpClientParams.getParameter(HttpMethodParams.USER_AGENT);
+        String userAgent = "gerrit-intellij-plugin";
+        if (existingUserAgent != null) {
+            userAgent += " using " + existingUserAgent;
+        }
+        httpClientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
+    }
 
     @NotNull
     private static JsonElement parseResponse(@NotNull String response) {

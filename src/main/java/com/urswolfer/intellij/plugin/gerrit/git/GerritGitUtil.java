@@ -27,6 +27,7 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
@@ -38,6 +39,9 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import git4idea.*;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
+import git4idea.history.browser.GitHeavyCommit;
+import git4idea.history.browser.SHAHash;
+import git4idea.history.wholeTree.AbstractHash;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
@@ -50,6 +54,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
@@ -116,10 +121,14 @@ public class GerritGitUtil {
                 try {
                     final GitRepository gitRepository = getRepositoryForGerritProject(project, changeInfo.getProject());
 
+                    final VirtualFile virtualFile = gitRepository.getGitDir();
+
                     final String notLoaded = "Not loaded";
                     String ref = changeInfo.getCurrentRevision();
-                    GitCommit gitCommit = new GitCommit(Hash.create(ref), notLoaded, notLoaded, 0, notLoaded,
-                            notLoaded, 0, notLoaded, notLoaded, Collections.<Hash>emptyList(), Collections.<Change>emptyList());
+                    GitHeavyCommit gitCommit = new GitHeavyCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
+                            notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
+                            notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
+                            Collections.<Change>emptyList(), 0);
 
                     cherryPick(gitRepository, gitCommit, git, platformFacade, project);
                 } finally {
@@ -138,19 +147,19 @@ public class GerritGitUtil {
     /**
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
-    private static boolean cherryPick(@NotNull GitRepository repository, @NotNull GitCommit commit,
+    private static boolean cherryPick(@NotNull GitRepository repository, @NotNull GitHeavyCommit commit,
                                       @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = git.cherryPick(repository, commit.getHash().asString(), false,
+        GitCommandResult result = git.cherryPick(repository, commit.getHash().getValue(), false,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
             return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
-                    commit.getHash().asString(), commit.getAuthorName(),
+                    commit.getShortHash().getString(), commit.getAuthor(),
                     commit.getSubject()).merge();
         } else if (untrackedFilesDetector.wasMessageDetected()) {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +

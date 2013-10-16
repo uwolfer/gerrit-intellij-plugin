@@ -22,9 +22,9 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.diff.DiffPanel;
 import com.intellij.openapi.diff.DiffRequest;
 import com.intellij.openapi.diff.impl.DiffPanelImpl;
+import com.intellij.openapi.diff.impl.external.DiffManagerImpl;
 import com.intellij.openapi.diff.impl.external.FrameDiffTool;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
@@ -32,8 +32,12 @@ import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
+import com.intellij.openapi.vcs.VcsDataKeys;
+import com.intellij.openapi.vcs.changes.ChangeRequestChain;
+import com.intellij.openapi.vcs.changes.actions.DiffRequestPresentable;
 import com.intellij.ui.PopupHandler;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -61,7 +65,7 @@ import java.util.TreeMap;
  * Some parts based on code from:
  * https://github.com/ktisha/Crucible4IDEA
  */
-public class CommentsDiffTool extends CustomizableFrameDiffTool {
+public class CommentsDiffTool extends FrameDiffTool {
 
     @Override
     public boolean canShow(DiffRequest request) {
@@ -74,10 +78,12 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         return superCanShow && changeInfo != null;
     }
 
+    @Nullable
     @Override
-    protected DiffPanel createDiffPanel(DiffRequest data, Window window, @NotNull Disposable parentDisposable, FrameDiffTool tool) {
-        DiffPanelImpl diffPanel = (DiffPanelImpl) super.createDiffPanel(data, window, parentDisposable, tool);
-        handleComments(diffPanel, data.getWindowTitle()); // ugly, but there seems to be no other way to get the file path. #getPathPresentation() should work in intellij 13
+    protected DiffPanelImpl createDiffPanelImpl(@NotNull DiffRequest request, @Nullable Window window, @NotNull Disposable parentDisposable) {
+        DiffPanelImpl diffPanel = new CommentableDiffPanel(window, request);
+        diffPanel.setDiffRequest(request);
+        Disposer.register(parentDisposable, diffPanel);
         return diffPanel;
     }
 
@@ -136,6 +142,26 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         for (CommentInfo fileComment : fileComments) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(fileComment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
             highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
+        }
+    }
+
+    private class CommentableDiffPanel extends DiffPanelImpl {
+        public CommentableDiffPanel(Window window, DiffRequest request) {
+            super(window, request.getProject(), true, true, DiffManagerImpl.FULL_DIFF_DIVIDER_POLYGONS_OFFSET, CommentsDiffTool.this);
+        }
+
+        @Override
+        public void setDiffRequest(DiffRequest request) {
+            super.setDiffRequest(request);
+
+            Object chain = request.getGenericData().get(VcsDataKeys.DIFF_REQUEST_CHAIN.getName());
+            if (chain instanceof ChangeRequestChain) {
+                DiffRequestPresentable currentRequest = ((ChangeRequestChain) chain).getCurrentRequest();
+                if (currentRequest != null) {
+                    String path = currentRequest.getPathPresentation();
+                    handleComments(this, path);
+                }
+            }
         }
     }
 }

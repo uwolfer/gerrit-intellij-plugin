@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.3.1</version>
+  <version>0.4.0</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -63,7 +63,38 @@
       ]]></description>
 
   <change-notes><![CDATA[
-      See: https://github.com/uwolfer/gerrit-intellij-plugin/commits/master
+      <p>
+        See for all changes: https://github.com/uwolfer/gerrit-intellij-plugin/commits/master
+      </p>
+
+      <p>
+        <ul>
+          <li>0.4.0</li>
+          <ul>
+            <li>improve HTTP authentication flow (everyone who had authentication issues should try again)</li>
+            <li>set up Gerrit commit message hook after checkout (now you can checkout and set up Gerrit projects without any command line command)</li>
+            <li>allow shortcuts for actions</li>
+            <li>fix for Gerrit instances not running on root (e.g. example.com/r) of domain (thanks to magnayn)</li>
+            <li>fix for working with multiple IntelliJ windows at the same time</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
+          <li>0.3.1</li>
+          <ul>
+            <li>fix for projects containing '/' (slash) in their name</li>
+          </ul>
+          <li>0.3.0</li>
+          <ul>
+            <li>add support for multi-VCS projects</li>
+            <li>improve error-handling</li>
+            <li>add IntelliJ 13 EAP support</li>
+          </ul>
+          <li>0.2.0</li>
+          <ul>
+            <li>add support for file based comments (view and add) (Gerrit 2.7 or newer only)</li>
+            <li>better error messages (e.g. connection and authentication errors)</li>
+          </ul>
+        </ul>
+      </p>
       ]]>
   </change-notes>
 

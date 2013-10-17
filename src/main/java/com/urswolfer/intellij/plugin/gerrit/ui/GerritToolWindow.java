@@ -185,7 +185,12 @@ public class GerritToolWindow {
     }
 
     private void reloadChanges(Project project, boolean requestSettingsIfNonExistent) {
-        final List<ChangeInfo> commits = getChanges(project, requestSettingsIfNonExistent);
+        List<ChangeInfo> commits = Collections.emptyList();
+        try {
+            commits = getChanges(project, requestSettingsIfNonExistent);
+        } catch (Exception e) {
+            GerritUtil.notifyError(project, "Failed to load Gerrit changes.", GerritUtil.getErrorTextFromException(e));
+        }
         changeListPanel.setChanges(commits);
 
         // if there are no changes at all, there is no point to check if new notifications should be displayed

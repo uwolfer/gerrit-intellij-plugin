@@ -21,10 +21,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
@@ -67,6 +64,15 @@ public class GerritUtil {
     public static final Logger LOG = Logger.getInstance("gerrit");
 
     static final String GERRIT_NOTIFICATION_GROUP = "gerrit";
+
+    @NotNull private static final Gson gson = initGson();
+
+    private static Gson initGson() {
+        GsonBuilder builder = new GsonBuilder();
+        builder.setDateFormat("yyyy-MM-dd hh:mm:ss");
+        builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+        return builder.create();
+    }
 
     @Nullable
     public static <T> T accessToGerritWithModalProgress(@NotNull final Project project, @NotNull String host,
@@ -253,7 +259,6 @@ public class GerritUtil {
 
     @NotNull
     private static ChangeInfo parseSingleChangeInfos(@NotNull JsonObject result) {
-        final Gson gson = createGson();
         return gson.fromJson(result, ChangeInfo.class);
     }
 
@@ -297,14 +302,7 @@ public class GerritUtil {
 
     @NotNull
     private static CommentInfo parseSingleCommentInfos(@NotNull JsonObject result) {
-        final Gson gson = createGson();
         return gson.fromJson(result, CommentInfo.class);
-    }
-
-    private static Gson createGson() {
-        return new GsonBuilder()
-                .setDateFormat("yyyy-MM-dd hh:mm:ss")
-                .create();
     }
 
     private static boolean testConnection(final String url, final String login, final String password) {
@@ -328,8 +326,6 @@ public class GerritUtil {
             LOG.error(String.format("Unexpected JSON result format: %s", result));
             return null;
         }
-        final Gson gson = new GsonBuilder()
-                .create();
         return gson.fromJson(result, AccountInfo.class);
     }
 

@@ -51,6 +51,8 @@ import java.util.Collection;
  */
 public class GerritApiUtil {
 
+    private static final String APPLICATION_JSON = "application/json";
+    private static final String UTF_8 = "UTF-8";
     private static final int CONNECTION_TIMEOUT = 5000;
     private static final Logger LOG = GerritUtil.LOG;
 
@@ -143,7 +145,7 @@ public class GerritApiUtil {
                             case POST:
                                 method = new PostMethod(uri);
                                 if (requestBody != null) {
-                                    ((PostMethod) method).setRequestEntity(new StringRequestEntity(requestBody, "application/json", "UTF-8"));
+                                    ((PostMethod) method).setRequestEntity(new StringRequestEntity(requestBody, APPLICATION_JSON, UTF_8));
                                 }
                                 break;
                             case GET:
@@ -161,6 +163,7 @@ public class GerritApiUtil {
                         for (Header header : headers) {
                             method.addRequestHeader(header);
                         }
+                        method.setRequestHeader("Accept", APPLICATION_JSON);
                         return method;
                     }
                 });
@@ -218,7 +221,7 @@ public class GerritApiUtil {
         params.setConnectionTimeout(CONNECTION_TIMEOUT); //set connection timeout (how long it takes to connect to remote host)
         params.setSoTimeout(CONNECTION_TIMEOUT); //set socket timeout (how long it takes to retrieve data from remote host)
 
-        client.getParams().setContentCharset("UTF-8");
+        client.getParams().setContentCharset(UTF_8);
         // Configure proxySettings if it is required
         final HttpConfigurable proxySettings = HttpConfigurable.getInstance();
         if (proxySettings.USE_HTTP_PROXY && !StringUtil.isEmptyOrSpaces(proxySettings.PROXY_HOST)) {
@@ -229,7 +232,7 @@ public class GerritApiUtil {
             }
         }
         if (login != null && password != null) {
-            client.getParams().setCredentialCharset("UTF-8");
+            client.getParams().setCredentialCharset(UTF_8);
             client.getParams().setAuthenticationPreemptive(true);
             client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(login, password));
         }
@@ -249,7 +252,7 @@ public class GerritApiUtil {
 
     @NotNull
     private static JsonElement parseResponse(@NotNull InputStream response) throws IOException {
-        Reader reader = new InputStreamReader(response, "UTF-8");
+        Reader reader = new InputStreamReader(response, UTF_8);
         try {
             return new JsonParser().parse(reader);
         } catch (JsonSyntaxException jse) {

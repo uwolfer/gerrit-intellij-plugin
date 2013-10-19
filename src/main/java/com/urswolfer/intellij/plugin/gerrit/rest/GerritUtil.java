@@ -38,6 +38,7 @@ import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
+import com.urswolfer.intellij.plugin.gerrit.rest.gson.DateDeserializer;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
 import git4idea.GitUtil;
 import git4idea.config.GitVcsApplicationSettings;
@@ -69,7 +70,7 @@ public class GerritUtil {
 
     private static Gson initGson() {
         GsonBuilder builder = new GsonBuilder();
-        builder.setDateFormat("yyyy-MM-dd hh:mm:ss");
+        builder.registerTypeAdapter(Date.class, new DateDeserializer());
         builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
         return builder.create();
     }

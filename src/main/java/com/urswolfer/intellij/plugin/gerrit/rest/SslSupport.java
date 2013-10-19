@@ -128,11 +128,9 @@ public class SslSupport {
 
     @CalledInAwt
     public boolean askIfShouldProceed(final String host) {
-        final String BACK_TO_SAFETY = "No, I don't trust";
-        final String TRUST = "Proceed anyway";
-        int choice = Messages.showDialog("The security certificate of " + host + " is not trusted. Do you want to proceed anyway?",
-                "Not Trusted Certificate", new String[]{BACK_TO_SAFETY, TRUST}, 0, Messages.getErrorIcon());
-        boolean trust = (choice == 1);
+        int choice = Messages.showYesNoDialog("The security certificate of " + host + " is not trusted. Do you want to proceed anyway?",
+                "Not Trusted Certificate", "Proceed anyway", "No, I don't trust", Messages.getErrorIcon());
+        boolean trust = (choice == Messages.YES);
         if (trust) {
             saveToTrusted(host);
         }

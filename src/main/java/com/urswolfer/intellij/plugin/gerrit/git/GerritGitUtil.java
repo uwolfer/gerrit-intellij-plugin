@@ -69,7 +69,7 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
  * @author Urs Wolfer
  */
 public class GerritGitUtil {
-    private static final Logger LOG = Logger.getInstance(GerritGitUtil.class);
+    private static final Logger LOG = GerritUtil.LOG;
 
     public static GitRepository getRepositoryForGerritProject(Project project, String gerritProjectName) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);

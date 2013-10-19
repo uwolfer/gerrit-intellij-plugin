@@ -32,6 +32,7 @@ import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
+import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,8 +130,8 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
             GerritSettings settings = GerritSettings.getInstance();
-            HttpMethod method = GerritApiUtil.doREST(GerritApiUtil.getApiUrl(),
-                    settings.getLogin(), settings.getPassword(), "/a/tools/hooks/commit-msg", null, false);
+            HttpMethod method = GerritApiUtil.doREST(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
+                    "/a/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             Files.write(method.getResponseBody(), targetFile);
             targetFile.setExecutable(true);

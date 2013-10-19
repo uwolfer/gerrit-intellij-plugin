@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.common.base.Optional;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -91,7 +92,10 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
         Project project = PlatformDataKeys.PROJECT.getData(context);
         final GerritSettings settings = GerritSettings.getInstance();
-        ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(), myChangeInfo.getNumber());
+        Optional<ChangeInfo> changeDetailsOptional = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
+                settings.getLogin(), settings.getPassword(), myChangeInfo.getNumber(), project);
+        if (!changeDetailsOptional.isPresent()) return;
+        ChangeInfo changeDetails = changeDetailsOptional.get();
 
         FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
 
@@ -99,7 +103,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         addCommentAction(editor2, filePath, reviewCommentSink, myChangeInfo);
 
         TreeMap<String,List<CommentInfo>> comments = GerritUtil.getComments(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeDetails.getId(), changeDetails.getCurrentRevision());
+                settings.getLogin(), settings.getPassword(), changeDetails.getId(), changeDetails.getCurrentRevision(), project);
         addCommentsGutter(editor2, filePath, comments, reviewCommentSink, myChangeInfo, project);
     }
 
@@ -118,7 +122,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, Project project) {
         List<CommentInfo> fileComments = Collections.emptyList();
-        GitRepository repository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        if (!gitRepositoryOptional.isPresent()) return;
+        GitRepository repository = gitRepositoryOptional.get();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             String path = repository.getRoot().getPath();
             if (filePath.getPath().equals(path + File.separator + entry.getKey())) {

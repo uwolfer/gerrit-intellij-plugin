@@ -52,14 +52,16 @@ public class FetchAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
-
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        String ref = GerritUtil.getRef(changeDetails);
+        final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
+        if (!changeDetails.isPresent()) return;
 
-        GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+        String ref = GerritUtil.getRef(changeDetails.get());
 
-        GerritGitUtil.fetchChange(project, gitRepository, ref, mySuccessCallable);
+        Optional<GitRepository> gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.get().getProject());
+        if (!gitRepository.isPresent()) return;
+
+        GerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
     }
 }

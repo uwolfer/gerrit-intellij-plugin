@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Throwables;
 import com.google.common.io.CharStreams;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -65,7 +64,7 @@ public class GerritApiUtil {
                                          @NotNull String login,
                                          @NotNull String password,
                                          @NotNull String path,
-                                         @NotNull Header... headers) {
+                                         @NotNull Header... headers) throws RestApiException {
         return request(host, login, password, path, null, Arrays.asList(headers), HttpVerb.GET);
     }
 
@@ -75,7 +74,7 @@ public class GerritApiUtil {
                                           @Nullable String password,
                                           @NotNull String path,
                                           @Nullable String requestBody,
-                                          @NotNull Header... headers) {
+                                          @NotNull Header... headers) throws RestApiException {
         return request(host, login, password, path, requestBody, Arrays.asList(headers), HttpVerb.POST);
     }
 
@@ -84,7 +83,7 @@ public class GerritApiUtil {
                                             @NotNull String login,
                                             @NotNull String password,
                                             @NotNull String path,
-                                            @NotNull Header... headers) {
+                                            @NotNull Header... headers) throws RestApiException {
         return request(host, login, password, path, null, Arrays.asList(headers), HttpVerb.DELETE);
     }
 
@@ -95,7 +94,7 @@ public class GerritApiUtil {
                                        @NotNull String path,
                                        @Nullable String requestBody,
                                        @NotNull Collection<Header> headers,
-                                       @NotNull HttpVerb verb) {
+                                       @NotNull HttpVerb verb) throws RestApiException {
         HttpMethod method = null;
         try {
             method = doREST(host, login, password, path, requestBody, headers, verb);
@@ -106,18 +105,18 @@ public class GerritApiUtil {
             if (resp == null) {
                 String message = String.format("Unexpectedly empty response.");
                 LOG.warn(message);
-                throw new RuntimeException(message);
+                throw new RestApiException(message);
             }
             JsonElement ret = parseResponse(resp);
             if (ret.isJsonNull()) {
                 String message = String.format("Unexpectedly empty response: %s.", CharStreams.toString(new InputStreamReader(resp)));
                 LOG.warn(message);
-                throw new RuntimeException(message);
+                throw new RestApiException(message);
             }
             return ret;
         } catch (IOException e) {
             LOG.warn(String.format("Request failed: %s", e.getMessage()), e);
-            throw Throwables.propagate(e);
+            throw new RestApiException(e);
         } finally {
             if (method != null) {
                 method.releaseConnection();
@@ -256,13 +255,13 @@ public class GerritApiUtil {
         try {
             return new JsonParser().parse(reader);
         } catch (JsonSyntaxException jse) {
-            throw new RuntimeException(String.format("Couldn't parse response: %n%s", CharStreams.toString(new InputStreamReader(response))), jse);
+            throw new IOException(String.format("Couldn't parse response: %n%s", CharStreams.toString(new InputStreamReader(response))), jse);
         } finally {
             reader.close();
         }
     }
 
-    private static void checkStatusCode(@NotNull HttpMethod method) throws IOException {
+    private static void checkStatusCode(@NotNull HttpMethod method) throws HttpStatusException {
         int code = method.getStatusCode();
         switch (code) {
             case HttpStatus.SC_OK:

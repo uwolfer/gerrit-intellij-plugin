@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -121,7 +122,7 @@ public class GerritUtil {
         String json = new Gson().toJson(reviewInput);
         try {
             GerritApiUtil.postRequest(url, login, password, request, json);
-        } catch (HttpStatusException e) {
+        } catch (RestApiException e) {
             GerritUtil.notifyError(project, "Failed to post review.", GerritUtil.getErrorTextFromException(e));
         }
     }
@@ -133,19 +134,19 @@ public class GerritUtil {
         String json = new Gson().toJson(submitInput);
         try {
             GerritApiUtil.postRequest(url, login, password, request, json);
-        } catch (HttpStatusException e) {
+        } catch (RestApiException e) {
             GerritUtil.notifyError(project, "Failed to submit change.", GerritUtil.getErrorTextFromException(e));
         }
     }
 
     @NotNull
-    public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password) {
-        return getChanges(url, login, password, "");
+    public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, Project project) {
+        return getChanges(url, login, password, "", project);
     }
 
     @NotNull
-    public static List<ChangeInfo> getChangesToReview(@NotNull String url, @NotNull String login, @NotNull String password) {
-        return getChanges(url, login, password, "?q=is:open+reviewer:self");
+    public static List<ChangeInfo> getChangesToReview(@NotNull String url, @NotNull String login, @NotNull String password, Project project) {
+        return getChanges(url, login, password, "?q=is:open+reviewer:self", project);
     }
 
     /**
@@ -180,7 +181,7 @@ public class GerritUtil {
             return Collections.emptyList();
         }
         String projectQuery = Joiner.on("+OR+").join(projectNames);
-        return getChanges(url, login, password, "?q=is:open+(" + projectQuery + ')');
+        return getChanges(url, login, password, "?q=is:open+(" + projectQuery + ')', project);
     }
 
     private static URI parseUri(String url) {
@@ -223,23 +224,32 @@ public class GerritUtil {
     }
 
     @NotNull
-    public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String query) {
+    public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String query, Project project) {
         final String request = "/a/changes/" + query;
-        JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
+        JsonElement result = null;
+        try {
+            result = GerritApiUtil.getRequest(url, login, password, request);
+        } catch (RestApiException e) {
+            GerritUtil.notifyError(project, "Failed to get changes.", GerritUtil.getErrorTextFromException(e));
+        }
         if (result == null) {
             return Collections.emptyList();
         }
         return parseChangeInfos(result);
     }
 
-    @NotNull
-    public static ChangeInfo getChangeDetails(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String changeNr) {
+    public static Optional<ChangeInfo> getChangeDetails(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String changeNr, Project project) {
         final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION";
-        JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
-        if (result == null) {
-            throw new RuntimeException("No valid result available.");
+        JsonElement result = null;
+        try {
+            result = GerritApiUtil.getRequest(url, login, password, request);
+        } catch (RestApiException e) {
+            GerritUtil.notifyError(project, "Failed to get change.", GerritUtil.getErrorTextFromException(e));
         }
-        return parseSingleChangeInfos(result.getAsJsonArray().get(0).getAsJsonObject());
+        if (result == null) {
+            return Optional.absent();
+        }
+        return Optional.of(parseSingleChangeInfos(result.getAsJsonArray().get(0).getAsJsonObject()));
     }
 
     @NotNull
@@ -268,20 +278,24 @@ public class GerritUtil {
      */
     @NotNull
     public static TreeMap<String, List<CommentInfo>> getComments(@NotNull String url, @NotNull String login, @NotNull String password,
-                                                                 @NotNull String changeId, @NotNull String revision) {
+                                                                 @NotNull String changeId, @NotNull String revision, Project project) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
+        JsonElement result = null;
         try {
-            JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
-            if (result == null) {
-                return Maps.newTreeMap();
+            result = GerritApiUtil.getRequest(url, login, password, request);
+        } catch (RestApiException e) {
+            if (e instanceof HttpStatusException) { // remove once we drop Gerrit > 2.7 support
+                if (((HttpStatusException) e).getStatusCode() == 404) {
+                    LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+                    return Maps.newTreeMap();
+                }
             }
-            return parseCommentInfos(result);
-        } catch (HttpStatusException e) {
-            if (e.getStatusCode() == 404) {
-                LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
-            }
+            GerritUtil.notifyError(project, "Failed to get comments.", GerritUtil.getErrorTextFromException(e));
+        }
+        if (result == null) {
             return Maps.newTreeMap();
         }
+        return parseCommentInfos(result);
     }
 
     @NotNull
@@ -306,14 +320,14 @@ public class GerritUtil {
         return gson.fromJson(result, CommentInfo.class);
     }
 
-    private static boolean testConnection(final String url, final String login, final String password) {
+    private static boolean testConnection(final String url, final String login, final String password) throws RestApiException {
         AccountInfo user = retrieveCurrentUserInfo(url, login, password);
         return user != null;
     }
 
     @Nullable
     private static AccountInfo retrieveCurrentUserInfo(@NotNull String url, @NotNull String login,
-                                                       @NotNull String password) {
+                                                       @NotNull String password) throws RestApiException {
         JsonElement result = GerritApiUtil.getRequest(url, login, password, "/a/accounts/self");
         return parseUserInfo(result);
     }
@@ -331,7 +345,7 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static List<ProjectInfo> getAvailableProjects(@NotNull String url, @NotNull String login, @NotNull String password) {
+    private static List<ProjectInfo> getAvailableProjects(@NotNull String url, @NotNull String login, @NotNull String password) throws RestApiException {
         final String request = "/a/projects/";
         JsonElement result = GerritApiUtil.getRequest(url, login, password, request);
         if (result == null) {

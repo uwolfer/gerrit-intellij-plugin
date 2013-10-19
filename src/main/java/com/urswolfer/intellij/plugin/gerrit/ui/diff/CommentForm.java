@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.common.base.Optional;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileTypes.PlainTextLanguage;
@@ -85,7 +86,9 @@ public class CommentForm extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 CommentInput comment = new CommentInput();
 
-                GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                if (!gitRepositoryOptional.isPresent()) return;
+                GitRepository gitRepository = gitRepositoryOptional.get();
                 VirtualFile root = gitRepository.getRoot();
                 String path = myFilePath.getPath();
                 String relativePath = FileUtil.getRelativePath(new File(root.getPath()), new File(path));

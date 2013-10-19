@@ -63,7 +63,9 @@ public class CompareBranchAction extends AbstractChangeAction {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
 
-        final GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        if (!gitRepositoryOptional.isPresent()) return;
+        GitRepository gitRepository = gitRepositoryOptional.get();
 
         final String branchName = "FETCH_HEAD";
         GitLocalBranch currentBranch = gitRepository.getCurrentBranch();

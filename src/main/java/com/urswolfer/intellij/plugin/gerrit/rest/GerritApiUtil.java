@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.base.Optional;
 import com.google.common.io.CharStreams;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -41,6 +42,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubApiUtil
@@ -52,6 +55,7 @@ public class GerritApiUtil {
 
     private static final String APPLICATION_JSON = "application/json";
     private static final String UTF_8 = "UTF-8";
+    private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
     private static final int CONNECTION_TIMEOUT = 5000;
     private static final Logger LOG = GerritUtil.LOG;
 
@@ -133,7 +137,7 @@ public class GerritApiUtil {
                                     @NotNull final Collection<Header> headers,
                                     @NotNull final HttpVerb verb) throws IOException {
         HttpClient client = getHttpClient(login, password);
-        tryGerritHttpAuth(host, client);
+        final Optional<String> gerritAuthOptional = tryGerritHttpAuth(host, client);
         String uri = host + path;
         return SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, uri,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
@@ -162,6 +166,9 @@ public class GerritApiUtil {
                         for (Header header : headers) {
                             method.addRequestHeader(header);
                         }
+                        if (gerritAuthOptional.isPresent()) {
+                            method.setRequestHeader("X-Gerrit-Auth", gerritAuthOptional.get());
+                        }
                         method.setRequestHeader("Accept", APPLICATION_JSON);
                         return method;
                     }
@@ -187,15 +194,13 @@ public class GerritApiUtil {
      * [Gerrit documentation].
      * [Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
      */
-    private static void tryGerritHttpAuth(String host, HttpClient client) throws IOException {
+    private static Optional<String> tryGerritHttpAuth(String host, HttpClient client) throws IOException {
         String loginUrl = host + "/login/";
         HttpMethod loginRequest = SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, loginUrl,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
                     @Override
                     public HttpMethod convert(String loginUrl) throws IOException {
-                        HttpMethod method = new HeadMethod(loginUrl);
-                        method.setFollowRedirects(false); // we do not need any further information; status code and GerritAccount cookie is enough
-                        return method;
+                        return new GetMethod(loginUrl);
                     }
                 });
         if (loginRequest.getStatusCode() != HttpStatus.SC_UNAUTHORIZED) {
@@ -203,10 +208,15 @@ public class GerritApiUtil {
             for (Cookie cookie : cookies) {
                 if (cookie.getName().equals("GerritAccount")) {
                     LOG.info("Successfully logged in with /login/ request.");
+                    Matcher matcher = GERRIT_AUTH_PATTERN.matcher(loginRequest.getResponseBodyAsString());
+                    if (matcher.find()) {
+                        return  Optional.of(matcher.group(1));
+                    }
                     break;
                 }
             }
         }
+        return Optional.absent();
     }
 
     public static String getApiUrl() {

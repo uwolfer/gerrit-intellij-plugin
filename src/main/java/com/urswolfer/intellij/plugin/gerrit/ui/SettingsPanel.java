@@ -59,8 +59,8 @@ public class SettingsPanel {
     public SettingsPanel(final GerritSettings settings) {
         myGerritLoginInfoTextField.setText(
                 "* You need to set a HTTP access password for your account in Gerrit " +
-                "(Settings > HTTP Password) <strong>if</strong> you are <strong>not</strong> using HTTP Authentication " +
-                "for Gerrit. Otherwise use your HTTP Authentication password.");
+                "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
+                "HTTP or LDAP Gerrit login data (when available).");
         myGerritLoginInfoTextField.setBackground(myPane.getBackground());
         myTestButton.addActionListener(new ActionListener() {
             @Override

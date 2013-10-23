@@ -88,11 +88,15 @@ public class SslSupport {
         }
 
         if (isTrusted(host)) {
+            int port = uri.getPort();
+            if (port <= 0) {
+                port = 443;
+            }
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
             // see the javadoc to EasySSLProtocolSocketFactory for details
-            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443);
+            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
             HostConfiguration hc = new HostConfiguration();
-            hc.setHost(host, 443, easyHttps);
+            hc.setHost(host, port, easyHttps);
             String relativeUri = new URI(uri.getPathQuery(), false).getURI();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,

@@ -140,7 +140,11 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         final MarkupModel markup = editor2.getMarkupModel();
         for (CommentInfo fileComment : fileComments) {
-            final RangeHighlighter highlighter = markup.addLineHighlighter(fileComment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
+            int line = fileComment.getLine() - 1;
+            if (line < 0) {
+                line = 0;
+            }
+            final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
         }
     }

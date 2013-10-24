@@ -63,7 +63,9 @@ public class ReviewAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
+        final Optional<ChangeInfo> changeDetailsOptional = getChangeDetail(selectedChange.get(), project);
+        if (!changeDetailsOptional.isPresent()) return;
+        ChangeInfo changeDetails = changeDetailsOptional.get();
 
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);

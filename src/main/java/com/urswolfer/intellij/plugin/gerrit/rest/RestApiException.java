@@ -19,21 +19,24 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 /**
  * @author Urs Wolfer
  */
-public class HttpStatusException extends RestApiException {
-    private int statusCode;
-    private String statusText;
+public class RestApiException extends Exception {
+    public RestApiException() {
+        super();
+    }
 
-    public HttpStatusException(int statusCode, String statusText, String message) {
+    public RestApiException(String message) {
         super(message);
-        this.statusCode = statusCode;
-        this.statusText = statusText;
     }
 
-    public int getStatusCode() {
-        return statusCode;
+    public RestApiException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public String getStatusText() {
-        return statusText;
+    public RestApiException(Throwable cause) {
+        super(cause);
+    }
+
+    protected RestApiException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
     }
 }

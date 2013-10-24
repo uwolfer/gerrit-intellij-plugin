@@ -21,6 +21,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.table.TableView;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
@@ -53,11 +54,11 @@ public abstract class AbstractChangeAction extends AnAction implements DumbAware
         return Optional.fromNullable(selectedChange);
     }
 
-    protected ChangeInfo getChangeDetail(ChangeInfo selectedChange) {
+    protected Optional<ChangeInfo> getChangeDetail(ChangeInfo selectedChange, Project project) {
         final GerritSettings settings = GerritSettings.getInstance();
 
         return GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
                 settings.getLogin(), settings.getPassword(),
-                selectedChange.getNumber());
+                selectedChange.getNumber(), project);
     }
 }

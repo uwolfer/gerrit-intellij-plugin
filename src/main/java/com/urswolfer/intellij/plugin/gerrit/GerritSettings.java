@@ -28,6 +28,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +69,7 @@ public class GerritSettings implements PersistentStateComponent<Element> {
     private boolean myRefreshNotifications;
     private Collection<String> myTrustedHosts = new ArrayList<String>();
 
-    private static final Logger LOG = Logger.getInstance(GerritSettings.class.getName());
+    private static final Logger LOG = GerritUtil.LOG;
     private boolean passwordChanged = false;
 
     // Once master password is refused, do not ask for it again

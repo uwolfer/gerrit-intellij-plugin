@@ -59,8 +59,8 @@ public class LoginPanel {
         myLoginTextField.getDocument().addDocumentListener(listener);
         myPasswordField.getDocument().addDocumentListener(listener);
         myGerritLoginInfoTestField.setText("* You need to set a HTTP access password for your account in Gerrit " +
-                "(Settings > HTTP Password) <strong>if</strong> you are <strong>not</strong> using HTTP Authentication " +
-                "for Gerrit. Otherwise use your HTTP Authentication password.");
+                "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
+                "HTTP or LDAP Gerrit login data (when available).");
         myGerritLoginInfoTestField.setMargin(new Insets(5, 0, 0, 0));
         myGerritLoginInfoTestField.setBackground(UIUtil.TRANSPARENT_COLOR);
     }

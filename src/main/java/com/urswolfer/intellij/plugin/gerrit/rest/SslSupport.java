@@ -88,11 +88,15 @@ public class SslSupport {
         }
 
         if (isTrusted(host)) {
+            int port = uri.getPort();
+            if (port <= 0) {
+                port = 443;
+            }
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
             // see the javadoc to EasySSLProtocolSocketFactory for details
-            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), 443);
+            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
             HostConfiguration hc = new HostConfiguration();
-            hc.setHost(host, 443, easyHttps);
+            hc.setHost(host, port, easyHttps);
             String relativeUri = new URI(uri.getPathQuery(), false).getURI();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
@@ -128,11 +132,9 @@ public class SslSupport {
 
     @CalledInAwt
     public boolean askIfShouldProceed(final String host) {
-        final String BACK_TO_SAFETY = "No, I don't trust";
-        final String TRUST = "Proceed anyway";
-        int choice = Messages.showDialog("The security certificate of " + host + " is not trusted. Do you want to proceed anyway?",
-                "Not Trusted Certificate", new String[]{BACK_TO_SAFETY, TRUST}, 0, Messages.getErrorIcon());
-        boolean trust = (choice == 1);
+        int choice = Messages.showYesNoDialog("The security certificate of " + host + " is not trusted. Do you want to proceed anyway?",
+                "Not Trusted Certificate", "Proceed anyway", "No, I don't trust", Messages.getErrorIcon());
+        boolean trust = (choice == Messages.YES);
         if (trust) {
             saveToTrusted(host);
         }

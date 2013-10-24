@@ -45,10 +45,11 @@ public class SubmitAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final ChangeInfo changeDetails = getChangeDetail(selectedChange.get());
+        final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
+        if (!changeDetails.isPresent()) return;
 
         final SubmitInput submitInput = new SubmitInput();
         GerritUtil.postSubmit(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), submitInput, project);
+                changeDetails.get().getId(), submitInput, project);
     }
 }

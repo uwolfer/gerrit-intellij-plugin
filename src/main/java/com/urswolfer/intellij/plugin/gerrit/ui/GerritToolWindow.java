@@ -17,7 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.intellij.icons.AllIcons;
@@ -136,18 +138,21 @@ public class GerritToolWindow {
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
         final GerritSettings settings = GerritSettings.getInstance();
-        final ChangeInfo changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeInfo.getNumber());
+        final Optional<ChangeInfo> changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
+                settings.getLogin(), settings.getPassword(), changeInfo.getNumber(), project);
+        if (!changeDetails.isPresent()) return;
 
-        myDetailsPanel.setData(changeDetails);
+        myDetailsPanel.setData(changeDetails.get());
 
-        updateChangesBrowser(changeDetails, project);
+        updateChangesBrowser(changeDetails.get(), project);
     }
 
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
         myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        final GitRepository gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+        if (!gitRepositoryOptional.isPresent()) return;
+        GitRepository gitRepository = gitRepositoryOptional.get();
         final VirtualFile virtualFile = gitRepository.getGitDir();
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
@@ -160,7 +165,7 @@ public class GerritToolWindow {
                 try {
                     gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.getCurrentRevision()));
                 } catch (VcsException e) {
-                    throw new RuntimeException(e);
+                    throw Throwables.propagate(e);
                 }
                 final GitHeavyCommit gitCommit = Iterables.get(gitCommits, 0);
 
@@ -242,7 +247,7 @@ public class GerritToolWindow {
         }
 
         String apiUrl = GerritApiUtil.getApiUrl();
-        List<ChangeInfo> changes = GerritUtil.getChangesToReview(apiUrl, settings.getLogin(), settings.getPassword());
+        List<ChangeInfo> changes = GerritUtil.getChangesToReview(apiUrl, settings.getLogin(), settings.getPassword(), project);
 
         boolean newChange = false;
         for (ChangeInfo change : changes) {

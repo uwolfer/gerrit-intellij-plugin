@@ -17,6 +17,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
@@ -66,9 +68,9 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
  * @author Urs Wolfer
  */
 public class GerritGitUtil {
-    private static final Logger LOG = Logger.getInstance(GerritGitUtil.class);
+    private static final Logger LOG = GerritUtil.LOG;
 
-    public static GitRepository getRepositoryForGerritProject(Project project, String gerritProjectName) {
+    public static Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
 
@@ -77,12 +79,13 @@ public class GerritGitUtil {
                 for (String remoteUrl : remote.getUrls()) {
                     remoteUrl = remoteUrl.replace(".git", ""); // some repositories end their name with ".git"
                     if (remoteUrl.endsWith(gerritProjectName)) {
-                        return repository;
+                        return Optional.of(repository);
                     }
                 }
             }
         }
-        throw new RuntimeException(String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        GerritUtil.notifyError(project, "Error", String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        return Optional.absent();
     }
 
     public static void fetchChange(final Project project, final GitRepository gitRepository, final String branch, @Nullable final Callable<Void> successCallable) {
@@ -95,7 +98,7 @@ public class GerritGitUtil {
                         successCallable.call();
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw Throwables.propagate(e);
                 }
             }
 
@@ -119,7 +122,9 @@ public class GerritGitUtil {
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
-                    final GitRepository gitRepository = getRepositoryForGerritProject(project, changeInfo.getProject());
+                    Optional<GitRepository> gitRepositoryOptional = getRepositoryForGerritProject(project, changeInfo.getProject());
+                    if (!gitRepositoryOptional.isPresent()) return;
+                    GitRepository gitRepository = gitRepositoryOptional.get();
 
                     final VirtualFile virtualFile = gitRepository.getGitDir();
 

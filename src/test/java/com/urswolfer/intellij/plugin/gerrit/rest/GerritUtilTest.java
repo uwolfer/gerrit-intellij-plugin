@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -28,6 +29,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -145,6 +147,24 @@ public class GerritUtilTest {
         Assert.assertEquals("gerritcodereview#project", projectInfo.getKind());
         Assert.assertEquals("packages%2Ftest", projectInfo.getId());
         Assert.assertEquals("packages/test", projectInfo.getDecodedId());
+    }
+
+
+    @Test
+    public void testParseChanges() throws Exception {
+        URL url = GerritUtilTest.class.getResource("/com/urswolfer/intellij/plugin/gerrit/rest/changes.json");
+        File file = new File(url.toURI());
+        JsonElement jsonElement = new JsonParser().parse(new FileReader(file));
+
+        final Method parseChangeInfos = GerritUtil.class.getDeclaredMethod("parseChangeInfos", JsonElement.class);
+        parseChangeInfos.setAccessible(true);
+
+        List<ChangeInfo> changeInfos = (List<ChangeInfo>) parseChangeInfos.invoke(null, jsonElement);
+        Assert.assertEquals(3, changeInfos.size());
+
+        ChangeInfo firstChangeInfo = changeInfos.get(0);
+
+        Assert.assertEquals(1375080914000l, firstChangeInfo.getUpdated().getTime()); // verify that the date parser uses correct format and UTC for parsing
     }
 
 }

@@ -27,6 +27,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
@@ -38,7 +39,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -132,10 +132,13 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             GerritSettings settings = GerritSettings.getInstance();
             HttpMethod method = GerritApiUtil.doREST(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
                     "/a/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
+            if (method.getStatusCode() != 200) {
+                throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), method.getStatusText());
+            }
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             Files.write(method.getResponseBody(), targetFile);
             targetFile.setExecutable(true);
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOG.info(e);
             GerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
                     GerritUtil.getErrorTextFromException(e));

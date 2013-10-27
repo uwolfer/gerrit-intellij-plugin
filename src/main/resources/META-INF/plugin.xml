@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -69,6 +69,14 @@
 
       <p>
         <ul>
+          <li>0.4.1</li>
+          <ul>
+            <li>performance improvement (reduced HTTP transfer sizes)</li>
+            <li>add support for HTTPS servers on non-default port with self-signed certs</li>
+            <li>fix timezone handling</li>
+            <li>improve HTTP authentication flow (again!) (everyone who had authentication issues should try again)</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.4.0</li>
           <ul>
             <li>improve HTTP authentication flow (everyone who had authentication issues should try again)</li>

@@ -43,10 +43,26 @@ Some actions like comparing and listing files are based on Git operations. [Inte
 See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 
 
-Building the plugin
+Build (and Develop!) the Plugin
 ------------------
 
 To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
+It's very easy to set it up as a plain IntelliJ project (without Maven integration). Just ignore the Maven paragraph if
+you are unsure.
+
+### Intellij Project
+
+1. Activate Plugin DevKit in IntelliJ
+2. git clone https://github.com/uwolfer/gerrit-intellij-plugin (probably switch to intellij13 branch)
+3. Open checked out project in IntelliJ (File -> Open...)
+4. Open project settings, Project -> Project SDK -> New -> IntelliJ Platform SDK -> Choose your IntelliJ installation folder
+5. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib (e.g. /Applications/IntelliJ IDEA 12.app/plugins/git4idea/lib) -> set Scope to "provided"
+6. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines) (strange, but Intellij breaks things here...), reload project. You might must repeat this step if you change project settings...
+7. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin -> (Name: "Gerrit" or whatever you like)
+8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories which are set up in current workspace).
+
+### Maven (not officially supported)
+
 The plugin depends on multiple jars of IntelliJ IDEA but as these are not available via Maven Central, you'll have to
 install the various Intellij jars located in the lib folder of your IntelliJ install into your local Maven repository.
 

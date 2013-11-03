@@ -240,7 +240,7 @@ public class GerritUtil {
     }
 
     public static Optional<ChangeInfo> getChangeDetails(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String changeNr, Project project) {
-        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION";
+        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         JsonElement result = null;
         try {
             result = GerritApiUtil.getRequest(url, login, password, request);

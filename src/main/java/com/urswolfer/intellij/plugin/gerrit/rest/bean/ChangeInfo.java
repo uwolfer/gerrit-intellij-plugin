@@ -20,6 +20,7 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -44,6 +45,7 @@ public class ChangeInfo {
     private String number;
     private AccountInfo owner;
     private ChangeMessageInfo[] messages;
+    private Map<String, LabelInfo> labels;
 
     @SerializedName("current_revision")
     private String currentRevision;
@@ -186,6 +188,14 @@ public class ChangeInfo {
         this.messages = messages;
     }
 
+    public Map<String, LabelInfo> getLabels() {
+        return labels;
+    }
+
+    public void setLabels(Map<String, LabelInfo> labels) {
+        this.labels = labels;
+    }
+
     @Override
     public String toString() {
         return "ChangeInfo{" +
@@ -204,6 +214,7 @@ public class ChangeInfo {
                 ", number='" + number + '\'' +
                 ", owner=" + owner +
                 ", messages=" + Arrays.toString(messages) +
+                ", labels=" + labels +
                 ", currentRevision='" + currentRevision + '\'' +
                 ", revisions=" + revisions +
                 '}';

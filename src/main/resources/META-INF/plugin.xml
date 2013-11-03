@@ -29,10 +29,6 @@
       </p>
 
       <p>
-        <strong>IMPORTANT NOTE:</strong> This plugin is in early development state. Use at own risk.
-      </p>
-
-      <p>
         Features:
         <ul>
           <li>Do reviews directly from your IDE (voting and commenting)</li>
@@ -40,25 +36,28 @@
           <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
           <li>Submit changes</li>
           <li>Notifications for new changes which are waiting for your review</li>
-          <li>Cherry-Pick / (Planned Feature) Merge change into your local clone</li>
+          <li>Cherry-Pick changes into your local clone</li>
           <li>File and line based comments (<strong>Gerrit 2.7 or newer only</strong>)<br />
           Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
            click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
           </li>
           <li>Clone and set up (add commit message hook) Gerrit projects directly</li>
-          <li>(Planned Feature) Add reviewers to changes</li>
         </ul>
       </p>
 
       <p>
-        Limitations:
+        If you find any issues, please report them (please use the GitHub issue tracker instead of review comments).
+      </p>
+
+      <p>
+        If you like this plugin, you can support it:
         <ul>
-          <li>Only Native Git Mode is supported</li>
+          <li>Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)</li>
+          <li>Vote for it: Write your review and vote for it at the <a href="http://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
+          <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin/star">Star it at GitHub</a>. GitHub account required.</li>
+          <li>Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!</li>
+          <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin/blob/master/README.md">README</a> file (at the bottom).</li>
         </ul>
-      </p>
-
-      <p>
-        If you find any issues, please report them.
       </p>
       ]]></description>
 

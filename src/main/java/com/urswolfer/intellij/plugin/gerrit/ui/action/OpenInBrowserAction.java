@@ -20,7 +20,7 @@ import com.google.common.base.Optional;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.util.IconLoader;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
 /**
@@ -43,7 +43,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
     }
 
     private String getUrl(ChangeInfo change) {
-        String url = GerritApiUtil.getApiUrl();
+        String url = GerritSettings.getInstance().getHost();
         String changeNumber = change.getNumber();
         return String.format("%s/%s", url, changeNumber);
     }

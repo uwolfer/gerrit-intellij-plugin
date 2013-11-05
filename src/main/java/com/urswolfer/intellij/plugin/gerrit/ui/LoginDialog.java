@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
@@ -78,8 +79,9 @@ public class LoginDialog extends DialogWrapper {
         final String login = myLoginPanel.getLogin();
         final String password = myLoginPanel.getPassword();
         final String host = myLoginPanel.getHost();
+        GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(host, login, password);
         try {
-            boolean loggedSuccessfully = GerritUtil.checkCredentials(myProject, host, login, password);
+            boolean loggedSuccessfully = GerritUtil.checkCredentials(myProject, gerritAuthData);
             if (loggedSuccessfully) {
                 final GerritSettings settings = GerritSettings.getInstance();
                 settings.setLogin(login);

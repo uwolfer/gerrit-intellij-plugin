@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.extension;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import git4idea.jgit.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,7 +36,7 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
     public AuthData getAuthData(@NotNull String url) {
         GerritSettings settings = GerritSettings.getInstance();
 
-        if (!GerritApiUtil.getApiUrl().equalsIgnoreCase(url)) {
+        if (!settings.getHost().equalsIgnoreCase(url)) {
             return null;
         }
         if (StringUtil.isEmptyOrSpaces(settings.getLogin()) || StringUtil.isEmptyOrSpaces(settings.getPassword())) {

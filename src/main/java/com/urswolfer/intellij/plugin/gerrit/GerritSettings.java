@@ -49,7 +49,7 @@ import java.util.Collection;
                         file = StoragePathMacros.APP_CONFIG + "/gerrit_settings.xml"
                 )}
 )
-public class GerritSettings implements PersistentStateComponent<Element> {
+public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
 
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
@@ -140,11 +140,13 @@ public class GerritSettings implements PersistentStateComponent<Element> {
         }
     }
 
+    @Override
     @Nullable
     public String getLogin() {
         return myLogin;
     }
 
+    @Override
     @NotNull
     public String getPassword() {
         LOG.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
@@ -173,6 +175,8 @@ public class GerritSettings implements PersistentStateComponent<Element> {
         return password != null ? password : "";
     }
 
+    @NotNull
+    @Override
     public String getHost() {
         return myHost;
     }

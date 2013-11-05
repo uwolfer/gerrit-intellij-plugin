@@ -22,7 +22,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
@@ -49,7 +48,6 @@ public class SubmitAction extends AbstractChangeAction {
         if (!changeDetails.isPresent()) return;
 
         final SubmitInput submitInput = new SubmitInput();
-        GerritUtil.postSubmit(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.get().getId(), submitInput, project);
+        GerritUtil.postSubmit(changeDetails.get().getId(), submitInput, project);
     }
 }

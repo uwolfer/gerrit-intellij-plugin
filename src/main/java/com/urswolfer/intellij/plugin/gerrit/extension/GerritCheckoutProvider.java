@@ -129,8 +129,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            GerritSettings settings = GerritSettings.getInstance();
-            HttpMethod method = GerritApiUtil.doREST(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
+            HttpMethod method = GerritApiUtil.doREST(
                     "/a/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
             if (method.getStatusCode() != 200) {
                 throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), method.getStatusText());

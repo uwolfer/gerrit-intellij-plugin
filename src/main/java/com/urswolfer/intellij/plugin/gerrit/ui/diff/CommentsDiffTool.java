@@ -36,9 +36,7 @@ import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.ui.PopupHandler;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
@@ -91,9 +89,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
         Project project = PlatformDataKeys.PROJECT.getData(context);
-        final GerritSettings settings = GerritSettings.getInstance();
-        Optional<ChangeInfo> changeDetailsOptional = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), myChangeInfo.getNumber(), project);
+        Optional<ChangeInfo> changeDetailsOptional = GerritUtil.getChangeDetails(
+                myChangeInfo.getNumber(), project);
         if (!changeDetailsOptional.isPresent()) return;
         ChangeInfo changeDetails = changeDetailsOptional.get();
 
@@ -102,8 +99,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         ReviewCommentSink reviewCommentSink = GerritDataKeys.REVIEW_COMMENT_SINK.getData(context);
         addCommentAction(editor2, filePath, reviewCommentSink, myChangeInfo);
 
-        TreeMap<String,List<CommentInfo>> comments = GerritUtil.getComments(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeDetails.getId(), changeDetails.getCurrentRevision(), project);
+        TreeMap<String,List<CommentInfo>> comments = GerritUtil.getComments(
+                changeDetails.getId(), changeDetails.getCurrentRevision(), project);
         addCommentsGutter(editor2, filePath, comments, reviewCommentSink, myChangeInfo, project);
     }
 

@@ -42,7 +42,6 @@ import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
@@ -137,9 +136,7 @@ public class GerritToolWindow {
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        final GerritSettings settings = GerritSettings.getInstance();
-        final Optional<ChangeInfo> changeDetails = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeInfo.getNumber(), project);
+        final Optional<ChangeInfo> changeDetails = GerritUtil.getChangeDetails(changeInfo.getNumber(), project);
         if (!changeDetails.isPresent()) return;
 
         myDetailsPanel.setData(changeDetails.get());
@@ -206,7 +203,7 @@ public class GerritToolWindow {
 
     private List<ChangeInfo> getChanges(Project project, boolean requestSettingsIfNonExistent) {
         final GerritSettings settings = GerritSettings.getInstance();
-        String apiUrl = GerritApiUtil.getApiUrl();
+        String apiUrl = settings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project);
@@ -214,12 +211,11 @@ public class GerritToolWindow {
                 if (!dialog.isOK()) {
                     return Collections.emptyList();
                 }
-                apiUrl = GerritApiUtil.getApiUrl();
             } else {
                 return Collections.emptyList();
             }
         }
-        return GerritUtil.getChangesForProject(apiUrl, settings.getLogin(), settings.getPassword(), project);
+        return GerritUtil.getChangesForProject(project);
     }
 
     private ActionToolbar createToolbar() {
@@ -246,8 +242,7 @@ public class GerritToolWindow {
             return;
         }
 
-        String apiUrl = GerritApiUtil.getApiUrl();
-        List<ChangeInfo> changes = GerritUtil.getChangesToReview(apiUrl, settings.getLogin(), settings.getPassword(), project);
+        List<ChangeInfo> changes = GerritUtil.getChangesToReview(project);
 
         boolean newChange = false;
         for (ChangeInfo change : changes) {

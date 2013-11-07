@@ -14,26 +14,32 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.ui;
+package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.SimpleToolWindowPanel;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.openapi.vcs.CheckoutProvider;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-
-import java.awt.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public class GerritToolWindowFactory implements ToolWindowFactory {
-    @Override
-    public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
-        GerritToolWindow gerritToolWindow = GerritModule.getInstance(GerritToolWindow.class);
+public class GerritCheckoutProviderProxy implements CheckoutProvider {
 
-        Component component = toolWindow.getComponent();
-        SimpleToolWindowPanel toolWindowContent = gerritToolWindow.createToolWindowContent(project);
-        component.getParent().add(toolWindowContent);
+    private final GerritCheckoutProvider delegate;
+
+    public GerritCheckoutProviderProxy() {
+        this.delegate = GerritModule.getInstance(GerritCheckoutProvider.class);
+    }
+
+    @Override
+    public void doCheckout(@NotNull Project project, @Nullable Listener listener) {
+        delegate.doCheckout(project, listener);
+    }
+
+    @Override
+    public String getVcsName() {
+        return delegate.getVcsName();
     }
 }

@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.util;
+package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.intellij.openapi.actionSystem.DataKey;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.google.inject.AbstractModule;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public interface GerritDataKeys {
-    DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
-    DataKey<ReviewCommentSink> REVIEW_COMMENT_SINK = DataKey.create("gerrit.ReviewCommentSink");
+public class GerritDiffModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(AddCommentActionBuilder.class);
+        bind(CommentsDiffTool.class);
+        bind(CommentBalloonBuilder.class);
+    }
 }

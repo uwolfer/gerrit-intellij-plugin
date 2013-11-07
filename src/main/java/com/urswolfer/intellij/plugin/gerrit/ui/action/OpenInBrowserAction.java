@@ -17,9 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.util.IconLoader;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
@@ -27,6 +29,8 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
  * @author Urs Wolfer
  */
 public class OpenInBrowserAction extends AbstractChangeAction {
+    @Inject
+    private GerritSettings gerritSettings;
 
     public OpenInBrowserAction() {
         super("Open in Gerrit", "Open corresponding link in browser", IconLoader.getIcon("/icons/gerrit.png"));
@@ -43,8 +47,22 @@ public class OpenInBrowserAction extends AbstractChangeAction {
     }
 
     private String getUrl(ChangeInfo change) {
-        String url = GerritSettings.getInstance().getHost();
+        String url = gerritSettings.getHost();
         String changeNumber = change.getNumber();
         return String.format("%s/%s", url, changeNumber);
+    }
+
+    public class Proxy extends OpenInBrowserAction {
+        private final OpenInBrowserAction delegate;
+
+        public Proxy() {
+            super();
+            delegate = GerritModule.getInstance(OpenInBrowserAction.class);
+        }
+
+        @Override
+        public void actionPerformed(AnActionEvent e) {
+            delegate.actionPerformed(e);
+        }
     }
 }

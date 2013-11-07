@@ -17,10 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Throwables;
-import com.intellij.openapi.components.ServiceManager;
+import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
@@ -46,9 +47,8 @@ import java.util.List;
  */
 public class SslSupport {
 
-    public static SslSupport getInstance() {
-        return ServiceManager.getService(SslSupport.class);
-    }
+    @Inject
+    private GerritSettings gerritSettings;
 
     /**
      * Tries to execute the {@link HttpMethod} and captures the {@link ValidatorException exception} which is thrown if user connects
@@ -79,7 +79,7 @@ public class SslSupport {
     }
 
     @Nullable
-    private static HttpMethod handleCertificateExceptionAndRetry(@NotNull IOException e, @NotNull String host,
+    private HttpMethod handleCertificateExceptionAndRetry(@NotNull IOException e, @NotNull String host,
                                                                  @NotNull HttpClient client, @NotNull URI uri,
                                                                  @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator)
             throws IOException {
@@ -108,7 +108,7 @@ public class SslSupport {
         throw e;
     }
 
-    public static boolean isCertificateException(Exception e) {
+    public boolean isCertificateException(Exception e) {
         List<Throwable> causalChain = Throwables.getCausalChain(e);
         for (Throwable throwable : causalChain) {
             if (throwable instanceof ValidatorException) {
@@ -118,13 +118,13 @@ public class SslSupport {
         return false;
     }
 
-    private static boolean isTrusted(@NotNull String host) {
-        return GerritSettings.getInstance().getTrustedHosts().contains(host);
+    private boolean isTrusted(@NotNull String host) {
+        return gerritSettings.getTrustedHosts().contains(host);
     }
 
-    private static void saveToTrusted(@NotNull String host) {
+    private void saveToTrusted(@NotNull String host) {
         try {
-            GerritSettings.getInstance().addTrustedHost(new java.net.URI(host).getHost());
+            gerritSettings.addTrustedHost(new java.net.URI(host).getHost());
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }
@@ -139,6 +139,31 @@ public class SslSupport {
             saveToTrusted(host);
         }
         return trust;
+    }
+
+    public class Proxy extends SslSupport {
+        private final SslSupport delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(SslSupport.class);
+        }
+
+        @Override
+        @NotNull
+        public HttpMethod executeSelfSignedCertificateAwareRequest(@NotNull HttpClient client, @NotNull String uri, @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator) throws IOException {
+            return delegate.executeSelfSignedCertificateAwareRequest(client, uri, methodCreator);
+        }
+
+        @Override
+        public boolean isCertificateException(Exception e) {
+            return delegate.isCertificateException(e);
+        }
+
+        @Override
+        @CalledInAwt
+        public boolean askIfShouldProceed(String host) {
+            return delegate.askIfShouldProceed(host);
+        }
     }
 
 }

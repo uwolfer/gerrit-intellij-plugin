@@ -17,9 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import icons.Git4ideaIcons;
@@ -30,6 +32,10 @@ import java.util.concurrent.Callable;
  * @author Urs Wolfer
  */
 public class CherryPickAction extends AbstractChangeAction {
+    @Inject
+    private GerritGitUtil gerritGitUtil;
+    @Inject
+    private FetchActionsFactory fetchActionsFactory;
 
     public CherryPickAction() {
         super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", Git4ideaIcons.CherryPick);
@@ -50,10 +56,24 @@ public class CherryPickAction extends AbstractChangeAction {
             @Override
             public Void call() throws Exception {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                GerritGitUtil.cherryPickChange(project, changeDetails.get());
+                gerritGitUtil.cherryPickChange(project, changeDetails.get());
                 return null;
             }
         };
-        new FetchAction(successCallable).actionPerformed(anActionEvent);
+        fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
+    }
+
+    public class Proxy extends CherryPickAction {
+        private final CherryPickAction delegate;
+
+        public Proxy() {
+            super();
+            delegate = GerritModule.getInstance(CherryPickAction.class);
+        }
+
+        @Override
+        public void actionPerformed(AnActionEvent e) {
+            delegate.actionPerformed(e);
+        }
     }
 }

@@ -21,7 +21,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -41,6 +41,7 @@ import com.intellij.ui.SideBorder;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
@@ -62,21 +63,32 @@ import java.util.concurrent.Callable;
  * @author Konrad Dobrzynski
  */
 public class GerritToolWindow {
+    @Inject
+    private DiffManager diffManager;
+    @Inject
+    private GerritGitUtil gerritGitUtil;
+    @Inject
+    private GerritUtil gerritUtil;
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private CommentsDiffTool commentsDiffTool;
+    @Inject
+    private SettingsAction settingsAction;
+    @Inject
     private GerritChangeListPanel changeListPanel;
+    @Inject
+    private ReviewCommentSink reviewCommentSink;
+
     private RepositoryChangesBrowser myRepositoryChangesBrowser;
     private Timer myTimer;
     private Set<String> myNotifiedChanges = new HashSet<String>();
     private GerritChangeDetailsPanel myDetailsPanel;
     private Splitter myDetailsSplitter;
     private ChangeInfo mySelectedChange;
-    private ReviewCommentSink myReviewCommentSink;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
-        DiffManager.getInstance().registerDiffTool(new CommentsDiffTool());
-
-        myReviewCommentSink = new ReviewCommentSink();
-
-        changeListPanel = new GerritChangeListPanel(Lists.<ChangeInfo>newArrayList(), null, myReviewCommentSink);
+        diffManager.registerDiffTool(commentsDiffTool);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(false, true);
 
@@ -119,7 +131,7 @@ public class GerritToolWindow {
             public void calcData(DataKey key, DataSink sink) {
                 super.calcData(key, sink);
                 sink.put(GerritDataKeys.CHANGE, mySelectedChange);
-                sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, myReviewCommentSink);
+                sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, reviewCommentSink);
             }
         };
         repositoryChangesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
@@ -136,7 +148,7 @@ public class GerritToolWindow {
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        final Optional<ChangeInfo> changeDetails = GerritUtil.getChangeDetails(changeInfo.getNumber(), project);
+        final Optional<ChangeInfo> changeDetails = gerritUtil.getChangeDetails(changeInfo.getNumber(), project);
         if (!changeDetails.isPresent()) return;
 
         myDetailsPanel.setData(changeDetails.get());
@@ -147,15 +159,15 @@ public class GerritToolWindow {
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
         myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository gitRepository = gitRepositoryOptional.get();
         final VirtualFile virtualFile = gitRepository.getGitDir();
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
-        String ref = GerritUtil.getRef(changeDetails);
+        String ref = gerritUtil.getRef(changeDetails);
 
-        GerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
+        gerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 final List<GitCommit> gitCommits;
@@ -178,9 +190,8 @@ public class GerritToolWindow {
     }
 
     private void setupRefreshTask(Project project) {
-        final GerritSettings settings = GerritSettings.getInstance();
-        long refreshTimeout = settings.getRefreshTimeout();
-        if (settings.getAutomaticRefresh() && refreshTimeout > 0) {
+        long refreshTimeout = gerritSettings.getRefreshTimeout();
+        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
             myTimer = new Timer();
             myTimer.schedule(new CheckReviewTask(myTimer, project, this), refreshTimeout * 60 * 1000);
         }
@@ -191,7 +202,7 @@ public class GerritToolWindow {
         try {
             commits = getChanges(project, requestSettingsIfNonExistent);
         } catch (Exception e) {
-            GerritUtil.notifyError(project, "Failed to load Gerrit changes.", GerritUtil.getErrorTextFromException(e));
+            gerritUtil.notifyError(project, "Failed to load Gerrit changes.", gerritUtil.getErrorTextFromException(e));
         }
         changeListPanel.setChanges(commits);
 
@@ -202,11 +213,10 @@ public class GerritToolWindow {
     }
 
     private List<ChangeInfo> getChanges(Project project, boolean requestSettingsIfNonExistent) {
-        final GerritSettings settings = GerritSettings.getInstance();
-        String apiUrl = settings.getHost();
+        String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project);
+                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
                 dialog.show();
                 if (!dialog.isOK()) {
                     return Collections.emptyList();
@@ -215,7 +225,7 @@ public class GerritToolWindow {
                 return Collections.emptyList();
             }
         }
-        return GerritUtil.getChangesForProject(project);
+        return gerritUtil.getChangesForProject(project);
     }
 
     private ActionToolbar createToolbar() {
@@ -230,19 +240,17 @@ public class GerritToolWindow {
         };
         group.add(refreshActionAction);
 
-        group.add(new SettingsAction());
+        group.add(settingsAction);
 
         return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false);
     }
 
     private void handleNotification(Project project) {
-        final GerritSettings settings = GerritSettings.getInstance();
-
-        if (!settings.getReviewNotifications()) {
+        if (!gerritSettings.getReviewNotifications()) {
             return;
         }
 
-        List<ChangeInfo> changes = GerritUtil.getChangesToReview(project);
+        List<ChangeInfo> changes = gerritUtil.getChangesToReview(project);
 
         boolean newChange = false;
         for (ChangeInfo change : changes) {
@@ -265,7 +273,7 @@ public class GerritToolWindow {
                 myNotifiedChanges.add(change.getChangeId());
             }
             stringBuilder.append("</ul>");
-            GerritUtil.notifyInformation(project, "Gerrit Changes waiting for my review", stringBuilder.toString());
+            gerritUtil.notifyInformation(project, "Gerrit Changes waiting for my review", stringBuilder.toString());
         }
     }
 
@@ -289,9 +297,8 @@ public class GerritToolWindow {
                 }
             });
 
-            final GerritSettings settings = GerritSettings.getInstance();
-            long refreshTimeout = settings.getRefreshTimeout();
-            if (settings.getAutomaticRefresh() && refreshTimeout > 0) {
+            long refreshTimeout = gerritSettings.getRefreshTimeout();
+            if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
                 myTimer.schedule(new CheckReviewTask(myTimer, myProject, myToolWindowFactory), refreshTimeout * 60 * 1000);
             }
         }

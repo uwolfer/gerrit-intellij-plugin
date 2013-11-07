@@ -75,11 +75,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     // Once master password is refused, do not ask for it again
     private boolean masterPasswordRefused = false;
 
-
-    public static GerritSettings getInstance() {
-        return ServiceManager.getService(GerritSettings.class);
-    }
-
     public Element getState() {
         LOG.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
 
@@ -175,7 +170,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return password != null ? password : "";
     }
 
-    @NotNull
     @Override
     public String getHost() {
         return myHost;

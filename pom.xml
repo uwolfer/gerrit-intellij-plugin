@@ -66,6 +66,18 @@
       <version>${idea.version}</version>
       <scope>provided</scope> <!-- compile scope required for form plugin building; excluded in assembly -->
     </dependency>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>4.0-beta</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.inject.extensions</groupId>
+      <artifactId>guice-multibindings</artifactId>
+      <version>4.0-beta</version>
+      <scope>compile</scope>
+    </dependency>
 
     <dependency>
       <groupId>commons-httpclient</groupId>

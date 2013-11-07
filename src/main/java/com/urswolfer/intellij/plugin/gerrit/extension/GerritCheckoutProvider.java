@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.io.Files;
+import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -51,20 +52,29 @@ import java.util.List;
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
 
+    @Inject
+    private LocalFileSystem localFileSystem;
+    @Inject
+    private GerritUtil gerritUtil;
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private GerritApiUtil gerritApiUtil;
+
     private static Logger LOG = GerritUtil.LOG;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
-        if (!GerritUtil.testGitExecutable(project)) {
+        if (!gerritUtil.testGitExecutable(project)) {
             return;
         }
         BasicAction.saveAll();
         List<ProjectInfo> availableProjects = null;
         try {
-            availableProjects = GerritUtil.getAvailableProjects(project);
+            availableProjects = gerritUtil.getAvailableProjects(project);
         } catch (Exception e) {
             LOG.info(e);
-            GerritUtil.notifyError(project, "Couldn't get the list of Gerrit repositories", GerritUtil.getErrorTextFromException(e));
+            gerritUtil.notifyError(project, "Couldn't get the list of Gerrit repositories", gerritUtil.getErrorTextFromException(e));
         }
         if (availableProjects == null) {
             return;
@@ -79,14 +89,14 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         final GitCloneDialog dialog = new GitCloneDialog(project);
         // Add predefined repositories to history
         for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(GerritSettings.getInstance().getHost() + '/' + availableProjects.get(i).getDecodedId());
+            dialog.prependToHistory(gerritSettings.getHost() + '/' + availableProjects.get(i).getDecodedId());
         }
         dialog.show();
         if (!dialog.isOK()) {
             return;
         }
         dialog.rememberSettings();
-        final VirtualFile destinationParent = LocalFileSystem.getInstance().findFileByIoFile(new File(dialog.getParentDirectory()));
+        final VirtualFile destinationParent = localFileSystem.findFileByIoFile(new File(dialog.getParentDirectory()));
         if (destinationParent == null) {
             return;
         }
@@ -129,7 +139,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            HttpMethod method = GerritApiUtil.doREST(
+            HttpMethod method = gerritApiUtil.doREST(
                     "/a/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
             if (method.getStatusCode() != 200) {
                 throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), method.getStatusText());
@@ -139,8 +149,8 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             targetFile.setExecutable(true);
         } catch (Exception e) {
             LOG.info(e);
-            GerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
-                    GerritUtil.getErrorTextFromException(e));
+            gerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
+                    gerritUtil.getErrorTextFromException(e));
         }
     }
 }

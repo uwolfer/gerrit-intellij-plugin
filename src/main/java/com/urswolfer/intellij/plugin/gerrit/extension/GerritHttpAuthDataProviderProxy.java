@@ -1,5 +1,4 @@
 /*
- * Copyright 2000-2012 JetBrains s.r.o.
  * Copyright 2013 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,36 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
-import com.google.inject.Inject;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import git4idea.jgit.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Parts based on org.jetbrains.plugins.github.extensions.GithubHttpAuthDataProvider
- *
- * @author Urs Wolfer
- * @author Kirill Likhodedov
+ * @author Thomas Forrer
  */
-public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
+public class GerritHttpAuthDataProviderProxy implements GitHttpAuthDataProvider {
+    private final GerritHttpAuthDataProvider delegate;
 
-    @Inject
-    private GerritSettings gerritSettings;
+    public GerritHttpAuthDataProviderProxy() {
+        delegate = GerritModule.getInstance(GerritHttpAuthDataProvider.class);
+    }
 
     @Nullable
     @Override
     public AuthData getAuthData(@NotNull String url) {
-        if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
-            return null;
-        }
-        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(gerritSettings.getPassword())) {
-            return null;
-        }
-        return new AuthData(gerritSettings.getLogin(), gerritSettings.getPassword());
+        return delegate.getAuthData(url);
     }
 }

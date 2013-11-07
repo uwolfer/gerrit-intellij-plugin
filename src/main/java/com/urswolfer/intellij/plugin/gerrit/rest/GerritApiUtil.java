@@ -22,12 +22,12 @@ import com.google.common.io.CharStreams;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.*;
@@ -60,37 +60,40 @@ public class GerritApiUtil {
     private static final int CONNECTION_TIMEOUT = 5000;
     private static final Logger LOG = GerritUtil.LOG;
 
-    private static final GerritAuthData authData = GerritSettings.getInstance();
+    @Inject
+    private GerritAuthData authData;
+    @Inject
+    private SslSupport sslSupport;
 
     public enum HttpVerb {
         GET, POST, DELETE, HEAD
     }
 
-    public static JsonElement getRequest(@NotNull GerritAuthData gerritAuthData, @NotNull String path, @NotNull Header... headers) throws RestApiException {
+    public JsonElement getRequest(@NotNull GerritAuthData gerritAuthData, @NotNull String path, @NotNull Header... headers) throws RestApiException {
         return request(gerritAuthData, path, null, Arrays.asList(headers), HttpVerb.GET);
     }
 
     @Nullable
-    public static JsonElement getRequest(@NotNull String path,
+    public JsonElement getRequest(@NotNull String path,
                                          @NotNull Header... headers) throws RestApiException {
         return request(authData, path, null, Arrays.asList(headers), HttpVerb.GET);
     }
 
     @Nullable
-    public static JsonElement postRequest(@NotNull String path,
+    public JsonElement postRequest(@NotNull String path,
                                           @Nullable String requestBody,
                                           @NotNull Header... headers) throws RestApiException {
         return request(authData, path, requestBody, Arrays.asList(headers), HttpVerb.POST);
     }
 
     @Nullable
-    public static JsonElement deleteRequest(@NotNull String path,
+    public JsonElement deleteRequest(@NotNull String path,
                                             @NotNull Header... headers) throws RestApiException {
         return request(authData, path, null, Arrays.asList(headers), HttpVerb.DELETE);
     }
 
     @Nullable
-    private static JsonElement request(@NotNull GerritAuthData authData,
+    private JsonElement request(@NotNull GerritAuthData authData,
                                        @NotNull String path,
                                        @Nullable String requestBody,
                                        @NotNull Collection<Header> headers,
@@ -125,7 +128,7 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    public static HttpMethod doREST(@NotNull String path,
+    public HttpMethod doREST(@NotNull String path,
                                     @Nullable final String requestBody,
                                     @NotNull final Collection<Header> headers,
                                     @NotNull final HttpVerb verb) throws IOException {
@@ -134,7 +137,7 @@ public class GerritApiUtil {
 
 
     @NotNull
-    public static HttpMethod doREST(@NotNull GerritAuthData authData,
+    public HttpMethod doREST(@NotNull GerritAuthData authData,
                                     @NotNull String path,
                                     @Nullable final String requestBody,
                                     @NotNull final Collection<Header> headers,
@@ -142,7 +145,7 @@ public class GerritApiUtil {
         HttpClient client = getHttpClient(authData);
         final Optional<String> gerritAuthOptional = tryGerritHttpAuth(authData, client);
         String uri = authData.getHost() + path;
-        return SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, uri,
+        return sslSupport.executeSelfSignedCertificateAwareRequest(client, uri,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
                     @Override
                     public HttpMethod convert(String uri) throws IOException {
@@ -197,10 +200,10 @@ public class GerritApiUtil {
      * [Gerrit documentation].
      * [Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
      */
-    private static Optional<String> tryGerritHttpAuth(@NotNull GerritAuthData authData,
+    private Optional<String> tryGerritHttpAuth(@NotNull GerritAuthData authData,
                                                       @NotNull HttpClient client) throws IOException {
         String loginUrl = authData.getHost() + "/login/";
-        HttpMethod loginRequest = SslSupport.getInstance().executeSelfSignedCertificateAwareRequest(client, loginUrl,
+        HttpMethod loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, loginUrl,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
                     @Override
                     public HttpMethod convert(String loginUrl) throws IOException {
@@ -224,7 +227,7 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    private static HttpClient getHttpClient(@NotNull GerritAuthData authData) {
+    private HttpClient getHttpClient(@NotNull GerritAuthData authData) {
         final HttpClient client = new HttpClient();
         HttpConnectionManagerParams params = client.getHttpConnectionManager().getParams();
         params.setConnectionTimeout(CONNECTION_TIMEOUT); //set connection timeout (how long it takes to connect to remote host)
@@ -249,7 +252,7 @@ public class GerritApiUtil {
         return client;
     }
 
-    private static void addUserAgent(HttpClient client) {
+    private void addUserAgent(HttpClient client) {
         HttpClientParams httpClientParams = client.getParams();
         Object existingUserAgent = httpClientParams.getParameter(HttpMethodParams.USER_AGENT);
         String userAgent = "gerrit-intellij-plugin";
@@ -260,7 +263,7 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    private static JsonElement parseResponse(@NotNull InputStream response) throws IOException {
+    private JsonElement parseResponse(@NotNull InputStream response) throws IOException {
         Reader reader = new InputStreamReader(response, UTF_8);
         try {
             return new JsonParser().parse(reader);
@@ -271,7 +274,7 @@ public class GerritApiUtil {
         }
     }
 
-    private static void checkStatusCode(@NotNull HttpMethod method) throws HttpStatusException {
+    private void checkStatusCode(@NotNull HttpMethod method) throws HttpStatusException {
         int code = method.getStatusCode();
         switch (code) {
             case HttpStatus.SC_OK:

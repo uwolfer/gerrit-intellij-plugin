@@ -25,6 +25,17 @@ If you install this plugin directly in your IDE's plugin manager, you will get n
 [IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
 
 
+Your Support
+------------
+If you like this plugin, you can support it:
+* Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)
+* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository].
+* Star it: [Star it at GitHub]. GitHub account required.
+* Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!
+* Donate: You can find donation-possibilities at the bottom of this file.
+[IntelliJ plugin repository]: http://plugins.jetbrains.com/plugin/7272
+[Star it at GitHub]: https://github.com/uwolfer/gerrit-intellij-plugin/star
+
 Architecture
 ------------
 ### IntelliJ Integration
@@ -43,10 +54,26 @@ Some actions like comparing and listing files are based on Git operations. [Inte
 See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 
 
-Building the plugin
+Build (and Develop!) the Plugin
 ------------------
 
 To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
+It's very easy to set it up as a plain IntelliJ project (without Maven integration). Just ignore the Maven paragraph if
+you are unsure.
+
+### IntelliJ Project
+
+1. Activate Plugin DevKit in IntelliJ
+2. git clone https://github.com/uwolfer/gerrit-intellij-plugin (probably switch to intellij13 branch)
+3. Open checked out project in IntelliJ (File -> Open...)
+4. Open project settings, Project -> Project SDK -> New -> IntelliJ Platform SDK -> Choose your IntelliJ installation folder
+5. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set Scope to "provided"
+6. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines) (strange, but IntelliJ breaks things here...), reload project. You might must repeat this step if you change project settings...
+7. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin -> (Name: "Gerrit" or whatever you like)
+8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories which are set up in current workspace).
+
+### Maven (not officially supported)
+
 The plugin depends on multiple jars of IntelliJ IDEA but as these are not available via Maven Central, you'll have to
 install the various Intellij jars located in the lib folder of your IntelliJ install into your local Maven repository.
 

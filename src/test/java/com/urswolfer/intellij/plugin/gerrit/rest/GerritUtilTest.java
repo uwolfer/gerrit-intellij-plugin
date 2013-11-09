@@ -165,6 +165,8 @@ public class GerritUtilTest {
         ChangeInfo firstChangeInfo = changeInfos.get(0);
 
         Assert.assertEquals(1375080914000l, firstChangeInfo.getUpdated().getTime()); // verify that the date parser uses correct format and UTC for parsing
+
+        Assert.assertEquals("Urs Wolfer", firstChangeInfo.getLabels().get("Code-Review").getApproved().getName());
     }
 
 }

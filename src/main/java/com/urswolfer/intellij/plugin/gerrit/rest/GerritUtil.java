@@ -225,7 +225,8 @@ public class GerritUtil {
 
     @NotNull
     public static List<ChangeInfo> getChanges(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String query, Project project) {
-        final String request = "/a/changes/" + query;
+        String request = "/a/changes/" + query;
+        request = appendToUrlQuery(request, "o=LABELS");
         JsonElement result = null;
         try {
             result = GerritApiUtil.getRequest(url, login, password, request);
@@ -239,10 +240,18 @@ public class GerritUtil {
     }
 
     public static Optional<ChangeInfo> getChangeDetails(@NotNull String url, @NotNull String login, @NotNull String password, @NotNull String changeNr, Project project) {
-        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION";
+        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         JsonElement result = null;
         try {
-            result = GerritApiUtil.getRequest(url, login, password, request);
+            try { // remove special handling (try-catch surrounding) once we drop Gerrit < 2.7 support
+                result = GerritApiUtil.getRequest(url, login, password, request);
+            } catch (HttpStatusException e) {
+                if (e.getStatusCode() == 400) {
+                    result = GerritApiUtil.getRequest(url, login, password, request.replace("&o=MESSAGES", ""));
+                } else {
+                    throw e;
+                }
+            }
         } catch (RestApiException e) {
             GerritUtil.notifyError(project, "Failed to get change.", GerritUtil.getErrorTextFromException(e));
         }
@@ -476,5 +485,15 @@ public class GerritUtil {
 
     private static void notify(@NotNull Project project, @NotNull String title, @NotNull String message, @NotNull NotificationType notificationType) {
         new Notification(GERRIT_NOTIFICATION_GROUP, title, message, notificationType).notify(project);
+    }
+
+    private static String appendToUrlQuery(String requestUrl, String queryString) {
+        if (requestUrl.contains("?")) {
+            requestUrl += "&";
+        } else {
+            requestUrl += "?";
+        }
+        requestUrl += queryString;
+        return requestUrl;
     }
 }

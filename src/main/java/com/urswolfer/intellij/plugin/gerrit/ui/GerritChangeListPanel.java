@@ -31,6 +31,7 @@ import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,9 +39,11 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A table with the list of changes.
@@ -247,6 +250,18 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                     public String valueOf(ChangeInfo change) {
                         return getTime(change);
                     }
+                },
+                new GerritChangeColumnIconLabelInfo("CR") {
+                    @Override
+                    public LabelInfo getLabelInfo(ChangeInfo change) {
+                        return getCodeReview(change);
+                    }
+                },
+                new GerritChangeColumnIconLabelInfo("V") {
+                    @Override
+                    public LabelInfo getLabelInfo(ChangeInfo change) {
+                        return getVerified(change);
+                    }
                 }
         };
     }
@@ -289,6 +304,23 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         return DateFormatUtil.formatPrettyDateTime(change.getUpdated());
     }
 
+    private static LabelInfo getCodeReview(ChangeInfo change) {
+        return getLabel(change, "Code-Review");
+    }
+
+    private static LabelInfo getVerified(ChangeInfo change) {
+        return getLabel(change, "Verified");
+    }
+
+    private static LabelInfo getLabel(ChangeInfo change, String labelName) {
+        Map<String,LabelInfo> labels = change.getLabels();
+        if (labels != null) {
+            return labels.get(labelName);
+        } else {
+            return null;
+        }
+    }
+
     private abstract static class GerritChangeColumnInfo extends ColumnInfo<ChangeInfo, String> {
 
         @NotNull
@@ -307,6 +339,79 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         @Override
         public int getAdditionalWidth() {
             return UIUtil.DEFAULT_HGAP;
+        }
+    }
+
+    private abstract static class GerritChangeColumnIconLabelInfo extends ColumnInfo<ChangeInfo, LabelInfo> {
+
+        public GerritChangeColumnIconLabelInfo(String name) {
+            super(name);
+        }
+
+        @Nullable
+        @Override
+        public LabelInfo valueOf(ChangeInfo changeInfo) {
+            return null;
+        }
+
+        public abstract LabelInfo getLabelInfo(ChangeInfo change);
+
+        @Nullable
+        @Override
+        public TableCellRenderer getRenderer(final ChangeInfo changeInfo) {
+            return new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    LabelInfo labelInfo = getLabelInfo(changeInfo);
+                    label.setIcon(getIconForLabel(labelInfo));
+                    label.setToolTipText(getToolTipForLabel(labelInfo));
+                    label.setHorizontalAlignment(CENTER);
+                    label.setVerticalAlignment(CENTER);
+                    return label;
+                }
+            };
+        }
+
+        @Override
+        public int getWidth(JTable table) {
+            return AllIcons.Actions.Checked.getIconWidth() + 20;
+        }
+
+        private static Icon getIconForLabel(LabelInfo labelInfo) {
+            if (labelInfo != null) {
+                if (labelInfo.getApproved() != null) {
+                    return AllIcons.Actions.Checked;
+                }
+                if (labelInfo.getRecommended() != null) {
+                    return AllIcons.Actions.MoveUp;
+                }
+                if (labelInfo.getDisliked() != null) {
+                    return AllIcons.Actions.MoveDown;
+                }
+                if (labelInfo.getRejected() != null) {
+                    return AllIcons.Actions.Cancel;
+                }
+            }
+            return null;
+        }
+
+        private static String getToolTipForLabel(LabelInfo labelInfo) {
+            if (labelInfo != null) {
+                if (labelInfo.getApproved() != null) {
+                    return labelInfo.getApproved().getName();
+                }
+                if (labelInfo.getRecommended() != null) {
+                    return labelInfo.getRecommended().getName();
+                }
+                if (labelInfo.getDisliked() != null) {
+                    return labelInfo.getDisliked().getName();
+                }
+                if (labelInfo.getRejected() != null) {
+                    return labelInfo.getRejected().getName();
+                }
+            }
+            return null;
         }
     }
 

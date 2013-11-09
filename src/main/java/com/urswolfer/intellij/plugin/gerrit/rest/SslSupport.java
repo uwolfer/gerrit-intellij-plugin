@@ -97,7 +97,7 @@ public class SslSupport {
             Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
             HostConfiguration hc = new HostConfiguration();
             hc.setHost(host, port, easyHttps);
-            String relativeUri = new URI(uri.getPathQuery(), false).getURI();
+            String relativeUri = uri.getEscapedPathQuery();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
             // and changing host by hands (HttpMethodBase#setHostConfiguration) is deprecated.

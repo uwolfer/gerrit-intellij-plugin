@@ -87,7 +87,7 @@ public class SslSupport {
             throw e;
         }
 
-        if (isTrusted(host)) {
+        if (isTrusted(uri.getAuthority())) {
             int port = uri.getPort();
             if (port <= 0) {
                 port = 443;
@@ -124,7 +124,7 @@ public class SslSupport {
 
     private static void saveToTrusted(@NotNull String host) {
         try {
-            GerritSettings.getInstance().addTrustedHost(new java.net.URI(host).getHost());
+            GerritSettings.getInstance().addTrustedHost(new java.net.URI(host).getAuthority());
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }

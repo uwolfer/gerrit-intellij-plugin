@@ -243,7 +243,15 @@ public class GerritUtil {
         final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         JsonElement result = null;
         try {
-            result = GerritApiUtil.getRequest(url, login, password, request);
+            try { // remove special handling (try-catch surrounding) once we drop Gerrit < 2.7 support
+                result = GerritApiUtil.getRequest(url, login, password, request);
+            } catch (HttpStatusException e) {
+                if (e.getStatusCode() == 400) {
+                    result = GerritApiUtil.getRequest(url, login, password, request.replace("&o=MESSAGES", ""));
+                } else {
+                    throw e;
+                }
+            }
         } catch (RestApiException e) {
             GerritUtil.notifyError(project, "Failed to get change.", GerritUtil.getErrorTextFromException(e));
         }

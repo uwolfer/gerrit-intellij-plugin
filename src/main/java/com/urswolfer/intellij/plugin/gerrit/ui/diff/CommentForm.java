@@ -32,7 +32,7 @@ import com.intellij.util.containers.ContainerUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

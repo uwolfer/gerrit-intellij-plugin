@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.ui;
+package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 
 import java.util.Collections;
@@ -31,28 +33,21 @@ import java.util.Map;
  */
 public class ReviewCommentSink {
 
-    private Map<String, List<CommentInput>> comments = Maps.newHashMap();
-
-    public Map<String, List<CommentInput>> getComments() {
-        return comments;
-    }
+    private Multimap<String, CommentInput> comments = ArrayListMultimap.create();
 
     public void addComment(String changeId, CommentInput comment) {
-        List<CommentInput> commentInputs;
-        if (comments.containsKey(changeId)) {
-            commentInputs = comments.get(changeId);
-        } else {
-            commentInputs = Lists.newArrayList();
-            comments.put(changeId, commentInputs);
-        }
-        commentInputs.add(comment);
+        comments.put(changeId, comment);
     }
 
-    public List<CommentInput> getCommentsForChange(String changeId) {
-        if (comments.containsKey(changeId)) {
-            return comments.get(changeId);
-        } else {
-            return Collections.emptyList();
-        }
+    public Iterable<CommentInput> getCommentsForChange(String changeId) {
+        return comments.get(changeId);
+    }
+
+    public void removeCommentForChange(String changeId, CommentInput commentInput) {
+        comments.get(changeId).remove(commentInput);
+    }
+
+    public void removeCommentsForChange(String changeId) {
+        comments.removeAll(changeId);
     }
 }

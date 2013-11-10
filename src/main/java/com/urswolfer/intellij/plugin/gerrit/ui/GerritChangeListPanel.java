@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.common.collect.Iterables;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
@@ -29,6 +30,7 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
@@ -70,8 +72,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component component = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) ) {
-                    List<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(this.getRow(row).getId());
-                    if (!commentInputs.isEmpty()) {
+                    Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(this.getRow(row).getId());
+                    if (!Iterables.isEmpty(commentInputs)) {
                         component.setForeground(JBColor.BLUE);
                     } else {
                         component.setForeground(JBColor.BLACK);

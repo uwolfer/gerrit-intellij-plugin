@@ -27,7 +27,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;
@@ -70,7 +70,7 @@ public class ReviewAction extends AbstractChangeAction {
         final ReviewInput reviewInput = new ReviewInput();
         reviewInput.addLabel(label, rating);
 
-        List<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
+        Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
         for (CommentInput commentInput : commentInputs) {
             reviewInput.addComment(commentInput.getPath(), commentInput);
         }
@@ -96,6 +96,6 @@ public class ReviewAction extends AbstractChangeAction {
             new SubmitAction().actionPerformed(anActionEvent);
         }
 
-        myReviewCommentSink.getComments().remove(changeDetails.getId());
+        myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
     }
 }

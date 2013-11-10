@@ -25,7 +25,7 @@ import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 
 import java.util.List;
 
@@ -51,16 +51,19 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        List<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(myChangeInfo.getId());
-        for (int i = 0; i < commentInputs.size(); i++) {
-            CommentInput commentInput = commentInputs.get(i);
+        Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(myChangeInfo.getId());
+        CommentInput toRemove = null;
+        for (CommentInput commentInput : commentInputs) {
             //noinspection EqualsBetweenInconvertibleTypes
             if (commentInput.equals(myComment)) { // implemented in base class
-                int index = commentInputs.indexOf(commentInput);
-                commentInputs.remove(index);
-                myMarkup.removeHighlighter(myHighlighter);
-                myHighlighter.dispose();
+                toRemove = commentInput;
+                break;
             }
+        }
+        if (toRemove != null) {
+            myReviewCommentSink.removeCommentForChange(myChangeInfo.getId(), toRemove);
+            myMarkup.removeHighlighter(myHighlighter);
+            myHighlighter.dispose();
         }
     }
 }

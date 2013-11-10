@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -43,7 +44,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
@@ -121,7 +122,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     }
 
     private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, Project project) {
-        List<CommentInfo> fileComments = Collections.emptyList();
+        List<CommentInfo> fileComments = Lists.newArrayList();
         Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository repository = gitRepositoryOptional.get();
@@ -133,7 +134,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
             }
         }
 
-        List< CommentInput > commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
+        Iterable<CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
         for (CommentInput commentInput : commentInputsFromSink) {
             fileComments.add(commentInput.toCommentInfo());
         }

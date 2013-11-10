@@ -41,6 +41,7 @@ import com.intellij.ui.SideBorder;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;

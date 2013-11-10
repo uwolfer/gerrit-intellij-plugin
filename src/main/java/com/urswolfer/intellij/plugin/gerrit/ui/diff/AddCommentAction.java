@@ -32,7 +32,7 @@ import com.intellij.openapi.vcs.FilePath;
 import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

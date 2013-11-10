@@ -63,7 +63,7 @@ public class CherryPickAction extends AbstractChangeAction {
         fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
     }
 
-    public class Proxy extends CherryPickAction {
+    public static class Proxy extends CherryPickAction {
         private final CherryPickAction delegate;
 
         public Proxy() {

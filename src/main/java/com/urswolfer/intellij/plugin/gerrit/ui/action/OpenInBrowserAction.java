@@ -52,7 +52,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         return String.format("%s/%s", url, changeNumber);
     }
 
-    public class Proxy extends OpenInBrowserAction {
+    public static class Proxy extends OpenInBrowserAction {
         private final OpenInBrowserAction delegate;
 
         public Proxy() {

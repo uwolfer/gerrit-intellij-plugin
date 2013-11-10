@@ -87,7 +87,7 @@ public class CompareBranchAction extends AbstractChangeAction {
         new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
     }
 
-    public class Proxy extends CompareBranchAction {
+    public static class Proxy extends CompareBranchAction {
         private final CherryPickAction delegate;
 
         public Proxy() {

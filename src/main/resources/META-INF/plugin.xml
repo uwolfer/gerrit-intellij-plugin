@@ -137,22 +137,22 @@
 
   <actions>
     <action id="Gerrit.CherryPick"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction$Proxy"
             text="Cherry-Pick (No Commit)"/>
     <action id="Gerrit.CompareBranch"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction$Proxy"
             text="Compare with Branch"/>
     <action id="Gerrit.Fetch"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction$Proxy"
             text="Fetch"/>
     <action id="Gerrit.OpenInBrowser"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction$Proxy"
             text="Open in Gerrit"/>
     <action id="Gerrit.Settings"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction$Proxy"
             text="Settings"/>
     <action id="Gerrit.Submit"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction.Proxy"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy"
             text="Submit"/>
   </actions>
 </idea-plugin>

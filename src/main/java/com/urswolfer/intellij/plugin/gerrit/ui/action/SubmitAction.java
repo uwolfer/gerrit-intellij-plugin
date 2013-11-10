@@ -49,7 +49,7 @@ public class SubmitAction extends AbstractChangeAction {
         gerritUtil.postSubmit(changeDetails.get().getId(), submitInput, project);
     }
 
-    public class Proxy extends SubmitAction {
+    public static class Proxy extends SubmitAction {
         private final SubmitAction delegate;
 
         public Proxy() {

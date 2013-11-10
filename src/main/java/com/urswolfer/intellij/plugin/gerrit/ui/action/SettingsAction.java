@@ -45,7 +45,7 @@ public class SettingsAction extends AnAction implements DumbAware {
         showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
     }
 
-    public class Proxy extends SettingsAction {
+    public static class Proxy extends SettingsAction {
         private final SettingsAction delegate;
 
         public Proxy() {

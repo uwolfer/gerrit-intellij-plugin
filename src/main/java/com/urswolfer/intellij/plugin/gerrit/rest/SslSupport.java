@@ -21,7 +21,6 @@ import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
@@ -140,30 +139,4 @@ public class SslSupport {
         }
         return trust;
     }
-
-    public class Proxy extends SslSupport {
-        private final SslSupport delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(SslSupport.class);
-        }
-
-        @Override
-        @NotNull
-        public HttpMethod executeSelfSignedCertificateAwareRequest(@NotNull HttpClient client, @NotNull String uri, @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator) throws IOException {
-            return delegate.executeSelfSignedCertificateAwareRequest(client, uri, methodCreator);
-        }
-
-        @Override
-        public boolean isCertificateException(Exception e) {
-            return delegate.isCertificateException(e);
-        }
-
-        @Override
-        @CalledInAwt
-        public boolean askIfShouldProceed(String host) {
-            return delegate.askIfShouldProceed(host);
-        }
-    }
-
 }

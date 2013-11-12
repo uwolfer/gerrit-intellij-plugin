@@ -53,7 +53,6 @@ public class SubmitAction extends AbstractChangeAction {
         private final SubmitAction delegate;
 
         public Proxy() {
-            super();
             delegate = GerritModule.getInstance(SubmitAction.class);
         }
 

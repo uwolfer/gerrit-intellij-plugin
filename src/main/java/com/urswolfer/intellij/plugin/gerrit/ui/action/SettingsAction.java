@@ -49,7 +49,6 @@ public class SettingsAction extends AnAction implements DumbAware {
         private final SettingsAction delegate;
 
         public Proxy() {
-            super();
             delegate = GerritModule.getInstance(SettingsAction.class);
         }
 

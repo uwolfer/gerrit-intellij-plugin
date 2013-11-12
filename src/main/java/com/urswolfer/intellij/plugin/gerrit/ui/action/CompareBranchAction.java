@@ -91,7 +91,6 @@ public class CompareBranchAction extends AbstractChangeAction {
         private final CherryPickAction delegate;
 
         public Proxy() {
-            super();
             delegate = GerritModule.getInstance(CherryPickAction.class);
         }
 

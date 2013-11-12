@@ -56,7 +56,6 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         private final OpenInBrowserAction delegate;
 
         public Proxy() {
-            super();
             delegate = GerritModule.getInstance(OpenInBrowserAction.class);
         }
 

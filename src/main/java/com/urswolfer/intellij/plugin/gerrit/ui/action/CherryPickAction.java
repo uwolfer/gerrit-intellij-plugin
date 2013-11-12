@@ -67,7 +67,6 @@ public class CherryPickAction extends AbstractChangeAction {
         private final CherryPickAction delegate;
 
         public Proxy() {
-            super();
             delegate = GerritModule.getInstance(CherryPickAction.class);
         }
 

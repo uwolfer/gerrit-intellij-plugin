@@ -35,7 +35,7 @@ import javax.swing.*;
  */
 public class LoginDialog extends DialogWrapper {
 
-    private static Logger LOG = GerritUtil.LOG;
+    private final Logger log;
 
     private final LoginPanel myLoginPanel;
     private final Project myProject;
@@ -43,11 +43,12 @@ public class LoginDialog extends DialogWrapper {
     private final GerritSettings gerritSettings;
 
     // TODO: login must be merged with tasks server settings
-    public LoginDialog(final Project project, final GerritSettings gerritSettings, final GerritUtil gerritUtil) {
+    public LoginDialog(final Project project, final GerritSettings gerritSettings, final GerritUtil gerritUtil, Logger log) {
         super(project, true);
         this.gerritUtil = gerritUtil;
         this.gerritSettings = gerritSettings;
         myProject = project;
+        this.log = log;
         myLoginPanel = new LoginPanel(this);
         myLoginPanel.setHost(gerritSettings.getHost());
         myLoginPanel.setLogin(gerritSettings.getLogin());
@@ -94,7 +95,7 @@ public class LoginDialog extends DialogWrapper {
                 setErrorText("Can't login with given credentials");
             }
         } catch (Exception e) {
-            LOG.info(e);
+            log.info(e);
             setErrorText("Can't login: " + gerritUtil.getErrorTextFromException(e));
         }
     }

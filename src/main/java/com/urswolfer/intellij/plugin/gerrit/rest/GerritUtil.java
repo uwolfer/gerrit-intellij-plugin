@@ -65,8 +65,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class GerritUtil {
 
-    public static final Logger LOG = Logger.getInstance("gerrit");
-
     static final String GERRIT_NOTIFICATION_GROUP = "gerrit";
 
     @NotNull private static final Gson gson = initGson();
@@ -77,6 +75,8 @@ public class GerritUtil {
     private SslSupport sslSupport;
     @Inject
     private GerritApiUtil gerritApiUtil;
+    @Inject
+    private Logger log;
 
     private static Gson initGson() {
         GsonBuilder builder = new GsonBuilder();
@@ -265,13 +265,13 @@ public class GerritUtil {
     @NotNull
     private List<ChangeInfo> parseChangeInfos(@NotNull JsonElement result) {
         if (!result.isJsonArray()) {
-            LOG.assertTrue(result.isJsonObject(), String.format("Unexpected JSON result format: %s", result));
+            log.assertTrue(result.isJsonObject(), String.format("Unexpected JSON result format: %s", result));
             return Collections.singletonList(parseSingleChangeInfos(result.getAsJsonObject()));
         }
 
         List<ChangeInfo> changeInfoList = new ArrayList<ChangeInfo>();
         for (JsonElement element : result.getAsJsonArray()) {
-            LOG.assertTrue(element.isJsonObject(),
+            log.assertTrue(element.isJsonObject(),
                     String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
             changeInfoList.add(parseSingleChangeInfos(element.getAsJsonObject()));
         }
@@ -297,7 +297,7 @@ public class GerritUtil {
         } catch (RestApiException e) {
             if (e instanceof HttpStatusException) { // remove once we drop Gerrit > 2.7 support
                 if (((HttpStatusException) e).getStatusCode() == 404) {
-                    LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+                    log.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
                     return Maps.newTreeMap();
                 }
             }
@@ -348,7 +348,7 @@ public class GerritUtil {
             return null;
         }
         if (!result.isJsonObject()) {
-            LOG.error(String.format("Unexpected JSON result format: %s", result));
+            log.error(String.format("Unexpected JSON result format: %s", result));
             return null;
         }
         return gson.fromJson(result, AccountInfo.class);
@@ -369,7 +369,7 @@ public class GerritUtil {
         List<ProjectInfo> repositories = new ArrayList<ProjectInfo>();
         final JsonObject jsonObject = result.getAsJsonObject();
         for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
-            LOG.assertTrue(element.getValue().isJsonObject(),
+            log.assertTrue(element.getValue().isJsonObject(),
                     String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
             repositories.add(parseSingleRepositoryInfo(element.getValue().getAsJsonObject()));
 
@@ -395,7 +395,7 @@ public class GerritUtil {
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
-            LOG.info(e);
+            log.info(e);
             return false;
         }
     }
@@ -422,7 +422,7 @@ public class GerritUtil {
     @Nullable
     public List<ProjectInfo> getAvailableProjects(final Project project) {
         while (!checkCredentials(project)) {
-            final LoginDialog dialog = new LoginDialog(project, gerritSettings, this);
+            final LoginDialog dialog = new LoginDialog(project, gerritSettings, this, log);
             dialog.show();
             if (!dialog.isOK()) {
                 return null;

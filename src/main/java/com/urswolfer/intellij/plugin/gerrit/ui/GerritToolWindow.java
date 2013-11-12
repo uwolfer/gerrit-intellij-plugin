@@ -25,6 +25,7 @@ import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.diff.DiffManager;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
@@ -79,6 +80,8 @@ public class GerritToolWindow {
     private GerritChangeListPanel changeListPanel;
     @Inject
     private ReviewCommentSink reviewCommentSink;
+    @Inject
+    private Logger log;
 
     private RepositoryChangesBrowser myRepositoryChangesBrowser;
     private Timer myTimer;
@@ -216,7 +219,7 @@ public class GerritToolWindow {
         String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
+                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil, log);
                 dialog.show();
                 if (!dialog.isOK()) {
                     return Collections.emptyList();

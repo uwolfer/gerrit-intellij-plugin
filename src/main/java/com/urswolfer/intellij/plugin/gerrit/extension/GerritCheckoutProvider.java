@@ -62,8 +62,8 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private GerritSettings gerritSettings;
     @Inject
     private GerritApiUtil gerritApiUtil;
-
-    private static Logger LOG = GerritUtil.LOG;
+    @Inject
+    private Logger log;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -75,7 +75,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         try {
             availableProjects = gerritUtil.getAvailableProjects(project);
         } catch (Exception e) {
-            LOG.info(e);
+            log.info(e);
             gerritUtil.notifyError(project, "Couldn't get the list of Gerrit repositories", gerritUtil.getErrorTextFromException(e));
         }
         if (availableProjects == null) {
@@ -150,7 +150,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             Files.write(method.getResponseBody(), targetFile);
             targetFile.setExecutable(true);
         } catch (Exception e) {
-            LOG.info(e);
+            log.info(e);
             gerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
                     gerritUtil.getErrorTextFromException(e));
         }

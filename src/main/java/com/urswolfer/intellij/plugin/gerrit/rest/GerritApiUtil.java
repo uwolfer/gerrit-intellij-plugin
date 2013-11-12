@@ -58,8 +58,9 @@ public class GerritApiUtil {
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
     private static final int CONNECTION_TIMEOUT = 5000;
-    private static final Logger LOG = GerritUtil.LOG;
 
+    @Inject
+    private Logger LOG;
     @Inject
     private GerritAuthData authData;
     @Inject

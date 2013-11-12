@@ -32,17 +32,19 @@ import git4idea.GitPlatformFacade;
 import git4idea.commands.Git;
 
 /**
- * Bindings for all dependencies to required idea service instances.
+ * Bindings for all dependencies to required OpenIDE service instances.
  *
  * If you want to avoid calls to #getInstance() register the required
  * idea service here and inject it in your own service.
  *
  * @author Thomas Forrer
  */
-public class IdeaDependenciesModule extends AbstractModule {
+public class OpenIdeDependenciesModule extends AbstractModule {
+    static final Logger LOG = Logger.getInstance("gerrit");
+
     @Override
     protected void configure() {
-        bind(Logger.class).toInstance(Logger.getInstance("gerrit"));
+        bind(Logger.class).toInstance(LOG);
         bind(Application.class).toInstance(ApplicationManager.getApplication());
 
         bind(DiffManager.class).toInstance(DiffManager.getInstance());

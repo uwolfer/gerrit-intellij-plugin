@@ -53,12 +53,15 @@ public class GerritModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        install(new IdeaDependenciesModule());
+        install(new OpenIdeDependenciesModule());
 
         Provider<GerritSettings> settingsProvider = new Provider<GerritSettings>() {
             @Override
             public GerritSettings get() {
-                return ServiceManager.getService(GerritSettings.class);
+                // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
+                GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
+                gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
+                return gerritSettings;
             }
         };
         bind(GerritSettings.class).toProvider(settingsProvider).asEagerSingleton();

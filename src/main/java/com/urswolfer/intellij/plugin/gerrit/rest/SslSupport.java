@@ -86,7 +86,7 @@ public class SslSupport {
             throw e;
         }
 
-        if (isTrusted(host)) {
+        if (isTrusted(uri.getAuthority())) {
             int port = uri.getPort();
             if (port <= 0) {
                 port = 443;
@@ -96,7 +96,7 @@ public class SslSupport {
             Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
             HostConfiguration hc = new HostConfiguration();
             hc.setHost(host, port, easyHttps);
-            String relativeUri = new URI(uri.getPathQuery(), false).getURI();
+            String relativeUri = uri.getEscapedPathQuery();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
             // and changing host by hands (HttpMethodBase#setHostConfiguration) is deprecated.
@@ -123,7 +123,7 @@ public class SslSupport {
 
     private void saveToTrusted(@NotNull String host) {
         try {
-            gerritSettings.addTrustedHost(new java.net.URI(host).getHost());
+            gerritSettings.addTrustedHost(new java.net.URI(host).getAuthority());
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }

@@ -130,8 +130,12 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 setReviewNotifications(Boolean.valueOf(reviewNotificationsValue));
             }
 
-            for (Object trustedHost : element.getChildren(TRUSTED_HOSTS)) {
-                addTrustedHost(trustedHost.toString());
+            for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
+                Element trustedHosts = (Element) trustedHostsObj;
+                for (Object trustedHostObj : trustedHosts.getChildren()) {
+                    Element trustedHost = (Element) trustedHostObj;
+                    addTrustedHost(trustedHost.getAttributeValue(TRUSTED_URL));
+                }
             }
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);

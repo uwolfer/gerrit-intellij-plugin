@@ -120,7 +120,7 @@
   <depends>Git4Idea</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProviderProxy"/>
+    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider$Proxy"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable"/>
@@ -130,7 +130,7 @@
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">
-    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProviderProxy"/>
+    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider$Proxy"/>
   </extensions>
 
   <actions>

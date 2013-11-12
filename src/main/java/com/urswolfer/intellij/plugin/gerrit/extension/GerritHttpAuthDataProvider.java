@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.extension;
 import com.google.inject.Inject;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.jgit.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
@@ -45,5 +46,19 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
             return null;
         }
         return new AuthData(gerritSettings.getLogin(), gerritSettings.getPassword());
+    }
+
+    public static final class Proxy implements GitHttpAuthDataProvider {
+        private final GitHttpAuthDataProvider delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(GerritHttpAuthDataProvider.class);
+        }
+
+        @Nullable
+        @Override
+        public AuthData getAuthData(@NotNull String url) {
+            return delegate.getAuthData(url);
+        }
     }
 }

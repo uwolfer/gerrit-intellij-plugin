@@ -25,6 +25,7 @@ import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -36,6 +37,7 @@ import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpMethod;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -151,6 +153,25 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             LOG.info(e);
             gerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
                     gerritUtil.getErrorTextFromException(e));
+        }
+    }
+
+    public static final class Proxy implements CheckoutProvider {
+        private final CheckoutProvider delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(GerritCheckoutProvider.class);
+        }
+
+        @Override
+        public void doCheckout(@NotNull Project project, @Nullable Listener listener) {
+            delegate.doCheckout(project, listener);
+        }
+
+        @Override
+        @NonNls
+        public String getVcsName() {
+            return delegate.getVcsName();
         }
     }
 }

@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Optional;
 import com.intellij.ide.passwordSafe.MasterPasswordUnavailableException;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
@@ -77,6 +78,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     // Once master password is refused, do not ask for it again
     private boolean masterPasswordRefused = false;
+
+    private Optional<String> cachedPassword = Optional.absent();
 
     public Element getState() {
         log.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
@@ -148,10 +151,18 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return myLogin;
     }
 
+    public void preloadPassword() {
+        cachedPassword = Optional.of(getPassword());
+    }
+
     @Override
     @NotNull
     public String getPassword() {
-        log.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
+        boolean hasProgressIndicator = ProgressManager.getInstance().hasProgressIndicator();
+        if (hasProgressIndicator) {
+            log.assertTrue(cachedPassword.isPresent(), "Password must be preloaded when accessed under modal progress");
+            return cachedPassword.get();
+        }
         String password;
         final Project project = ProjectManager.getInstance().getDefaultProject();
         final PasswordSafeImpl passwordSafe = (PasswordSafeImpl) PasswordSafe.getInstance();

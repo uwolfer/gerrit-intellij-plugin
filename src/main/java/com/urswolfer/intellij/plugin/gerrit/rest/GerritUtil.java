@@ -88,6 +88,7 @@ public class GerritUtil {
     @Nullable
     public <T> T accessToGerritWithModalProgress(@NotNull final Project project,
                                                  @NotNull final ThrowableComputable<T, Exception> computable) {
+        gerritSettings.preloadPassword();
         try {
             return doAccessToGerritWithModalProgress(project, computable);
         } catch (Exception e) {

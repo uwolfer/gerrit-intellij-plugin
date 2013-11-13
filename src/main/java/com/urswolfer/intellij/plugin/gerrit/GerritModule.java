@@ -38,7 +38,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritDiffModule;
  */
 public class GerritModule extends AbstractModule {
 
-    private static final Supplier<Injector> injector = Suppliers.memoize(new Supplier<Injector>() {
+    protected static final Supplier<Injector> injector = Suppliers.memoize(new Supplier<Injector>() {
         @Override
         public Injector get() {
             return Guice.createInjector(new GerritModule());
@@ -49,23 +49,13 @@ public class GerritModule extends AbstractModule {
         return injector.get().getInstance(type);
     }
 
-    private GerritModule() {}
+    protected GerritModule() {}
 
     @Override
     protected void configure() {
-        install(new OpenIdeDependenciesModule());
+        installOpenIdeDependenciesModule();
 
-        Provider<GerritSettings> settingsProvider = new Provider<GerritSettings>() {
-            @Override
-            public GerritSettings get() {
-                // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
-                GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
-                gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
-                return gerritSettings;
-            }
-        };
-        bind(GerritSettings.class).toProvider(settingsProvider).asEagerSingleton();
-        bind(GerritAuthData.class).toProvider(settingsProvider).asEagerSingleton();
+        setupSettingsProvider();
 
         bind(ReviewCommentSink.class).toInstance(new ReviewCommentSink()); // need this as a singleton in the system
 
@@ -80,5 +70,23 @@ public class GerritModule extends AbstractModule {
         install(new GerritDiffModule());
         install(new GerritRestModule());
         install(new GerritUiModule());
+    }
+
+    protected void setupSettingsProvider() {
+        Provider<GerritSettings> settingsProvider = new Provider<GerritSettings>() {
+            @Override
+            public GerritSettings get() {
+                // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
+                GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
+                gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
+                return gerritSettings;
+            }
+        };
+        bind(GerritSettings.class).toProvider(settingsProvider).asEagerSingleton();
+        bind(GerritAuthData.class).toProvider(settingsProvider).asEagerSingleton();
+    }
+
+    protected void installOpenIdeDependenciesModule() {
+        install(new OpenIdeDependenciesModule());
     }
 }

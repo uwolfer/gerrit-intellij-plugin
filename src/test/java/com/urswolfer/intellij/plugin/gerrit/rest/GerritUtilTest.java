@@ -23,6 +23,7 @@ import com.google.gson.JsonParser;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import org.testng.Assert;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -36,6 +37,13 @@ import java.util.List;
  */
 public class GerritUtilTest {
 
+    private GerritUtil gerritUtil;
+
+    @BeforeMethod
+    public void setup() {
+        gerritUtil = GerritTestModule.getInstance(GerritUtil.class);
+    }
+
     @Test
     public void testProjectNames() throws Exception {
         final Method getProjectName = GerritUtil.class.getDeclaredMethod("getProjectName",
@@ -44,63 +52,63 @@ public class GerritUtilTest {
 
         // Default set - test trailing / behaviour
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
                         "http://gerrit.server/project"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
                         "http://gerrit.server/project"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
                         "http://gerrit.server/project/"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
                         "http://gerrit.server/project/"
                 ));
 
         // Subdirectory set - test trailing / behaviour
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
                         "http://gerrit.server/r/project"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project/"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
                         "http://gerrit.server/r/project/"
                 ));
 
         // Default set - test named .git
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
                         "http://gerrit.server/project.git"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
                         "http://gerrit.server/project.git"
                 ));
@@ -108,26 +116,26 @@ public class GerritUtilTest {
 
         // Subdirectory set - test named .git
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project.git"
                 ));
 
         Assert.assertEquals("project",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
                         "http://gerrit.server/r/project.git"
                 ));
 
         // Test some project names with / in them
         Assert.assertEquals("project/blah/test",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project/blah/test"
                 ));
 
         Assert.assertEquals("project/blah/test",
-                getProjectName.invoke(null,
+                getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project/blah/test.git"
                 ));
@@ -143,7 +151,7 @@ public class GerritUtilTest {
         final Method parseSingleRepositoryInfo = GerritUtil.class.getDeclaredMethod("parseSingleRepositoryInfo", JsonObject.class);
         parseSingleRepositoryInfo.setAccessible(true);
 
-        ProjectInfo projectInfo = (ProjectInfo) parseSingleRepositoryInfo.invoke(null, firstElement);
+        ProjectInfo projectInfo = (ProjectInfo) parseSingleRepositoryInfo.invoke(gerritUtil, firstElement);
         Assert.assertEquals("gerritcodereview#project", projectInfo.getKind());
         Assert.assertEquals("packages%2Ftest", projectInfo.getId());
         Assert.assertEquals("packages/test", projectInfo.getDecodedId());
@@ -159,7 +167,7 @@ public class GerritUtilTest {
         final Method parseChangeInfos = GerritUtil.class.getDeclaredMethod("parseChangeInfos", JsonElement.class);
         parseChangeInfos.setAccessible(true);
 
-        List<ChangeInfo> changeInfos = (List<ChangeInfo>) parseChangeInfos.invoke(null, jsonElement);
+        List<ChangeInfo> changeInfos = (List<ChangeInfo>) parseChangeInfos.invoke(gerritUtil, jsonElement);
         Assert.assertEquals(3, changeInfos.size());
 
         ChangeInfo firstChangeInfo = changeInfos.get(0);

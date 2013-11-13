@@ -40,7 +40,7 @@ import git4idea.commands.Git;
  * @author Thomas Forrer
  */
 public class OpenIdeDependenciesModule extends AbstractModule {
-    static final Logger LOG = Logger.getInstance("gerrit");
+    public static final Logger LOG = Logger.getInstance("gerrit");
 
     @Override
     protected void configure() {

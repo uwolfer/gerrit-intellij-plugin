@@ -20,6 +20,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 import java.awt.*;
 
@@ -29,8 +30,10 @@ import java.awt.*;
 public class GerritToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
+        GerritToolWindow gerritToolWindow = GerritModule.getInstance(GerritToolWindow.class);
+
         Component component = toolWindow.getComponent();
-        SimpleToolWindowPanel toolWindowContent = new GerritToolWindow().createToolWindowContent(project);
+        SimpleToolWindowPanel toolWindowContent = gerritToolWindow.createToolWindowContent(project);
         component.getParent().add(toolWindowContent);
     }
 }

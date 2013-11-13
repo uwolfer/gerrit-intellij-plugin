@@ -17,7 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Throwables;
-import com.intellij.openapi.components.ServiceManager;
+import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
@@ -46,9 +46,8 @@ import java.util.List;
  */
 public class SslSupport {
 
-    public static SslSupport getInstance() {
-        return ServiceManager.getService(SslSupport.class);
-    }
+    @Inject
+    private GerritSettings gerritSettings;
 
     /**
      * Tries to execute the {@link HttpMethod} and captures the {@link ValidatorException exception} which is thrown if user connects
@@ -79,7 +78,7 @@ public class SslSupport {
     }
 
     @Nullable
-    private static HttpMethod handleCertificateExceptionAndRetry(@NotNull IOException e, @NotNull String host,
+    private HttpMethod handleCertificateExceptionAndRetry(@NotNull IOException e, @NotNull String host,
                                                                  @NotNull HttpClient client, @NotNull URI uri,
                                                                  @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator)
             throws IOException {
@@ -87,7 +86,7 @@ public class SslSupport {
             throw e;
         }
 
-        if (isTrusted(host)) {
+        if (isTrusted(uri.getAuthority())) {
             int port = uri.getPort();
             if (port <= 0) {
                 port = 443;
@@ -97,7 +96,7 @@ public class SslSupport {
             Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
             HostConfiguration hc = new HostConfiguration();
             hc.setHost(host, port, easyHttps);
-            String relativeUri = new URI(uri.getPathQuery(), false).getURI();
+            String relativeUri = uri.getEscapedPathQuery();
             // it is important to use relative URI here, otherwise our custom protocol won't work.
             // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
             // and changing host by hands (HttpMethodBase#setHostConfiguration) is deprecated.
@@ -108,7 +107,7 @@ public class SslSupport {
         throw e;
     }
 
-    public static boolean isCertificateException(Exception e) {
+    public boolean isCertificateException(Exception e) {
         List<Throwable> causalChain = Throwables.getCausalChain(e);
         for (Throwable throwable : causalChain) {
             if (throwable instanceof ValidatorException) {
@@ -118,13 +117,13 @@ public class SslSupport {
         return false;
     }
 
-    private static boolean isTrusted(@NotNull String host) {
-        return GerritSettings.getInstance().getTrustedHosts().contains(host);
+    private boolean isTrusted(@NotNull String host) {
+        return gerritSettings.getTrustedHosts().contains(host);
     }
 
-    private static void saveToTrusted(@NotNull String host) {
+    private void saveToTrusted(@NotNull String host) {
         try {
-            GerritSettings.getInstance().addTrustedHost(new java.net.URI(host).getHost());
+            gerritSettings.addTrustedHost(new java.net.URI(host).getAuthority());
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }
@@ -140,5 +139,4 @@ public class SslSupport {
         }
         return trust;
     }
-
 }

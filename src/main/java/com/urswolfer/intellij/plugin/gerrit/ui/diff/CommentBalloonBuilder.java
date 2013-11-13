@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.inject.Inject;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -29,8 +30,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CommentBalloonBuilder {
 
+    @Inject
+    private JBPopupFactory jbPopupFactory;
+
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {
-        final ComponentPopupBuilder builder = JBPopupFactory.getInstance().
+        final ComponentPopupBuilder builder = jbPopupFactory.
                 createComponentPopupBuilder(balloonContent, balloonContent);
         builder.setAdText("Hit Ctrl+Enter to add comment. It will be saved once you submit the review.");
         builder.setTitle(title);

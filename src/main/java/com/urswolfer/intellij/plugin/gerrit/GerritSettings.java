@@ -17,18 +17,21 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Optional;
 import com.intellij.ide.passwordSafe.MasterPasswordUnavailableException;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
 import com.intellij.ide.passwordSafe.impl.PasswordSafeImpl;
 import com.intellij.ide.passwordSafe.impl.providers.masterKey.MasterKeyPasswordSafe;
-import com.intellij.openapi.components.*;
+import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.State;
+import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -69,30 +72,28 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean myRefreshNotifications;
     private Collection<String> myTrustedHosts = new ArrayList<String>();
 
-    private static final Logger LOG = GerritUtil.LOG;
+    private Logger log;
+
     private boolean passwordChanged = false;
 
     // Once master password is refused, do not ask for it again
     private boolean masterPasswordRefused = false;
 
-
-    public static GerritSettings getInstance() {
-        return ServiceManager.getService(GerritSettings.class);
-    }
+    private Optional<String> cachedPassword = Optional.absent();
 
     public Element getState() {
-        LOG.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
+        log.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
 
         try {
             if (passwordChanged && !masterPasswordRefused) {
                 PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, getPassword());
             }
         } catch (MasterPasswordUnavailableException e) {
-            LOG.info("Couldn't store password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+            log.info("Couldn't store password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
             masterPasswordRefused = true;
         } catch (Exception e) {
             Messages.showErrorDialog("Error happened while storing password for gerrit", "Error");
-            LOG.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
         passwordChanged = false;
         final Element element = new Element(GERRIT_SETTINGS_TAG);
@@ -132,11 +133,15 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 setReviewNotifications(Boolean.valueOf(reviewNotificationsValue));
             }
 
-            for (Object trustedHost : element.getChildren(TRUSTED_HOSTS)) {
-                addTrustedHost(trustedHost.toString());
+            for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
+                Element trustedHosts = (Element) trustedHostsObj;
+                for (Object trustedHostObj : trustedHosts.getChildren()) {
+                    Element trustedHost = (Element) trustedHostObj;
+                    addTrustedHost(trustedHost.getAttributeValue(TRUSTED_URL));
+                }
             }
         } catch (Exception e) {
-            LOG.error("Error happened while loading gerrit settings: " + e);
+            log.error("Error happened while loading gerrit settings: " + e);
         }
     }
 
@@ -146,10 +151,18 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return myLogin;
     }
 
+    public void preloadPassword() {
+        cachedPassword = Optional.of(getPassword());
+    }
+
     @Override
     @NotNull
     public String getPassword() {
-        LOG.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
+        boolean hasProgressIndicator = ProgressManager.getInstance().hasProgressIndicator();
+        if (hasProgressIndicator) {
+            log.assertTrue(cachedPassword.isPresent(), "Password must be preloaded when accessed under modal progress");
+            return cachedPassword.get();
+        }
         String password;
         final Project project = ProjectManager.getInstance().getDefaultProject();
         final PasswordSafeImpl passwordSafe = (PasswordSafeImpl) PasswordSafe.getInstance();
@@ -166,7 +179,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 password = masterKeyProvider.getPassword(project, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
             }
         } catch (PasswordSafeException e) {
-            LOG.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
             masterPasswordRefused = true;
             password = "";
         }
@@ -175,7 +188,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return password != null ? password : "";
     }
 
-    @NotNull
     @Override
     public String getHost() {
         return myHost;
@@ -202,7 +214,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         try {
             PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, password != null ? password : "");
         } catch (PasswordSafeException e) {
-            LOG.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
     }
 
@@ -231,5 +243,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         if (!myTrustedHosts.contains(host)) {
             myTrustedHosts.add(host);
         }
+    }
+
+    public void setLog(Logger log) {
+        this.log = log;
     }
 }

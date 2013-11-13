@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -41,8 +42,6 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class SettingsPanel {
-    private static Logger LOG = GerritUtil.LOG;
-
     private JTextField myLoginTextField;
     private JPasswordField myPasswordField;
     private JTextPane myGerritLoginInfoTextField;
@@ -57,7 +56,14 @@ public class SettingsPanel {
 
     private boolean myPasswordModified;
 
-    public SettingsPanel(final GerritSettings settings) {
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private GerritUtil gerritUtil;
+    @Inject
+    private Logger log;
+
+    public SettingsPanel() {
         myGerritLoginInfoTextField.setText(
                 "* You need to set a HTTP access password for your account in Gerrit " +
                 "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
@@ -66,17 +72,17 @@ public class SettingsPanel {
         myTestButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String password = isPasswordModified() ? getPassword() : settings.getPassword();
+                String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
                 try {
                     GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(getHost(), getLogin(), password);
-                    if (GerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
+                    if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
                         Messages.showInfoMessage(myPane, "Connection successful", "Success");
                     } else {
                         Messages.showErrorDialog(myPane, "Can't login to " + getHost() + " using given credentials", "Login Failure");
                     }
                 } catch (Exception ex) {
-                    LOG.info(ex);
-                    Messages.showErrorDialog(myPane, String.format("Can't login to %s: %s", getHost(), GerritUtil.getErrorTextFromException(ex)),
+                    log.info(ex);
+                    Messages.showErrorDialog(myPane, String.format("Can't login to %s: %s", getHost(), gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }
                 setPassword(password);

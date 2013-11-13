@@ -23,6 +23,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.*;
+import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
@@ -64,13 +65,18 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class GerritUtil {
 
-    public static final Logger LOG = Logger.getInstance("gerrit");
-
     static final String GERRIT_NOTIFICATION_GROUP = "gerrit";
 
     @NotNull private static final Gson gson = initGson();
 
-    @NotNull private static final GerritAuthData authData = GerritSettings.getInstance();
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private SslSupport sslSupport;
+    @Inject
+    private GerritApiUtil gerritApiUtil;
+    @Inject
+    private Logger log;
 
     private static Gson initGson() {
         GsonBuilder builder = new GsonBuilder();
@@ -80,14 +86,14 @@ public class GerritUtil {
     }
 
     @Nullable
-    public static <T> T accessToGerritWithModalProgress(@NotNull final Project project,
-                                                        @NotNull final ThrowableComputable<T, Exception> computable) {
+    public <T> T accessToGerritWithModalProgress(@NotNull final Project project,
+                                                 @NotNull final ThrowableComputable<T, Exception> computable) {
+        gerritSettings.preloadPassword();
         try {
             return doAccessToGerritWithModalProgress(project, computable);
         } catch (Exception e) {
-            SslSupport sslSupport = SslSupport.getInstance();
-            if (SslSupport.isCertificateException(e)) {
-                if (sslSupport.askIfShouldProceed(authData.getHost())) {
+            if (sslSupport.isCertificateException(e)) {
+                if (sslSupport.askIfShouldProceed(gerritSettings.getHost())) {
                     // retry with the host being already trusted
                     return doAccessToGerritWithModalProgress(project, computable);
                 } else {
@@ -98,7 +104,7 @@ public class GerritUtil {
         }
     }
 
-    private static <T> T doAccessToGerritWithModalProgress(@NotNull final Project project,
+    private <T> T doAccessToGerritWithModalProgress(@NotNull final Project project,
                                                            @NotNull final ThrowableComputable<T, Exception> computable) {
         final AtomicReference<T> result = new AtomicReference<T>();
         final AtomicReference<Exception> exception = new AtomicReference<Exception>();
@@ -118,38 +124,38 @@ public class GerritUtil {
         throw Throwables.propagate(exception.get());
     }
 
-    public static void postReview(@NotNull String changeId,
-                                  @NotNull String revision,
-                                  @NotNull ReviewInput reviewInput,
-                                  Project project) {
+    public void postReview(@NotNull String changeId,
+                           @NotNull String revision,
+                           @NotNull ReviewInput reviewInput,
+                           Project project) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
         try {
-            GerritApiUtil.postRequest(request, json);
+            gerritApiUtil.postRequest(request, json);
         } catch (RestApiException e) {
-            GerritUtil.notifyError(project, "Failed to post review.", GerritUtil.getErrorTextFromException(e));
+            notifyError(project, "Failed to post review.", getErrorTextFromException(e));
         }
     }
 
-    public static void postSubmit(@NotNull String changeId,
-                                  @NotNull SubmitInput submitInput,
-                                  Project project) {
+    public void postSubmit(@NotNull String changeId,
+                           @NotNull SubmitInput submitInput,
+                           Project project) {
         final String request = "/a/changes/" + changeId + "/submit";
         String json = new Gson().toJson(submitInput);
         try {
-            GerritApiUtil.postRequest(request, json);
+            gerritApiUtil.postRequest(request, json);
         } catch (RestApiException e) {
-            GerritUtil.notifyError(project, "Failed to submit change.", GerritUtil.getErrorTextFromException(e));
+            notifyError(project, "Failed to submit change.", getErrorTextFromException(e));
         }
     }
 
     @NotNull
-    public static List<ChangeInfo> getChanges(Project project) {
+    public List<ChangeInfo> getChanges(Project project) {
         return getChanges("", project);
     }
 
     @NotNull
-    public static List<ChangeInfo> getChangesToReview(Project project) {
+    public List<ChangeInfo> getChangesToReview(Project project) {
         return getChanges("?q=is:open+reviewer:self", project);
     }
 
@@ -157,7 +163,7 @@ public class GerritUtil {
      * Provide information only for current project
      */
     @NotNull
-    public static List<ChangeInfo> getChangesForProject(@NotNull final Project project) {
+    public List<ChangeInfo> getChangesForProject(@NotNull final Project project) {
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
             //Show notification
@@ -170,13 +176,13 @@ public class GerritUtil {
             remotes.addAll(repository.getRemotes());
         }
 
-        String host = parseUri(authData.getHost()).getHost();
+        String host = parseUri(gerritSettings.getHost()).getHost();
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
             for (String repositoryUrl : remote.getUrls()) {
                 String repositoryHost = parseUri(repositoryUrl).getHost();
                 if (repositoryHost != null && repositoryHost.equals(host)) {
-                    projectNames.add("project:" + getProjectName(authData.getHost(), repositoryUrl));
+                    projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
                 }
             }
         }
@@ -188,14 +194,14 @@ public class GerritUtil {
         return getChanges("?q=is:open+(" + projectQuery + ')', project);
     }
 
-    private static URI parseUri(String url) {
+    private URI parseUri(String url) {
         if (!url.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
             url = "git://" + url;
         }
         return URI.create(url);
     }
 
-    private static String getProjectName(String repositoryUrl, String url) {
+    private String getProjectName(String repositoryUrl, String url) {
 
         // Normalise the base.
         if( !repositoryUrl.endsWith("/") )
@@ -214,7 +220,7 @@ public class GerritUtil {
         return path;
     }
 
-    public static void showAddGitRepositoryNotification(final Project project) {
+    public void showAddGitRepositoryNotification(final Project project) {
         Notifications.Bus.notify(new Notification(GERRIT_NOTIFICATION_GROUP, "Insufficient dependencies", "Please add git repository <br/> <a href='vcs'>Add vcs root</a>", NotificationType.WARNING, new NotificationListener() {
             @Override
             public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
@@ -228,14 +234,14 @@ public class GerritUtil {
     }
 
     @NotNull
-    public static List<ChangeInfo> getChanges(@NotNull String query, Project project) {
+    public List<ChangeInfo> getChanges(@NotNull String query, Project project) {
         String request = "/a/changes/" + query;
         request = appendToUrlQuery(request, "o=LABELS");
         JsonElement result = null;
         try {
-            result = GerritApiUtil.getRequest(request);
+            result = gerritApiUtil.getRequest(request);
         } catch (RestApiException e) {
-            GerritUtil.notifyError(project, "Failed to get changes.", GerritUtil.getErrorTextFromException(e));
+            notifyError(project, "Failed to get changes.", getErrorTextFromException(e));
         }
         if (result == null) {
             return Collections.emptyList();
@@ -243,13 +249,21 @@ public class GerritUtil {
         return parseChangeInfos(result);
     }
 
-    public static Optional<ChangeInfo> getChangeDetails(@NotNull String changeNr, Project project) {
+    public Optional<ChangeInfo> getChangeDetails(@NotNull String changeNr, Project project) {
         final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         JsonElement result = null;
         try {
-            result = GerritApiUtil.getRequest(request);
+            try { // remove special handling (try-catch surrounding) once we drop Gerrit < 2.7 support
+                result = gerritApiUtil.getRequest(request);
+            } catch (HttpStatusException e) {
+                if (e.getStatusCode() == 400) {
+                    result = gerritApiUtil.getRequest(request.replace("&o=MESSAGES", ""));
+                } else {
+                    throw e;
+                }
+            }
         } catch (RestApiException e) {
-            GerritUtil.notifyError(project, "Failed to get change.", GerritUtil.getErrorTextFromException(e));
+            notifyError(project, "Failed to get change.", getErrorTextFromException(e));
         }
         if (result == null) {
             return Optional.absent();
@@ -258,15 +272,15 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static List<ChangeInfo> parseChangeInfos(@NotNull JsonElement result) {
+    private List<ChangeInfo> parseChangeInfos(@NotNull JsonElement result) {
         if (!result.isJsonArray()) {
-            LOG.assertTrue(result.isJsonObject(), String.format("Unexpected JSON result format: %s", result));
+            log.assertTrue(result.isJsonObject(), String.format("Unexpected JSON result format: %s", result));
             return Collections.singletonList(parseSingleChangeInfos(result.getAsJsonObject()));
         }
 
         List<ChangeInfo> changeInfoList = new ArrayList<ChangeInfo>();
         for (JsonElement element : result.getAsJsonArray()) {
-            LOG.assertTrue(element.isJsonObject(),
+            log.assertTrue(element.isJsonObject(),
                     String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
             changeInfoList.add(parseSingleChangeInfos(element.getAsJsonObject()));
         }
@@ -274,7 +288,7 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static ChangeInfo parseSingleChangeInfos(@NotNull JsonObject result) {
+    private ChangeInfo parseSingleChangeInfos(@NotNull JsonObject result) {
         return gson.fromJson(result, ChangeInfo.class);
     }
 
@@ -282,21 +296,21 @@ public class GerritUtil {
      * Support starting from Gerrit 2.7.
      */
     @NotNull
-    public static TreeMap<String, List<CommentInfo>> getComments(@NotNull String changeId,
-                                                                 @NotNull String revision,
-                                                                 Project project) {
+    public TreeMap<String, List<CommentInfo>> getComments(@NotNull String changeId,
+                                                          @NotNull String revision,
+                                                          Project project) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
         JsonElement result = null;
         try {
-            result = GerritApiUtil.getRequest(request);
+            result = gerritApiUtil.getRequest(request);
         } catch (RestApiException e) {
             if (e instanceof HttpStatusException) { // remove once we drop Gerrit > 2.7 support
                 if (((HttpStatusException) e).getStatusCode() == 404) {
-                    LOG.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
+                    log.warn("Failed to load comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
                     return Maps.newTreeMap();
                 }
             }
-            GerritUtil.notifyError(project, "Failed to get comments.", GerritUtil.getErrorTextFromException(e));
+            notifyError(project, "Failed to get comments.", getErrorTextFromException(e));
         }
         if (result == null) {
             return Maps.newTreeMap();
@@ -305,7 +319,7 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static TreeMap<String, List<CommentInfo>> parseCommentInfos(@NotNull JsonElement result) {
+    private TreeMap<String, List<CommentInfo>> parseCommentInfos(@NotNull JsonElement result) {
         TreeMap<String, List<CommentInfo>> commentInfos = Maps.newTreeMap();
         final JsonObject jsonObject = result.getAsJsonObject();
 
@@ -322,37 +336,37 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static CommentInfo parseSingleCommentInfos(@NotNull JsonObject result) {
+    private CommentInfo parseSingleCommentInfos(@NotNull JsonObject result) {
         return gson.fromJson(result, CommentInfo.class);
     }
 
-    private static boolean testConnection(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
+    private boolean testConnection(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
         AccountInfo user = retrieveCurrentUserInfo(gerritAuthData);
         return user != null;
     }
 
     @Nullable
-    private static AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
-        JsonElement result = GerritApiUtil.getRequest(gerritAuthData, "/a/accounts/self");
+    private AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
+        JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/a/accounts/self");
         return parseUserInfo(result);
     }
 
     @Nullable
-    private static AccountInfo parseUserInfo(@Nullable JsonElement result) {
+    private AccountInfo parseUserInfo(@Nullable JsonElement result) {
         if (result == null) {
             return null;
         }
         if (!result.isJsonObject()) {
-            LOG.error(String.format("Unexpected JSON result format: %s", result));
+            log.error(String.format("Unexpected JSON result format: %s", result));
             return null;
         }
         return gson.fromJson(result, AccountInfo.class);
     }
 
     @NotNull
-    private static List<ProjectInfo> getAvailableProjects() throws RestApiException {
+    private List<ProjectInfo> getAvailableProjects() throws RestApiException {
         final String request = "/a/projects/";
-        JsonElement result = GerritApiUtil.getRequest(request);
+        JsonElement result = gerritApiUtil.getRequest(request);
         if (result == null) {
             return Collections.emptyList();
         }
@@ -360,11 +374,11 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static List<ProjectInfo> parseProjectInfos(@NotNull JsonElement result) {
+    private List<ProjectInfo> parseProjectInfos(@NotNull JsonElement result) {
         List<ProjectInfo> repositories = new ArrayList<ProjectInfo>();
         final JsonObject jsonObject = result.getAsJsonObject();
         for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
-            LOG.assertTrue(element.getValue().isJsonObject(),
+            log.assertTrue(element.getValue().isJsonObject(),
                     String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
             repositories.add(parseSingleRepositoryInfo(element.getValue().getAsJsonObject()));
 
@@ -373,7 +387,7 @@ public class GerritUtil {
     }
 
     @NotNull
-    private static ProjectInfo parseSingleRepositoryInfo(@NotNull JsonObject result) {
+    private ProjectInfo parseSingleRepositoryInfo(@NotNull JsonObject result) {
         final Gson gson = new GsonBuilder()
                 .create();
         return gson.fromJson(result, ProjectInfo.class);
@@ -384,18 +398,18 @@ public class GerritUtil {
      *
      * @return true if we could successfully login with these credentials, false if authentication failed or in the case of some other error.
      */
-    public static boolean checkCredentials(final Project project) {
+    public boolean checkCredentials(final Project project) {
         try {
-            return checkCredentials(project, authData);
+            return checkCredentials(project, gerritSettings);
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
-            LOG.info(e);
+            log.info(e);
             return false;
         }
     }
 
-    public static boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
+    public boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
         if (StringUtil.isEmptyOrSpaces(gerritAuthData.getHost()) ||
                 StringUtil.isEmptyOrSpaces(gerritAuthData.getLogin()) ||
                 StringUtil.isEmptyOrSpaces(gerritAuthData.getPassword())) {
@@ -415,9 +429,9 @@ public class GerritUtil {
      * Shows Gerrit login settings if credentials are wrong or empty and return the list of all projects
      */
     @Nullable
-    public static List<ProjectInfo> getAvailableProjects(final Project project) {
+    public List<ProjectInfo> getAvailableProjects(final Project project) {
         while (!checkCredentials(project)) {
-            final LoginDialog dialog = new LoginDialog(project);
+            final LoginDialog dialog = new LoginDialog(project, gerritSettings, this, log);
             dialog.show();
             if (!dialog.isOK()) {
                 return null;
@@ -433,7 +447,7 @@ public class GerritUtil {
         });
     }
 
-    public static String getRef(ChangeInfo changeDetails) {
+    public String getRef(ChangeInfo changeDetails) {
         String ref = null;
         final TreeMap<String, RevisionInfo> revisions = changeDetails.getRevisions();
         for (RevisionInfo revisionInfo : revisions.values()) {
@@ -446,7 +460,7 @@ public class GerritUtil {
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")
-    public static boolean testGitExecutable(final Project project) {
+    public boolean testGitExecutable(final Project project) {
         final GitVcsApplicationSettings settings = GitVcsApplicationSettings.getInstance();
         final String executable = settings.getPathToGit();
         final GitVersion version;
@@ -466,23 +480,23 @@ public class GerritUtil {
     }
 
     @NotNull
-    public static String getErrorTextFromException(@NotNull Exception e) {
+    public String getErrorTextFromException(@NotNull Exception e) {
         return e.getMessage();
     }
 
-    public static void notifyError(@NotNull Project project, @NotNull String title, @NotNull String message) {
+    public void notifyError(@NotNull Project project, @NotNull String title, @NotNull String message) {
         notify(project, title, message, NotificationType.ERROR);
     }
 
-    public static void notifyInformation(@NotNull Project project, @NotNull String title, @NotNull String message) {
+    public void notifyInformation(@NotNull Project project, @NotNull String title, @NotNull String message) {
         notify(project, title, message, NotificationType.INFORMATION);
     }
 
-    private static void notify(@NotNull Project project, @NotNull String title, @NotNull String message, @NotNull NotificationType notificationType) {
+    private void notify(@NotNull Project project, @NotNull String title, @NotNull String message, @NotNull NotificationType notificationType) {
         new Notification(GERRIT_NOTIFICATION_GROUP, title, message, notificationType).notify(project);
     }
 
-    private static String appendToUrlQuery(String requestUrl, String queryString) {
+    private String appendToUrlQuery(String requestUrl, String queryString) {
         if (requestUrl.contains("?")) {
             requestUrl += "&";
         } else {

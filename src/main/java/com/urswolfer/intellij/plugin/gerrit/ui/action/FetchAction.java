@@ -21,6 +21,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
@@ -33,16 +34,19 @@ import java.util.concurrent.Callable;
  * @author Urs Wolfer
  */
 public class FetchAction extends AbstractChangeAction {
-
+    private final GerritGitUtil gerritGitUtil;
     @Nullable
     private final Callable<Void> mySuccessCallable;
 
-    public FetchAction() {
-        this(null);
+    public FetchAction(GerritGitUtil gerritGitUtil, GerritUtil gerritService) {
+        this(gerritGitUtil, gerritService, null);
     }
 
-    public FetchAction(@Nullable Callable<Void> successCallable) {
+    public FetchAction(GerritGitUtil gerritGitUtil,
+                       GerritUtil gerritService, @Nullable Callable<Void> successCallable) {
         super("Fetch", "Fetch change", AllIcons.Actions.Download);
+        this.gerritGitUtil = gerritGitUtil;
+        this.gerritUtil = gerritService;
         this.mySuccessCallable = successCallable;
     }
 
@@ -57,11 +61,26 @@ public class FetchAction extends AbstractChangeAction {
         final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
         if (!changeDetails.isPresent()) return;
 
-        String ref = GerritUtil.getRef(changeDetails.get());
+        String ref = gerritUtil.getRef(changeDetails.get());
 
-        Optional<GitRepository> gitRepository = GerritGitUtil.getRepositoryForGerritProject(project, changeDetails.get().getProject());
+        Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.get().getProject());
         if (!gitRepository.isPresent()) return;
 
-        GerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
+        gerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
     }
+
+    public class Proxy extends FetchAction {
+        private final FetchAction delegate;
+
+        public Proxy() {
+            super(GerritModule.getInstance(GerritGitUtil.class), GerritModule.getInstance(GerritUtil.class));
+            delegate = GerritModule.getInstance(FetchAction.class);
+        }
+
+        @Override
+        public void actionPerformed(AnActionEvent e) {
+            delegate.actionPerformed(e);
+        }
+    }
+
 }

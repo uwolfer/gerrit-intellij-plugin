@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.util;
+package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.intellij.openapi.actionSystem.DataKey;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.google.inject.Inject;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+
+import javax.swing.*;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public interface GerritDataKeys {
-    DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
-    DataKey<ReviewCommentSink> REVIEW_COMMENT_SINK = DataKey.create("gerrit.ReviewCommentSink");
+public class ReviewActionFactory {
+    @Inject
+    private ReviewCommentSink reviewCommentSink;
+    @Inject
+    private GerritUtil gerritUtil;
+    @Inject
+    private SubmitAction submitAction;
+
+    public ReviewAction get(String label, int rating, Icon icon, boolean showDialog) {
+        return new ReviewAction(label, rating, icon, showDialog, reviewCommentSink, gerritUtil, submitAction);
+    }
 }

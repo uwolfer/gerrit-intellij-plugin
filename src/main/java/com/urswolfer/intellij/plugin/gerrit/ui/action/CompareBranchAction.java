@@ -17,10 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import git4idea.GitLocalBranch;
@@ -37,6 +39,10 @@ import java.util.concurrent.Callable;
  * @author Urs Wolfer
  */
 public class CompareBranchAction extends AbstractChangeAction {
+    @Inject
+    private GerritGitUtil gerritGitUtil;
+    @Inject
+    private FetchActionsFactory fetchActionsFactory;
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
@@ -56,14 +62,14 @@ public class CompareBranchAction extends AbstractChangeAction {
                 return null;
             }
         };
-        new FetchAction(successCallable).actionPerformed(anActionEvent);
+        fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
     }
 
     private void diffChange(Project project, ChangeInfo changeInfo) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
 
-        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository gitRepository = gitRepositoryOptional.get();
 
@@ -77,7 +83,21 @@ public class CompareBranchAction extends AbstractChangeAction {
         }
         assert currentBranch != null : "Current branch is neither a named branch nor a revision";
 
-        final GitCommitCompareInfo compareInfo = GerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
+        final GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
         new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
     }
+
+    public static class Proxy extends CompareBranchAction {
+        private final CherryPickAction delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(CherryPickAction.class);
+        }
+
+        @Override
+        public void actionPerformed(AnActionEvent e) {
+            delegate.actionPerformed(e);
+        }
+    }
+
 }

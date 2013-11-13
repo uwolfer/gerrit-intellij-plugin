@@ -30,9 +30,10 @@ import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.ui.AnActionButton;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,16 +50,22 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     private final ChangeInfo myChangeInfo;
     @Nullable
     private final FilePath myFilePath;
+    private final GerritGitUtil gerritGitUtil;
+    private final CommentBalloonBuilder commentBalloonBuilder;
 
     public AddCommentAction(ReviewCommentSink reviewCommentSink,
                             ChangeInfo changeInfo,
                             @Nullable final Editor editor,
-                            @Nullable FilePath filePath) {
+                            @Nullable FilePath filePath,
+                            GerritGitUtil gerritGitUtil,
+                            CommentBalloonBuilder commentBalloonBuilder) {
         super("Add Comment", "Add a comment at current line", AllIcons.Toolwindows.ToolWindowMessages);
         myReviewCommentSink = reviewCommentSink;
         myChangeInfo = changeInfo;
         myFilePath = filePath;
         myEditor = editor;
+        this.gerritGitUtil = gerritGitUtil;
+        this.commentBalloonBuilder = commentBalloonBuilder;
     }
 
     public void actionPerformed(AnActionEvent e) {
@@ -70,10 +77,9 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     private void addVersionedComment(@NotNull final Project project) {
         if (myEditor == null || myFilePath == null) return;
 
-        final CommentBalloonBuilder builder = new CommentBalloonBuilder();
-        final CommentForm commentForm = new CommentForm(project, myFilePath, myReviewCommentSink, myChangeInfo);
+        final CommentForm commentForm = new CommentForm(project, myFilePath, myReviewCommentSink, myChangeInfo, gerritGitUtil);
         commentForm.setEditor(myEditor);
-        final JBPopup balloon = builder.getNewCommentBalloon(commentForm, "Comment");
+        final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupAdapter() {
             @Override
             public void onClosed(LightweightWindowEvent event) {

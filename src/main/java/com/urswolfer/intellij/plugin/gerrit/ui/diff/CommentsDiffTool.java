@@ -17,6 +17,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -40,14 +42,12 @@ import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.openapi.vcs.changes.ChangeRequestChain;
 import com.intellij.openapi.vcs.changes.actions.DiffRequestPresentable;
 import com.intellij.ui.PopupHandler;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
@@ -55,7 +55,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -67,12 +66,22 @@ import java.util.TreeMap;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool extends FrameDiffTool {
+    @Inject
+    private GerritGitUtil gerritGitUtil;
+    @Inject
+    private GerritUtil gerritUtil;
+    @Inject
+    private DataManager dataManager;
+    @Inject
+    private AddCommentActionBuilder addCommentActionBuilder;
+    @Inject
+    private ReviewCommentSink reviewCommentSink;
 
     @Override
     public boolean canShow(DiffRequest request) {
         final boolean superCanShow = super.canShow(request);
 
-        final AsyncResult<DataContext> dataContextFromFocus = DataManager.getInstance().getDataContextFromFocus();
+        final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return false;
         final ChangeInfo changeInfo = GerritDataKeys.CHANGE.getData(context);
@@ -89,7 +98,7 @@ public class CommentsDiffTool extends FrameDiffTool {
     }
 
     private void handleComments(DiffPanelImpl diffPanel, String filePathString) {
-        final AsyncResult<DataContext> dataContextFromFocus = DataManager.getInstance().getDataContextFromFocus();
+        final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return;
 
@@ -97,38 +106,39 @@ public class CommentsDiffTool extends FrameDiffTool {
 
         ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
         Project project = PlatformDataKeys.PROJECT.getData(context);
-        final GerritSettings settings = GerritSettings.getInstance();
-        Optional<ChangeInfo> changeDetailsOptional = GerritUtil.getChangeDetails(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), myChangeInfo.getNumber(), project);
+        Optional<ChangeInfo> changeDetailsOptional = gerritUtil.getChangeDetails(
+                myChangeInfo.getNumber(), project);
         if (!changeDetailsOptional.isPresent()) return;
         ChangeInfo changeDetails = changeDetailsOptional.get();
 
         FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
 
-        ReviewCommentSink reviewCommentSink = GerritDataKeys.REVIEW_COMMENT_SINK.getData(context);
-        addCommentAction(editor2, filePath, reviewCommentSink, myChangeInfo);
+        addCommentAction(editor2, filePath, myChangeInfo);
 
-        TreeMap<String,List<CommentInfo>> comments = GerritUtil.getComments(GerritApiUtil.getApiUrl(),
-                settings.getLogin(), settings.getPassword(), changeDetails.getId(), changeDetails.getCurrentRevision(), project);
-        addCommentsGutter(editor2, filePath, comments, reviewCommentSink, myChangeInfo, project);
+        TreeMap<String,List<CommentInfo>> comments = gerritUtil.getComments(
+                changeDetails.getId(), changeDetails.getCurrentRevision(), project);
+        addCommentsGutter(editor2, filePath, comments, myChangeInfo, project);
     }
 
     private void addCommentAction(@Nullable final Editor editor2,
                                   @Nullable final FilePath filePath,
-                                  ReviewCommentSink reviewCommentSink,
                                   ChangeInfo changeInfo) {
         if (editor2 != null) {
             DefaultActionGroup group = new DefaultActionGroup();
-            final AddCommentAction addCommentAction = new AddCommentAction(reviewCommentSink, changeInfo, editor2, filePath);
+            final AddCommentAction addCommentAction = addCommentActionBuilder.build(
+                    reviewCommentSink,
+                    changeInfo,
+                    editor2,
+                    filePath);
             addCommentAction.setContextComponent(editor2.getComponent());
             group.add(addCommentAction);
             PopupHandler.installUnknownPopupHandler(editor2.getContentComponent(), group, ActionManager.getInstance());
         }
     }
 
-    private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, Project project) {
-        List<CommentInfo> fileComments = Collections.emptyList();
-        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+    private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ChangeInfo changeInfo, Project project) {
+        List<CommentInfo> fileComments = Lists.newArrayList();
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository repository = gitRepositoryOptional.get();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
@@ -139,7 +149,7 @@ public class CommentsDiffTool extends FrameDiffTool {
             }
         }
 
-        List< CommentInput > commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
+        Iterable<CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
         for (CommentInput commentInput : commentInputsFromSink) {
             fileComments.add(commentInput.toCommentInfo());
         }

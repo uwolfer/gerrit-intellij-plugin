@@ -120,11 +120,9 @@
   <depends>Git4Idea</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider"/>
+    <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider$Proxy"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
-    <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"
-                        serviceImplementation="com.urswolfer.intellij.plugin.gerrit.rest.SslSupport"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable"/>
 
     <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
@@ -132,15 +130,27 @@
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">
-    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider"/>
+    <GitHttpAuthDataProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider$Proxy"/>
   </extensions>
 
   <actions>
-    <action id="Gerrit.CherryPick" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction" text="Cherry-Pick (No Commit)"/>
-    <action id="Gerrit.CompareBranch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction" text="Compare with Branch"/>
-    <action id="Gerrit.Fetch" class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction" text="Fetch"/>
-    <action id="Gerrit.OpenInBrowser" class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction" text="Open in Gerrit"/>
-    <action id="Gerrit.Settings" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction" text="Settings"/>
-    <action id="Gerrit.Submit" class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction" text="Submit"/>
+    <action id="Gerrit.CherryPick"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction$Proxy"
+            text="Cherry-Pick (No Commit)"/>
+    <action id="Gerrit.CompareBranch"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction$Proxy"
+            text="Compare with Branch"/>
+    <action id="Gerrit.Fetch"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.FetchAction$Proxy"
+            text="Fetch"/>
+    <action id="Gerrit.OpenInBrowser"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction$Proxy"
+            text="Open in Gerrit"/>
+    <action id="Gerrit.Settings"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction$Proxy"
+            text="Settings"/>
+    <action id="Gerrit.Submit"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy"
+            text="Submit"/>
   </actions>
 </idea-plugin>

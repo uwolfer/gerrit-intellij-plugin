@@ -16,10 +16,11 @@
  */
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
+import com.google.inject.Inject;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import git4idea.jgit.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,17 +33,32 @@ import org.jetbrains.annotations.Nullable;
  */
 public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
+    @Inject
+    private GerritSettings gerritSettings;
+
     @Nullable
     @Override
     public AuthData getAuthData(@NotNull String url) {
-        GerritSettings settings = GerritSettings.getInstance();
+        if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
+            return null;
+        }
+        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(gerritSettings.getPassword())) {
+            return null;
+        }
+        return new AuthData(gerritSettings.getLogin(), gerritSettings.getPassword());
+    }
 
-        if (!GerritApiUtil.getApiUrl().equalsIgnoreCase(url)) {
-            return null;
+    public static final class Proxy implements GitHttpAuthDataProvider {
+        private final GitHttpAuthDataProvider delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(GerritHttpAuthDataProvider.class);
         }
-        if (StringUtil.isEmptyOrSpaces(settings.getLogin()) || StringUtil.isEmptyOrSpaces(settings.getPassword())) {
-            return null;
+
+        @Nullable
+        @Override
+        public AuthData getAuthData(@NotNull String url) {
+            return delegate.getAuthData(url);
         }
-        return new AuthData(settings.getLogin(), settings.getPassword());
     }
 }

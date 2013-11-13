@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
@@ -34,20 +35,24 @@ import javax.swing.*;
  */
 public class LoginDialog extends DialogWrapper {
 
-    private static Logger LOG = GerritUtil.LOG;
+    private final Logger log;
 
     private final LoginPanel myLoginPanel;
     private final Project myProject;
+    private final GerritUtil gerritUtil;
+    private final GerritSettings gerritSettings;
 
     // TODO: login must be merged with tasks server settings
-    public LoginDialog(final Project project) {
+    public LoginDialog(final Project project, final GerritSettings gerritSettings, final GerritUtil gerritUtil, Logger log) {
         super(project, true);
+        this.gerritUtil = gerritUtil;
+        this.gerritSettings = gerritSettings;
         myProject = project;
+        this.log = log;
         myLoginPanel = new LoginPanel(this);
-        final GerritSettings settings = GerritSettings.getInstance();
-        myLoginPanel.setHost(settings.getHost());
-        myLoginPanel.setLogin(settings.getLogin());
-        myLoginPanel.setPassword(settings.getPassword());
+        myLoginPanel.setHost(gerritSettings.getHost());
+        myLoginPanel.setLogin(gerritSettings.getLogin());
+        myLoginPanel.setPassword(gerritSettings.getPassword());
         setTitle("Login to Gerrit");
         setOKButtonText("Login");
         init();
@@ -78,20 +83,20 @@ public class LoginDialog extends DialogWrapper {
         final String login = myLoginPanel.getLogin();
         final String password = myLoginPanel.getPassword();
         final String host = myLoginPanel.getHost();
+        GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(host, login, password);
         try {
-            boolean loggedSuccessfully = GerritUtil.checkCredentials(myProject, host, login, password);
+            boolean loggedSuccessfully = gerritUtil.checkCredentials(myProject, gerritAuthData);
             if (loggedSuccessfully) {
-                final GerritSettings settings = GerritSettings.getInstance();
-                settings.setLogin(login);
-                settings.setPassword(password);
-                settings.setHost(host);
+                gerritSettings.setLogin(login);
+                gerritSettings.setPassword(password);
+                gerritSettings.setHost(host);
                 super.doOKAction();
             } else {
                 setErrorText("Can't login with given credentials");
             }
         } catch (Exception e) {
-            LOG.info(e);
-            setErrorText("Can't login: " + GerritUtil.getErrorTextFromException(e));
+            log.info(e);
+            setErrorText("Can't login: " + gerritUtil.getErrorTextFromException(e));
         }
     }
 

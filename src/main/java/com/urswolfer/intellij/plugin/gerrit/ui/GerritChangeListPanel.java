@@ -18,6 +18,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
@@ -31,6 +33,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
@@ -47,6 +50,10 @@ import java.awt.*;
 import java.util.List;
 import java.util.Map;
 
+import static com.intellij.icons.AllIcons.Actions.*;
+import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.CODE_REVIEW;
+import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.VERIFIED;
+
 /**
  * A table with the list of changes.
  * Parts based on git4idea.ui.GitCommitListPanel
@@ -56,15 +63,38 @@ import java.util.Map;
  */
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider {
 
-    private final List<ChangeInfo> myChanges;
-    private final ReviewCommentSink myReviewCommentSink;
+    private final GerritUtil gerritUtil;
+    private final ReviewCommentSink reviewCommentSink;
+    private final FetchActionsFactory fetchActionsFactory;
+    private final ReviewActionFactory reviewActionFactory;
+    private final CompareBranchAction compareBranchAction;
+    private final CherryPickAction cherryPickAction;
+    private final SubmitAction submitAction;
+    private final OpenInBrowserAction openInBrowserAction;
+
+    private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> myTable;
 
-    public GerritChangeListPanel(@NotNull List<ChangeInfo> changes, @Nullable String emptyText, final ReviewCommentSink reviewCommentSink) {
-        myChanges = changes;
-        myReviewCommentSink = reviewCommentSink;
+    @Inject
+    public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
+                                 GerritUtil gerritUtil,
+                                 FetchActionsFactory fetchActionsFactory,
+                                 ReviewActionFactory reviewActionFactory,
+                                 CompareBranchAction compareBranchAction,
+                                 CherryPickAction cherryPickAction,
+                                 SubmitAction submitAction,
+                                 OpenInBrowserAction openInBrowserAction) {
+        this.fetchActionsFactory = fetchActionsFactory;
+        this.reviewActionFactory = reviewActionFactory;
+        this.compareBranchAction = compareBranchAction;
+        this.cherryPickAction = cherryPickAction;
+        this.submitAction = submitAction;
+        this.openInBrowserAction = openInBrowserAction;
+        this.changes = Lists.newArrayList();
+        this.reviewCommentSink = reviewCommentSink;
+        this.gerritUtil = gerritUtil;
 
-        myTable = new TableView<ChangeInfo>() {
+        this.myTable = new TableView<ChangeInfo>() {
             /**
              * Renderer marks changes with reviews pending to submit with changed color.
              */
@@ -72,7 +102,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component component = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) ) {
-                    Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(this.getRow(row).getId());
+                    Iterable<CommentInput> commentInputs = GerritChangeListPanel.this.reviewCommentSink
+                            .getCommentsForChange(this.getRow(row).getId());
                     if (!Iterables.isEmpty(commentInputs)) {
                         component.setForeground(JBColor.BLUE);
                     } else {
@@ -88,9 +119,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         updateModel();
         myTable.setStriped(true);
-        if (emptyText != null) {
-            myTable.getEmptyText().setText(emptyText);
-        }
 
         setLayout(new BorderLayout());
         add(ScrollPaneFactory.createScrollPane(myTable));
@@ -99,42 +127,42 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private void setupActions() {
         final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
 
-        contextMenuActionGroup.add(new FetchAction());
+        contextMenuActionGroup.add(fetchActionsFactory.get());
 
-        contextMenuActionGroup.add(new CompareBranchAction());
+        contextMenuActionGroup.add(compareBranchAction);
 
-        contextMenuActionGroup.add(new CherryPickAction());
+        contextMenuActionGroup.add(cherryPickAction);
 
         final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
         reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked, false, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 2, AllIcons.Actions.Checked, true, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp, false, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 1, AllIcons.Actions.MoveUp, true, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 0, AllIcons.Actions.Forward, false, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, 0, AllIcons.Actions.Forward, true, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown, false, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -1, AllIcons.Actions.MoveDown, true, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel, false, myReviewCommentSink));
-        reviewActionGroup.add(new ReviewAction(ReviewAction.CODE_REVIEW, -2, AllIcons.Actions.Cancel, true, myReviewCommentSink));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 2, Checked, false));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 2, Checked, true));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 1, MoveUp, false));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 1, MoveUp, true));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 0, Forward, false));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 0, Forward, true));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -1, MoveDown, false));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -1, MoveDown, true));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -2, Cancel, false));
+        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -2, Cancel, true));
 
         final DefaultActionGroup verifyActionGroup = new DefaultActionGroup("Verify", true);
         verifyActionGroup.getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked, false, myReviewCommentSink));
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 1, AllIcons.Actions.Checked, true, myReviewCommentSink));
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 0, AllIcons.Actions.Forward, false, myReviewCommentSink));
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, 0, AllIcons.Actions.Forward, true, myReviewCommentSink));
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel, false, myReviewCommentSink));
-        verifyActionGroup.add(new ReviewAction(ReviewAction.VERIFIED, -1, AllIcons.Actions.Cancel, true, myReviewCommentSink));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 1, Checked, false));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 1, Checked, true));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 0, Forward, false));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 0, Forward, true));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, -1, Cancel, false));
+        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, -1, Cancel, true));
 
         contextMenuActionGroup.add(reviewActionGroup);
         contextMenuActionGroup.add(verifyActionGroup);
 
-        contextMenuActionGroup.add(new SubmitAction());
+        contextMenuActionGroup.add(submitAction);
 
         contextMenuActionGroup.add(new Separator());
 
-        contextMenuActionGroup.add(new OpenInBrowserAction());
+        contextMenuActionGroup.add(openInBrowserAction);
 
         PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }
@@ -148,7 +176,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
                 if (i >= 0 && e.getValueIsAdjusting()) {
-                    listener.consume(myChanges.get(i));
+                    listener.consume(changes.get(i));
                 }
             }
         });
@@ -170,7 +198,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             int row = rows[0];
 
             // TODO impl ?
-//            ChangeInfo change = myChanges.get(row);
+//            ChangeInfo change = changes.get(row);
             // suppressing: inherited API
             //noinspection unchecked
 //            sink.put(key, ArrayUtil.toObjectArray(change.getChanges(), Change.class));
@@ -191,14 +219,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     public void setChanges(@NotNull List<ChangeInfo> changes) {
-        myChanges.clear();
-        myChanges.addAll(changes);
+        this.changes.clear();
+        this.changes.addAll(changes);
         updateModel();
         myTable.repaint();
     }
 
     private void updateModel() {
-        myTable.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(myChanges), myChanges, 0));
+        myTable.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
     }
 
     @NotNull
@@ -377,22 +405,22 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         @Override
         public int getWidth(JTable table) {
-            return AllIcons.Actions.Checked.getIconWidth() + 20;
+            return Checked.getIconWidth() + 20;
         }
 
         private static Icon getIconForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
                 if (labelInfo.getApproved() != null) {
-                    return AllIcons.Actions.Checked;
+                    return Checked;
                 }
                 if (labelInfo.getRecommended() != null) {
-                    return AllIcons.Actions.MoveUp;
+                    return MoveUp;
                 }
                 if (labelInfo.getDisliked() != null) {
-                    return AllIcons.Actions.MoveDown;
+                    return MoveDown;
                 }
                 if (labelInfo.getRejected() != null) {
-                    return AllIcons.Actions.Cancel;
+                    return Cancel;
                 }
             }
             return null;

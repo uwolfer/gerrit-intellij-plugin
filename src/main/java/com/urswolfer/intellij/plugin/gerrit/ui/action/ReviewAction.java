@@ -21,8 +21,6 @@ import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
@@ -31,7 +29,6 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;
-import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -45,18 +42,23 @@ public class ReviewAction extends AbstractChangeAction {
     private final int rating;
     private final boolean showDialog;
     private final ReviewCommentSink myReviewCommentSink;
+    private final SubmitAction submitAction;
 
-    public ReviewAction(String label, int rating, Icon icon, boolean showDialog, ReviewCommentSink reviewCommentSink) {
+    public ReviewAction(String label, int rating, Icon icon, boolean showDialog,
+                        ReviewCommentSink reviewCommentSink,
+                        GerritUtil gerritUtil,
+                        SubmitAction submitAction) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
+        this.submitAction = submitAction;
+        this.gerritUtil = gerritUtil;
         myReviewCommentSink = reviewCommentSink;
     }
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final GerritSettings settings = GerritSettings.getInstance();
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
@@ -89,11 +91,13 @@ public class ReviewAction extends AbstractChangeAction {
             submitChange = dialog.getReviewPanel().getSubmitChange();
         }
 
-        GerritUtil.postReview(GerritApiUtil.getApiUrl(), settings.getLogin(), settings.getPassword(),
-                changeDetails.getId(), changeDetails.getCurrentRevision(), reviewInput, project);
+        gerritUtil.postReview(changeDetails.getId(),
+                changeDetails.getCurrentRevision(),
+                reviewInput,
+                project);
 
         if (submitChange) {
-            new SubmitAction().actionPerformed(anActionEvent);
+            submitAction.actionPerformed(anActionEvent);
         }
 
         myReviewCommentSink.removeCommentsForChange(changeDetails.getId());

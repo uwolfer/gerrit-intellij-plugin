@@ -24,6 +24,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsConfigurableProvider;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +44,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     private final GerritSettings mySettings;
 
     public GerritSettingsConfigurable() {
-        mySettings = GerritSettings.getInstance();
+        mySettings = GerritModule.getInstance(GerritSettings.class);
     }
 
     @NotNull
@@ -58,7 +59,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
 
     public JComponent createComponent() {
         if (mySettingsPane == null) {
-            mySettingsPane = new SettingsPanel(mySettings);
+            mySettingsPane = GerritModule.getInstance(SettingsPanel.class);
         }
         return mySettingsPane.getPanel();
     }

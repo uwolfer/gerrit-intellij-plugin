@@ -29,6 +29,7 @@ import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.spellchecker.ui.SpellCheckingEditorCustomization;
 import com.intellij.ui.*;
 import com.intellij.util.containers.ContainerUtil;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
@@ -63,7 +64,11 @@ public class CommentForm extends JPanel {
     private FilePath myFilePath;
     private CommentInput myComment;
 
-    public CommentForm(@NotNull final Project project, @Nullable FilePath filePath, final ReviewCommentSink reviewCommentSink, final ChangeInfo changeInfo) {
+    public CommentForm(@NotNull final Project project,
+                       @Nullable FilePath filePath,
+                       final ReviewCommentSink reviewCommentSink,
+                       final ChangeInfo changeInfo,
+                       final GerritGitUtil gerritGitUtil) {
         super(new BorderLayout());
         myFilePath = filePath;
 
@@ -86,7 +91,7 @@ public class CommentForm extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 CommentInput comment = new CommentInput();
 
-                Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
                 if (!gitRepositoryOptional.isPresent()) return;
                 GitRepository gitRepository = gitRepositoryOptional.get();
                 VirtualFile root = gitRepository.getRoot();

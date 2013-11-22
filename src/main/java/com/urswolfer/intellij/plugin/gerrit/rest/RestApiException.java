@@ -35,8 +35,4 @@ public class RestApiException extends Exception {
     public RestApiException(Throwable cause) {
         super(cause);
     }
-
-    protected RestApiException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
 }

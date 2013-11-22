@@ -97,8 +97,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         }
         passwordChanged = false;
         final Element element = new Element(GERRIT_SETTINGS_TAG);
-        element.setAttribute(LOGIN, getLogin());
-        element.setAttribute(HOST, getHost());
+        element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
+        element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
         element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
         element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());

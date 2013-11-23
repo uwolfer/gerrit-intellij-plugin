@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.inject.Inject;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -41,11 +42,11 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     public static final String NAME = "Gerrit";
     private static final String DEFAULT_PASSWORD_TEXT = "************";
     private SettingsPanel mySettingsPane;
-    private final GerritSettings mySettings;
 
-    public GerritSettingsConfigurable() {
-        mySettings = GerritModule.getInstance(GerritSettings.class);
-    }
+    @Inject
+    private GerritSettings mySettings;
+    @Inject
+    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
 
     @NotNull
     public String getDisplayName() {
@@ -88,6 +89,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             mySettings.setAutomaticRefresh(mySettingsPane.getAutomaticRefresh());
             mySettings.setRefreshTimeout(mySettingsPane.getRefreshTimeout());
             mySettings.setReviewNotifications(mySettingsPane.getReviewNotifications());
+
+            gerritUpdatesNotificationComponent.handleConfigurationChange();
         }
     }
 
@@ -121,5 +124,67 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     @Override
     public Configurable getConfigurable(Project project) {
         return this;
+    }
+
+    public static class Proxy extends GerritSettingsConfigurable {
+        private GerritSettingsConfigurable delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(GerritSettingsConfigurable.class);
+        }
+
+        @Override
+        @NotNull
+        public String getDisplayName() {
+            return delegate.getDisplayName();
+        }
+
+        @Override
+        @NotNull
+        public String getHelpTopic() {
+            return delegate.getHelpTopic();
+        }
+
+        @Override
+        public JComponent createComponent() {
+            return delegate.createComponent();
+        }
+
+        @Override
+        public boolean isModified() {
+            return delegate.isModified();
+        }
+
+        @Override
+        public void apply() throws ConfigurationException {
+            delegate.apply();
+        }
+
+        @Override
+        public void reset() {
+            delegate.reset();
+        }
+
+        @Override
+        public void disposeUIResources() {
+            delegate.disposeUIResources();
+        }
+
+        @Override
+        @NotNull
+        public String getId() {
+            return delegate.getId();
+        }
+
+        @Override
+        public Runnable enableSearch(String option) {
+            return delegate.enableSearch(option);
+        }
+
+        @Nullable
+        @Override
+        public Configurable getConfigurable(Project project) {
+            return delegate.getConfigurable(project);
+        }
     }
 }

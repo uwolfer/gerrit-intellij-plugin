@@ -81,11 +81,11 @@ public class GerritToolWindow {
     @Inject
     private ReviewCommentSink reviewCommentSink;
     @Inject
+    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
+    @Inject
     private Logger log;
 
     private RepositoryChangesBrowser myRepositoryChangesBrowser;
-    private Timer myTimer;
-    private Set<String> myNotifiedChanges = new HashSet<String>();
     private GerritChangeDetailsPanel myDetailsPanel;
     private Splitter myDetailsSplitter;
     private ChangeInfo mySelectedChange;
@@ -120,8 +120,6 @@ public class GerritToolWindow {
         panel.setContent(myHorizontalSplitter);
 
         reloadChanges(project, false);
-
-        setupRefreshTask(project);
 
         return panel;
     }
@@ -192,14 +190,6 @@ public class GerritToolWindow {
         });
     }
 
-    private void setupRefreshTask(Project project) {
-        long refreshTimeout = gerritSettings.getRefreshTimeout();
-        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
-            myTimer = new Timer();
-            myTimer.schedule(new CheckReviewTask(myTimer, project, this), refreshTimeout * 60 * 1000);
-        }
-    }
-
     private void reloadChanges(Project project, boolean requestSettingsIfNonExistent) {
         List<ChangeInfo> commits = Collections.emptyList();
         try {
@@ -208,11 +198,6 @@ public class GerritToolWindow {
             gerritUtil.notifyError(project, "Failed to load Gerrit changes.", gerritUtil.getErrorTextFromException(e));
         }
         changeListPanel.setChanges(commits);
-
-        // if there are no changes at all, there is no point to check if new notifications should be displayed
-        if (!commits.isEmpty()) {
-            handleNotification(project);
-        }
     }
 
     private List<ChangeInfo> getChanges(Project project, boolean requestSettingsIfNonExistent) {
@@ -239,6 +224,7 @@ public class GerritToolWindow {
             public void actionPerformed(AnActionEvent anActionEvent) {
                 final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
                 reloadChanges(project, true);
+                gerritUpdatesNotificationComponent.handleNotification();
             }
         };
         group.add(refreshActionAction);
@@ -246,64 +232,5 @@ public class GerritToolWindow {
         group.add(settingsAction);
 
         return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false);
-    }
-
-    private void handleNotification(Project project) {
-        if (!gerritSettings.getReviewNotifications()) {
-            return;
-        }
-
-        List<ChangeInfo> changes = gerritUtil.getChangesToReview(project);
-
-        boolean newChange = false;
-        for (ChangeInfo change : changes) {
-            if (!myNotifiedChanges.contains(change.getChangeId())) {
-                newChange = true;
-                break;
-            }
-        }
-        if (newChange) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("<ul>");
-            for (ChangeInfo change : changes) {
-                stringBuilder
-                        .append("<li>")
-                        .append(!myNotifiedChanges.contains(change.getChangeId()) ? "<strong>NEW: </strong>" : "")
-                        .append(change.getSubject())
-                        .append(" (Owner: ").append(change.getOwner().getName()).append(')')
-                        .append("</li>");
-
-                myNotifiedChanges.add(change.getChangeId());
-            }
-            stringBuilder.append("</ul>");
-            gerritUtil.notifyInformation(project, "Gerrit Changes waiting for my review", stringBuilder.toString());
-        }
-    }
-
-    class CheckReviewTask extends TimerTask {
-        private Timer myTimer;
-        private Project myProject;
-        private GerritToolWindow myToolWindowFactory;
-
-        public CheckReviewTask(Timer timer, Project project, GerritToolWindow toolWindowFactory) {
-            myTimer = timer;
-            myProject = project;
-            myToolWindowFactory = toolWindowFactory;
-        }
-
-        @Override
-        public void run() {
-            ApplicationManager.getApplication().invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    myToolWindowFactory.reloadChanges(myProject, false);
-                }
-            });
-
-            long refreshTimeout = gerritSettings.getRefreshTimeout();
-            if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
-                myTimer.schedule(new CheckReviewTask(myTimer, myProject, myToolWindowFactory), refreshTimeout * 60 * 1000);
-            }
-        }
     }
 }

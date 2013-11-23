@@ -27,5 +27,6 @@ public class GerritUiModule extends AbstractModule {
         bind(GerritChangeListPanel.class);
         bind(SettingsPanel.class);
         bind(GerritSettingsConfigurable.class);
+        bind(GerritUpdatesNotificationComponent.class).asEagerSingleton();
     }
 }

@@ -24,6 +24,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.AccountInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeMessageInfo;
 import org.jetbrains.annotations.NotNull;
@@ -138,7 +139,10 @@ public class GerritChangeDetailsPanel {
             if (changeInfo.getMessages() != null && changeInfo.getMessages().length > 0) {
                 sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
                 for (ChangeMessageInfo changeMessageInfo : changeInfo.getMessages()) {
-                    sb.append("<b>").append(changeMessageInfo.getAuthor().getName()).append("</b>").append(": ");
+                    AccountInfo author = changeMessageInfo.getAuthor();
+                    if (author != null && author.getName() != null) {
+                        sb.append("<b>").append(author.getName()).append("</b>").append(": ");
+                    }
                     sb.append(changeMessageInfo.getMessage()).append("<br/>");
                 }
                 sb.append("</td></tr>");

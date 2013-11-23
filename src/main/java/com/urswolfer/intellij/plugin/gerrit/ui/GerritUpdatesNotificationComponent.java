@@ -31,6 +31,7 @@ import java.util.*;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class GerritUpdatesNotificationComponent implements ProjectComponent {
     @Inject
     private GerritUtil gerritUtil;
@@ -141,6 +142,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     private static class Proxy extends GerritUpdatesNotificationComponent {
 
         private final GerritUpdatesNotificationComponent delegate;

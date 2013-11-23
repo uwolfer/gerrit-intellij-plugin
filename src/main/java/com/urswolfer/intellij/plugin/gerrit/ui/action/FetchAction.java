@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class FetchAction extends AbstractChangeAction {
     private final GerritGitUtil gerritGitUtil;
     @Nullable

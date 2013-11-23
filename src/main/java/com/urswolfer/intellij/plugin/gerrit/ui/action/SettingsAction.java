@@ -30,6 +30,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SettingsAction extends AnAction implements DumbAware {
 
     @Inject

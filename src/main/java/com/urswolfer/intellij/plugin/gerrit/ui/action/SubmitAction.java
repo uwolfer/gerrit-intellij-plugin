@@ -28,6 +28,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SubmitAction extends AbstractChangeAction {
 
     public SubmitAction() {

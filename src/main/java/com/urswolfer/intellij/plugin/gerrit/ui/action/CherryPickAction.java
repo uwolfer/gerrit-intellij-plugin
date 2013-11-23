@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class CherryPickAction extends AbstractChangeAction {
     @Inject
     private GerritGitUtil gerritGitUtil;

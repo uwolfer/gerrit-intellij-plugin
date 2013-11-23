@@ -69,7 +69,7 @@ public class FetchAction extends AbstractChangeAction {
         gerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
     }
 
-    public class Proxy extends FetchAction {
+    public static class Proxy extends FetchAction {
         private final FetchAction delegate;
 
         public Proxy() {

@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.ui;
-
-import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritFilterModule;
+package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 /**
  * @author Thomas Forrer
  */
-public class GerritUiModule extends AbstractModule {
+public class OwnerFilter extends AbstractUserFilter {
     @Override
-    protected void configure() {
-        install(new GerritFilterModule());
-        bind(GerritChangeListPanel.class);
-        bind(SettingsPanel.class);
-        bind(GerritSettingsConfigurable.class);
-        bind(GerritUpdatesNotificationComponent.class).asEagerSingleton();
+    public String getActionLabel() {
+        return "Owner";
+    }
+
+    @Override
+    public String getQueryField() {
+        return "owner";
     }
 }

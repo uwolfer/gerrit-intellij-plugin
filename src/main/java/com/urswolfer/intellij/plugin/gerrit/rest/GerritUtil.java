@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -151,12 +152,12 @@ public class GerritUtil {
 
     @NotNull
     public List<ChangeInfo> getChanges(Project project) {
-        return getChanges("", project);
+        return getChanges(null, project);
     }
 
     @NotNull
     public List<ChangeInfo> getChangesToReview(Project project) {
-        return getChanges("?q=is:open+reviewer:self", project);
+        return getChanges("is:open+reviewer:self", project);
     }
 
     /**
@@ -164,34 +165,7 @@ public class GerritUtil {
      */
     @NotNull
     public List<ChangeInfo> getChangesForProject(@NotNull final Project project) {
-        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
-        if (repositories.isEmpty()) {
-            //Show notification
-            showAddGitRepositoryNotification(project);
-            return Lists.newArrayList();
-        }
-
-        List<GitRemote> remotes = Lists.newArrayList();
-        for (GitRepository repository : repositories) {
-            remotes.addAll(repository.getRemotes());
-        }
-
-        String host = parseUri(gerritSettings.getHost()).getHost();
-        List<String> projectNames = Lists.newArrayList();
-        for (GitRemote remote : remotes) {
-            for (String repositoryUrl : remote.getUrls()) {
-                String repositoryHost = parseUri(repositoryUrl).getHost();
-                if (repositoryHost != null && repositoryHost.equals(host)) {
-                    projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
-                }
-            }
-        }
-
-        if (projectNames.isEmpty()) {
-            return Collections.emptyList();
-        }
-        String projectQuery = Joiner.on("+OR+").join(projectNames);
-        return getChanges("?q=is:open+(" + projectQuery + ')', project);
+        return getChanges("is:open", project);
     }
 
     private URI parseUri(String url) {
@@ -234,8 +208,8 @@ public class GerritUtil {
     }
 
     @NotNull
-    public List<ChangeInfo> getChanges(@NotNull String query, Project project) {
-        String request = "/a/changes/" + query;
+    public List<ChangeInfo> getChanges(@Nullable String query, Project project) {
+        String request = formatRequestUrl(project, "changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
         JsonElement result = null;
         try {
@@ -247,6 +221,46 @@ public class GerritUtil {
             return Collections.emptyList();
         }
         return parseChangeInfos(result);
+    }
+
+    private String formatRequestUrl(Project project, String endPoint, String query) {
+        String projectQueryPart = getProjectQueryPart(project);
+        query = Joiner.on('+').skipNulls().join(Strings.emptyToNull(query), projectQueryPart);
+        if (query.isEmpty()) {
+            return String.format("/a/%s/", endPoint);
+        } else {
+            return String.format("/a/%s/?q=%s", endPoint, query);
+        }
+    }
+
+    private String getProjectQueryPart(Project project) {
+        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+        if (repositories.isEmpty()) {
+            //Show notification
+            showAddGitRepositoryNotification(project);
+            return "";
+        }
+
+        List<GitRemote> remotes = Lists.newArrayList();
+        for (GitRepository repository : repositories) {
+            remotes.addAll(repository.getRemotes());
+        }
+
+        String host = parseUri(gerritSettings.getHost()).getHost();
+        List<String> projectNames = Lists.newArrayList();
+        for (GitRemote remote : remotes) {
+            for (String repositoryUrl : remote.getUrls()) {
+                String repositoryHost = parseUri(repositoryUrl).getHost();
+                if (repositoryHost != null && repositoryHost.equals(host)) {
+                    projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
+                }
+            }
+        }
+
+        if (projectNames.isEmpty()) {
+            return "";
+        }
+        return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
     }
 
     public Optional<ChangeInfo> getChangeDetails(@NotNull String changeNr, Project project) {
@@ -346,7 +360,7 @@ public class GerritUtil {
     }
 
     @Nullable
-    private AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
+    public AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
         JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/a/accounts/self");
         return parseUserInfo(result);
     }

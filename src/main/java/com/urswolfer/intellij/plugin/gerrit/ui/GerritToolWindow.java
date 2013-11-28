@@ -215,7 +215,7 @@ public class GerritToolWindow {
                 return;
             }
         }
-        gerritUtil.getChanges(changesFilters.getQuery(), project, consumer);
+        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
     }
 
     private ActionToolbar createToolbar(final Project project) {

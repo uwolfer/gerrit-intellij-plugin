@@ -156,7 +156,7 @@ public class GerritUtil {
     }
 
     public void getChanges(Project project, Consumer<List<ChangeInfo>> consumer) {
-        getChanges(null, project, consumer);
+        getChangesForProject(null, project, consumer);
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
@@ -202,8 +202,13 @@ public class GerritUtil {
         }));
     }
 
+    public void getChangesForProject(String query, Project project, Consumer<List<ChangeInfo>> consumer) {
+        query = appendQueryStringForProject(project, query);
+        getChanges(query, project, consumer);
+    }
+
     public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
-        String request = formatRequestUrl(project, "changes", query);
+        String request = formatRequestUrl("changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
         getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
@@ -231,9 +236,13 @@ public class GerritUtil {
         });
     }
 
-    private String formatRequestUrl(Project project, String endPoint, String query) {
+    private String appendQueryStringForProject(Project project, String query) {
         String projectQueryPart = getProjectQueryPart(project);
         query = Joiner.on('+').skipNulls().join(Strings.emptyToNull(query), projectQueryPart);
+        return query;
+    }
+
+    private String formatRequestUrl(String endPoint, String query) {
         if (query.isEmpty()) {
             return String.format("/a/%s/", endPoint);
         } else {

@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Throwables;

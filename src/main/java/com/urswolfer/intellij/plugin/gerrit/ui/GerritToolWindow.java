@@ -57,8 +57,10 @@ import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
 
 import javax.swing.*;
-import java.util.*;
-import java.util.Timer;
+import java.util.Collections;
+import java.util.List;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.concurrent.Callable;
 
 /**

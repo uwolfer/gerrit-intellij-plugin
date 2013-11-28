@@ -231,6 +231,8 @@ public class GerritToolWindow {
             }
         });
 
+        group.add(new Separator());
+
         final DumbAwareAction refreshActionAction = new DumbAwareAction("Refresh", "Refresh changes list", AllIcons.Actions.Refresh) {
             @Override
             public void actionPerformed(AnActionEvent anActionEvent) {

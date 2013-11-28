@@ -153,12 +153,14 @@ public class GerritToolWindow {
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        final Optional<ChangeInfo> changeDetails = gerritUtil.getChangeDetails(changeInfo.getNumber(), project);
-        if (!changeDetails.isPresent()) return;
+        gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeDetails) {
+                myDetailsPanel.setData(changeDetails);
 
-        myDetailsPanel.setData(changeDetails.get());
-
-        updateChangesBrowser(changeDetails.get(), project);
+                updateChangesBrowser(changeDetails, project);
+            }
+        });
     }
 
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
@@ -194,30 +196,24 @@ public class GerritToolWindow {
         });
     }
 
-    private void reloadChanges(Project project, boolean requestSettingsIfNonExistent) {
-        List<ChangeInfo> commits = Collections.emptyList();
-        try {
-            commits = getChanges(project, requestSettingsIfNonExistent);
-        } catch (Exception e) {
-            gerritUtil.notifyError(project, "Failed to load Gerrit changes.", gerritUtil.getErrorTextFromException(e));
-        }
-        changeListPanel.setChanges(commits);
+    private void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
+        getChanges(project, requestSettingsIfNonExistent, changeListPanel);
     }
 
-    private List<ChangeInfo> getChanges(Project project, boolean requestSettingsIfNonExistent) {
+    private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<List<ChangeInfo>> consumer) {
         String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil, log);
                 dialog.show();
                 if (!dialog.isOK()) {
-                    return Collections.emptyList();
+                    return;
                 }
             } else {
-                return Collections.emptyList();
+                return;
             }
         }
-        return gerritUtil.getChanges(changesFilters.getQuery(), project);
+        gerritUtil.getChanges(changesFilters.getQuery(), project, consumer);
     }
 
     private ActionToolbar createToolbar(final Project project) {

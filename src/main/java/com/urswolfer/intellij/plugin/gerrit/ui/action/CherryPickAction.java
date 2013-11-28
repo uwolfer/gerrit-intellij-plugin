@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
@@ -50,18 +51,20 @@ public class CherryPickAction extends AbstractChangeAction {
         }
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
-        if (!changeDetails.isPresent()) return;
-
-        Callable<Void> successCallable = new Callable<Void>() {
+        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override
-            public Void call() throws Exception {
-                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                gerritGitUtil.cherryPickChange(project, changeDetails.get());
-                return null;
+            public void consume(final ChangeInfo changeInfo) {
+                Callable<Void> successCallable = new Callable<Void>() {
+                    @Override
+                    public Void call() throws Exception {
+                        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+                        gerritGitUtil.cherryPickChange(project, changeInfo);
+                        return null;
+                    }
+                };
+                fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
             }
-        };
-        fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
+        });
     }
 
     public static class Proxy extends CherryPickAction {

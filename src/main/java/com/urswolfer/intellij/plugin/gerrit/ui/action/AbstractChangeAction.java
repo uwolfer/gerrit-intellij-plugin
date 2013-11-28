@@ -24,6 +24,7 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.table.TableView;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
@@ -55,7 +56,7 @@ public abstract class AbstractChangeAction extends AnAction implements DumbAware
         return Optional.fromNullable(selectedChange);
     }
 
-    protected Optional<ChangeInfo> getChangeDetail(ChangeInfo selectedChange, Project project) {
-        return gerritUtil.getChangeDetails(selectedChange.getNumber(), project);
+    protected void getChangeDetail(ChangeInfo selectedChange, Project project, final Consumer<ChangeInfo> consumer) {
+        gerritUtil.getChangeDetails(selectedChange.getNumber(), project, consumer);
     }
 }

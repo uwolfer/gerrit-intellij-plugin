@@ -38,6 +38,7 @@ import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.ui.PopupHandler;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -91,27 +92,27 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         return diffPanel;
     }
 
-    private void handleComments(DiffPanelImpl diffPanel, String filePathString) {
+    private void handleComments(DiffPanelImpl diffPanel, final String filePathString) {
         final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return;
 
         final Editor editor2 = diffPanel.getEditor2();
 
-        ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
-        Project project = PlatformDataKeys.PROJECT.getData(context);
-        Optional<ChangeInfo> changeDetailsOptional = gerritUtil.getChangeDetails(
-                myChangeInfo.getNumber(), project);
-        if (!changeDetailsOptional.isPresent()) return;
-        ChangeInfo changeDetails = changeDetailsOptional.get();
+        final ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
+        final Project project = PlatformDataKeys.PROJECT.getData(context);
+        gerritUtil.getChangeDetails(myChangeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeDetails) {
+                FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
 
-        FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
+                addCommentAction(editor2, filePath, myChangeInfo);
 
-        addCommentAction(editor2, filePath, myChangeInfo);
-
-        TreeMap<String,List<CommentInfo>> comments = gerritUtil.getComments(
-                changeDetails.getId(), changeDetails.getCurrentRevision(), project);
-        addCommentsGutter(editor2, filePath, comments, myChangeInfo, project);
+                TreeMap<String,List<CommentInfo>> comments = gerritUtil.getComments(
+                        changeDetails.getId(), changeDetails.getCurrentRevision(), project);
+                addCommentsGutter(editor2, filePath, comments, myChangeInfo, project);
+            }
+        });
     }
 
     private void addCommentAction(@Nullable final Editor editor2,

@@ -61,7 +61,7 @@ import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.VERIFI
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider {
+public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
 
     private final GerritUtil gerritUtil;
     private final ReviewCommentSink reviewCommentSink;
@@ -122,6 +122,11 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         setLayout(new BorderLayout());
         add(ScrollPaneFactory.createScrollPane(myTable));
+    }
+
+    @Override
+    public void consume(List<ChangeInfo> commits) {
+        setChanges(commits);
     }
 
     private void setupActions() {

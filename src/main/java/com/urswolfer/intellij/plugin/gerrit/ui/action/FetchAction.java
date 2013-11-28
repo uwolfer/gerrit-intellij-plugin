@@ -21,6 +21,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -59,15 +60,17 @@ public class FetchAction extends AbstractChangeAction {
         }
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
-        if (!changeDetails.isPresent()) return;
+        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeInfo) {
+                String ref = gerritUtil.getRef(changeInfo);
 
-        String ref = gerritUtil.getRef(changeDetails.get());
+                Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                if (!gitRepository.isPresent()) return;
 
-        Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.get().getProject());
-        if (!gitRepository.isPresent()) return;
-
-        gerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
+                gerritGitUtil.fetchChange(project, gitRepository.get(), ref, mySuccessCallable);
+            }
+        });
     }
 
     public static class Proxy extends FetchAction {

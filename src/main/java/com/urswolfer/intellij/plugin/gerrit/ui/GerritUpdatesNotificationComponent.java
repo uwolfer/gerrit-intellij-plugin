@@ -20,6 +20,7 @@ import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -32,7 +33,7 @@ import java.util.*;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritUpdatesNotificationComponent implements ProjectComponent {
+public class GerritUpdatesNotificationComponent implements ProjectComponent, Consumer<List<ChangeInfo>> {
     @Inject
     private GerritUtil gerritUtil;
     @Inject
@@ -82,8 +83,11 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent {
             return;
         }
 
-        List<ChangeInfo> changes = gerritUtil.getChangesToReview(project);
+        gerritUtil.getChangesToReview(project, this);
+    }
 
+    @Override
+    public void consume(List<ChangeInfo> changes) {
         boolean newChange = false;
         for (ChangeInfo change : changes) {
             if (!notifiedChanges.contains(change.getChangeId())) {

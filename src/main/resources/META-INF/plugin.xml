@@ -119,11 +119,18 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
+  <project-components>
+    <component>
+      <interface-class>com.intellij.openapi.components.ProjectComponent</interface-class>
+      <implementation-class>com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent$Proxy</implementation-class>
+    </component>
+  </project-components>
+
   <extensions defaultExtensionNs="com.intellij">
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider$Proxy"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
-    <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable"/>
+    <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable$Proxy"/>
 
     <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
     </toolWindow>

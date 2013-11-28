@@ -21,6 +21,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
@@ -28,6 +29,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SubmitAction extends AbstractChangeAction {
 
     public SubmitAction() {
@@ -42,11 +44,14 @@ public class SubmitAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final Optional<ChangeInfo> changeDetails = getChangeDetail(selectedChange.get(), project);
-        if (!changeDetails.isPresent()) return;
+        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeInfo) {
+                SubmitInput submitInput = new SubmitInput();
+                gerritUtil.postSubmit(changeInfo.getId(), submitInput, project);
+            }
+        });
 
-        final SubmitInput submitInput = new SubmitInput();
-        gerritUtil.postSubmit(changeDetails.get().getId(), submitInput, project);
     }
 
     public static class Proxy extends SubmitAction {

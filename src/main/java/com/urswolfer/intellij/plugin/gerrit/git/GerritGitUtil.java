@@ -83,10 +83,13 @@ public class GerritGitUtil {
     @Inject
     private GerritUtil gerritUtil;
 
-    public Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
+    public Iterable<GitRepository> getRepositories(Project project) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-        final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
+        return repositoryManager.getRepositories();
+    }
 
+    public Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
+        final Iterable<GitRepository> repositoriesFromRoots = getRepositories(project);
         for (GitRepository repository : repositoriesFromRoots) {
             for (GitRemote remote : repository.getRemotes()) {
                 for (String remoteUrl : remote.getUrls()) {

@@ -14,25 +14,12 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.ui.filter;
+
+import java.util.Observable;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public class RestApiException extends Exception {
-    public RestApiException() {
-        super();
-    }
-
-    public RestApiException(String message) {
-        super(message);
-    }
-
-    public RestApiException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RestApiException(Throwable cause) {
-        super(cause);
-    }
+public abstract class AbstractChangesFilter extends Observable implements ChangesFilter  {
 }

@@ -21,11 +21,12 @@ import com.google.common.base.Strings;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;
@@ -58,48 +59,49 @@ public class ReviewAction extends AbstractChangeAction {
     }
 
     @Override
-    public void actionPerformed(AnActionEvent anActionEvent) {
+    public void actionPerformed(final AnActionEvent anActionEvent) {
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
-        final Optional<ChangeInfo> changeDetailsOptional = getChangeDetail(selectedChange.get(), project);
-        if (!changeDetailsOptional.isPresent()) return;
-        ChangeInfo changeDetails = changeDetailsOptional.get();
+        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeDetails) {
+                final ReviewInput reviewInput = new ReviewInput();
+                reviewInput.addLabel(label, rating);
 
-        final ReviewInput reviewInput = new ReviewInput();
-        reviewInput.addLabel(label, rating);
+                Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
+                for (CommentInput commentInput : commentInputs) {
+                    reviewInput.addComment(commentInput.getPath(), commentInput);
+                }
 
-        Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
-        for (CommentInput commentInput : commentInputs) {
-            reviewInput.addComment(commentInput.getPath(), commentInput);
-        }
+                boolean submitChange = false;
+                if (showDialog) {
+                    final ReviewDialog dialog = new ReviewDialog();
+                    dialog.show();
+                    if (!dialog.isOK()) {
+                        return;
+                    }
+                    final String message = dialog.getReviewPanel().getMessage();
+                    if (!Strings.isNullOrEmpty(message)) {
+                        reviewInput.setMessage(message);
+                    }
+                    submitChange = dialog.getReviewPanel().getSubmitChange();
+                }
 
-        boolean submitChange = false;
-        if (showDialog) {
-            final ReviewDialog dialog = new ReviewDialog();
-            dialog.show();
-            if (!dialog.isOK()) {
-                return;
+                gerritUtil.postReview(changeDetails.getId(),
+                        changeDetails.getCurrentRevision(),
+                        reviewInput,
+                        project);
+
+                if (submitChange) {
+                    submitAction.actionPerformed(anActionEvent);
+                }
+
+                myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
             }
-            final String message = dialog.getReviewPanel().getMessage();
-            if (!Strings.isNullOrEmpty(message)) {
-                reviewInput.setMessage(message);
-            }
-            submitChange = dialog.getReviewPanel().getSubmitChange();
-        }
-
-        gerritUtil.postReview(changeDetails.getId(),
-                changeDetails.getCurrentRevision(),
-                reviewInput,
-                project);
-
-        if (submitChange) {
-            submitAction.actionPerformed(anActionEvent);
-        }
-
-        myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
+        });
     }
 }

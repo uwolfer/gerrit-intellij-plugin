@@ -14,25 +14,24 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.ui.filter;
+
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public class RestApiException extends Exception {
-    public RestApiException() {
-        super();
-    }
+public interface ChangesFilter {
+    /**
+     * @return an action to be included in the toolbar
+     */
+    AnAction getAction(Project project);
 
-    public RestApiException(String message) {
-        super(message);
-    }
-
-    public RestApiException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RestApiException(Throwable cause) {
-        super(cause);
-    }
+    /**
+     * @return a part to be included in the search query, null otherwise
+     */
+    @Nullable
+    String getSearchQueryPart();
 }

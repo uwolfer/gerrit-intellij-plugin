@@ -14,21 +14,25 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.ui;
+package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritFilterModule;
+import com.google.inject.multibindings.Multibinder;
 
 /**
  * @author Thomas Forrer
  */
-public class GerritUiModule extends AbstractModule {
+public class GerritFilterModule extends AbstractModule {
     @Override
     protected void configure() {
-        install(new GerritFilterModule());
-        bind(GerritChangeListPanel.class);
-        bind(SettingsPanel.class);
-        bind(GerritSettingsConfigurable.class);
-        bind(GerritUpdatesNotificationComponent.class).asEagerSingleton();
+        Multibinder<AbstractChangesFilter> filters = Multibinder.newSetBinder(binder(), AbstractChangesFilter.class);
+        filters.addBinding().to(FulltextFilter.class);
+        filters.addBinding().to(StatusFilter.class);
+        filters.addBinding().to(BranchFilter.class);
+        filters.addBinding().to(ReviewerFilter.class);
+        filters.addBinding().to(OwnerFilter.class);
+        filters.addBinding().to(IsStarredFilter.class);
+
+        bind(GerritChangesFilters.class);
     }
 }

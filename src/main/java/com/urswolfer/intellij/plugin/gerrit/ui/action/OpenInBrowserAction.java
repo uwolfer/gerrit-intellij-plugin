@@ -28,6 +28,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 /**
  * @author Urs Wolfer
  */
+@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class OpenInBrowserAction extends AbstractChangeAction {
     @Inject
     private GerritSettings gerritSettings;

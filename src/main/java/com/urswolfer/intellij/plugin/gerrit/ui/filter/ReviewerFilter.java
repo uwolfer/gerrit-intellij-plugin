@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 /**
- * @author Urs Wolfer
+ * @author Thomas Forrer
  */
-public class RestApiException extends Exception {
-    public RestApiException() {
-        super();
+public class ReviewerFilter extends AbstractUserFilter {
+    @Override
+    public String getActionLabel() {
+        return "Reviewer";
     }
 
-    public RestApiException(String message) {
-        super(message);
-    }
-
-    public RestApiException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RestApiException(Throwable cause) {
-        super(cause);
+    @Override
+    public String getQueryField() {
+        return "reviewer";
     }
 }

@@ -20,15 +20,12 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.intellij.ide.DataManager;
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.diff.DiffPanel;
 import com.intellij.openapi.diff.DiffRequest;
 import com.intellij.openapi.diff.impl.DiffPanelImpl;
-import com.intellij.openapi.diff.impl.external.FrameDiffTool;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
@@ -47,10 +44,8 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.repo.GitRepository;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +69,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     @Inject
     private ReviewCommentSink reviewCommentSink;
 
+    private ChangeInfo changeInfo;
+    private Project project;
+
     @Override
     public boolean canShow(DiffRequest request) {
         final boolean superCanShow = super.canShow(request);
@@ -81,36 +79,34 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return false;
-        final ChangeInfo changeInfo = GerritDataKeys.CHANGE.getData(context);
+
+        changeInfo = GerritDataKeys.CHANGE.getData(context);
+        project = PlatformDataKeys.PROJECT.getData(context);
+
         return superCanShow && changeInfo != null;
     }
 
     @Override
-    protected DiffPanel createDiffPanel(DiffRequest data, Window window, @NotNull Disposable parentDisposable, FrameDiffTool tool) {
-        DiffPanelImpl diffPanel = (DiffPanelImpl) super.createDiffPanel(data, window, parentDisposable, tool);
-        handleComments(diffPanel, data.getWindowTitle()); // ugly, but there seems to be no other way to get the file path. #getPathPresentation() should work in intellij 13
-        return diffPanel;
+    public void diffRequestChange(DiffRequest diffRequest, DiffPanelImpl diffPanel) {
+        handleComments(diffPanel, diffRequest.getWindowTitle());
     }
 
     private void handleComments(DiffPanelImpl diffPanel, final String filePathString) {
-        final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
-        final DataContext context = dataContextFromFocus.getResult();
-        if (context == null) return;
-
         final Editor editor2 = diffPanel.getEditor2();
+        final FilePath filePath = new FilePathImpl(new File(filePathString), false);
 
-        final ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
-        final Project project = PlatformDataKeys.PROJECT.getData(context);
-        gerritUtil.getChangeDetails(myChangeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+        addCommentAction(editor2, filePath, changeInfo);
+
+        gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
-
-                addCommentAction(editor2, filePath, myChangeInfo);
-
-                TreeMap<String,List<CommentInfo>> comments = gerritUtil.getComments(
-                        changeDetails.getId(), changeDetails.getCurrentRevision(), project);
-                addCommentsGutter(editor2, filePath, comments, myChangeInfo, project);
+                gerritUtil.getComments(changeDetails.getId(), changeDetails.getCurrentRevision(), project,
+                    new Consumer<TreeMap<String, List<CommentInfo>>>() {
+                        @Override
+                        public void consume(TreeMap<String, List<CommentInfo>> comments) {
+                            addCommentsGutter(editor2, filePath, comments, changeInfo, project);
+                        }
+                    });
             }
         });
     }
@@ -136,9 +132,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository repository = gitRepositoryOptional.get();
+        String repositoryPath = repository.getRoot().getPath();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-            String path = repository.getRoot().getPath();
-            if (filePath.getPath().equals(path + File.separator + entry.getKey())) {
+            if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
                 fileComments = entry.getValue();
                 break;
             }
@@ -146,7 +142,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         Iterable<CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
         for (CommentInput commentInput : commentInputsFromSink) {
-            fileComments.add(commentInput.toCommentInfo());
+            if (isForCurrentFile(filePath, commentInput.getPath(), repositoryPath)) {
+                fileComments.add(commentInput.toCommentInfo());
+            }
         }
 
         final MarkupModel markup = editor2.getMarkupModel();
@@ -158,5 +156,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
         }
+    }
+
+    private boolean isForCurrentFile(FilePath currentFilePath, String projectFilePath, String repositoryPath) {
+        return currentFilePath.getPath().equals(repositoryPath + File.separator + projectFilePath);
     }
 }

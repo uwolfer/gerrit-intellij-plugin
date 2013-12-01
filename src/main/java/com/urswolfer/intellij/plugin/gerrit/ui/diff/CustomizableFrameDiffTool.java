@@ -200,14 +200,20 @@ public class CustomizableFrameDiffTool extends FrameDiffTool {
 
 
     /**
-     * Copy of:
+     * Based on:
      * com.intellij.openapi.diff.impl.external.DiffManagerImpl#createDiffPanel
      */
     private static final Logger LOG = Logger.getInstance("#com.intellij.openapi.diff.impl.external.DiffManagerImpl");
     protected DiffPanel createDiffPanel(DiffRequest data, Window window, @NotNull Disposable parentDisposable, FrameDiffTool tool) {
         DiffPanel diffPanel = null;
         try {
-            diffPanel = DiffManager.getInstance().createDiffPanel(window, data.getProject(), parentDisposable, tool);
+            diffPanel = new DiffPanelImpl(window, data.getProject(), true, true, DiffManagerImpl.FULL_DIFF_DIVIDER_POLYGONS_OFFSET, tool) {
+                @Override
+                public void setDiffRequest(DiffRequest data) {
+                    super.setDiffRequest(data);
+                    diffRequestChange(data, this);
+                }
+            };
             int contentCount = data.getContents().length;
             LOG.assertTrue(contentCount == 2, String.valueOf(contentCount));
             LOG.assertTrue(data.getContentTitles().length == contentCount);
@@ -221,4 +227,6 @@ public class CustomizableFrameDiffTool extends FrameDiffTool {
             throw e;
         }
     }
+
+    public void diffRequestChange(DiffRequest diffRequest, DiffPanelImpl diffPanel) {}
 }

@@ -68,7 +68,7 @@ public class ReviewAction extends AbstractChangeAction {
         }
         getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override
-            public void consume(ChangeInfo changeDetails) {
+            public void consume(final ChangeInfo changeDetails) {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.addLabel(label, rating);
 
@@ -91,16 +91,21 @@ public class ReviewAction extends AbstractChangeAction {
                     submitChange = dialog.getReviewPanel().getSubmitChange();
                 }
 
+                final boolean finalSubmitChange = submitChange;
                 gerritUtil.postReview(changeDetails.getId(),
                         changeDetails.getCurrentRevision(),
                         reviewInput,
-                        project);
-
-                if (submitChange) {
-                    submitAction.actionPerformed(anActionEvent);
-                }
-
-                myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
+                        project,
+                        new Consumer<Void>() {
+                            @Override
+                            public void consume(Void result) {
+                                myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
+                                if (finalSubmitChange) {
+                                    submitAction.actionPerformed(anActionEvent);
+                                }
+                            }
+                        }
+                );
             }
         });
     }

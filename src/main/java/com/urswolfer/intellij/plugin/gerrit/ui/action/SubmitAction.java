@@ -44,14 +44,8 @@ public class SubmitAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeInfo) {
-                SubmitInput submitInput = new SubmitInput();
-                gerritUtil.postSubmit(changeInfo.getId(), submitInput, project);
-            }
-        });
-
+        SubmitInput submitInput = new SubmitInput();
+        gerritUtil.postSubmit(selectedChange.get().getId(), submitInput, project);
     }
 
     public static class Proxy extends SubmitAction {

@@ -127,7 +127,8 @@ public class GerritUtil {
     public void postReview(@NotNull String changeId,
                            @NotNull String revision,
                            @NotNull ReviewInput reviewInput,
-                           final Project project) {
+                           final Project project,
+                           final Consumer<Void> consumer) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
         postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
@@ -135,6 +136,8 @@ public class GerritUtil {
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
                     notifyError(project, "Failed to post Gerrit review.", getErrorTextFromException(result.getException().get()));
+                } else {
+                    consumer.consume(null); // we can parse the response once we actually need it
                 }
             }
         });

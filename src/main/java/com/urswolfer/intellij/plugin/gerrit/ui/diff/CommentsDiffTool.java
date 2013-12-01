@@ -78,6 +78,9 @@ public class CommentsDiffTool extends FrameDiffTool {
     @Inject
     private ReviewCommentSink reviewCommentSink;
 
+    private ChangeInfo changeInfo;
+    private Project project;
+
     @Override
     public boolean canShow(DiffRequest request) {
         final boolean superCanShow = super.canShow(request);
@@ -85,7 +88,10 @@ public class CommentsDiffTool extends FrameDiffTool {
         final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return false;
-        final ChangeInfo changeInfo = GerritDataKeys.CHANGE.getData(context);
+
+        changeInfo = GerritDataKeys.CHANGE.getData(context);
+        project = PlatformDataKeys.PROJECT.getData(context);
+
         return superCanShow && changeInfo != null;
     }
 
@@ -99,24 +105,21 @@ public class CommentsDiffTool extends FrameDiffTool {
     }
 
     private void handleComments(DiffPanelImpl diffPanel, final String filePathString) {
-        final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
-        final DataContext context = dataContextFromFocus.getResult();
-        if (context == null) return;
-
         final Editor editor2 = diffPanel.getEditor2();
+        final FilePath filePath = new FilePathImpl(new File(filePathString), false);
 
-        final ChangeInfo myChangeInfo = GerritDataKeys.CHANGE.getData(context);
-        final Project project = PlatformDataKeys.PROJECT.getData(context);
-        gerritUtil.getChangeDetails(myChangeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+        addCommentAction(editor2, filePath, changeInfo);
+
+        gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                FilePath filePath = new FilePathImpl(new File(filePathString), false); // PlatformDataKeys.VIRTUAL_FILE.getData(context) returns null im some cases
-
-                addCommentAction(editor2, filePath, myChangeInfo);
-
-                TreeMap<String,List<CommentInfo>> comments = gerritUtil.getComments(
-                        changeDetails.getId(), changeDetails.getCurrentRevision(), project);
-                addCommentsGutter(editor2, filePath, comments, myChangeInfo, project);
+                gerritUtil.getComments(changeDetails.getId(), changeDetails.getCurrentRevision(), project,
+                    new Consumer<TreeMap<String, List<CommentInfo>>>() {
+                        @Override
+                        public void consume(TreeMap<String, List<CommentInfo>> comments) {
+                            addCommentsGutter(editor2, filePath, comments, changeInfo, project);
+                        }
+                    });
             }
         });
     }
@@ -142,9 +145,9 @@ public class CommentsDiffTool extends FrameDiffTool {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository repository = gitRepositoryOptional.get();
+        String repositoryPath = repository.getRoot().getPath();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-            String path = repository.getRoot().getPath();
-            if (filePath.getPath().equals(path + File.separator + entry.getKey())) {
+            if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
                 fileComments = entry.getValue();
                 break;
             }
@@ -152,7 +155,9 @@ public class CommentsDiffTool extends FrameDiffTool {
 
         Iterable<CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
         for (CommentInput commentInput : commentInputsFromSink) {
-            fileComments.add(commentInput.toCommentInfo());
+            if (isForCurrentFile(filePath, commentInput.getPath(), repositoryPath)) {
+                fileComments.add(commentInput.toCommentInfo());
+            }
         }
 
         final MarkupModel markup = editor2.getMarkupModel();
@@ -184,5 +189,9 @@ public class CommentsDiffTool extends FrameDiffTool {
                 }
             }
         }
+    }
+
+    private boolean isForCurrentFile(FilePath currentFilePath, String projectFilePath, String repositoryPath) {
+        return currentFilePath.getPath().equals(repositoryPath + File.separator + projectFilePath);
     }
 }

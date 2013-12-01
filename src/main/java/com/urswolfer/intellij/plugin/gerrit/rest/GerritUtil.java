@@ -127,7 +127,8 @@ public class GerritUtil {
     public void postReview(@NotNull String changeId,
                            @NotNull String revision,
                            @NotNull ReviewInput reviewInput,
-                           final Project project) {
+                           final Project project,
+                           final Consumer<Void> consumer) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
         postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
@@ -135,6 +136,8 @@ public class GerritUtil {
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
                     notifyError(project, "Failed to post Gerrit review.", getErrorTextFromException(result.getException().get()));
+                } else {
+                    consumer.consume(null); // we can parse the response once we actually need it
                 }
             }
         });
@@ -335,27 +338,25 @@ public class GerritUtil {
     /**
      * Support starting from Gerrit 2.7.
      */
-    @NotNull
-    public TreeMap<String, List<CommentInfo>> getComments(@NotNull String changeId,
-                                                          @NotNull String revision,
-                                                          Project project) {
+    public void getComments(@NotNull String changeId,
+                            @NotNull String revision,
+                            final Project project,
+                            final Consumer<TreeMap<String, List<CommentInfo>>> consumer) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
-        JsonElement result = null;
-        try {
-            result = gerritApiUtil.getRequest(request);
-        } catch (RestApiException e) {
-            if (e instanceof HttpStatusException) { // remove once we drop Gerrit > 2.7 support
-                if (((HttpStatusException) e).getStatusCode() == 404) {
-                    log.warn("Failed to load Gerrit comments; most probably because of too old Gerrit version (only 2.7 and newer supported). Returning empty.");
-                    return Maps.newTreeMap();
+        getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
+            @Override
+            public void consume(ConsumerResult<JsonElement> result) {
+                if (result.getException().isPresent()) {
+                    Exception exception = result.getException().get();
+                    // remove check once we drop Gerrit < 2.7 support and fail in any case
+                    if (!(exception instanceof HttpStatusException) || ((HttpStatusException) exception).getStatusCode() != 404) {
+                        notifyError(project, "Failed to get Gerrit comments.", getErrorTextFromException(exception));
+                    }
+                } else {
+                    consumer.consume(parseCommentInfos(result.getResult()));
                 }
             }
-            notifyError(project, "Failed to get Gerrit comments.", getErrorTextFromException(e));
-        }
-        if (result == null) {
-            return Maps.newTreeMap();
-        }
-        return parseCommentInfos(result);
+        });
     }
 
     @NotNull

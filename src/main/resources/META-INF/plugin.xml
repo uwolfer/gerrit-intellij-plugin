@@ -68,6 +68,19 @@
 
       <p>
         <ul>
+          <li>0.5</li>
+          <ul>
+            <li>display code review and verified status in list</li>
+            <li>show comments (and actions) in change detail panel</li>
+            <li>add filters for changes list (fulltext, status, branch, owner, reviewer, starred changes)</li>
+            <li>asynchronously load data from Gerrit (UI does not block anymore when connection is slow)</li>
+            <li>improve review notifications (show after start even when Gerrit tool window is not open)</li>
+            <li>add setting to show all changes (instead of changes from current project only)</li>
+            <li>fix remembering self-signed certs</li>
+            <li>fix for self signed ssl connections</li>
+            <li>internal: migrate to Google Guice for dependency management (major refactoring)</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.4.1</li>
           <ul>
             <li>performance improvement (reduced HTTP transfer sizes)</li>

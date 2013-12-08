@@ -70,6 +70,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 isPasswordModified() ||
                 !Comparing.equal(mySettings.getHost(), mySettingsPane.getHost()) ||
                 !Comparing.equal(mySettings.getAutomaticRefresh(), mySettingsPane.getAutomaticRefresh()) ||
+                !Comparing.equal(mySettings.getListAllChanges(), mySettingsPane.getListAllChanges()) ||
                 !Comparing.equal(mySettings.getRefreshTimeout(), mySettingsPane.getRefreshTimeout()) ||
                 !Comparing.equal(mySettings.getReviewNotifications(), mySettingsPane.getReviewNotifications()));
     }
@@ -86,6 +87,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 mySettingsPane.resetPasswordModification();
             }
             mySettings.setHost(mySettingsPane.getHost());
+            mySettings.setListAllChanges(mySettingsPane.getListAllChanges());
             mySettings.setAutomaticRefresh(mySettingsPane.getAutomaticRefresh());
             mySettings.setRefreshTimeout(mySettingsPane.getRefreshTimeout());
             mySettings.setReviewNotifications(mySettingsPane.getReviewNotifications());
@@ -101,6 +103,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             mySettingsPane.setPassword(StringUtil.isEmptyOrSpaces(login) ? "" : DEFAULT_PASSWORD_TEXT);
             mySettingsPane.resetPasswordModification();
             mySettingsPane.setHost(mySettings.getHost());
+            mySettingsPane.setListAllChanges(mySettings.getListAllChanges());
             mySettingsPane.setAutomaticRefresh(mySettings.getAutomaticRefresh());
             mySettingsPane.setRefreshTimeout(mySettings.getRefreshTimeout());
             mySettingsPane.setReviewNotifications(mySettings.getReviewNotifications());

@@ -35,17 +35,22 @@ import java.util.TimeZone;
  * @author Urs Wolfer
  */
 public class DateDeserializer implements JsonDeserializer<Date> {
+    private static final String DATE_PATTERN = "yyyy-MM-dd hh:mm:ss";
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    static {
-        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return dateFormat;
+        }
+    };
 
     @Override
     public Date deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
         String date = jsonElement.getAsString();
         try {
-            return DATE_FORMAT.parse(date);
+            return DATE_FORMAT.get().parse(date);
         } catch (ParseException e) {
             throw new JsonParseException(e);
         }

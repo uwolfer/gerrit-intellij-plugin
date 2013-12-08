@@ -58,15 +58,17 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
     private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
+    private static final String LIST_ALL_CHANGES = "ListAllChanges";
     private static final String REFRESH_TIMEOUT = "RefreshTimeout";
     private static final String REVIEW_NOTIFICATIONS = "ReviewNotifications";
-    public static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
+    private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
     private static final String TRUSTED_HOST = "HOST";
     private static final String TRUSTED_URL = "URL";
 
     private String myLogin;
     private String myHost;
+    private boolean listAllChanges;
     private boolean myAutomaticRefresh;
     private int myRefreshTimeout;
     private boolean myRefreshNotifications;
@@ -99,6 +101,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
+        element.setAttribute(LIST_ALL_CHANGES, "" + getListAllChanges());
         element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
         element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
@@ -118,20 +121,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setLogin(element.getAttributeValue(LOGIN));
             setHost(element.getAttributeValue(HOST));
 
-            String automaticRefreshValue = element.getAttributeValue(AUTOMATIC_REFRESH);
-            if (automaticRefreshValue != null) {
-                setAutomaticRefresh(Boolean.valueOf(automaticRefreshValue));
-            }
-
-            String refreshTimeoutValue = element.getAttributeValue(REFRESH_TIMEOUT);
-            if (refreshTimeoutValue != null) {
-                setRefreshTimeout(Integer.valueOf(refreshTimeoutValue));
-            }
-
-            String reviewNotificationsValue = element.getAttributeValue(REVIEW_NOTIFICATIONS);
-            if (reviewNotificationsValue != null) {
-                setReviewNotifications(Boolean.valueOf(reviewNotificationsValue));
-            }
+            setListAllChanges(getBooleanValue(element, LIST_ALL_CHANGES));
+            setAutomaticRefresh(getBooleanValue(element, AUTOMATIC_REFRESH));
+            setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
+            setReviewNotifications(getBooleanValue(element, REVIEW_NOTIFICATIONS));
 
             for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
                 Element trustedHosts = (Element) trustedHostsObj;
@@ -142,6 +135,24 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             }
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
+        }
+    }
+
+    private boolean getBooleanValue(Element element, String attributeName) {
+        String attributeValue = element.getAttributeValue(attributeName);
+        if (attributeValue != null) {
+            return Boolean.valueOf(attributeValue);
+        } else {
+            return false;
+        }
+    }
+
+    private int getIntegerValue(Element element, String attributeName) {
+        String attributeValue = element.getAttributeValue(attributeName);
+        if (attributeValue != null) {
+            return Integer.valueOf(attributeValue);
+        } else {
+            return 0;
         }
     }
 
@@ -191,6 +202,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     public String getHost() {
         return myHost;
+    }
+
+    public boolean getListAllChanges() {
+        return listAllChanges;
+    }
+
+    public void setListAllChanges(boolean listAllChanges) {
+        this.listAllChanges = listAllChanges;
     }
 
     public boolean getAutomaticRefresh() {

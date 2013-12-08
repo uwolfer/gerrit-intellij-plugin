@@ -53,6 +53,7 @@ public class SettingsPanel {
     private JPanel myPane;
     private JCheckBox myNotificationOnNewReviewsCheckbox;
     private JCheckBox myAutomaticRefreshCheckbox;
+    private JCheckBox listAllChangesCheckbox;
 
     private boolean myPasswordModified;
 
@@ -154,6 +155,14 @@ public class SettingsPanel {
 
     public String getHost() {
         return myHostTextField.getText().trim();
+    }
+
+    public boolean getListAllChanges() {
+        return listAllChangesCheckbox.isSelected();
+    }
+
+    public void setListAllChanges(boolean listAllChanges) {
+        listAllChangesCheckbox.setSelected(listAllChanges);
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {

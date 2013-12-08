@@ -158,10 +158,6 @@ public class GerritUtil {
         });
     }
 
-    public void getChanges(Project project, Consumer<List<ChangeInfo>> consumer) {
-        getChangesForProject(null, project, consumer);
-    }
-
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
         getChanges("is:open+reviewer:self", project, consumer);
     }
@@ -205,12 +201,11 @@ public class GerritUtil {
         }));
     }
 
-    public void getChangesForProject(String query, Project project, Consumer<List<ChangeInfo>> consumer) {
-        query = appendQueryStringForProject(project, query);
-        getChanges(query, project, consumer);
-    }
-
     public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
+        if (!gerritSettings.getListAllChanges()) {
+            query = appendQueryStringForProject(project, query);
+        }
+
         String request = formatRequestUrl("changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
         getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {

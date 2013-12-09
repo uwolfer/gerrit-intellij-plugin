@@ -70,6 +70,9 @@ public class SslSupport {
             client.executeMethod(method);
             return method;
         } catch (IOException e) {
+            if (method != null) {
+                method.releaseConnection();
+            }
             HttpMethod m = handleCertificateExceptionAndRetry(e, method.getURI().getHost(), client, method.getURI(), methodCreator);
             if (m == null) {
                 throw e;

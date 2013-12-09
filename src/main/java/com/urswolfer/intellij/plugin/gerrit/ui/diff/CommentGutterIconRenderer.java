@@ -100,7 +100,8 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     }
 
     private boolean isNewCommentFromMyself() {
-        return myFileComment.getAuthor().getName().equals("Myself");
+        String name = myFileComment.getAuthor().getName();
+        return name != null && name.equals("Myself");
     }
 
     @Nullable

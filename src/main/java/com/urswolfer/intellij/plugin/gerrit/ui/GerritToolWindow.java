@@ -175,6 +175,11 @@ public class GerritToolWindow {
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
         String ref = gerritUtil.getRef(changeDetails);
+        if (Strings.isNullOrEmpty(ref)) {
+            gerritUtil.notifyError(project, "Cannot fetch changes",
+                    "No fetch information provided. If you are using Gerrit 2.8 or later, you need to install the plugin 'download-commands' in Gerrit.");
+            return;
+        }
 
         gerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
             @Override

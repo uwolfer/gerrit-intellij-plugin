@@ -65,7 +65,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private final GerritUtil gerritUtil;
     private final ReviewCommentSink reviewCommentSink;
-    private final FetchActionsFactory fetchActionsFactory;
     private final ReviewActionFactory reviewActionFactory;
     private final CompareBranchAction compareBranchAction;
     private final CherryPickAction cherryPickAction;
@@ -78,13 +77,11 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     @Inject
     public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
                                  GerritUtil gerritUtil,
-                                 FetchActionsFactory fetchActionsFactory,
                                  ReviewActionFactory reviewActionFactory,
                                  CompareBranchAction compareBranchAction,
                                  CherryPickAction cherryPickAction,
                                  SubmitAction submitAction,
                                  OpenInBrowserAction openInBrowserAction) {
-        this.fetchActionsFactory = fetchActionsFactory;
         this.reviewActionFactory = reviewActionFactory;
         this.compareBranchAction = compareBranchAction;
         this.cherryPickAction = cherryPickAction;
@@ -131,8 +128,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private void setupActions() {
         final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
-
-        contextMenuActionGroup.add(fetchActionsFactory.get());
 
         contextMenuActionGroup.add(compareBranchAction);
 

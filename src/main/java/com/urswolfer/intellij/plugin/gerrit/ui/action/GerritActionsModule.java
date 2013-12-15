@@ -25,7 +25,7 @@ public class GerritActionsModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(FetchActionsFactory.class);
+        bind(FetchAction.class);
         bind(ReviewActionFactory.class);
 
         bind(CherryPickAction.class);

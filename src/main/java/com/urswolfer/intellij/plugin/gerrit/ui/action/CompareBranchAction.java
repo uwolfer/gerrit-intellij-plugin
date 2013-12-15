@@ -43,7 +43,7 @@ public class CompareBranchAction extends AbstractChangeAction {
     @Inject
     private GerritGitUtil gerritGitUtil;
     @Inject
-    private FetchActionsFactory fetchActionsFactory;
+    private FetchAction fetchAction;
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
@@ -51,19 +51,19 @@ public class CompareBranchAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
+        final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        if (!selectedChange.isPresent()) {
+            return;
+        }
+        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
         Callable<Void> successCallable = new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
-                if (!selectedChange.isPresent()) {
-                    return null;
-                }
                 diffChange(project, selectedChange.get());
                 return null;
             }
         };
-        fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
+        fetchAction.fetchChange(selectedChange.get(), project, successCallable);
     }
 
     private void diffChange(Project project, ChangeInfo changeInfo) {

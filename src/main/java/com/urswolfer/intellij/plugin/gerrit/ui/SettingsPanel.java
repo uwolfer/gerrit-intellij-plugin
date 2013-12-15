@@ -42,20 +42,20 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class SettingsPanel {
-    private JTextField myLoginTextField;
-    private JPasswordField myPasswordField;
-    private JTextPane myGerritLoginInfoTextField;
-    private JPanel myLoginPane;
-    private JButton myTestButton;
-    private JTextField myHostTextField;
-    private JSpinner myRefreshTimeoutSpinner;
-    private JPanel mySettingsPane;
-    private JPanel myPane;
-    private JCheckBox myNotificationOnNewReviewsCheckbox;
-    private JCheckBox myAutomaticRefreshCheckbox;
+    private JTextField loginTextField;
+    private JPasswordField passwordField;
+    private JTextPane gerritLoginInfoTextField;
+    private JPanel loginPane;
+    private JButton testButton;
+    private JTextField hostTextField;
+    private JSpinner refreshTimeoutSpinner;
+    private JPanel settingsPane;
+    private JPanel pane;
+    private JCheckBox notificationOnNewReviewsCheckbox;
+    private JCheckBox automaticRefreshCheckbox;
     private JCheckBox listAllChangesCheckbox;
 
-    private boolean myPasswordModified;
+    private boolean passwordModified;
 
     @Inject
     private GerritSettings gerritSettings;
@@ -65,59 +65,59 @@ public class SettingsPanel {
     private Logger log;
 
     public SettingsPanel() {
-        myGerritLoginInfoTextField.setText(
+        gerritLoginInfoTextField.setText(
                 "* You need to set a HTTP access password for your account in Gerrit " +
-                "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
-                "HTTP or LDAP Gerrit login data (when available).");
-        myGerritLoginInfoTextField.setBackground(myPane.getBackground());
-        myTestButton.addActionListener(new ActionListener() {
+                        "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
+                        "HTTP or LDAP Gerrit login data (when available).");
+        gerritLoginInfoTextField.setBackground(pane.getBackground());
+        testButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
                 try {
                     GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(getHost(), getLogin(), password);
                     if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
-                        Messages.showInfoMessage(myPane, "Connection successful", "Success");
+                        Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {
-                        Messages.showErrorDialog(myPane, "Can't login to " + getHost() + " using given credentials", "Login Failure");
+                        Messages.showErrorDialog(pane, "Can't login to " + getHost() + " using given credentials", "Login Failure");
                     }
                 } catch (Exception ex) {
                     log.info(ex);
-                    Messages.showErrorDialog(myPane, String.format("Can't login to %s: %s", getHost(), gerritUtil.getErrorTextFromException(ex)),
+                    Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", getHost(), gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }
                 setPassword(password);
             }
         });
 
-        myHostTextField.addFocusListener(new FocusAdapter() {
+        hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                String text = myHostTextField.getText();
+                String text = hostTextField.getText();
                 if (text.endsWith("/")) {
-                    myHostTextField.setText(text.substring(0, text.length() - 1));
+                    hostTextField.setText(text.substring(0, text.length() - 1));
                 }
             }
         });
 
-        myPasswordField.getDocument().addDocumentListener(new DocumentListener() {
+        passwordField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                myPasswordModified = true;
+                passwordModified = true;
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                myPasswordModified = true;
+                passwordModified = true;
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                myPasswordModified = true;
+                passwordModified = true;
             }
         });
 
-        myAutomaticRefreshCheckbox.addActionListener(new ActionListener() {
+        automaticRefreshCheckbox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 updateAutomaticRefresh();
             }
@@ -125,36 +125,36 @@ public class SettingsPanel {
     }
 
     private void updateAutomaticRefresh() {
-        GuiUtils.enableChildren(myRefreshTimeoutSpinner, myAutomaticRefreshCheckbox.isSelected());
+        GuiUtils.enableChildren(refreshTimeoutSpinner, automaticRefreshCheckbox.isSelected());
     }
 
     public JComponent getPanel() {
-        return myPane;
+        return pane;
     }
 
     public void setLogin(final String login) {
-        myLoginTextField.setText(login);
+        loginTextField.setText(login);
     }
 
     public void setPassword(final String password) {
         // Show password as blank if password is empty
-        myPasswordField.setText(StringUtil.isEmpty(password) ? null : password);
+        passwordField.setText(StringUtil.isEmpty(password) ? null : password);
     }
 
     public String getLogin() {
-        return myLoginTextField.getText().trim();
+        return loginTextField.getText().trim();
     }
 
     public String getPassword() {
-        return String.valueOf(myPasswordField.getPassword());
+        return String.valueOf(passwordField.getPassword());
     }
 
     public void setHost(final String host) {
-        myHostTextField.setText(host);
+        hostTextField.setText(host);
     }
 
     public String getHost() {
-        return myHostTextField.getText().trim();
+        return hostTextField.getText().trim();
     }
 
     public boolean getListAllChanges() {
@@ -166,36 +166,36 @@ public class SettingsPanel {
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {
-        myAutomaticRefreshCheckbox.setSelected(automaticRefresh);
+        automaticRefreshCheckbox.setSelected(automaticRefresh);
         updateAutomaticRefresh();
     }
 
     public boolean getAutomaticRefresh() {
-        return myAutomaticRefreshCheckbox.isSelected();
+        return automaticRefreshCheckbox.isSelected();
     }
 
     public void setRefreshTimeout(final int refreshTimeout) {
-        myRefreshTimeoutSpinner.setValue(refreshTimeout);
+        refreshTimeoutSpinner.setValue(refreshTimeout);
     }
 
     public int getRefreshTimeout() {
-        return (Integer) myRefreshTimeoutSpinner.getValue();
+        return (Integer) refreshTimeoutSpinner.getValue();
     }
 
     public void setReviewNotifications(final boolean reviewNotifications) {
-        myNotificationOnNewReviewsCheckbox.setSelected(reviewNotifications);
+        notificationOnNewReviewsCheckbox.setSelected(reviewNotifications);
     }
 
     public boolean getReviewNotifications() {
-        return myNotificationOnNewReviewsCheckbox.isSelected();
+        return notificationOnNewReviewsCheckbox.isSelected();
     }
 
     public boolean isPasswordModified() {
-        return myPasswordModified;
+        return passwordModified;
     }
 
     public void resetPasswordModification() {
-        myPasswordModified = false;
+        passwordModified = false;
     }
 }
 

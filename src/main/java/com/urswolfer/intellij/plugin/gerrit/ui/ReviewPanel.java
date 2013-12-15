@@ -22,31 +22,31 @@ import javax.swing.*;
  * @author Urs Wolfer
  */
 public class ReviewPanel {
-    private JPanel myPane;
-    private JTextArea myMessageField;
-    private JCheckBox mySubmitCheckBox;
+    private JPanel pane;
+    private JTextArea messageField;
+    private JCheckBox submitCheckBox;
 
     public ReviewPanel(final ReviewDialog dialog) {
     }
 
     public JComponent getPanel() {
-        return myPane;
+        return pane;
     }
 
     public void setMessage(final String message) {
-        myMessageField.setText(message);
+        messageField.setText(message);
     }
 
     public String getMessage() {
-        return myMessageField.getText().trim();
+        return messageField.getText().trim();
     }
 
     public boolean getSubmitChange() {
-        return mySubmitCheckBox.isSelected();
+        return submitCheckBox.isSelected();
     }
 
     public JComponent getPreferrableFocusComponent() {
-        return myMessageField;
+        return messageField;
     }
 }
 

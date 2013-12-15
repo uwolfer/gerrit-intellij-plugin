@@ -44,81 +44,81 @@ public class GerritChangeDetailsPanel {
     private final static String DATA = "data";
     private static final String MULTIPLE_SELECTED = "multiple_selected";
 
-    private final JPanel myPanel;
+    private final JPanel panel;
 
-    private final MyPresentationData myPresentationData;
+    private final MyPresentationData presentationData;
 
-    private JEditorPane myJEditorPane;
+    private JEditorPane jEditorPane;
 
-    public GerritChangeDetailsPanel(final Project myProject) {
-        myPanel = new JPanel(new CardLayout());
-        myPanel.add(UIVcsUtil.errorPanel("Nothing selected", false), NOTHING_SELECTED);
-        myPanel.add(UIVcsUtil.errorPanel("Loading...", false), LOADING);
-        myPanel.add(UIVcsUtil.errorPanel("Several commits selected", false), MULTIPLE_SELECTED);
+    public GerritChangeDetailsPanel(final Project project) {
+        panel = new JPanel(new CardLayout());
+        panel.add(UIVcsUtil.errorPanel("Nothing selected", false), NOTHING_SELECTED);
+        panel.add(UIVcsUtil.errorPanel("Loading...", false), LOADING);
+        panel.add(UIVcsUtil.errorPanel("Several commits selected", false), MULTIPLE_SELECTED);
 
-        myPresentationData = new MyPresentationData(myProject);
+        presentationData = new MyPresentationData(project);
 
         final JPanel wrapper = new JPanel(new BorderLayout());
 
-        myJEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
-        myJEditorPane.setPreferredSize(new Dimension(150, 100));
-        myJEditorPane.setEditable(false);
-        myJEditorPane.setBackground(UIUtil.getComboBoxDisabledBackground());
+        jEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
+        jEditorPane.setPreferredSize(new Dimension(150, 100));
+        jEditorPane.setEditable(false);
+        jEditorPane.setBackground(UIUtil.getComboBoxDisabledBackground());
 
-        final JBScrollPane tableScroll = new JBScrollPane(myJEditorPane);
+        final JBScrollPane tableScroll = new JBScrollPane(jEditorPane);
         tableScroll.setBorder(null);
-        myJEditorPane.setBorder(null);
+        jEditorPane.setBorder(null);
         wrapper.add(tableScroll, SwingConstants.CENTER);
-        myJEditorPane.setBackground(UIUtil.getTableBackground());
+        jEditorPane.setBackground(UIUtil.getTableBackground());
         wrapper.setBackground(UIUtil.getTableBackground());
 
-        myPanel.add(wrapper, DATA);
-        ((CardLayout) myPanel.getLayout()).show(myPanel, NOTHING_SELECTED);
+        panel.add(wrapper, DATA);
+        ((CardLayout) panel.getLayout()).show(panel, NOTHING_SELECTED);
     }
 
     public void severalSelected() {
-        ((CardLayout) myPanel.getLayout()).show(myPanel, MULTIPLE_SELECTED);
+        ((CardLayout) panel.getLayout()).show(panel, MULTIPLE_SELECTED);
     }
 
     public void nothingSelected() {
-        ((CardLayout) myPanel.getLayout()).show(myPanel, NOTHING_SELECTED);
+        ((CardLayout) panel.getLayout()).show(panel, NOTHING_SELECTED);
     }
 
 
     public void loading() {
-        ((CardLayout) myPanel.getLayout()).show(myPanel, LOADING);
+        ((CardLayout) panel.getLayout()).show(panel, LOADING);
     }
 
     public void setData(@NotNull final ChangeInfo changeInfo) {
-        myPresentationData.setCommit(changeInfo);
-        ((CardLayout) myPanel.getLayout()).show(myPanel, DATA);
+        presentationData.setCommit(changeInfo);
+        ((CardLayout) panel.getLayout()).show(panel, DATA);
 
         changeDetailsText();
     }
 
     private void changeDetailsText() {
-        if (myPresentationData.isReady()) {
-            myJEditorPane.setText(myPresentationData.getText());
-            myPanel.revalidate();
-            myPanel.repaint();
+        if (presentationData.isReady()) {
+            jEditorPane.setText(presentationData.getText());
+            panel.revalidate();
+            panel.repaint();
         }
     }
 
     public JPanel getComponent() {
-        return myPanel;
+        return panel;
     }
 
     private static class MyPresentationData {
-        private String myStartPattern;
-        private final String myEndPattern = "</table></body></html>";
-        private final Project myProject;
+        private String startPattern;
+        private final String endPattern = "</table></body></html>";
+        private final Project project;
 
         private MyPresentationData(final Project project) {
-            myProject = project;
+            this.project = project;
         }
 
         public void setCommit(final ChangeInfo changeInfo) {
-            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(myProject, changeInfo.getSubject());
+            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.getSubject());
 
             final StringBuilder sb = new StringBuilder().append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
@@ -148,15 +148,15 @@ public class GerritChangeDetailsPanel {
                 sb.append("</td></tr>");
             }
 
-            myStartPattern = sb.toString();
+            startPattern = sb.toString();
         }
 
         public boolean isReady() {
-            return myStartPattern != null;
+            return startPattern != null;
         }
 
         public String getText() {
-            return myStartPattern + myEndPattern;
+            return startPattern + endPattern;
         }
     }
 }

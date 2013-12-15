@@ -20,9 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * User: thomas
- * Date: 11/5/13
- * Time: 8:22 PM
+ * @author Thomas Forrer
  */
 public interface GerritAuthData {
     String getLogin();

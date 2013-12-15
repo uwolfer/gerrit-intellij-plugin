@@ -33,7 +33,6 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
@@ -63,7 +62,6 @@ import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.VERIFI
  */
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
 
-    private final GerritUtil gerritUtil;
     private final ReviewCommentSink reviewCommentSink;
     private final ReviewActionFactory reviewActionFactory;
     private final CompareBranchAction compareBranchAction;
@@ -72,11 +70,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private final OpenInBrowserAction openInBrowserAction;
 
     private final List<ChangeInfo> changes;
-    private final TableView<ChangeInfo> myTable;
+    private final TableView<ChangeInfo> table;
 
     @Inject
     public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
-                                 GerritUtil gerritUtil,
                                  ReviewActionFactory reviewActionFactory,
                                  CompareBranchAction compareBranchAction,
                                  CherryPickAction cherryPickAction,
@@ -89,9 +86,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         this.openInBrowserAction = openInBrowserAction;
         this.changes = Lists.newArrayList();
         this.reviewCommentSink = reviewCommentSink;
-        this.gerritUtil = gerritUtil;
 
-        this.myTable = new TableView<ChangeInfo>() {
+        this.table = new TableView<ChangeInfo>() {
             /**
              * Renderer marks changes with reviews pending to submit with changed color.
              */
@@ -110,15 +106,15 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 return component;
             }
         };
-        myTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         setupActions();
 
         updateModel();
-        myTable.setStriped(true);
+        table.setStriped(true);
 
         setLayout(new BorderLayout());
-        add(ScrollPaneFactory.createScrollPane(myTable));
+        add(ScrollPaneFactory.createScrollPane(table));
     }
 
     @Override
@@ -164,14 +160,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         contextMenuActionGroup.add(openInBrowserAction);
 
-        PopupHandler.installPopupHandler(myTable, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
+        PopupHandler.installPopupHandler(table, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }
 
     /**
      * Adds a listener that would be called once user selects a change in the table.
      */
     public void addListSelectionListener(final @NotNull Consumer<ChangeInfo> listener) {
-        myTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
@@ -186,14 +182,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
      * Registers the diff action which will be called when the diff shortcut is pressed in the table.
      */
     public void registerDiffAction(@NotNull AnAction diffAction) {
-        diffAction.registerCustomShortcutSet(CommonShortcuts.getDiff(), myTable);
+        diffAction.registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
     }
 
     // Make changes available for diff action
     @Override
     public void calcData(DataKey key, DataSink sink) {
         if (VcsDataKeys.CHANGES.equals(key)) {
-            int[] rows = myTable.getSelectedRows();
+            int[] rows = table.getSelectedRows();
             if (rows.length != 1) return;
             int row = rows[0];
 
@@ -207,26 +203,26 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     @NotNull
     public JComponent getPreferredFocusComponent() {
-        return myTable;
+        return table;
     }
 
     public TableView<ChangeInfo> getTable() {
-        return myTable;
+        return table;
     }
 
     public void clearSelection() {
-        myTable.clearSelection();
+        table.clearSelection();
     }
 
     public void setChanges(@NotNull List<ChangeInfo> changes) {
         this.changes.clear();
         this.changes.addAll(changes);
         updateModel();
-        myTable.repaint();
+        table.repaint();
     }
 
     private void updateModel() {
-        myTable.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
+        table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
     }
 
     @NotNull
@@ -245,7 +241,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         }
 
         return new ColumnInfo[]{
-                new GerritChangeColumnInfo("ID", hash.myItem) {
+                new GerritChangeColumnInfo("ID", hash.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getHash(change);
@@ -257,25 +253,25 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                         return change.getSubject();
                     }
                 },
-                new GerritChangeColumnInfo("Owner", author.myItem) {
+                new GerritChangeColumnInfo("Owner", author.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getOwner(change);
                     }
                 },
-                new GerritChangeColumnInfo("Project", project.myItem) {
+                new GerritChangeColumnInfo("Project", project.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getProject(change);
                     }
                 },
-                new GerritChangeColumnInfo("Branch", branch.myItem) {
+                new GerritChangeColumnInfo("Branch", branch.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getBranch(change);
                     }
                 },
-                new GerritChangeColumnInfo("Updated", time.myItem) {
+                new GerritChangeColumnInfo("Updated", time.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getTime(change);
@@ -297,20 +293,20 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {
-        int width = myTable.getFontMetrics(myTable.getFont()).stringWidth(candidate);
-        if (width > current.myWidth) {
+        int width = table.getFontMetrics(table.getFont()).stringWidth(candidate);
+        if (width > current.width) {
             return new ItemAndWidth(candidate, width);
         }
         return current;
     }
 
     private static class ItemAndWidth {
-        private final String myItem;
-        private final int myWidth;
+        private final String item;
+        private final int width;
 
         private ItemAndWidth(String item, int width) {
-            myItem = item;
-            myWidth = width;
+            this.item = item;
+            this.width = width;
         }
     }
 
@@ -354,16 +350,16 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private abstract static class GerritChangeColumnInfo extends ColumnInfo<ChangeInfo, String> {
 
         @NotNull
-        private final String myMaxString;
+        private final String maxString;
 
         public GerritChangeColumnInfo(@NotNull String name, @NotNull String maxString) {
             super(name);
-            myMaxString = maxString;
+            this.maxString = maxString;
         }
 
         @Override
         public String getMaxStringValue() {
-            return myMaxString;
+            return maxString;
         }
 
         @Override

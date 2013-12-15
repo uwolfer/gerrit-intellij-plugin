@@ -34,19 +34,19 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class LoginPanel {
-    private JPanel myPane;
-    private JTextField myHostTextField;
-    private JTextField myLoginTextField;
-    private JPasswordField myPasswordField;
-    private JTextPane myGerritLoginInfoTestField;
+    private JPanel pane;
+    private JTextField hostTextField;
+    private JTextField loginTextField;
+    private JPasswordField passwordField;
+    private JTextPane gerritLoginInfoTestField;
 
     public LoginPanel(final LoginDialog dialog) {
-        myHostTextField.addFocusListener(new FocusAdapter() {
+        hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                String text = myHostTextField.getText();
+                String text = hostTextField.getText();
                 if (text.endsWith("/")) {
-                    myHostTextField.setText(text.substring(0, text.length() - 1));
+                    hostTextField.setText(text.substring(0, text.length() - 1));
                 }
             }
         });
@@ -56,45 +56,45 @@ public class LoginPanel {
                 dialog.clearErrors();
             }
         };
-        myLoginTextField.getDocument().addDocumentListener(listener);
-        myPasswordField.getDocument().addDocumentListener(listener);
-        myGerritLoginInfoTestField.setText("* You need to set a HTTP access password for your account in Gerrit " +
+        loginTextField.getDocument().addDocumentListener(listener);
+        passwordField.getDocument().addDocumentListener(listener);
+        gerritLoginInfoTestField.setText("* You need to set a HTTP access password for your account in Gerrit " +
                 "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
                 "HTTP or LDAP Gerrit login data (when available).");
-        myGerritLoginInfoTestField.setMargin(new Insets(5, 0, 0, 0));
-        myGerritLoginInfoTestField.setBackground(UIUtil.TRANSPARENT_COLOR);
+        gerritLoginInfoTestField.setMargin(new Insets(5, 0, 0, 0));
+        gerritLoginInfoTestField.setBackground(UIUtil.TRANSPARENT_COLOR);
     }
 
     public JComponent getPanel() {
-        return myPane;
+        return pane;
     }
 
     public void setHost(final String host) {
-        myHostTextField.setText(host);
+        hostTextField.setText(host);
     }
 
     public void setLogin(final String login) {
-        myLoginTextField.setText(login);
+        loginTextField.setText(login);
     }
 
     public void setPassword(final String password) {
-        myPasswordField.setText(password);
+        passwordField.setText(password);
     }
 
     public String getHost() {
-        return myHostTextField.getText().trim();
+        return hostTextField.getText().trim();
     }
 
     public String getLogin() {
-        return myLoginTextField.getText().trim();
+        return loginTextField.getText().trim();
     }
 
     public String getPassword() {
-        return String.valueOf(myPasswordField.getPassword());
+        return String.valueOf(passwordField.getPassword());
     }
 
     public JComponent getPreferrableFocusComponent() {
-        return myHostTextField.getText().isEmpty() ? myHostTextField : myLoginTextField;
+        return hostTextField.getText().isEmpty() ? hostTextField : loginTextField;
     }
 }
 

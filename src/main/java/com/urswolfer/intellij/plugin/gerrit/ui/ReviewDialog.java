@@ -26,11 +26,11 @@ import javax.swing.*;
  */
 public class ReviewDialog extends DialogWrapper {
 
-    private final ReviewPanel myReviewPanel;
+    private final ReviewPanel reviewPanel;
 
     public ReviewDialog() {
         super(true);
-        myReviewPanel = new ReviewPanel(this);
+        reviewPanel = new ReviewPanel(this);
         setTitle("Review Change");
         setOKButtonText("Review");
         init();
@@ -43,7 +43,7 @@ public class ReviewDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
-        return myReviewPanel.getPanel();
+        return reviewPanel.getPanel();
     }
 
     @Override
@@ -53,7 +53,7 @@ public class ReviewDialog extends DialogWrapper {
 
     @Override
     public JComponent getPreferredFocusedComponent() {
-        return myReviewPanel.getPreferrableFocusComponent();
+        return reviewPanel.getPreferrableFocusComponent();
     }
 
     @Override
@@ -62,6 +62,6 @@ public class ReviewDialog extends DialogWrapper {
     }
 
     public ReviewPanel getReviewPanel() {
-        return myReviewPanel;
+        return reviewPanel;
     }
 }

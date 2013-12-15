@@ -37,8 +37,8 @@ public class LoginDialog extends DialogWrapper {
 
     private final Logger log;
 
-    private final LoginPanel myLoginPanel;
-    private final Project myProject;
+    private final LoginPanel loginPanel;
+    private final Project project;
     private final GerritUtil gerritUtil;
     private final GerritSettings gerritSettings;
 
@@ -47,12 +47,12 @@ public class LoginDialog extends DialogWrapper {
         super(project, true);
         this.gerritUtil = gerritUtil;
         this.gerritSettings = gerritSettings;
-        myProject = project;
+        this.project = project;
         this.log = log;
-        myLoginPanel = new LoginPanel(this);
-        myLoginPanel.setHost(gerritSettings.getHost());
-        myLoginPanel.setLogin(gerritSettings.getLogin());
-        myLoginPanel.setPassword(gerritSettings.getPassword());
+        loginPanel = new LoginPanel(this);
+        loginPanel.setHost(gerritSettings.getHost());
+        loginPanel.setLogin(gerritSettings.getLogin());
+        loginPanel.setPassword(gerritSettings.getPassword());
         setTitle("Login to Gerrit");
         setOKButtonText("Login");
         init();
@@ -65,7 +65,7 @@ public class LoginDialog extends DialogWrapper {
 
     @Override
     protected JComponent createCenterPanel() {
-        return myLoginPanel.getPanel();
+        return loginPanel.getPanel();
     }
 
     @Override
@@ -75,17 +75,17 @@ public class LoginDialog extends DialogWrapper {
 
     @Override
     public JComponent getPreferredFocusedComponent() {
-        return myLoginPanel.getPreferrableFocusComponent();
+        return loginPanel.getPreferrableFocusComponent();
     }
 
     @Override
     protected void doOKAction() {
-        final String login = myLoginPanel.getLogin();
-        final String password = myLoginPanel.getPassword();
-        final String host = myLoginPanel.getHost();
+        final String login = loginPanel.getLogin();
+        final String password = loginPanel.getPassword();
+        final String host = loginPanel.getHost();
         GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(host, login, password);
         try {
-            boolean loggedSuccessfully = gerritUtil.checkCredentials(myProject, gerritAuthData);
+            boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {
                 gerritSettings.setLogin(login);
                 gerritSettings.setPassword(password);

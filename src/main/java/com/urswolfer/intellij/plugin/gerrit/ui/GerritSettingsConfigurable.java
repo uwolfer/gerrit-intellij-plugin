@@ -41,10 +41,10 @@ import javax.swing.*;
 public class GerritSettingsConfigurable implements SearchableConfigurable, VcsConfigurableProvider {
     public static final String NAME = "Gerrit";
     private static final String DEFAULT_PASSWORD_TEXT = "************";
-    private SettingsPanel mySettingsPane;
+    private SettingsPanel settingsPane;
 
     @Inject
-    private GerritSettings mySettings;
+    private GerritSettings gerritSettings;
     @Inject
     private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
 
@@ -59,59 +59,59 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     }
 
     public JComponent createComponent() {
-        if (mySettingsPane == null) {
-            mySettingsPane = GerritModule.getInstance(SettingsPanel.class);
+        if (settingsPane == null) {
+            settingsPane = GerritModule.getInstance(SettingsPanel.class);
         }
-        return mySettingsPane.getPanel();
+        return settingsPane.getPanel();
     }
 
     public boolean isModified() {
-        return mySettingsPane != null && (!Comparing.equal(mySettings.getLogin(), mySettingsPane.getLogin()) ||
+        return settingsPane != null && (!Comparing.equal(gerritSettings.getLogin(), settingsPane.getLogin()) ||
                 isPasswordModified() ||
-                !Comparing.equal(mySettings.getHost(), mySettingsPane.getHost()) ||
-                !Comparing.equal(mySettings.getAutomaticRefresh(), mySettingsPane.getAutomaticRefresh()) ||
-                !Comparing.equal(mySettings.getListAllChanges(), mySettingsPane.getListAllChanges()) ||
-                !Comparing.equal(mySettings.getRefreshTimeout(), mySettingsPane.getRefreshTimeout()) ||
-                !Comparing.equal(mySettings.getReviewNotifications(), mySettingsPane.getReviewNotifications()));
+                !Comparing.equal(gerritSettings.getHost(), settingsPane.getHost()) ||
+                !Comparing.equal(gerritSettings.getAutomaticRefresh(), settingsPane.getAutomaticRefresh()) ||
+                !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
+                !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
+                !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()));
     }
 
     private boolean isPasswordModified() {
-        return mySettingsPane.isPasswordModified();
+        return settingsPane.isPasswordModified();
     }
 
     public void apply() throws ConfigurationException {
-        if (mySettingsPane != null) {
-            mySettings.setLogin(mySettingsPane.getLogin());
+        if (settingsPane != null) {
+            gerritSettings.setLogin(settingsPane.getLogin());
             if (isPasswordModified()) {
-                mySettings.setPassword(mySettingsPane.getPassword());
-                mySettingsPane.resetPasswordModification();
+                gerritSettings.setPassword(settingsPane.getPassword());
+                settingsPane.resetPasswordModification();
             }
-            mySettings.setHost(mySettingsPane.getHost());
-            mySettings.setListAllChanges(mySettingsPane.getListAllChanges());
-            mySettings.setAutomaticRefresh(mySettingsPane.getAutomaticRefresh());
-            mySettings.setRefreshTimeout(mySettingsPane.getRefreshTimeout());
-            mySettings.setReviewNotifications(mySettingsPane.getReviewNotifications());
+            gerritSettings.setHost(settingsPane.getHost());
+            gerritSettings.setListAllChanges(settingsPane.getListAllChanges());
+            gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
+            gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
+            gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
 
             gerritUpdatesNotificationComponent.handleConfigurationChange();
         }
     }
 
     public void reset() {
-        if (mySettingsPane != null) {
-            String login = mySettings.getLogin();
-            mySettingsPane.setLogin(login);
-            mySettingsPane.setPassword(StringUtil.isEmptyOrSpaces(login) ? "" : DEFAULT_PASSWORD_TEXT);
-            mySettingsPane.resetPasswordModification();
-            mySettingsPane.setHost(mySettings.getHost());
-            mySettingsPane.setListAllChanges(mySettings.getListAllChanges());
-            mySettingsPane.setAutomaticRefresh(mySettings.getAutomaticRefresh());
-            mySettingsPane.setRefreshTimeout(mySettings.getRefreshTimeout());
-            mySettingsPane.setReviewNotifications(mySettings.getReviewNotifications());
+        if (settingsPane != null) {
+            String login = gerritSettings.getLogin();
+            settingsPane.setLogin(login);
+            settingsPane.setPassword(StringUtil.isEmptyOrSpaces(login) ? "" : DEFAULT_PASSWORD_TEXT);
+            settingsPane.resetPasswordModification();
+            settingsPane.setHost(gerritSettings.getHost());
+            settingsPane.setListAllChanges(gerritSettings.getListAllChanges());
+            settingsPane.setAutomaticRefresh(gerritSettings.getAutomaticRefresh());
+            settingsPane.setRefreshTimeout(gerritSettings.getRefreshTimeout());
+            settingsPane.setReviewNotifications(gerritSettings.getReviewNotifications());
         }
     }
 
     public void disposeUIResources() {
-        mySettingsPane = null;
+        settingsPane = null;
     }
 
     @NotNull

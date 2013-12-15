@@ -66,13 +66,13 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String TRUSTED_HOST = "HOST";
     private static final String TRUSTED_URL = "URL";
 
-    private String myLogin;
-    private String myHost;
+    private String login;
+    private String host;
     private boolean listAllChanges;
-    private boolean myAutomaticRefresh;
-    private int myRefreshTimeout;
-    private boolean myRefreshNotifications;
-    private Collection<String> myTrustedHosts = new ArrayList<String>();
+    private boolean automaticRefresh;
+    private int refreshTimeout;
+    private boolean refreshNotifications;
+    private Collection<String> trustedHosts = new ArrayList<String>();
 
     private Logger log;
 
@@ -106,7 +106,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
         element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
         Element trustedHosts = new Element(TRUSTED_HOSTS);
-        for (String host : myTrustedHosts) {
+        for (String host : this.trustedHosts) {
             Element hostEl = new Element(TRUSTED_HOST);
             hostEl.setAttribute(TRUSTED_URL, host);
             trustedHosts.addContent(hostEl);
@@ -159,7 +159,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     @Nullable
     public String getLogin() {
-        return myLogin;
+        return login;
     }
 
     public void preloadPassword() {
@@ -201,7 +201,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     @Override
     public String getHost() {
-        return myHost;
+        return host;
     }
 
     public boolean getListAllChanges() {
@@ -213,19 +213,19 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getAutomaticRefresh() {
-        return myAutomaticRefresh;
+        return automaticRefresh;
     }
 
     public int getRefreshTimeout() {
-        return myRefreshTimeout;
+        return refreshTimeout;
     }
 
     public boolean getReviewNotifications() {
-        return myRefreshNotifications;
+        return refreshNotifications;
     }
 
     public void setLogin(final String login) {
-        myLogin = login != null ? login : "";
+        this.login = login != null ? login : "";
     }
 
     public void setPassword(final String password) {
@@ -238,29 +238,29 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void setHost(final String host) {
-        myHost = host;
+        this.host = host;
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {
-        myAutomaticRefresh = automaticRefresh;
+        this.automaticRefresh = automaticRefresh;
     }
 
     public void setRefreshTimeout(final int refreshTimeout) {
-        myRefreshTimeout = refreshTimeout;
+        this.refreshTimeout = refreshTimeout;
     }
 
     public void setReviewNotifications(final boolean reviewNotifications) {
-        myRefreshNotifications = reviewNotifications;
+        refreshNotifications = reviewNotifications;
     }
 
     @NotNull
     public Collection<String> getTrustedHosts() {
-        return myTrustedHosts;
+        return trustedHosts;
     }
 
     public void addTrustedHost(String host) {
-        if (!myTrustedHosts.contains(host)) {
-            myTrustedHosts.add(host);
+        if (!trustedHosts.contains(host)) {
+            trustedHosts.add(host);
         }
     }
 

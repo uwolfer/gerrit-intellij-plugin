@@ -35,18 +35,18 @@ import javax.swing.*;
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
-    private final CommentInfo myFileComment;
-    private final ReviewCommentSink myReviewCommentSink;
-    private final ChangeInfo myChangeInfo;
-    private final RangeHighlighter myHighlighter;
-    private final MarkupModel myMarkup;
+    private final CommentInfo fileComment;
+    private final ReviewCommentSink reviewCommentSink;
+    private final ChangeInfo changeInfo;
+    private final RangeHighlighter highlighter;
+    private final MarkupModel markup;
 
     public CommentGutterIconRenderer(CommentInfo fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
-        myFileComment = fileComment;
-        myReviewCommentSink = reviewCommentSink;
-        myChangeInfo = changeInfo;
-        myHighlighter = highlighter;
-        myMarkup = markup;
+        this.fileComment = fileComment;
+        this.reviewCommentSink = reviewCommentSink;
+        this.changeInfo = changeInfo;
+        this.highlighter = highlighter;
+        this.markup = markup;
     }
 
     @NotNull
@@ -66,20 +66,20 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
         CommentGutterIconRenderer that = (CommentGutterIconRenderer) o;
 
-        if (!myFileComment.equals(that.myFileComment)) return false;
+        if (!fileComment.equals(that.fileComment)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return myFileComment.hashCode();
+        return fileComment.hashCode();
     }
 
     @Nullable
     @Override
     public String getTooltipText() {
-        return String.format("<strong>%s</strong><br/>%s", myFileComment.getAuthor().getName(), myFileComment.getMessage());
+        return String.format("<strong>%s</strong><br/>%s", fileComment.getAuthor().getName(), fileComment.getMessage());
     }
 
     @Nullable
@@ -87,7 +87,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public ActionGroup getPopupMenuActions() {
         if (isNewCommentFromMyself()) {
             DefaultActionGroup actionGroup = new DefaultActionGroup();
-            RemoveCommentAction action = new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo, myHighlighter, myMarkup);
+            RemoveCommentAction action = new RemoveCommentAction(fileComment, reviewCommentSink, changeInfo, highlighter, markup);
             action.setEnabled(true);
             actionGroup.add(action);
 
@@ -100,7 +100,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     }
 
     private boolean isNewCommentFromMyself() {
-        String name = myFileComment.getAuthor().getName();
+        String name = fileComment.getAuthor().getName();
         return name != null && name.equals("Myself");
     }
 
@@ -108,6 +108,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Override
     public AnAction getClickAction() {
         // TODO: remove gutter also when removing comment
-        return new RemoveCommentAction(myFileComment, myReviewCommentSink, myChangeInfo, myHighlighter, myMarkup);
+        return new RemoveCommentAction(fileComment, reviewCommentSink, changeInfo, highlighter, markup);
     }
 }

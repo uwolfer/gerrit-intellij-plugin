@@ -91,10 +91,10 @@ public class GerritToolWindow {
     @Inject
     private GerritChangesFilters changesFilters;
 
-    private RepositoryChangesBrowser myRepositoryChangesBrowser;
-    private GerritChangeDetailsPanel myDetailsPanel;
-    private Splitter myDetailsSplitter;
-    private ChangeInfo mySelectedChange;
+    private RepositoryChangesBrowser repositoryChangesBrowser;
+    private GerritChangeDetailsPanel detailsPanel;
+    private Splitter detailsSplitter;
+    private ChangeInfo selectedChange;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         diffManager.registerDiffTool(commentsDiffTool);
@@ -105,25 +105,25 @@ public class GerritToolWindow {
         toolbar.setTargetComponent(changeListPanel);
         panel.setToolbar(toolbar.getComponent());
 
-        myRepositoryChangesBrowser = createRepositoryChangesBrowser(project);
+        repositoryChangesBrowser = createRepositoryChangesBrowser(project);
 
-        myDetailsSplitter = new Splitter(true, 0.6f);
-        myDetailsSplitter.setShowDividerControls(true);
+        detailsSplitter = new Splitter(true, 0.6f);
+        detailsSplitter.setShowDividerControls(true);
 
         changeListPanel.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT | SideBorder.BOTTOM));
-        myDetailsSplitter.setFirstComponent(changeListPanel);
+        detailsSplitter.setFirstComponent(changeListPanel);
 
-        myDetailsPanel = new GerritChangeDetailsPanel(project);
-        JPanel details = myDetailsPanel.getComponent();
+        detailsPanel = new GerritChangeDetailsPanel(project);
+        JPanel details = detailsPanel.getComponent();
         details.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT));
-        myDetailsSplitter.setSecondComponent(details);
+        detailsSplitter.setSecondComponent(details);
 
-        Splitter myHorizontalSplitter = new Splitter(false, 0.7f);
-        myHorizontalSplitter.setShowDividerControls(true);
-        myHorizontalSplitter.setFirstComponent(myDetailsSplitter);
-        myHorizontalSplitter.setSecondComponent(myRepositoryChangesBrowser);
+        Splitter horizontalSplitter = new Splitter(false, 0.7f);
+        horizontalSplitter.setShowDividerControls(true);
+        horizontalSplitter.setFirstComponent(detailsSplitter);
+        horizontalSplitter.setSecondComponent(repositoryChangesBrowser);
 
-        panel.setContent(myHorizontalSplitter);
+        panel.setContent(horizontalSplitter);
 
         reloadChanges(project, false);
 
@@ -137,7 +137,7 @@ public class GerritToolWindow {
             @Override
             public void calcData(DataKey key, DataSink sink) {
                 super.calcData(key, sink);
-                sink.put(GerritDataKeys.CHANGE, mySelectedChange);
+                sink.put(GerritDataKeys.CHANGE, selectedChange);
                 sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, reviewCommentSink);
             }
         };
@@ -148,7 +148,7 @@ public class GerritToolWindow {
             @Override
             public void consume(ChangeInfo changeInfo) {
                 changeSelected(changeInfo, project);
-                mySelectedChange = changeInfo;
+                selectedChange = changeInfo;
             }
         });
         return repositoryChangesBrowser;
@@ -158,7 +158,7 @@ public class GerritToolWindow {
         gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                myDetailsPanel.setData(changeDetails);
+                detailsPanel.setData(changeDetails);
 
                 updateChangesBrowser(changeDetails, project);
             }
@@ -166,8 +166,8 @@ public class GerritToolWindow {
     }
 
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
-        myRepositoryChangesBrowser.getViewer().setEmptyText("Loading...");
-        myRepositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
+        repositoryChangesBrowser.getViewer().setEmptyText("Loading...");
+        repositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository gitRepository = gitRepositoryOptional.get();
@@ -175,6 +175,11 @@ public class GerritToolWindow {
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
         String ref = gerritUtil.getRef(changeDetails);
+        if (Strings.isNullOrEmpty(ref)) {
+            gerritUtil.notifyError(project, "Cannot fetch changes",
+                    "No fetch information provided. If you are using Gerrit 2.8 or later, you need to install the plugin 'download-commands' in Gerrit.");
+            return;
+        }
 
         gerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
             @Override
@@ -190,7 +195,7 @@ public class GerritToolWindow {
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        myRepositoryChangesBrowser.setChangesToDisplay(gitCommit.getChanges());
+                        repositoryChangesBrowser.setChangesToDisplay(gitCommit.getChanges());
                     }
                 });
                 return null;

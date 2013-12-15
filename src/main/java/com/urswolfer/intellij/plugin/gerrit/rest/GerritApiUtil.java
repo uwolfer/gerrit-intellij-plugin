@@ -229,7 +229,7 @@ public class GerritApiUtil {
 
     @NotNull
     private HttpClient getHttpClient(@NotNull GerritAuthData authData) {
-        final HttpClient client = new HttpClient();
+        final HttpClient client = new HttpClient(new MultiThreadedHttpConnectionManager());
         HttpConnectionManagerParams params = client.getHttpConnectionManager().getParams();
         params.setConnectionTimeout(CONNECTION_TIMEOUT); //set connection timeout (how long it takes to connect to remote host)
         params.setSoTimeout(CONNECTION_TIMEOUT); //set socket timeout (how long it takes to retrieve data from remote host)

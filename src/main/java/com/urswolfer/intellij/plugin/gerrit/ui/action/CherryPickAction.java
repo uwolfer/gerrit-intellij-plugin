@@ -37,7 +37,7 @@ public class CherryPickAction extends AbstractChangeAction {
     @Inject
     private GerritGitUtil gerritGitUtil;
     @Inject
-    private FetchActionsFactory fetchActionsFactory;
+    private FetchAction fetchAction;
 
     public CherryPickAction() {
         super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", Git4ideaIcons.CherryPick);
@@ -45,7 +45,7 @@ public class CherryPickAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
-        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
@@ -57,12 +57,11 @@ public class CherryPickAction extends AbstractChangeAction {
                 Callable<Void> successCallable = new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
                         gerritGitUtil.cherryPickChange(project, changeInfo);
                         return null;
                     }
                 };
-                fetchActionsFactory.get(successCallable).actionPerformed(anActionEvent);
+                fetchAction.fetchChange(selectedChange.get(), project, successCallable);
             }
         });
     }

@@ -32,36 +32,36 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
  */
 public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
-    private final CommentInfo myComment;
-    private final ReviewCommentSink myReviewCommentSink;
-    private final ChangeInfo myChangeInfo;
-    private final RangeHighlighter myHighlighter;
-    private final MarkupModel myMarkup;
+    private final CommentInfo comment;
+    private final ReviewCommentSink reviewCommentSink;
+    private final ChangeInfo changeInfo;
+    private final RangeHighlighter highlighter;
+    private final MarkupModel markup;
 
     public RemoveCommentAction(CommentInfo comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         super("Remove Comment", "Remove selected comment", AllIcons.Actions.Delete);
-        myComment = comment;
-        myReviewCommentSink = reviewCommentSink;
-        myChangeInfo = changeInfo;
-        myHighlighter = highlighter;
-        myMarkup = markup;
+        this.comment = comment;
+        this.reviewCommentSink = reviewCommentSink;
+        this.changeInfo = changeInfo;
+        this.highlighter = highlighter;
+        this.markup = markup;
     }
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(myChangeInfo.getId());
+        Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeInfo.getId());
         CommentInput toRemove = null;
         for (CommentInput commentInput : commentInputs) {
             //noinspection EqualsBetweenInconvertibleTypes
-            if (commentInput.equals(myComment)) { // implemented in base class
+            if (commentInput.equals(comment)) { // implemented in base class
                 toRemove = commentInput;
                 break;
             }
         }
         if (toRemove != null) {
-            myReviewCommentSink.removeCommentForChange(myChangeInfo.getId(), toRemove);
-            myMarkup.removeHighlighter(myHighlighter);
-            myHighlighter.dispose();
+            reviewCommentSink.removeCommentForChange(changeInfo.getId(), toRemove);
+            markup.removeHighlighter(highlighter);
+            highlighter.dispose();
         }
     }
 }

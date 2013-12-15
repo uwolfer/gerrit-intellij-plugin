@@ -36,6 +36,18 @@ If you like this plugin, you can support it:
 [IntelliJ plugin repository]: http://plugins.jetbrains.com/plugin/7272
 [Star it at GitHub]: https://github.com/uwolfer/gerrit-intellij-plugin/star
 
+Troubleshooting
+---------------
+### Error-message when clicking a change: "VcsException: fatal: bad object"
+Since Gerrit 2.8, fetch information got pulled out of default functionality into a plugin.
+You need to install the plugin <code>download-commands</code>. When you run the Gerrit update procedure, it asks you to install
+this plugin (but it isn't selected by default). Just run the update script again if you have not installed it yet.
+
+### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
+There are two workarounds for this issue:
+* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit (should be preferred anyways)
+* use a recent Java setup (> 1.6)
+
 Architecture
 ------------
 ### IntelliJ Integration

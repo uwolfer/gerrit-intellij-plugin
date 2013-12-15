@@ -42,7 +42,7 @@ public class ReviewAction extends AbstractChangeAction {
     private final String label;
     private final int rating;
     private final boolean showDialog;
-    private final ReviewCommentSink myReviewCommentSink;
+    private final ReviewCommentSink reviewCommentSink;
     private final SubmitAction submitAction;
 
     public ReviewAction(String label, int rating, Icon icon, boolean showDialog,
@@ -55,7 +55,7 @@ public class ReviewAction extends AbstractChangeAction {
         this.showDialog = showDialog;
         this.submitAction = submitAction;
         this.gerritUtil = gerritUtil;
-        myReviewCommentSink = reviewCommentSink;
+        this.reviewCommentSink = reviewCommentSink;
     }
 
     @Override
@@ -72,7 +72,7 @@ public class ReviewAction extends AbstractChangeAction {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.addLabel(label, rating);
 
-                Iterable<CommentInput> commentInputs = myReviewCommentSink.getCommentsForChange(changeDetails.getId());
+                Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.getId());
                 for (CommentInput commentInput : commentInputs) {
                     reviewInput.addComment(commentInput.getPath(), commentInput);
                 }
@@ -99,7 +99,7 @@ public class ReviewAction extends AbstractChangeAction {
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                myReviewCommentSink.removeCommentsForChange(changeDetails.getId());
+                                reviewCommentSink.removeCommentsForChange(changeDetails.getId());
                                 if (finalSubmitChange) {
                                     submitAction.actionPerformed(anActionEvent);
                                 }

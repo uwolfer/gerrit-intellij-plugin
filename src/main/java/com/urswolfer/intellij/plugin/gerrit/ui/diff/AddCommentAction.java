@@ -45,11 +45,11 @@ import org.jetbrains.annotations.Nullable;
  */
 public class AddCommentAction extends AnActionButton implements DumbAware {
 
-    private final Editor myEditor;
-    private final ReviewCommentSink myReviewCommentSink;
-    private final ChangeInfo myChangeInfo;
+    private final Editor editor;
+    private final ReviewCommentSink reviewCommentSink;
+    private final ChangeInfo changeInfo;
     @Nullable
-    private final FilePath myFilePath;
+    private final FilePath filePath;
     private final GerritGitUtil gerritGitUtil;
     private final CommentBalloonBuilder commentBalloonBuilder;
 
@@ -60,10 +60,10 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
                             GerritGitUtil gerritGitUtil,
                             CommentBalloonBuilder commentBalloonBuilder) {
         super("Add Comment", "Add a comment at current line", AllIcons.Toolwindows.ToolWindowMessages);
-        myReviewCommentSink = reviewCommentSink;
-        myChangeInfo = changeInfo;
-        myFilePath = filePath;
-        myEditor = editor;
+        this.reviewCommentSink = reviewCommentSink;
+        this.changeInfo = changeInfo;
+        this.filePath = filePath;
+        this.editor = editor;
         this.gerritGitUtil = gerritGitUtil;
         this.commentBalloonBuilder = commentBalloonBuilder;
     }
@@ -75,24 +75,24 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     }
 
     private void addVersionedComment(@NotNull final Project project) {
-        if (myEditor == null || myFilePath == null) return;
+        if (editor == null || filePath == null) return;
 
-        final CommentForm commentForm = new CommentForm(project, myFilePath, myReviewCommentSink, myChangeInfo, gerritGitUtil);
-        commentForm.setEditor(myEditor);
+        final CommentForm commentForm = new CommentForm(project, filePath, reviewCommentSink, changeInfo, gerritGitUtil);
+        commentForm.setEditor(editor);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupAdapter() {
             @Override
             public void onClosed(LightweightWindowEvent event) {
                 CommentInput comment = commentForm.getComment();
                 if (comment != null) {
-                    final MarkupModel markup = myEditor.getMarkupModel();
+                    final MarkupModel markup = editor.getMarkupModel();
                     final RangeHighlighter highlighter = markup.addLineHighlighter(comment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
-                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment.toCommentInfo(), myReviewCommentSink, myChangeInfo, highlighter, markup));
+                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment.toCommentInfo(), reviewCommentSink, changeInfo, highlighter, markup));
                 }
             }
         });
         commentForm.setBalloon(balloon);
-        balloon.showInBestPositionFor(myEditor);
+        balloon.showInBestPositionFor(editor);
         commentForm.requestFocus();
     }
 }

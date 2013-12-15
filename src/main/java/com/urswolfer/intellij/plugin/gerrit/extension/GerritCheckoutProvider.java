@@ -32,6 +32,8 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
@@ -65,6 +67,8 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private GerritApiUtil gerritApiUtil;
     @Inject
     private Logger log;
+    @Inject
+    private NotificationService notificationService;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -77,7 +81,11 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             availableProjects = gerritUtil.getAvailableProjects(project);
         } catch (Exception e) {
             log.info(e);
-            gerritUtil.notifyError(project, "Couldn't get the list of Gerrit repositories", gerritUtil.getErrorTextFromException(e));
+            NotificationBuilder notification = new NotificationBuilder(
+                    project,
+                    "Couldn't get the list of Gerrit repositories",
+                    gerritUtil.getErrorTextFromException(e));
+            notificationService.notifyError(notification);
         }
         if (availableProjects == null) {
             return;
@@ -152,8 +160,11 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             targetFile.setExecutable(true);
         } catch (Exception e) {
             log.info(e);
-            gerritUtil.notifyError(project, "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
+            NotificationBuilder notification = new NotificationBuilder(
+                    project,
+                    "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
                     gerritUtil.getErrorTextFromException(e));
+            notificationService.notifyError(notification);
         }
     }
 

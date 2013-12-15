@@ -25,6 +25,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -38,6 +40,8 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
+    @Inject
+    private NotificationService notificationService;
 
     private Timer timer;
     private Set<String> notifiedChanges = new HashSet<String>();
@@ -109,7 +113,12 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
                 notifiedChanges.add(change.getChangeId());
             }
             stringBuilder.append("</ul>");
-            gerritUtil.notifyInformation(project, "Gerrit Changes waiting for my review", stringBuilder.toString());
+            NotificationBuilder notification = new NotificationBuilder(
+                    project,
+                    "Gerrit Changes waiting for my review",
+                    stringBuilder.toString()
+            );
+            notificationService.notifyInformation(notification);
         }
     }
 

@@ -38,6 +38,8 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitExecutionException;
 import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
@@ -85,6 +87,8 @@ public class GerritGitUtil {
     private VirtualFileManager virtualFileManager;
     @Inject
     private GerritUtil gerritUtil;
+    @Inject
+    private NotificationService notificationService;
 
     public Iterable<GitRepository> getRepositories(Project project) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
@@ -103,7 +107,9 @@ public class GerritGitUtil {
                 }
             }
         }
-        gerritUtil.notifyError(project, "Error", String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        notificationService.notifyError(notification);
         return Optional.absent();
     }
 
@@ -189,11 +195,12 @@ public class GerritGitUtil {
                     "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {
-            gerritUtil.notifyError(project, "Cherry-Pick Error",
-                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed.");
+            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed."));
             return false;
         } else {
-            gerritUtil.notifyError(project, "Cherry-Pick Error", result.getErrorOutputAsHtmlString());
+            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+                    result.getErrorOutputAsHtmlString()));
             return false;
         }
     }

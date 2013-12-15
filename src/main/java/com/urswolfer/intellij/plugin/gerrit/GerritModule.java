@@ -32,6 +32,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUiModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.GerritActionsModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritDiffModule;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 /**
  * @author Thomas Forrer
@@ -57,6 +58,7 @@ public class GerritModule extends AbstractModule {
 
         setupSettingsProvider();
 
+        bind(NotificationService.class);
         bind(ReviewCommentSink.class).toInstance(new ReviewCommentSink()); // need this as a singleton in the system
 
         bind(GerritGitUtil.class).asEagerSingleton();

@@ -51,6 +51,8 @@ import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SymbolicRefs;
@@ -90,6 +92,8 @@ public class GerritToolWindow {
     private Logger log;
     @Inject
     private GerritChangesFilters changesFilters;
+    @Inject
+    private NotificationService notificationService;
 
     private RepositoryChangesBrowser repositoryChangesBrowser;
     private GerritChangeDetailsPanel detailsPanel;
@@ -176,8 +180,12 @@ public class GerritToolWindow {
 
         String ref = gerritUtil.getRef(changeDetails);
         if (Strings.isNullOrEmpty(ref)) {
-            gerritUtil.notifyError(project, "Cannot fetch changes",
-                    "No fetch information provided. If you are using Gerrit 2.8 or later, you need to install the plugin 'download-commands' in Gerrit.");
+            NotificationBuilder notification = new NotificationBuilder(
+                    project, "Cannot fetch changes",
+                    "No fetch information provided. If you are using Gerrit 2.8 or later, " +
+                    "you need to install the plugin 'download-commands' in Gerrit."
+            );
+            notificationService.notifyError(notification);
             return;
         }
 

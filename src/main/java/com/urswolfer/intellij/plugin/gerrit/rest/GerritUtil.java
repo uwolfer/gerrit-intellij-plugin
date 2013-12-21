@@ -45,6 +45,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.gson.DateDeserializer;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
@@ -55,7 +56,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
-import java.net.URI;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -170,21 +170,14 @@ public class GerritUtil {
         getChanges("is:open+reviewer:self", project, consumer);
     }
 
-    private URI parseUri(String url) {
-        if (!url.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
-            url = "git://" + url;
-        }
-        return URI.create(url);
-    }
-
     private String getProjectName(String repositoryUrl, String url) {
 
         // Normalise the base.
         if( !repositoryUrl.endsWith("/") )
             repositoryUrl = repositoryUrl + "/";
 
-        String basePath = parseUri(repositoryUrl).getPath();
-        String path = parseUri(url).getPath();
+        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
         path = path.substring(basePath.length());
 
@@ -277,12 +270,10 @@ public class GerritUtil {
             remotes.addAll(repository.getRemotes());
         }
 
-        String host = parseUri(gerritSettings.getHost()).getHost();
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
             for (String repositoryUrl : remote.getUrls()) {
-                String repositoryHost = parseUri(repositoryUrl).getHost();
-                if (repositoryHost != null && repositoryHost.equals(host)) {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
                     projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
                 }
             }

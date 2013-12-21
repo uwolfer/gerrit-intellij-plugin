@@ -38,6 +38,11 @@ If you like this plugin, you can support it:
 
 Troubleshooting
 ---------------
+### List of changes is empty
+By default, only changes of Git repositories which are configured in current IntelliJ project are listed.
+* Make sure that Git repositories are configured in 'Version Control' settings.
+* Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings.
+
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
 Since Gerrit 2.8, fetch information got pulled out of default functionality into a plugin.
 You need to install the plugin <code>download-commands</code>. When you run the Gerrit update procedure, it asks you to install

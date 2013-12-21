@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.intellij.openapi.application.Application;
@@ -36,8 +35,12 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.*;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
@@ -82,6 +85,10 @@ public class GerritGitUtil {
     private VirtualFileManager virtualFileManager;
     @Inject
     private GerritUtil gerritUtil;
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private NotificationService notificationService;
 
     public Iterable<GitRepository> getRepositories(Project project) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
@@ -100,11 +107,16 @@ public class GerritGitUtil {
                 }
             }
         }
-        gerritUtil.notifyError(project, "Error", String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
+        notificationService.notifyError(notification);
         return Optional.absent();
     }
 
-    public void fetchChange(final Project project, final GitRepository gitRepository, final String branch, @Nullable final Callable<Void> successCallable) {
+    public void fetchChange(final Project project,
+                            final GitRepository gitRepository,
+                            final String branch,
+                            @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
             public void onSuccess() {
@@ -120,10 +132,18 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                final VirtualFile virtualFile = gitRepository.getGitDir();
-                final GitRemote gitRemote = Iterables.get(gitRepository.getRemotes(), 0);
-                final String url = Iterables.get(gitRepository.getRemotes(), 0).getFirstUrl();
-                fetchNatively(virtualFile, gitRemote, url, branch, project, indicator);
+                for (GitRemote remote : gitRepository.getRemotes()) {
+                    for (String repositoryUrl : remote.getUrls()) {
+                        if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
+                            fetchNatively(gitRepository.getGitDir(), remote, repositoryUrl, branch, project, indicator);
+                            return;
+                        }
+                    }
+                }
+                NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                        String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
+                                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
+                notificationService.notifyError(notification);
             }
         });
     }
@@ -186,11 +206,12 @@ public class GerritGitUtil {
                     "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {
-            gerritUtil.notifyError(project, "Cherry-Pick Error",
-                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed.");
+            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed."));
             return false;
         } else {
-            gerritUtil.notifyError(project, "Cherry-Pick Error", result.getErrorOutputAsHtmlString());
+            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+                    result.getErrorOutputAsHtmlString()));
             return false;
         }
     }
@@ -288,7 +309,7 @@ public class GerritGitUtil {
 
             @Override
             protected void onFailure() {
-                log.info("Error fetching: " + h.errors());
+                log.error("Error fetching: " + h.errors());
                 Collection<Exception> errors = Lists.newArrayList();
                 if (!h.hadAuthRequest()) {
                     errors.addAll(h.errors());

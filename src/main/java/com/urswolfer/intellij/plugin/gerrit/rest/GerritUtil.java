@@ -17,7 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.*;
@@ -25,8 +27,6 @@ import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -43,6 +43,9 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
 import com.urswolfer.intellij.plugin.gerrit.rest.gson.DateDeserializer;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
@@ -53,7 +56,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
-import java.net.URI;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -65,10 +67,10 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class GerritUtil {
 
-    static final String GERRIT_NOTIFICATION_GROUP = "gerrit";
-
     @NotNull private static final Gson gson = initGson();
 
+    @Inject
+    private GerritRestAccess gerritRestAccess;
     @Inject
     private GerritSettings gerritSettings;
     @Inject
@@ -77,6 +79,8 @@ public class GerritUtil {
     private GerritApiUtil gerritApiUtil;
     @Inject
     private Logger log;
+    @Inject
+    private NotificationService notificationService;
 
     private static Gson initGson() {
         GsonBuilder builder = new GsonBuilder();
@@ -131,11 +135,13 @@ public class GerritUtil {
                            final Consumer<Void> consumer) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
-        postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
+        gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
-                    notifyError(project, "Failed to post Gerrit review.", getErrorTextFromException(result.getException().get()));
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to post Gerrit review.",
+                            getErrorTextFromException(result.getException().get()));
+                    notificationService.notifyError(notification);
                 } else {
                     consumer.consume(null); // we can parse the response once we actually need it
                 }
@@ -148,11 +154,13 @@ public class GerritUtil {
                            final Project project) {
         final String request = "/a/changes/" + changeId + "/submit";
         String json = new Gson().toJson(submitInput);
-        postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
+        gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
-                    notifyError(project, "Failed to submit Gerrit change.", getErrorTextFromException(result.getException().get()));
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to submit Gerrit change.",
+                            getErrorTextFromException(result.getException().get()));
+                    notificationService.notifyError(notification);
                 }
             }
         });
@@ -162,21 +170,14 @@ public class GerritUtil {
         getChanges("is:open+reviewer:self", project, consumer);
     }
 
-    private URI parseUri(String url) {
-        if (!url.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
-            url = "git://" + url;
-        }
-        return URI.create(url);
-    }
-
     private String getProjectName(String repositoryUrl, String url) {
 
         // Normalise the base.
         if( !repositoryUrl.endsWith("/") )
             repositoryUrl = repositoryUrl + "/";
 
-        String basePath = parseUri(repositoryUrl).getPath();
-        String path = parseUri(url).getPath();
+        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
         path = path.substring(basePath.length());
 
@@ -189,16 +190,19 @@ public class GerritUtil {
     }
 
     public void showAddGitRepositoryNotification(final Project project) {
-        Notifications.Bus.notify(new Notification(GERRIT_NOTIFICATION_GROUP, "Insufficient dependencies", "Please add git repository <br/> <a href='vcs'>Add vcs root</a>", NotificationType.WARNING, new NotificationListener() {
-            @Override
-            public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                    if (event.getDescription().equals("vcs")) {
-                        ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
+        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies",
+                "Please add git repository <br/> <a href='vcs'>Add vcs root</a>")
+                .listener(new NotificationListener() {
+                    @Override
+                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
+                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                            if (event.getDescription().equals("vcs")) {
+                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
+                            }
+                        }
                     }
-                }
-            }
-        }));
+                });
+        notificationService.notifyWarning(notification);
     }
 
     public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
@@ -208,7 +212,7 @@ public class GerritUtil {
 
         String request = formatRequestUrl("changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
-        getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
+        gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(final ConsumerResult<JsonElement> result) {
                 ProgressManager.getInstance().run(new Task.Backgroundable(project, "Parsing Gerrit changes", true) {
@@ -222,7 +226,12 @@ public class GerritUtil {
                             @Override
                             public void run() {
                                 if (result.getException().isPresent()) {
-                                    notifyError(project, "Failed to get Gerrit changes.", getErrorTextFromException(result.getException().get()));
+                                    NotificationBuilder notification = new NotificationBuilder(
+                                            project,
+                                            "Failed to get Gerrit changes.",
+                                            getErrorTextFromException(result.getException().get())
+                                    );
+                                    notificationService.notifyError(notification);
                                 } else {
                                     consumer.consume(finalChangeInfoList);
                                 }
@@ -261,12 +270,10 @@ public class GerritUtil {
             remotes.addAll(repository.getRemotes());
         }
 
-        String host = parseUri(gerritSettings.getHost()).getHost();
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
             for (String repositoryUrl : remote.getUrls()) {
-                String repositoryHost = parseUri(repositoryUrl).getHost();
-                if (repositoryHost != null && repositoryHost.equals(host)) {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
                     projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
                 }
             }
@@ -280,18 +287,23 @@ public class GerritUtil {
 
     public void getChangeDetails(@NotNull String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
         final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
-        getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
+        gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(final ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
                     // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
                     Exception exception = result.getException().get();
                     if (exception instanceof HttpStatusException && ((HttpStatusException) exception).getStatusCode() == 400) {
-                        getRequest(request.replace("&o=MESSAGES", ""), project, new Consumer<ConsumerResult<JsonElement>>() {
+                        gerritRestAccess.getRequest(request.replace("&o=MESSAGES", ""), project, new Consumer<ConsumerResult<JsonElement>>() {
                             @Override
                             public void consume(final ConsumerResult<JsonElement> result) {
                                 if (result.getException().isPresent()) {
-                                    notifyError(project, "Failed to get Gerrit change.", getErrorTextFromException(result.getException().get()));
+                                    NotificationBuilder notification = new NotificationBuilder(
+                                            project,
+                                            "Failed to get Gerrit change.",
+                                            getErrorTextFromException(result.getException().get())
+                                    );
+                                    notificationService.notifyError(notification);
                                 } else {
                                     ChangeInfo changeInfo = parseSingleChangeInfos(result.getResult().getAsJsonArray().get(0).getAsJsonObject());
                                     consumer.consume(changeInfo);
@@ -299,7 +311,12 @@ public class GerritUtil {
                             }
                         });
                     } else {
-                        notifyError(project, "Failed to get Gerrit change.", getErrorTextFromException(exception));
+                        NotificationBuilder notification = new NotificationBuilder(
+                                project,
+                                "Failed to get Gerrit change.",
+                                getErrorTextFromException(exception)
+                        );
+                        notificationService.notifyError(notification);
                     }
                 } else {
                     ChangeInfo changeInfo = parseSingleChangeInfos(result.getResult().getAsJsonArray().get(0).getAsJsonObject());
@@ -338,14 +355,16 @@ public class GerritUtil {
                             final Project project,
                             final Consumer<TreeMap<String, List<CommentInfo>>> consumer) {
         final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
-        getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
+        gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
                     Exception exception = result.getException().get();
                     // remove check once we drop Gerrit < 2.7 support and fail in any case
                     if (!(exception instanceof HttpStatusException) || ((HttpStatusException) exception).getStatusCode() != 404) {
-                        notifyError(project, "Failed to get Gerrit comments.", getErrorTextFromException(exception));
+                        NotificationBuilder notification = new NotificationBuilder(project,
+                                "Failed to get Gerrit comments.", getErrorTextFromException(exception));
+                        notificationService.notifyError(notification);
                     }
                 } else {
                     consumer.consume(parseCommentInfos(result.getResult()));
@@ -520,18 +539,6 @@ public class GerritUtil {
         return e.getMessage();
     }
 
-    public void notifyError(@NotNull Project project, @NotNull String title, @NotNull String message) {
-        notify(project, title, message, NotificationType.ERROR);
-    }
-
-    public void notifyInformation(@NotNull Project project, @NotNull String title, @NotNull String message) {
-        notify(project, title, message, NotificationType.INFORMATION);
-    }
-
-    private void notify(@NotNull Project project, @NotNull String title, @NotNull String message, @NotNull NotificationType notificationType) {
-        new Notification(GERRIT_NOTIFICATION_GROUP, title, message, notificationType).notify(project);
-    }
-
     private String appendToUrlQuery(String requestUrl, String queryString) {
         if (requestUrl.contains("?")) {
             requestUrl += "&";
@@ -540,87 +547,5 @@ public class GerritUtil {
         }
         requestUrl += queryString;
         return requestUrl;
-    }
-
-    private void getRequest(final String request,
-                            final Project project,
-                            final Consumer<ConsumerResult<JsonElement>> consumer) {
-        Function<Void, ConsumerResult<JsonElement>> function = new Function<Void, ConsumerResult<JsonElement>>() {
-            @Override
-            public ConsumerResult<JsonElement> apply(Void aVoid) {
-                final ConsumerResult<JsonElement> consumerResult = new ConsumerResult<JsonElement>();
-                try {
-                    JsonElement jsonElement = gerritApiUtil.getRequest(request);
-                    consumerResult.setResult(jsonElement);
-                } catch (RestApiException e) {
-                    consumerResult.setException(e);
-                }
-                return consumerResult;
-            }
-        };
-        accessGerrit(project, consumer, function);
-    }
-
-    private void postRequest(final String request,
-                             final String json,
-                             final Project project,
-                             final Consumer<ConsumerResult<JsonElement>> consumer) {
-        Function<Void, ConsumerResult<JsonElement>> function = new Function<Void, ConsumerResult<JsonElement>>() {
-            @Override
-            public ConsumerResult<JsonElement> apply(Void aVoid) {
-                final ConsumerResult<JsonElement> consumerResult = new ConsumerResult<JsonElement>();
-                try {
-                    JsonElement jsonElement = gerritApiUtil.postRequest(request, json);
-                    consumerResult.setResult(jsonElement);
-                } catch (RestApiException e) {
-                    consumerResult.setException(e);
-                }
-                return consumerResult;
-            }
-        };
-        accessGerrit(project, consumer, function);
-    }
-
-    private void accessGerrit(final Project project,
-                              final Consumer<ConsumerResult<JsonElement>> consumer,
-                              final Function<Void, ConsumerResult<JsonElement>> function) {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                gerritSettings.preloadPassword();
-                (new Task.Backgroundable(project, "Accessing Gerrit", true) {
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        final ConsumerResult<JsonElement> consumerResult = function.apply(null);
-                        ApplicationManager.getApplication().invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                consumer.consume(consumerResult);
-                            }
-                        });
-                    }
-                }).queue();
-            }
-        });
-    }
-
-    private static class ConsumerResult<T> {
-        private T result;
-        private Optional<Exception> exceptionOptional = Optional.absent();
-
-        private T getResult() {
-            return result;
-        }
-
-        private void setResult(T result) {
-            this.result = result;
-        }
-
-        private Optional<Exception> getException() {
-            return exceptionOptional;
-        }
-
-        private void setException(Exception exception) {
-            this.exceptionOptional = Optional.fromNullable(exception);
-        }
     }
 }

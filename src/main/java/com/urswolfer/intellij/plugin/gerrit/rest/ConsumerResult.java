@@ -16,16 +16,13 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.AbstractModule;
+import com.google.common.base.Optional;
 
 /**
  * @author Thomas Forrer
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(GerritRestAccess.class);
-        bind(GerritApiUtil.class);
-        bind(SslSupport.class);
-    }
+public interface ConsumerResult<T> {
+    T getResult();
+
+    Optional<Exception> getException();
 }

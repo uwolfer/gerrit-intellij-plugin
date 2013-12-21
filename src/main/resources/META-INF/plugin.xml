@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.4.1</version>
+  <version>0.5.0</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -78,6 +78,7 @@
             <li>add setting to show all changes (instead of changes from current project only)</li>
             <li>fix remembering self-signed certs</li>
             <li>fix for self signed ssl connections</li>
+            <li>remove fetch action from user-interface (no real use-case for it)</li>
             <li>internal: migrate to Google Guice for dependency management (major refactoring)</li>
             <li>many minor fixes and improvements</li>
           </ul>

@@ -170,41 +170,6 @@ public class GerritUtil {
         getChanges("is:open+reviewer:self", project, consumer);
     }
 
-    private String getProjectName(String repositoryUrl, String url) {
-
-        // Normalise the base.
-        if( !repositoryUrl.endsWith("/") )
-            repositoryUrl = repositoryUrl + "/";
-
-        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
-        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
-
-        path = path.substring(basePath.length());
-
-        path = path.replace(".git", ""); // some repositories end their name with ".git"
-
-        if( path.endsWith("/") )
-            path = path.substring(0, path.length()-1);
-
-        return path;
-    }
-
-    public void showAddGitRepositoryNotification(final Project project) {
-        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies",
-                "Please add git repository <br/> <a href='vcs'>Add vcs root</a>")
-                .listener(new NotificationListener() {
-                    @Override
-                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                            if (event.getDescription().equals("vcs")) {
-                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
-                            }
-                        }
-                    }
-                });
-        notificationService.notifyWarning(notification);
-    }
-
     public void getChangesForProject(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         if (!gerritSettings.getListAllChanges()) {
             query = appendQueryStringForProject(project, query);
@@ -263,7 +228,6 @@ public class GerritUtil {
     private String getProjectQueryPart(Project project) {
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
-            //Show notification
             showAddGitRepositoryNotification(project);
             return "";
         }
@@ -286,6 +250,41 @@ public class GerritUtil {
             return "";
         }
         return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
+    }
+
+    private String getProjectName(String repositoryUrl, String url) {
+        if (!repositoryUrl.endsWith("/")) {
+            repositoryUrl = repositoryUrl + "/";
+        }
+
+        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
+
+        path = path.substring(basePath.length());
+
+        path = path.replace(".git", ""); // some repositories end their name with ".git"
+
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+
+        return path;
+    }
+
+    public void showAddGitRepositoryNotification(final Project project) {
+        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
+                "Please configure a Git repository.<br/><a href='vcs'>Open Settings</a>")
+                .listener(new NotificationListener() {
+                    @Override
+                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
+                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                            if (event.getDescription().equals("vcs")) {
+                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
+                            }
+                        }
+                    }
+                });
+        notificationService.notifyWarning(notification);
     }
 
     public void getChangeDetails(@NotNull String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {

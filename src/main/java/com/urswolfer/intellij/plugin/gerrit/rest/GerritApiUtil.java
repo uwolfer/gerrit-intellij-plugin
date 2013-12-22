@@ -57,7 +57,7 @@ public class GerritApiUtil {
     private static final String APPLICATION_JSON = "application/json";
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
-    private static final int CONNECTION_TIMEOUT = 5000;
+    private static final int CONNECTION_TIMEOUT_MS = 30000;
 
     @Inject
     private Logger LOG;
@@ -235,8 +235,8 @@ public class GerritApiUtil {
     private HttpClient getHttpClient(@NotNull GerritAuthData authData) {
         final HttpClient client = new HttpClient(new MultiThreadedHttpConnectionManager());
         HttpConnectionManagerParams params = client.getHttpConnectionManager().getParams();
-        params.setConnectionTimeout(CONNECTION_TIMEOUT); //set connection timeout (how long it takes to connect to remote host)
-        params.setSoTimeout(CONNECTION_TIMEOUT); //set socket timeout (how long it takes to retrieve data from remote host)
+        params.setConnectionTimeout(CONNECTION_TIMEOUT_MS); //set connection timeout (how long it takes to connect to remote host)
+        params.setSoTimeout(CONNECTION_TIMEOUT_MS); //set socket timeout (how long it takes to retrieve data from remote host)
 
         client.getParams().setContentCharset(UTF_8);
         // Configure proxySettings if it is required

@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.intellij.ide.passwordSafe.MasterPasswordUnavailableException;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
@@ -202,6 +203,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     public String getHost() {
         return host;
+    }
+
+    @Override
+    public boolean isLoginAndPasswordAvailable() {
+        return !Strings.isNullOrEmpty(getLogin()) && !Strings.isNullOrEmpty(getPassword());
     }
 
     public boolean getListAllChanges() {

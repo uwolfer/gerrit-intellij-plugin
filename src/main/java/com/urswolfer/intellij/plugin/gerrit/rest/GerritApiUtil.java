@@ -145,7 +145,11 @@ public class GerritApiUtil {
                                     @NotNull final HttpVerb verb) throws IOException {
         HttpClient client = getHttpClient(authData);
         final Optional<String> gerritAuthOptional = tryGerritHttpAuth(authData, client);
-        String uri = authData.getHost() + path;
+        String uri = authData.getHost();
+        if (authData.isLoginAndPasswordAvailable()) {
+            uri += "/a";
+        }
+        uri += path;
         return sslSupport.executeSelfSignedCertificateAwareRequest(client, uri,
                 new ThrowableConvertor<String, HttpMethod, IOException>() {
                     @Override
@@ -244,7 +248,7 @@ public class GerritApiUtil {
                         proxySettings.getPlainProxyPassword()));
             }
         }
-        if (authData.getLogin() != null && authData.getPassword() != null) {
+        if (authData.isLoginAndPasswordAvailable()) {
             client.getParams().setCredentialCharset(UTF_8);
             client.getParams().setAuthenticationPreemptive(true);
             client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(authData.getLogin(), authData.getPassword()));

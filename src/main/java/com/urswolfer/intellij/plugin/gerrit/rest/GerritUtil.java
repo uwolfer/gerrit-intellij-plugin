@@ -36,7 +36,6 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -52,10 +51,13 @@ import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpMethod;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -133,7 +135,7 @@ public class GerritUtil {
                            @NotNull ReviewInput reviewInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
+        final String request = "/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
         gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
@@ -152,7 +154,7 @@ public class GerritUtil {
     public void postSubmit(@NotNull String changeId,
                            @NotNull SubmitInput submitInput,
                            final Project project) {
-        final String request = "/a/changes/" + changeId + "/submit";
+        final String request = "/changes/" + changeId + "/submit";
         String json = new Gson().toJson(submitInput);
         gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
@@ -219,9 +221,9 @@ public class GerritUtil {
 
     private String formatRequestUrl(String endPoint, String query) {
         if (query.isEmpty()) {
-            return String.format("/a/%s/", endPoint);
+            return String.format("/%s/", endPoint);
         } else {
-            return String.format("/a/%s/?q=%s", endPoint, query);
+            return String.format("/%s/?q=%s", endPoint, query);
         }
     }
 
@@ -288,7 +290,7 @@ public class GerritUtil {
     }
 
     public void getChangeDetails(@NotNull String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
-        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
+        final String request = "/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(final ConsumerResult<JsonElement> result) {
@@ -356,7 +358,7 @@ public class GerritUtil {
                             @NotNull String revision,
                             final Project project,
                             final Consumer<TreeMap<String, List<CommentInfo>>> consumer) {
-        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
+        final String request = "/changes/" + changeId + "/revisions/" + revision + "/comments/";
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
@@ -398,13 +400,26 @@ public class GerritUtil {
     }
 
     private boolean testConnection(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
-        AccountInfo user = retrieveCurrentUserInfo(gerritAuthData);
-        return user != null;
+        if (gerritAuthData.isLoginAndPasswordAvailable()) {
+            AccountInfo user = retrieveCurrentUserInfo(gerritAuthData);
+            return user != null;
+        } else {
+            try {
+                HttpMethod method = gerritApiUtil.doREST(gerritAuthData, "/", null, Collections.<Header>emptyList(),
+                        GerritApiUtil.HttpVerb.GET);
+                if (method.getStatusCode() == 200) {
+                    return true;
+                }
+            } catch (IOException e) {
+                throw new RestApiException(e);
+            }
+            return false;
+        }
     }
 
     @Nullable
     public AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
-        JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/a/accounts/self");
+        JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/accounts/self");
         return parseUserInfo(result);
     }
 
@@ -422,7 +437,7 @@ public class GerritUtil {
 
     @NotNull
     private List<ProjectInfo> getAvailableProjects() throws RestApiException {
-        final String request = "/a/projects/";
+        final String request = "/projects/";
         JsonElement result = gerritApiUtil.getRequest(request);
         if (result == null) {
             return Collections.emptyList();
@@ -467,9 +482,7 @@ public class GerritUtil {
     }
 
     public boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
-        if (StringUtil.isEmptyOrSpaces(gerritAuthData.getHost()) ||
-                StringUtil.isEmptyOrSpaces(gerritAuthData.getLogin()) ||
-                StringUtil.isEmptyOrSpaces(gerritAuthData.getPassword())) {
+        if (Strings.isNullOrEmpty(gerritAuthData.getHost())) {
             return false;
         }
         Boolean result = accessToGerritWithModalProgress(project, new ThrowableComputable<Boolean, Exception>() {

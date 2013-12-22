@@ -205,11 +205,14 @@ public class GerritUtil {
         notificationService.notifyWarning(notification);
     }
 
-    public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
+    public void getChangesForProject(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         if (!gerritSettings.getListAllChanges()) {
             query = appendQueryStringForProject(project, query);
         }
+        getChanges(query, project, consumer);
+    }
 
+    public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         String request = formatRequestUrl("changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {

@@ -16,8 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Strings;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Thomas Forrer
@@ -28,6 +28,8 @@ public interface GerritAuthData {
     String getPassword();
 
     String getHost();
+
+    boolean isLoginAndPasswordAvailable();
 
     final class TempGerritAuthData implements GerritAuthData {
         @NotNull
@@ -43,7 +45,7 @@ public interface GerritAuthData {
             this.password = password;
         }
 
-        @Nullable
+        @NotNull
         @Override
         public String getLogin() {
             return login;
@@ -59,6 +61,11 @@ public interface GerritAuthData {
         @Override
         public String getHost() {
             return host;
+        }
+
+        @Override
+        public boolean isLoginAndPasswordAvailable() {
+            return !Strings.isNullOrEmpty(getLogin()) && !Strings.isNullOrEmpty(getPassword());
         }
     }
 }

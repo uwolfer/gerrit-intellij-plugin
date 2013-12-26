@@ -23,13 +23,17 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.intellij.util.ThrowableConvertor;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.URI;
-import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
-import org.apache.commons.httpclient.protocol.Protocol;
-import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.protocol.HttpContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.security.validator.ValidatorException;
@@ -51,29 +55,27 @@ public class SslSupport {
     private GerritSettings gerritSettings;
 
     /**
-     * Tries to execute the {@link HttpMethod} and captures the {@link ValidatorException exception} which is thrown if user connects
+     * Tries to execute the {@link HttpRequestBase} and captures the {@link ValidatorException exception} which is thrown if user connects
      * to an HTTPS server with a non-trusted (probably, self-signed) SSL certificate. In which case proposes to cancel the connection
      * or to proceed without certificate check.
      *
-     * @param methodCreator a function to create the HttpMethod. This is required instead of just {@link HttpMethod} instance, because the
+     * @param methodCreator a function to create the HttpMethod. This is required instead of just {@link HttpRequestBase} instance, because the
      *                      implementation requires the HttpMethod to be recreated in certain circumstances.
      * @return the HttpMethod instance which was actually executed
-     *         and which can be {@link HttpMethod#getResponseBodyAsString() asked for the response}.
+     *         and which can be {@link org.apache.http.HttpResponse#getEntity()} asked for the response.
      * @throws IOException in case of other errors or if user declines the proposal of non-trusted connection.
      */
     @NotNull
-    public HttpMethod executeSelfSignedCertificateAwareRequest(@NotNull HttpClient client, @NotNull String uri,
-                                                               @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator)
+    public HttpResponse executeSelfSignedCertificateAwareRequest(HttpClientBuilder client,
+                                                                 String uri,
+                                                                 ThrowableConvertor<String, HttpRequestBase, IOException> methodCreator,
+                                                                 @Nullable HttpContext context)
             throws IOException {
-        HttpMethod method = methodCreator.convert(uri);
+        HttpRequestBase method = methodCreator.convert(uri);
         try {
-            client.executeMethod(method);
-            return method;
+            return client.build().execute(method, context);
         } catch (IOException e) {
-            if (method != null) {
-                method.releaseConnection();
-            }
-            HttpMethod m = handleCertificateExceptionAndRetry(e, method.getURI().getHost(), client, method.getURI(), methodCreator);
+            HttpResponse m = handleCertificateExceptionAndRetry(e, method, client, context);
             if (m == null) {
                 throw e;
             }
@@ -82,31 +84,33 @@ public class SslSupport {
     }
 
     @Nullable
-    private HttpMethod handleCertificateExceptionAndRetry(@NotNull IOException e, @NotNull String host,
-                                                                 @NotNull HttpClient client, @NotNull URI uri,
-                                                                 @NotNull ThrowableConvertor<String, HttpMethod, IOException> methodCreator)
+    private HttpResponse handleCertificateExceptionAndRetry(IOException e,
+                                                            HttpRequestBase method,
+                                                            HttpClientBuilder client,
+                                                            @Nullable HttpContext context)
             throws IOException {
         if (!isCertificateException(e)) {
             throw e;
         }
 
-        if (isTrusted(uri.getAuthority())) {
-            int port = uri.getPort();
-            if (port <= 0) {
-                port = 443;
-            }
+        if (isTrusted(method.getURI().getAuthority())) {
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
-            // see the javadoc to EasySSLProtocolSocketFactory for details
-            Protocol easyHttps = new Protocol("https", (ProtocolSocketFactory) new EasySSLProtocolSocketFactory(), port);
-            HostConfiguration hc = new HostConfiguration();
-            hc.setHost(host, port, easyHttps);
-            String relativeUri = uri.getEscapedPathQuery();
-            // it is important to use relative URI here, otherwise our custom protocol won't work.
-            // we have to recreate the method, because HttpMethod#setUri won't overwrite the host,
-            // and changing host by hands (HttpMethodBase#setHostConfiguration) is deprecated.
-            HttpMethod method = methodCreator.convert(relativeUri);
-            client.executeMethod(hc, method);
-            return method;
+            try {
+                SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
+                sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+                SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(
+                        sslContextBuilder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+                Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                        .register("https", sslConnectionSocketFactory)
+                        .build();
+
+                PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+                client.setConnectionManager(connectionManager);
+            } catch (Exception sslException) {
+                throw Throwables.propagate(sslException);
+            }
+            return client.build().execute(method, context);
         }
         throw e;
     }

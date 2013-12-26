@@ -28,12 +28,25 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
-import org.apache.commons.httpclient.*;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.methods.*;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
+import org.apache.http.*;
+import org.apache.http.auth.*;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.*;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
+import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,6 +56,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,10 +68,10 @@ import java.util.regex.Pattern;
  */
 public class GerritApiUtil {
 
-    private static final String APPLICATION_JSON = "application/json";
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
-    private static final int CONNECTION_TIMEOUT = 5000;
+    private static final int CONNECTION_TIMEOUT_MS = 30000;
+    private static final String PREEMPTIVE_AUTH = "preemptive-auth";
 
     @Inject
     private Logger LOG;
@@ -99,13 +113,12 @@ public class GerritApiUtil {
                                        @Nullable String requestBody,
                                        @NotNull Collection<Header> headers,
                                        @NotNull HttpVerb verb) throws RestApiException {
-        HttpMethod method = null;
         try {
-            method = doREST(authData, path, requestBody, headers, verb);
+            HttpResponse response = doREST(authData, path, requestBody, headers, verb);
 
-            checkStatusCode(method);
+            checkStatusCode(response);
 
-            InputStream resp = method.getResponseBodyAsStream();
+            InputStream resp = response.getEntity().getContent();
             if (resp == null) {
                 String message = String.format("Unexpectedly empty response.");
                 LOG.warn(message);
@@ -121,15 +134,11 @@ public class GerritApiUtil {
         } catch (IOException e) {
             LOG.warn(String.format("Request failed: %s", e.getMessage()), e);
             throw new RestApiException(e);
-        } finally {
-            if (method != null) {
-                method.releaseConnection();
-            }
         }
     }
 
     @NotNull
-    public HttpMethod doREST(@NotNull String path,
+    public HttpResponse doREST(@NotNull String path,
                                     @Nullable final String requestBody,
                                     @NotNull final Collection<Header> headers,
                                     @NotNull final HttpVerb verb) throws IOException {
@@ -138,48 +147,57 @@ public class GerritApiUtil {
 
 
     @NotNull
-    public HttpMethod doREST(@NotNull GerritAuthData authData,
+    public HttpResponse doREST(@NotNull GerritAuthData authData,
                                     @NotNull String path,
                                     @Nullable final String requestBody,
                                     @NotNull final Collection<Header> headers,
                                     @NotNull final HttpVerb verb) throws IOException {
-        HttpClient client = getHttpClient(authData);
-        final Optional<String> gerritAuthOptional = tryGerritHttpAuth(authData, client);
-        String uri = authData.getHost() + path;
+        HttpContext httpContext = new BasicHttpContext();
+        HttpClientBuilder client = getHttpClient(authData, httpContext);
+
+        BasicCookieStore cookieStore = new BasicCookieStore();
+        httpContext.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
+
+        final Optional<String> gerritAuthOptional = tryGerritHttpAuth(authData, client, httpContext);
+        String uri = authData.getHost();
+        if (authData.isLoginAndPasswordAvailable()) {
+            uri += "/a";
+        }
+        uri += path;
         return sslSupport.executeSelfSignedCertificateAwareRequest(client, uri,
-                new ThrowableConvertor<String, HttpMethod, IOException>() {
+                new ThrowableConvertor<String, HttpRequestBase, IOException>() {
                     @Override
-                    public HttpMethod convert(String uri) throws IOException {
-                        HttpMethod method;
+                    public HttpRequestBase convert(String uri) throws IOException {
+                        HttpRequestBase method;
                         switch (verb) {
                             case POST:
-                                method = new PostMethod(uri);
+                                method = new HttpPost(uri);
                                 if (requestBody != null) {
-                                    ((PostMethod) method).setRequestEntity(new StringRequestEntity(requestBody, APPLICATION_JSON, UTF_8));
+                                    ((HttpPost) method).setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
                                 }
                                 break;
                             case GET:
-                                method = new GetMethod(uri);
+                                method = new HttpGet(uri);
                                 break;
                             case DELETE:
-                                method = new DeleteMethod(uri);
+                                method = new HttpDelete(uri);
                                 break;
                             case HEAD:
-                                method = new HeadMethod(uri);
+                                method = new HttpHead(uri);
                                 break;
                             default:
                                 throw new IllegalStateException("Wrong HttpVerb: unknown method: " + verb.toString());
                         }
                         for (Header header : headers) {
-                            method.addRequestHeader(header);
+                            method.addHeader(header);
                         }
                         if (gerritAuthOptional.isPresent()) {
-                            method.setRequestHeader("X-Gerrit-Auth", gerritAuthOptional.get());
+                            method.addHeader("X-Gerrit-Auth", gerritAuthOptional.get());
                         }
-                        method.setRequestHeader("Accept", APPLICATION_JSON);
+                        method.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
                         return method;
                     }
-                });
+                }, httpContext);
     }
 
     /*
@@ -201,24 +219,25 @@ public class GerritApiUtil {
      * [Gerrit documentation].
      * [Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
      */
-    private Optional<String> tryGerritHttpAuth(@NotNull GerritAuthData authData,
-                                                      @NotNull HttpClient client) throws IOException {
+    private Optional<String> tryGerritHttpAuth(GerritAuthData authData,
+                                               HttpClientBuilder client,
+                                               HttpContext httpContext) throws IOException {
         String loginUrl = authData.getHost() + "/login/";
-        HttpMethod loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, loginUrl,
-                new ThrowableConvertor<String, HttpMethod, IOException>() {
+        HttpResponse loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, loginUrl,
+                new ThrowableConvertor<String, HttpRequestBase, IOException>() {
                     @Override
-                    public HttpMethod convert(String loginUrl) throws IOException {
-                        return new GetMethod(loginUrl);
+                    public HttpRequestBase convert(String loginUrl) throws IOException {
+                        return new HttpGet(loginUrl);
                     }
-                });
-        if (loginRequest.getStatusCode() != HttpStatus.SC_UNAUTHORIZED) {
-            Cookie[] cookies = client.getState().getCookies();
+                }, httpContext);
+        if (loginRequest.getStatusLine().getStatusCode() != HttpStatus.SC_UNAUTHORIZED) {
+            List<Cookie> cookies = ((BasicCookieStore) httpContext.getAttribute(HttpClientContext.COOKIE_STORE)).getCookies();
             for (Cookie cookie : cookies) {
                 if (cookie.getName().equals("GerritAccount")) {
                     LOG.info("Successfully logged in with /login/ request.");
-                    Matcher matcher = GERRIT_AUTH_PATTERN.matcher(loginRequest.getResponseBodyAsString());
+                    Matcher matcher = GERRIT_AUTH_PATTERN.matcher(EntityUtils.toString(loginRequest.getEntity(), Consts.UTF_8));
                     if (matcher.find()) {
-                        return  Optional.of(matcher.group(1));
+                        return Optional.of(matcher.group(1));
                     }
                     break;
                 }
@@ -228,39 +247,48 @@ public class GerritApiUtil {
     }
 
     @NotNull
-    private HttpClient getHttpClient(@NotNull GerritAuthData authData) {
-        final HttpClient client = new HttpClient(new MultiThreadedHttpConnectionManager());
-        HttpConnectionManagerParams params = client.getHttpConnectionManager().getParams();
-        params.setConnectionTimeout(CONNECTION_TIMEOUT); //set connection timeout (how long it takes to connect to remote host)
-        params.setSoTimeout(CONNECTION_TIMEOUT); //set socket timeout (how long it takes to retrieve data from remote host)
+    private HttpClientBuilder getHttpClient(GerritAuthData authData,
+                                            HttpContext httpContext) {
+        HttpClientBuilder client = HttpClients.custom();
 
-        client.getParams().setContentCharset(UTF_8);
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+        client.setConnectionManager(connectionManager);
+
+        RequestConfig.Builder requestConfig = RequestConfig.custom()
+            .setConnectTimeout(CONNECTION_TIMEOUT_MS) // how long it takes to connect to remote host
+            .setSocketTimeout(CONNECTION_TIMEOUT_MS) // (how long it takes to retrieve data from remote host
+            .setConnectionRequestTimeout(CONNECTION_TIMEOUT_MS)
+            ;
+        client.setDefaultRequestConfig(requestConfig.build());
+
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        client.setDefaultCredentialsProvider(credentialsProvider);
+
         // Configure proxySettings if it is required
         final HttpConfigurable proxySettings = HttpConfigurable.getInstance();
         if (proxySettings.USE_HTTP_PROXY && !StringUtil.isEmptyOrSpaces(proxySettings.PROXY_HOST)) {
-            client.getHostConfiguration().setProxy(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
-            if (proxySettings.PROXY_AUTHENTICATION) {
-                client.getState().setProxyCredentials(AuthScope.ANY, new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN,
-                        proxySettings.getPlainProxyPassword()));
-            }
-        }
-        if (authData.getLogin() != null && authData.getPassword() != null) {
-            client.getParams().setCredentialCharset(UTF_8);
-            client.getParams().setAuthenticationPreemptive(true);
-            client.getState().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(authData.getLogin(), authData.getPassword()));
-        }
-        addUserAgent(client);
-        return client;
-    }
+            HttpHost proxy = new HttpHost(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
+            client.setProxy(proxy);
 
-    private void addUserAgent(HttpClient client) {
-        HttpClientParams httpClientParams = client.getParams();
-        Object existingUserAgent = httpClientParams.getParameter(HttpMethodParams.USER_AGENT);
-        String userAgent = "gerrit-intellij-plugin";
-        if (existingUserAgent != null) {
-            userAgent += " using " + existingUserAgent;
+            if (proxySettings.PROXY_AUTHENTICATION) {
+                credentialsProvider.setCredentials(new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT),
+                        new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword()));
+            }
+
         }
-        httpClientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
+
+        if (authData.isLoginAndPasswordAvailable()) {
+            credentialsProvider.setCredentials(AuthScope.ANY,
+                    new UsernamePasswordCredentials(authData.getLogin(), authData.getPassword()));
+
+            BasicScheme basicAuth = new BasicScheme();
+            httpContext.setAttribute(PREEMPTIVE_AUTH, basicAuth);
+            client.addInterceptorFirst(new PreemptiveAuthHttpRequestInterceptor());
+        }
+
+        client.addInterceptorLast(new UserAgentHttpRequestInterceptor());
+
+        return client;
     }
 
     @NotNull
@@ -275,8 +303,9 @@ public class GerritApiUtil {
         }
     }
 
-    private void checkStatusCode(@NotNull HttpMethod method) throws HttpStatusException {
-        int code = method.getStatusCode();
+    private void checkStatusCode(@NotNull HttpResponse response) throws HttpStatusException {
+        StatusLine statusLine = response.getStatusLine();
+        int code = statusLine.getStatusCode();
         switch (code) {
             case HttpStatus.SC_OK:
             case HttpStatus.SC_CREATED:
@@ -288,9 +317,47 @@ public class GerritApiUtil {
             case HttpStatus.SC_PAYMENT_REQUIRED:
             case HttpStatus.SC_FORBIDDEN:
             default:
-                String message = String.format("Request not successful. Message: %s. Status-Code: %s.", method.getStatusText(), method.getStatusCode());
+                String message = String.format("Request not successful. Message: %s. Status-Code: %s.", statusLine.getReasonPhrase(), statusLine.getStatusCode());
                 LOG.warn(message);
-                throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), message);
+                throw new HttpStatusException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), message);
+        }
+    }
+
+    /**
+     * With preemptive auth, it will send the basic authentication response even before the server gives an unauthorized
+     * response in certain situations, thus reducing the overhead of making the connection again.
+     *
+     * Based on:
+     * https://subversion.jfrog.org/jfrog/build-info/trunk/build-info-client/src/main/java/org/jfrog/build/client/PreemptiveHttpClient.java
+     */
+    private static class PreemptiveAuthHttpRequestInterceptor implements HttpRequestInterceptor {
+        public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
+            AuthState authState = (AuthState) context.getAttribute(HttpClientContext.TARGET_AUTH_STATE);
+
+            // if no auth scheme available yet, try to initialize it preemptively
+            if (authState.getAuthScheme() == null) {
+                AuthScheme authScheme = (AuthScheme) context.getAttribute("preemptive-auth");
+                CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(HttpClientContext.CREDS_PROVIDER);
+                HttpHost targetHost = (HttpHost) context.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
+                if (authScheme != null) {
+                    Credentials creds = credsProvider.getCredentials(new AuthScope(targetHost.getHostName(), targetHost.getPort()));
+                    if (creds == null) {
+                        throw new HttpException("No credentials for preemptive authentication found");
+                    }
+                    authState.update(authScheme, creds);
+                }
+            }
+        }
+    }
+
+    private static class UserAgentHttpRequestInterceptor implements HttpRequestInterceptor {
+        public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
+            Header existingUserAgent = request.getFirstHeader(HttpHeaders.USER_AGENT);
+            String userAgent = "gerrit-intellij-plugin";
+            if (existingUserAgent != null) {
+                userAgent += " using " + existingUserAgent.getValue();
+            }
+            request.setHeader(HttpHeaders.USER_AGENT, userAgent);
         }
     }
 

@@ -83,7 +83,9 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
             return;
         }
 
-        if (Strings.isNullOrEmpty(gerritSettings.getHost())) {
+        if (Strings.isNullOrEmpty(gerritSettings.getHost())
+                || Strings.isNullOrEmpty(gerritSettings.getLogin())
+                || Strings.isNullOrEmpty(gerritSettings.getPassword())) {
             return;
         }
 

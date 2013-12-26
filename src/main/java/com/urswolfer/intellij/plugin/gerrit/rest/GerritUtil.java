@@ -36,7 +36,6 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -52,10 +51,13 @@ import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -133,7 +135,7 @@ public class GerritUtil {
                            @NotNull ReviewInput reviewInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/review";
+        final String request = "/changes/" + changeId + "/revisions/" + revision + "/review";
         String json = new Gson().toJson(reviewInput);
         gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
@@ -152,7 +154,7 @@ public class GerritUtil {
     public void postSubmit(@NotNull String changeId,
                            @NotNull SubmitInput submitInput,
                            final Project project) {
-        final String request = "/a/changes/" + changeId + "/submit";
+        final String request = "/changes/" + changeId + "/submit";
         String json = new Gson().toJson(submitInput);
         gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
@@ -170,46 +172,14 @@ public class GerritUtil {
         getChanges("is:open+reviewer:self", project, consumer);
     }
 
-    private String getProjectName(String repositoryUrl, String url) {
-
-        // Normalise the base.
-        if( !repositoryUrl.endsWith("/") )
-            repositoryUrl = repositoryUrl + "/";
-
-        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
-        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
-
-        path = path.substring(basePath.length());
-
-        path = path.replace(".git", ""); // some repositories end their name with ".git"
-
-        if( path.endsWith("/") )
-            path = path.substring(0, path.length()-1);
-
-        return path;
-    }
-
-    public void showAddGitRepositoryNotification(final Project project) {
-        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies",
-                "Please add git repository <br/> <a href='vcs'>Add vcs root</a>")
-                .listener(new NotificationListener() {
-                    @Override
-                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                            if (event.getDescription().equals("vcs")) {
-                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
-                            }
-                        }
-                    }
-                });
-        notificationService.notifyWarning(notification);
-    }
-
-    public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
+    public void getChangesForProject(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         if (!gerritSettings.getListAllChanges()) {
             query = appendQueryStringForProject(project, query);
         }
+        getChanges(query, project, consumer);
+    }
 
+    public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         String request = formatRequestUrl("changes", query);
         request = appendToUrlQuery(request, "o=LABELS");
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
@@ -251,16 +221,15 @@ public class GerritUtil {
 
     private String formatRequestUrl(String endPoint, String query) {
         if (query.isEmpty()) {
-            return String.format("/a/%s/", endPoint);
+            return String.format("/%s/", endPoint);
         } else {
-            return String.format("/a/%s/?q=%s", endPoint, query);
+            return String.format("/%s/?q=%s", endPoint, query);
         }
     }
 
     private String getProjectQueryPart(Project project) {
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
-            //Show notification
             showAddGitRepositoryNotification(project);
             return "";
         }
@@ -285,8 +254,43 @@ public class GerritUtil {
         return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
     }
 
+    private String getProjectName(String repositoryUrl, String url) {
+        if (!repositoryUrl.endsWith("/")) {
+            repositoryUrl = repositoryUrl + "/";
+        }
+
+        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String path = UrlUtils.createUriFromGitConfigString(url).getPath();
+
+        path = path.substring(basePath.length());
+
+        path = path.replace(".git", ""); // some repositories end their name with ".git"
+
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+
+        return path;
+    }
+
+    public void showAddGitRepositoryNotification(final Project project) {
+        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
+                "Please configure a Git repository.<br/><a href='vcs'>Open Settings</a>")
+                .listener(new NotificationListener() {
+                    @Override
+                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
+                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                            if (event.getDescription().equals("vcs")) {
+                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
+                            }
+                        }
+                    }
+                });
+        notificationService.notifyWarning(notification);
+    }
+
     public void getChangeDetails(@NotNull String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
-        final String request = "/a/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
+        final String request = "/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(final ConsumerResult<JsonElement> result) {
@@ -354,7 +358,7 @@ public class GerritUtil {
                             @NotNull String revision,
                             final Project project,
                             final Consumer<TreeMap<String, List<CommentInfo>>> consumer) {
-        final String request = "/a/changes/" + changeId + "/revisions/" + revision + "/comments/";
+        final String request = "/changes/" + changeId + "/revisions/" + revision + "/comments/";
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
@@ -396,13 +400,26 @@ public class GerritUtil {
     }
 
     private boolean testConnection(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
-        AccountInfo user = retrieveCurrentUserInfo(gerritAuthData);
-        return user != null;
+        if (gerritAuthData.isLoginAndPasswordAvailable()) {
+            AccountInfo user = retrieveCurrentUserInfo(gerritAuthData);
+            return user != null;
+        } else {
+            try {
+                HttpResponse response = gerritApiUtil.doREST(gerritAuthData, "/", null, Collections.<Header>emptyList(),
+                        GerritApiUtil.HttpVerb.GET);
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    return true;
+                }
+            } catch (IOException e) {
+                throw new RestApiException(e);
+            }
+            return false;
+        }
     }
 
     @Nullable
     public AccountInfo retrieveCurrentUserInfo(@NotNull GerritAuthData gerritAuthData) throws RestApiException {
-        JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/a/accounts/self");
+        JsonElement result = gerritApiUtil.getRequest(gerritAuthData, "/accounts/self");
         return parseUserInfo(result);
     }
 
@@ -420,7 +437,7 @@ public class GerritUtil {
 
     @NotNull
     private List<ProjectInfo> getAvailableProjects() throws RestApiException {
-        final String request = "/a/projects/";
+        final String request = "/projects/";
         JsonElement result = gerritApiUtil.getRequest(request);
         if (result == null) {
             return Collections.emptyList();
@@ -465,9 +482,7 @@ public class GerritUtil {
     }
 
     public boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
-        if (StringUtil.isEmptyOrSpaces(gerritAuthData.getHost()) ||
-                StringUtil.isEmptyOrSpaces(gerritAuthData.getLogin()) ||
-                StringUtil.isEmptyOrSpaces(gerritAuthData.getPassword())) {
+        if (Strings.isNullOrEmpty(gerritAuthData.getHost())) {
             return false;
         }
         Boolean result = accessToGerritWithModalProgress(project, new ThrowableComputable<Boolean, Exception>() {

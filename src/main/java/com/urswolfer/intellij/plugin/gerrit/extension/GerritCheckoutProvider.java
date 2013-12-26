@@ -38,8 +38,10 @@ import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpMethod;
+import org.apache.http.Consts;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -150,13 +152,13 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            HttpMethod method = gerritApiUtil.doREST(
+            HttpResponse response = gerritApiUtil.doREST(
                     "/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
-            if (method.getStatusCode() != 200) {
-                throw new HttpStatusException(method.getStatusCode(), method.getStatusText(), method.getStatusText());
+            if (response.getStatusLine().getStatusCode() != 200) {
+                throw new HttpStatusException(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase(), response.getStatusLine().getReasonPhrase());
             }
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
-            Files.write(method.getResponseBody(), targetFile);
+            Files.write(EntityUtils.toString(response.getEntity(), Consts.UTF_8).getBytes(), targetFile);
             targetFile.setExecutable(true);
         } catch (Exception e) {
             log.info(e);

@@ -51,8 +51,8 @@ import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpMethod;
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -405,9 +405,9 @@ public class GerritUtil {
             return user != null;
         } else {
             try {
-                HttpMethod method = gerritApiUtil.doREST(gerritAuthData, "/", null, Collections.<Header>emptyList(),
+                HttpResponse response = gerritApiUtil.doREST(gerritAuthData, "/", null, Collections.<Header>emptyList(),
                         GerritApiUtil.HttpVerb.GET);
-                if (method.getStatusCode() == 200) {
+                if (response.getStatusLine().getStatusCode() == 200) {
                     return true;
                 }
             } catch (IOException e) {

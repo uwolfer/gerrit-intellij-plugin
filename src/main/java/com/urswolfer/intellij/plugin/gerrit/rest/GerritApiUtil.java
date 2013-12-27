@@ -25,7 +25,6 @@ import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.util.ThrowableConvertor;
 import com.intellij.util.net.HttpConfigurable;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
 import org.apache.http.*;
@@ -164,40 +163,36 @@ public class GerritApiUtil {
             uri += "/a";
         }
         uri += path;
-        return sslSupport.executeSelfSignedCertificateAwareRequest(client, uri,
-                new ThrowableConvertor<String, HttpRequestBase, IOException>() {
-                    @Override
-                    public HttpRequestBase convert(String uri) throws IOException {
-                        HttpRequestBase method;
-                        switch (verb) {
-                            case POST:
-                                method = new HttpPost(uri);
-                                if (requestBody != null) {
-                                    ((HttpPost) method).setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
-                                }
-                                break;
-                            case GET:
-                                method = new HttpGet(uri);
-                                break;
-                            case DELETE:
-                                method = new HttpDelete(uri);
-                                break;
-                            case HEAD:
-                                method = new HttpHead(uri);
-                                break;
-                            default:
-                                throw new IllegalStateException("Wrong HttpVerb: unknown method: " + verb.toString());
-                        }
-                        for (Header header : headers) {
-                            method.addHeader(header);
-                        }
-                        if (gerritAuthOptional.isPresent()) {
-                            method.addHeader("X-Gerrit-Auth", gerritAuthOptional.get());
-                        }
-                        method.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
-                        return method;
-                    }
-                }, httpContext);
+
+        HttpRequestBase method;
+        switch (verb) {
+            case POST:
+                method = new HttpPost(uri);
+                if (requestBody != null) {
+                    ((HttpPost) method).setEntity(new StringEntity(requestBody, ContentType.APPLICATION_JSON));
+                }
+                break;
+            case GET:
+                method = new HttpGet(uri);
+                break;
+            case DELETE:
+                method = new HttpDelete(uri);
+                break;
+            case HEAD:
+                method = new HttpHead(uri);
+                break;
+            default:
+                throw new IllegalStateException("Wrong HttpVerb: unknown method: " + verb.toString());
+        }
+        for (Header header : headers) {
+            method.addHeader(header);
+        }
+        if (gerritAuthOptional.isPresent()) {
+            method.addHeader("X-Gerrit-Auth", gerritAuthOptional.get());
+        }
+        method.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
+
+        return sslSupport.executeSelfSignedCertificateAwareRequest(client, method, httpContext);
     }
 
     /*
@@ -223,13 +218,7 @@ public class GerritApiUtil {
                                                HttpClientBuilder client,
                                                HttpContext httpContext) throws IOException {
         String loginUrl = authData.getHost() + "/login/";
-        HttpResponse loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, loginUrl,
-                new ThrowableConvertor<String, HttpRequestBase, IOException>() {
-                    @Override
-                    public HttpRequestBase convert(String loginUrl) throws IOException {
-                        return new HttpGet(loginUrl);
-                    }
-                }, httpContext);
+        HttpResponse loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, new HttpGet(loginUrl), httpContext);
         if (loginRequest.getStatusLine().getStatusCode() != HttpStatus.SC_UNAUTHORIZED) {
             List<Cookie> cookies = ((BasicCookieStore) httpContext.getAttribute(HttpClientContext.COOKIE_STORE)).getCookies();
             for (Cookie cookie : cookies) {

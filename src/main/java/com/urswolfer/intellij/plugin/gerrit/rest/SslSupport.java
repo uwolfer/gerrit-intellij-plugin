@@ -21,7 +21,6 @@ import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
-import com.intellij.util.ThrowableConvertor;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -59,22 +58,19 @@ public class SslSupport {
      * to an HTTPS server with a non-trusted (probably, self-signed) SSL certificate. In which case proposes to cancel the connection
      * or to proceed without certificate check.
      *
-     * @param methodCreator a function to create the HttpMethod. This is required instead of just {@link HttpRequestBase} instance, because the
-     *                      implementation requires the HttpMethod to be recreated in certain circumstances.
      * @return the HttpMethod instance which was actually executed
      *         and which can be {@link org.apache.http.HttpResponse#getEntity()} asked for the response.
      * @throws IOException in case of other errors or if user declines the proposal of non-trusted connection.
      */
     @NotNull
     public HttpResponse executeSelfSignedCertificateAwareRequest(HttpClientBuilder client,
-                                                                 String uri,
-                                                                 ThrowableConvertor<String, HttpRequestBase, IOException> methodCreator,
+                                                                 HttpRequestBase method,
                                                                  @Nullable HttpContext context)
             throws IOException {
-        HttpRequestBase method = methodCreator.convert(uri);
         try {
             return client.build().execute(method, context);
         } catch (IOException e) {
+            method.reset();
             HttpResponse m = handleCertificateExceptionAndRetry(e, method, client, context);
             if (m == null) {
                 throw e;

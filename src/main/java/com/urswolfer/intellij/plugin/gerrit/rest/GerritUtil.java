@@ -92,14 +92,21 @@ public class GerritUtil {
     }
 
     @Nullable
-    public <T> T accessToGerritWithModalProgress(@NotNull final Project project,
-                                                 @NotNull final ThrowableComputable<T, Exception> computable) {
+    public <T> T accessToGerritWithModalProgress(Project project,
+                                                 ThrowableComputable<T, Exception> computable) {
         gerritSettings.preloadPassword();
+        return accessToGerritWithModalProgress(project, computable, gerritSettings);
+    }
+
+    @Nullable
+    public <T> T accessToGerritWithModalProgress(Project project,
+                                                 ThrowableComputable<T, Exception> computable,
+                                                 GerritAuthData gerritAuthData) {
         try {
             return doAccessToGerritWithModalProgress(project, computable);
         } catch (Exception e) {
             if (sslSupport.isCertificateException(e)) {
-                if (sslSupport.askIfShouldProceed(gerritSettings.getHost())) {
+                if (sslSupport.askIfShouldProceed(gerritAuthData.getHost())) {
                     // retry with the host being already trusted
                     return doAccessToGerritWithModalProgress(project, computable);
                 } else {
@@ -491,7 +498,7 @@ public class GerritUtil {
                 ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
                 return testConnection(gerritAuthData);
             }
-        });
+        }, gerritAuthData);
         return result == null ? false : result;
     }
 

@@ -34,5 +34,6 @@ public class GerritActionsModule extends AbstractModule {
         bind(SettingsAction.class);
         bind(SubmitAction.class);
         bind(RefreshAction.class);
+        bind(StarAction.class);
     }
 }

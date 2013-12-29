@@ -17,8 +17,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
 import com.google.common.io.CharStreams;
+import com.google.common.io.Resources;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -53,6 +56,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -340,9 +344,28 @@ public class GerritApiUtil {
     }
 
     private static class UserAgentHttpRequestInterceptor implements HttpRequestInterceptor {
+        private static final String PLUGIN_VERSION;
+
+        static {
+            try {
+                URL url = UserAgentHttpRequestInterceptor.class.getClassLoader().getResource("META-INF/plugin.xml");
+                String text = Resources.toString(url, Charsets.UTF_8);
+
+                Pattern versionTagPattern = Pattern.compile(".*?<version>(.+?)</version>");
+                Matcher matcher = versionTagPattern.matcher(text);
+                if (matcher.find()) {
+                    PLUGIN_VERSION = matcher.group(1);
+                } else {
+                    PLUGIN_VERSION = "<unknown>";
+                }
+            } catch (Exception e) {
+                throw Throwables.propagate(e);
+            }
+        }
+
         public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
             Header existingUserAgent = request.getFirstHeader(HttpHeaders.USER_AGENT);
-            String userAgent = "gerrit-intellij-plugin";
+            String userAgent = String.format("gerrit-intellij-plugin/%s", PLUGIN_VERSION);
             if (existingUserAgent != null) {
                 userAgent += " using " + existingUserAgent.getValue();
             }

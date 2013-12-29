@@ -84,7 +84,7 @@ public class GerritApiUtil {
     private SslSupport sslSupport;
 
     public enum HttpVerb {
-        GET, POST, DELETE, HEAD
+        GET, POST, DELETE, HEAD, PUT
     }
 
     public JsonElement getRequest(@NotNull GerritAuthData gerritAuthData, @NotNull String path, @NotNull Header... headers) throws RestApiException {
@@ -105,6 +105,12 @@ public class GerritApiUtil {
     }
 
     @Nullable
+    public JsonElement putRequest(@NotNull String path,
+                                  @NotNull Header... headers) throws RestApiException {
+        return request(authData, path, null, Arrays.asList(headers), HttpVerb.PUT);
+    }
+
+    @Nullable
     public JsonElement deleteRequest(@NotNull String path,
                                             @NotNull Header... headers) throws RestApiException {
         return request(authData, path, null, Arrays.asList(headers), HttpVerb.DELETE);
@@ -121,12 +127,11 @@ public class GerritApiUtil {
 
             checkStatusCode(response);
 
-            InputStream resp = response.getEntity().getContent();
-            if (resp == null) {
-                String message = String.format("Unexpectedly empty response.");
-                LOG.warn(message);
-                throw new RestApiException(message);
+            HttpEntity entity = response.getEntity();
+            if (entity == null) {
+                return null;
             }
+            InputStream resp = entity.getContent();
             JsonElement ret = parseResponse(resp);
             if (ret.isJsonNull()) {
                 String message = String.format("Unexpectedly empty response: %s.", CharStreams.toString(new InputStreamReader(resp)));
@@ -184,6 +189,9 @@ public class GerritApiUtil {
                 break;
             case HEAD:
                 method = new HttpHead(uri);
+                break;
+            case PUT:
+                method = new HttpPut(uri);
                 break;
             default:
                 throw new IllegalStateException("Wrong HttpVerb: unknown method: " + verb.toString());

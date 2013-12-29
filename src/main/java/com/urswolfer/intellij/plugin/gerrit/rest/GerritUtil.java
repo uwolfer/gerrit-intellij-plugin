@@ -175,6 +175,30 @@ public class GerritUtil {
         });
     }
 
+    /**
+     * Star-endpoint added in Gerrit 2.8.
+     */
+    public void changeStarredStatus(String changeNr,
+                                    boolean starred,
+                                    final Project project) {
+        final String request = "/accounts/self/starred.changes/" + changeNr;
+        Consumer<ConsumerResult<JsonElement>> consumer = new Consumer<ConsumerResult<JsonElement>>() {
+            @Override
+            public void consume(ConsumerResult<JsonElement> result) {
+                if (result.getException().isPresent()) {
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to star Gerrit change.",
+                            getErrorTextFromException(result.getException().get()));
+                    notificationService.notifyError(notification);
+                }
+            }
+        };
+        if (starred) {
+            gerritRestAccess.putRequest(request, project, consumer);
+        } else {
+            gerritRestAccess.deleteRequest(request, project, consumer);
+        }
+    }
+
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
         getChanges("is:open+reviewer:self", project, consumer);
     }

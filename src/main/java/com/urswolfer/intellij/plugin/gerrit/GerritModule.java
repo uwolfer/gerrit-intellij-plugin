@@ -64,7 +64,7 @@ public class GerritModule extends AbstractModule {
         bind(GerritGitUtil.class).asEagerSingleton();
         bind(GerritUtil.class).asEagerSingleton();
 
-        bind(GerritToolWindow.class);
+        bind(GerritToolWindow.class).asEagerSingleton();
         bind(GerritCheckoutProvider.class);
         bind(GerritHttpAuthDataProvider.class);
 

@@ -89,10 +89,10 @@ public class CompareBranchAction extends AbstractChangeAction {
     }
 
     public static class Proxy extends CompareBranchAction {
-        private final CherryPickAction delegate;
+        private final CompareBranchAction delegate;
 
         public Proxy() {
-            delegate = GerritModule.getInstance(CherryPickAction.class);
+            delegate = GerritModule.getInstance(CompareBranchAction.class);
         }
 
         @Override

@@ -76,6 +76,44 @@ public class GerritRestAccess {
         accessGerrit(project, consumer, function);
     }
 
+    public void putRequest(final String request,
+                           final Project project,
+                           final Consumer<ConsumerResult<JsonElement>> consumer) {
+        Function<Void, ConsumerResultImpl<JsonElement>> function = new Function<Void, ConsumerResultImpl<JsonElement>>() {
+            @Override
+            public ConsumerResultImpl<JsonElement> apply(Void aVoid) {
+                final ConsumerResultImpl<JsonElement> consumerResult = new ConsumerResultImpl<JsonElement>();
+                try {
+                    JsonElement jsonElement = gerritApiUtil.putRequest(request);
+                    consumerResult.setResult(jsonElement);
+                } catch (RestApiException e) {
+                    consumerResult.setException(e);
+                }
+                return consumerResult;
+            }
+        };
+        accessGerrit(project, consumer, function);
+    }
+
+    public void deleteRequest(final String request,
+                              final Project project,
+                              final Consumer<ConsumerResult<JsonElement>> consumer) {
+        Function<Void, ConsumerResultImpl<JsonElement>> function = new Function<Void, ConsumerResultImpl<JsonElement>>() {
+            @Override
+            public ConsumerResultImpl<JsonElement> apply(Void aVoid) {
+                final ConsumerResultImpl<JsonElement> consumerResult = new ConsumerResultImpl<JsonElement>();
+                try {
+                    JsonElement jsonElement = gerritApiUtil.deleteRequest(request);
+                    consumerResult.setResult(jsonElement);
+                } catch (RestApiException e) {
+                    consumerResult.setException(e);
+                }
+                return consumerResult;
+            }
+        };
+        accessGerrit(project, consumer, function);
+    }
+
     public void accessGerrit(final Project project,
                              final Consumer<ConsumerResult<JsonElement>> consumer,
                              final Function<Void, ConsumerResultImpl<JsonElement>> function) {

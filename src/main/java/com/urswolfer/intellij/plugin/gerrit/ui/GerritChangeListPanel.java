@@ -20,7 +20,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.ui.JBColor;
@@ -36,7 +35,6 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,8 +48,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.intellij.icons.AllIcons.Actions.*;
-import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.CODE_REVIEW;
-import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.VERIFIED;
 
 /**
  * A table with the list of changes.
@@ -62,30 +58,14 @@ import static com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction.VERIFI
  */
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
 
-    private final ReviewCommentSink reviewCommentSink;
-    private final ReviewActionFactory reviewActionFactory;
-    private final CompareBranchAction compareBranchAction;
-    private final CherryPickAction cherryPickAction;
-    private final SubmitAction submitAction;
-    private final OpenInBrowserAction openInBrowserAction;
+    @Inject
+    private ReviewCommentSink reviewCommentSink;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
 
-    @Inject
-    public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
-                                 ReviewActionFactory reviewActionFactory,
-                                 CompareBranchAction compareBranchAction,
-                                 CherryPickAction cherryPickAction,
-                                 SubmitAction submitAction,
-                                 OpenInBrowserAction openInBrowserAction) {
-        this.reviewActionFactory = reviewActionFactory;
-        this.compareBranchAction = compareBranchAction;
-        this.cherryPickAction = cherryPickAction;
-        this.submitAction = submitAction;
-        this.openInBrowserAction = openInBrowserAction;
+    public GerritChangeListPanel() {
         this.changes = Lists.newArrayList();
-        this.reviewCommentSink = reviewCommentSink;
 
         this.table = new TableView<ChangeInfo>() {
             /**
@@ -108,7 +88,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         };
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        setupActions();
+        PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
 
         updateModel();
         table.setStriped(true);
@@ -120,47 +100,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     @Override
     public void consume(List<ChangeInfo> commits) {
         setChanges(commits);
-    }
-
-    private void setupActions() {
-        final DefaultActionGroup contextMenuActionGroup = new DefaultActionGroup();
-
-        contextMenuActionGroup.add(compareBranchAction);
-
-        contextMenuActionGroup.add(cherryPickAction);
-
-        final DefaultActionGroup reviewActionGroup = new DefaultActionGroup("Review", true);
-        reviewActionGroup.getTemplatePresentation().setIcon(AllIcons.ToolbarDecorator.Export);
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 2, Checked, false));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 2, Checked, true));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 1, MoveUp, false));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 1, MoveUp, true));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 0, Forward, false));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, 0, Forward, true));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -1, MoveDown, false));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -1, MoveDown, true));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -2, Cancel, false));
-        reviewActionGroup.add(reviewActionFactory.get(CODE_REVIEW, -2, Cancel, true));
-
-        final DefaultActionGroup verifyActionGroup = new DefaultActionGroup("Verify", true);
-        verifyActionGroup.getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 1, Checked, false));
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 1, Checked, true));
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 0, Forward, false));
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, 0, Forward, true));
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, -1, Cancel, false));
-        verifyActionGroup.add(reviewActionFactory.get(VERIFIED, -1, Cancel, true));
-
-        contextMenuActionGroup.add(reviewActionGroup);
-        contextMenuActionGroup.add(verifyActionGroup);
-
-        contextMenuActionGroup.add(submitAction);
-
-        contextMenuActionGroup.add(new Separator());
-
-        contextMenuActionGroup.add(openInBrowserAction);
-
-        PopupHandler.installPopupHandler(table, contextMenuActionGroup, ActionPlaces.UNKNOWN, ActionManager.getInstance());
     }
 
     /**

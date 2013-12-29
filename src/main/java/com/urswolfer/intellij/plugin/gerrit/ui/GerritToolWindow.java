@@ -22,12 +22,10 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.diff.DiffManager;
-import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
@@ -46,7 +44,6 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
@@ -81,13 +78,9 @@ public class GerritToolWindow {
     @Inject
     private CommentsDiffTool commentsDiffTool;
     @Inject
-    private SettingsAction settingsAction;
-    @Inject
     private GerritChangeListPanel changeListPanel;
     @Inject
     private ReviewCommentSink reviewCommentSink;
-    @Inject
-    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
     @Inject
     private Logger log;
     @Inject
@@ -211,7 +204,7 @@ public class GerritToolWindow {
         });
     }
 
-    private void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
+    public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
         getChanges(project, requestSettingsIfNonExistent, changeListPanel);
     }
 
@@ -232,12 +225,15 @@ public class GerritToolWindow {
     }
 
     private ActionToolbar createToolbar(final Project project) {
-        DefaultActionGroup group = new DefaultActionGroup();
+        DefaultActionGroup group = (DefaultActionGroup) ActionManager.getInstance().getAction("Gerrit.Toolbar");
 
+        DefaultActionGroup filterGroup = new DefaultActionGroup();
         Iterable<ChangesFilter> filters = changesFilters.getFilters();
         for (ChangesFilter filter : filters) {
-            group.add(filter.getAction(project));
+            filterGroup.add(filter.getAction(project));
         }
+        filterGroup.add(new Separator());
+        group.add(filterGroup, Constraints.FIRST);
 
         changesFilters.addObserver(new Observer() {
             @Override
@@ -246,22 +242,6 @@ public class GerritToolWindow {
             }
         });
 
-        group.add(new Separator());
-
-        final DumbAwareAction refreshActionAction = new DumbAwareAction("Refresh", "Refresh changes list", AllIcons.Actions.Refresh) {
-            @Override
-            public void actionPerformed(AnActionEvent anActionEvent) {
-                final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-                reloadChanges(project, true);
-                gerritUpdatesNotificationComponent.handleNotification();
-            }
-        };
-        group.add(refreshActionAction);
-
-        group.add(new Separator());
-
-        group.add(settingsAction);
-
-        return ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, true);
+        return ActionManager.getInstance().createActionToolbar("Gerrit.Toolbar", group, true);
     }
 }

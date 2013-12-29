@@ -46,6 +46,7 @@ public class ChangeInfo {
     private AccountInfo owner;
     private ChangeMessageInfo[] messages;
     private Map<String, LabelInfo> labels;
+    private boolean starred;
 
     @SerializedName("current_revision")
     private String currentRevision;
@@ -196,6 +197,14 @@ public class ChangeInfo {
         this.labels = labels;
     }
 
+    public boolean getStarred() {
+        return starred;
+    }
+
+    public void setStarred(boolean starred) {
+        this.starred = starred;
+    }
+
     @Override
     public String toString() {
         return "ChangeInfo{" +
@@ -217,6 +226,7 @@ public class ChangeInfo {
                 ", labels=" + labels +
                 ", currentRevision='" + currentRevision + '\'' +
                 ", revisions=" + revisions +
+                ", starred=" + starred +
                 '}';
     }
 }

@@ -35,6 +35,7 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
+import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -180,6 +181,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         }
 
         return new ColumnInfo[]{
+                new GerritChangeColumnStarredInfo(),
                 new GerritChangeColumnInfo("ID", hash.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
@@ -377,6 +379,41 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
             return null;
+        }
+    }
+
+    private static class GerritChangeColumnStarredInfo extends ColumnInfo<ChangeInfo, Boolean> {
+
+        public GerritChangeColumnStarredInfo() {
+            super("");
+        }
+
+        @Nullable
+        @Override
+        public Boolean valueOf(ChangeInfo changeInfo) {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public TableCellRenderer getRenderer(final ChangeInfo changeInfo) {
+            return new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    if (changeInfo.getStarred()) {
+                        label.setIcon(Git4ideaIcons.Star);
+                    }
+                    label.setHorizontalAlignment(CENTER);
+                    label.setVerticalAlignment(CENTER);
+                    return label;
+                }
+            };
+        }
+
+        @Override
+        public int getWidth(JTable table) {
+            return Git4ideaIcons.Star.getIconWidth();
         }
     }
 

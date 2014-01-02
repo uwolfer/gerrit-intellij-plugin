@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.5.0</version>
+  <version>0.6.0</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -68,6 +68,21 @@
 
       <p>
         <ul>
+          <li>Would you like to try test-builds of this plugin before official release? Please check out: <a
+          href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
+          https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
+
+          <li>0.6</li>
+          <ul>
+            <li>support for starring changes (show in list and set / unset icon)</li>
+            <li>use IntelliJ action infrastructure more consistently (allows user configuration like keyboard shortcut)</li>
+            <li>add support for anonymous (readonly; useful for e.g. Android and Gerrit development instances
+            where REST API authentication is not supported yet)</li>
+            <li>fixed more ssl issues (port from commons-httpclient v3 to apache.httpcomponents v4)</li>
+            <li>add support for file comments on both sides (parent and revision)</li>
+            <li>set file review status to reviewed when opening files in diff viewer </li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.5</li>
           <ul>
             <li>display code review and verified status in list</li>

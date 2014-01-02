@@ -107,6 +107,11 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                             addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
                         }
                     });
+
+                String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
+                String relativePath = filePathString.replace(repositoryPath + File.separator, "");
+                gerritUtil.getChangeReviewed(changeDetails.getId(), changeDetails.getCurrentRevision(),
+                        relativePath, true, project);
             }
         });
     }
@@ -141,11 +146,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                                    TreeMap<String, List<CommentInfo>> comments,
                                    ChangeInfo changeInfo,
                                    Project project) {
+        String repositoryPath = getGitRepositoryPathForChange(project, changeInfo);
+
         List<CommentInfo> fileComments = Lists.newArrayList();
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
-        if (!gitRepositoryOptional.isPresent()) return;
-        GitRepository repository = gitRepositoryOptional.get();
-        String repositoryPath = repository.getRoot().getPath();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
                 fileComments = entry.getValue();
@@ -183,5 +186,13 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private boolean isForCurrentFile(FilePath currentFilePath, String projectFilePath, String repositoryPath) {
         return currentFilePath.getPath().equals(repositoryPath + File.separator + projectFilePath);
+    }
+
+    private String getGitRepositoryPathForChange(Project project, ChangeInfo changeInfo) {
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        if (!gitRepositoryOptional.isPresent()) return null;
+        GitRepository repository = gitRepositoryOptional.get();
+        String repositoryPath = repository.getRoot().getPath();
+        return repositoryPath;
     }
 }

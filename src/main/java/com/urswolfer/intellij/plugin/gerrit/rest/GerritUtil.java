@@ -58,6 +58,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.HyperlinkEvent;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -193,6 +195,35 @@ public class GerritUtil {
             }
         };
         if (starred) {
+            gerritRestAccess.putRequest(request, project, consumer);
+        } else {
+            gerritRestAccess.deleteRequest(request, project, consumer);
+        }
+    }
+
+    public void getChangeReviewed(String changeId,
+                                  String revision,
+                                  String filePath,
+                                  boolean reviewed,
+                                  final Project project) {
+        String encodedPath;
+        try {
+            encodedPath = URLEncoder.encode(filePath, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw Throwables.propagate(e);
+        }
+        final String request = String.format("/changes/%s/revisions/%s/files/%s/reviewed", changeId, revision, encodedPath);
+        Consumer<ConsumerResult<JsonElement>> consumer = new Consumer<ConsumerResult<JsonElement>>() {
+            @Override
+            public void consume(ConsumerResult<JsonElement> result) {
+                if (result.getException().isPresent()) {
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed set file review status for Gerrit change.",
+                            getErrorTextFromException(result.getException().get()));
+                    notificationService.notifyError(notification);
+                }
+            }
+        };
+        if (reviewed) {
             gerritRestAccess.putRequest(request, project, consumer);
         } else {
             gerritRestAccess.deleteRequest(request, project, consumer);

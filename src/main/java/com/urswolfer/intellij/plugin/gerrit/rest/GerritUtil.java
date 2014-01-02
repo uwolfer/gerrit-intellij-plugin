@@ -188,7 +188,8 @@ public class GerritUtil {
             @Override
             public void consume(ConsumerResult<JsonElement> result) {
                 if (result.getException().isPresent()) {
-                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to star Gerrit change.",
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to star Gerrit change." +
+                            "<br/>Not supported for Gerrit instances older than version 2.8.",
                             getErrorTextFromException(result.getException().get()));
                     notificationService.notifyError(notification);
                 }

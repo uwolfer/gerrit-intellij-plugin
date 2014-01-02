@@ -6,6 +6,7 @@ import com.intellij.openapi.vcs.FilePath;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -20,9 +21,10 @@ public class AddCommentActionBuilder {
     public AddCommentAction build(
             ReviewCommentSink reviewCommentSink,
             ChangeInfo changeInfo,
-            @Nullable final Editor editor,
-            @Nullable FilePath filePath) {
+            @Nullable Editor editor,
+            @Nullable FilePath filePath,
+            CommentBase.CommentSide commentSide) {
         return new AddCommentAction(reviewCommentSink, changeInfo, editor, filePath,
-                gerritGitUtil, commentBalloonBuilder);
+                gerritGitUtil, commentBalloonBuilder, commentSide);
     }
 }

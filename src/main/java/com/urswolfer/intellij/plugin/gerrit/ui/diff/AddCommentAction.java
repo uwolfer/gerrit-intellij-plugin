@@ -33,6 +33,7 @@ import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -52,13 +53,15 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     private final FilePath filePath;
     private final GerritGitUtil gerritGitUtil;
     private final CommentBalloonBuilder commentBalloonBuilder;
+    private final CommentBase.CommentSide commentSide;
 
     public AddCommentAction(ReviewCommentSink reviewCommentSink,
                             ChangeInfo changeInfo,
                             @Nullable final Editor editor,
                             @Nullable FilePath filePath,
                             GerritGitUtil gerritGitUtil,
-                            CommentBalloonBuilder commentBalloonBuilder) {
+                            CommentBalloonBuilder commentBalloonBuilder,
+                            CommentBase.CommentSide commentSide) {
         super("Add Comment", "Add a comment at current line", AllIcons.Toolwindows.ToolWindowMessages);
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
@@ -66,6 +69,7 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
         this.editor = editor;
         this.gerritGitUtil = gerritGitUtil;
         this.commentBalloonBuilder = commentBalloonBuilder;
+        this.commentSide = commentSide;
     }
 
     public void actionPerformed(AnActionEvent e) {
@@ -77,7 +81,8 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     private void addVersionedComment(@NotNull final Project project) {
         if (editor == null || filePath == null) return;
 
-        final CommentForm commentForm = new CommentForm(project, filePath, reviewCommentSink, changeInfo, gerritGitUtil);
+        final CommentForm commentForm = new CommentForm(
+                project, filePath, reviewCommentSink, changeInfo, gerritGitUtil, commentSide);
         commentForm.setEditor(editor);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupAdapter() {

@@ -26,6 +26,7 @@ public class CommentInput extends CommentBase {
         commentInfo.setMessage(getMessage());
         commentInfo.setLine(getLine());
         commentInfo.setPath(getPath());
+        commentInfo.setSide(getSide());
         AccountInfo author = new AccountInfo();
         author.setName("Myself");
         commentInfo.setAuthor(author);

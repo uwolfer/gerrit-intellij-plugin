@@ -32,6 +32,7 @@ import com.intellij.util.containers.ContainerUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
@@ -67,7 +68,8 @@ public class CommentForm extends JPanel {
                        @Nullable FilePath filePath,
                        final ReviewCommentSink reviewCommentSink,
                        final ChangeInfo changeInfo,
-                       final GerritGitUtil gerritGitUtil) {
+                       final GerritGitUtil gerritGitUtil,
+                       final CommentBase.CommentSide commentSide) {
         super(new BorderLayout());
         this.filePath = filePath;
 
@@ -98,6 +100,7 @@ public class CommentForm extends JPanel {
                 String relativePath = FileUtil.getRelativePath(new File(root.getPath()), new File(path));
 
                 comment.setPath(relativePath);
+                comment.setSide(commentSide);
                 comment.setLine(editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1);
                 comment.setMessage(getText());
                 reviewCommentSink.addComment(changeInfo.getId(), comment);

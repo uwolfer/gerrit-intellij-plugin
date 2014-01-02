@@ -47,6 +47,7 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
@@ -104,11 +105,10 @@ public class CommentsDiffTool extends FrameDiffTool {
         return diffPanel;
     }
 
-    private void handleComments(DiffPanelImpl diffPanel, final String filePathString) {
-        final Editor editor2 = diffPanel.getEditor2();
+    private void handleComments(final DiffPanelImpl diffPanel, final String filePathString) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
 
-        addCommentAction(editor2, filePath, changeInfo);
+        addCommentAction(diffPanel, filePath, changeInfo);
 
         gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
             @Override
@@ -117,35 +117,51 @@ public class CommentsDiffTool extends FrameDiffTool {
                     new Consumer<TreeMap<String, List<CommentInfo>>>() {
                         @Override
                         public void consume(TreeMap<String, List<CommentInfo>> comments) {
-                            addCommentsGutter(editor2, filePath, comments, changeInfo, project);
+                            addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
                         }
                     });
+
+                String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
+                String relativePath = filePathString.replace(repositoryPath + File.separator, "");
+                gerritUtil.getChangeReviewed(changeDetails.getId(), changeDetails.getCurrentRevision(),
+                        relativePath, true, project);
             }
         });
     }
 
-    private void addCommentAction(@Nullable final Editor editor2,
+    private void addCommentAction(final DiffPanelImpl diffPanel,
                                   @Nullable final FilePath filePath,
                                   ChangeInfo changeInfo) {
-        if (editor2 != null) {
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, CommentBase.CommentSide.PARENT);
+            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, CommentBase.CommentSide.REVISION);
+    }
+
+    private void addCommentActionToEditor(@Nullable Editor editor,
+                                          @Nullable FilePath filePath,
+                                          ChangeInfo changeInfo,
+                                          CommentBase.CommentSide commentSide) {
+        if (editor != null) {
             DefaultActionGroup group = new DefaultActionGroup();
             final AddCommentAction addCommentAction = addCommentActionBuilder.build(
                     reviewCommentSink,
                     changeInfo,
-                    editor2,
-                    filePath);
-            addCommentAction.setContextComponent(editor2.getComponent());
+                    editor,
+                    filePath,
+                    commentSide);
+            addCommentAction.setContextComponent(editor.getComponent());
             group.add(addCommentAction);
-            PopupHandler.installUnknownPopupHandler(editor2.getContentComponent(), group, ActionManager.getInstance());
+            PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
         }
     }
 
-    private void addCommentsGutter(Editor editor2, FilePath filePath, TreeMap<String, List<CommentInfo>> comments, ChangeInfo changeInfo, Project project) {
+    private void addCommentsGutter(DiffPanelImpl diffPanel,
+                                   FilePath filePath,
+                                   TreeMap<String, List<CommentInfo>> comments,
+                                   ChangeInfo changeInfo,
+                                   Project project) {
+        String repositoryPath = getGitRepositoryPathForChange(project, changeInfo);
+
         List<CommentInfo> fileComments = Lists.newArrayList();
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
-        if (!gitRepositoryOptional.isPresent()) return;
-        GitRepository repository = gitRepositoryOptional.get();
-        String repositoryPath = repository.getRoot().getPath();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
                 fileComments = entry.getValue();
@@ -160,11 +176,21 @@ public class CommentsDiffTool extends FrameDiffTool {
             }
         }
 
-        final MarkupModel markup = editor2.getMarkupModel();
         for (CommentInfo fileComment : fileComments) {
+            MarkupModel markup;
+            if (fileComment.getSide() != null && fileComment.getSide().equals(CommentBase.CommentSide.PARENT)) {
+                markup = diffPanel.getEditor1().getMarkupModel();
+            } else {
+                markup = diffPanel.getEditor2().getMarkupModel();
+            }
+            int lineCount = markup.getDocument().getLineCount();
+
             int line = fileComment.getLine() - 1;
             if (line < 0) {
                 line = 0;
+            }
+            if (line > lineCount - 1) {
+                line = lineCount - 1;
             }
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
@@ -193,5 +219,13 @@ public class CommentsDiffTool extends FrameDiffTool {
 
     private boolean isForCurrentFile(FilePath currentFilePath, String projectFilePath, String repositoryPath) {
         return currentFilePath.getPath().equals(repositoryPath + File.separator + projectFilePath);
+    }
+
+    private String getGitRepositoryPathForChange(Project project, ChangeInfo changeInfo) {
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        if (!gitRepositoryOptional.isPresent()) return null;
+        GitRepository repository = gitRepositoryOptional.get();
+        String repositoryPath = repository.getRoot().getPath();
+        return repositoryPath;
     }
 }

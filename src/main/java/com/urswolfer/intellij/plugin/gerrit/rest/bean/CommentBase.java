@@ -24,10 +24,15 @@ import java.util.Date;
  * @author Urs Wolfer
  */
 public abstract class CommentBase {
+
+    public static enum CommentSide {
+        PARENT, REVISION
+    }
+
     protected String kind = "gerritcodereview#comment";
     protected String id;
     protected String path;
-    protected String side;
+    protected CommentSide side = CommentSide.REVISION; // rest api only sends PARENT; REVISION is default
     protected int line;
     @SerializedName("in_reply_to")
     protected String inReplyTo;
@@ -58,11 +63,11 @@ public abstract class CommentBase {
         this.path = path;
     }
 
-    public String getSide() {
+    public CommentSide getSide() {
         return side;
     }
 
-    public void setSide(String side) {
+    public void setSide(CommentSide side) {
         this.side = side;
     }
 

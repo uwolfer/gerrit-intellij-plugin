@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.util;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 
 /**
  * @author Urs Wolfer
@@ -26,4 +27,5 @@ import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 public interface GerritDataKeys {
     DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
     DataKey<ReviewCommentSink> REVIEW_COMMENT_SINK = DataKey.create("gerrit.ReviewCommentSink");
+    DataKey<GerritToolWindow> TOOL_WINDOW = DataKey.create("gerrit.ToolWindow");
 }

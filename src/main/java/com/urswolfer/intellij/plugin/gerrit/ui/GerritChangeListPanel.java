@@ -35,6 +35,7 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.LabelInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,6 +65,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
+    private GerritToolWindow gerritToolWindow;
 
     public GerritChangeListPanel() {
         this.changes = Lists.newArrayList();
@@ -128,6 +130,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     // Make changes available for diff action
     @Override
     public void calcData(DataKey key, DataSink sink) {
+        sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
+
         if (VcsDataKeys.CHANGES.equals(key)) {
             int[] rows = table.getSelectedRows();
             if (rows.length != 1) return;
@@ -159,6 +163,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         this.changes.addAll(changes);
         updateModel();
         table.repaint();
+    }
+
+    public void registerChangeListPanel(GerritToolWindow gerritToolWindow) {
+        this.gerritToolWindow = gerritToolWindow;
     }
 
     private void updateModel() {

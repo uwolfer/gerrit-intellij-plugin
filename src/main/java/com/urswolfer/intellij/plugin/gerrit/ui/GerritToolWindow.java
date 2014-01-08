@@ -94,6 +94,7 @@ public class GerritToolWindow {
     private ChangeInfo selectedChange;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
+        changeListPanel.registerChangeListPanel(this);
         diffManager.registerDiffTool(commentsDiffTool);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);
@@ -225,7 +226,8 @@ public class GerritToolWindow {
     }
 
     private ActionToolbar createToolbar(final Project project) {
-        DefaultActionGroup group = (DefaultActionGroup) ActionManager.getInstance().getAction("Gerrit.Toolbar");
+        DefaultActionGroup groupFromConfig = (DefaultActionGroup) ActionManager.getInstance().getAction("Gerrit.Toolbar");
+        DefaultActionGroup group = new DefaultActionGroup(groupFromConfig); // copy required (otherwise config action group gets modified)
 
         DefaultActionGroup filterGroup = new DefaultActionGroup();
         Iterable<ChangesFilter> filters = changesFilters.getFilters();

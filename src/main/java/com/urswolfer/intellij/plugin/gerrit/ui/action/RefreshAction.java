@@ -26,14 +26,13 @@ import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 
 /**
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class RefreshAction extends AnAction implements DumbAware {
-    @Inject
-    private GerritToolWindow gerritToolWindow;
     @Inject
     private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
 
@@ -43,7 +42,8 @@ public class RefreshAction extends AnAction implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        final Project project = e.getData(PlatformDataKeys.PROJECT);
+        Project project = e.getData(PlatformDataKeys.PROJECT);
+        GerritToolWindow gerritToolWindow = e.getRequiredData(GerritDataKeys.TOOL_WINDOW);
         gerritToolWindow.reloadChanges(project, true);
         gerritUpdatesNotificationComponent.handleNotification();
     }

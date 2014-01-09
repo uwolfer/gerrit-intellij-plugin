@@ -535,6 +535,7 @@ public class GerritUtil {
      */
     public boolean checkCredentials(final Project project) {
         try {
+            gerritSettings.preloadPassword();
             return checkCredentials(project, gerritSettings);
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
@@ -571,6 +572,7 @@ public class GerritUtil {
             }
         }
         // Otherwise our credentials are valid and they are successfully stored in settings
+        gerritSettings.preloadPassword();
         return accessToGerritWithModalProgress(project, new ThrowableComputable<List<ProjectInfo>, Exception>() {
             @Override
             public List<ProjectInfo> compute() throws Exception {

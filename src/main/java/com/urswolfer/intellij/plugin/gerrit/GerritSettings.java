@@ -163,6 +163,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return login;
     }
 
+    /**
+     * Password cannot be loaded from async tasks. In that case we need to request it before from the UI thread.
+     */
     public void preloadPassword() {
         cachedPassword = Optional.of(getPassword());
     }

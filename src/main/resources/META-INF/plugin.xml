@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.0</version>
+  <version>0.6.1-SNAPSHOT</version>
   <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
 
   <description><![CDATA[
@@ -72,6 +72,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.6.1</li>
+          <ul>
+            <li>fix issues with multiple windows (projects)</li>
+            <li>fix Gerrit checkout in case of empty settings</li>
+          </ul>
           <li>0.6</li>
           <ul>
             <li>support for starring changes (show in list and set / unset icon)</li>

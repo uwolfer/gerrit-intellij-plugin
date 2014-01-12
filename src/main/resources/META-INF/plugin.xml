@@ -1,5 +1,5 @@
 <!--
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
   <version>0.6.1-SNAPSHOT</version>
-  <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
+  <vendor email="uwolfer@fwo.ch"
+          url="https://github.com/uwolfer/gerrit-intellij-plugin"
+          logo="/icons/gerrit.png">Urs Wolfer</vendor>
 
   <description><![CDATA[
       <p>
@@ -166,8 +168,8 @@
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable$Proxy"/>
 
-    <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
-    </toolWindow>
+    <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
+                factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">

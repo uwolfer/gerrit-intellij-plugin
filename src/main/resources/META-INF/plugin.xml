@@ -78,6 +78,7 @@
           <ul>
             <li>fix issues with multiple windows (projects)</li>
             <li>fix Gerrit checkout in case of empty settings</li>
+            <li>add custom error handler: you can report exceptions now directly from IDE</li>
           </ul>
           <li>0.6</li>
           <ul>
@@ -170,6 +171,8 @@
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+
+    <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">
@@ -216,6 +219,11 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction$Proxy">
       <add-to-group group-id="Gerrit.Toolbar" anchor="last"/>
     </action>
+    <!-- this is just an action to test error reporting - do not enable!
+    <action id="Gerrit.ThrowTestExceptionAction" text="Throw Test Exception"
+            class="com.urswolfer.intellij.plugin.gerrit.errorreport.ThrowTestExceptionAction">
+      <add-to-group group-id="Gerrit.Toolbar" anchor="before" relative-to-action="Gerrit.Settings"/>
+    </action-->
 
     <action id="Gerrit.ReviewPlusTwoProxy" text="+2"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusTwoProxy">

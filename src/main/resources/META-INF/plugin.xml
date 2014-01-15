@@ -1,5 +1,5 @@
 <!--
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.1-SNAPSHOT</version>
-  <vendor email="uwolfer@fwo.ch" url="https://github.com/uwolfer/gerrit-intellij-plugin">Urs Wolfer</vendor>
+  <version>0.6.1</version>
+  <vendor email="uwolfer@fwo.ch"
+          url="https://github.com/uwolfer/gerrit-intellij-plugin"
+          logo="/icons/gerrit.png">Urs Wolfer</vendor>
 
   <description><![CDATA[
       <p>
@@ -76,6 +78,8 @@
           <ul>
             <li>fix issues with multiple windows (projects)</li>
             <li>fix Gerrit checkout in case of empty settings</li>
+            <li>improve icons (hi-dpi ready)</li>
+            <li>add custom error handler: you can report exceptions now directly from IDE</li>
           </ul>
           <li>0.6</li>
           <ul>
@@ -166,8 +170,10 @@
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable$Proxy"/>
 
-    <toolWindow id="Gerrit" icon="/icons/gerrit.png" anchor="bottom" factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory">
-    </toolWindow>
+    <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
+                factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+
+    <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">
@@ -214,6 +220,11 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction$Proxy">
       <add-to-group group-id="Gerrit.Toolbar" anchor="last"/>
     </action>
+    <!-- this is just an action to test error reporting - do not enable!
+    <action id="Gerrit.ThrowTestExceptionAction" text="Throw Test Exception"
+            class="com.urswolfer.intellij.plugin.gerrit.errorreport.ThrowTestExceptionAction">
+      <add-to-group group-id="Gerrit.Toolbar" anchor="before" relative-to-action="Gerrit.Settings"/>
+    </action-->
 
     <action id="Gerrit.ReviewPlusTwoProxy" text="+2"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusTwoProxy">

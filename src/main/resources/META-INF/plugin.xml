@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.1-SNAPSHOT</version>
+  <version>0.6.1</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -78,6 +78,7 @@
           <ul>
             <li>fix issues with multiple windows (projects)</li>
             <li>fix Gerrit checkout in case of empty settings</li>
+            <li>improve icons (hi-dpi ready)</li>
             <li>add custom error handler: you can report exceptions now directly from IDE</li>
           </ul>
           <li>0.6</li>

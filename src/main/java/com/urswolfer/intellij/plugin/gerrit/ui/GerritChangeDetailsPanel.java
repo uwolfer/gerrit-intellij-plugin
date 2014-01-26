@@ -26,6 +26,7 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
+import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -191,7 +192,7 @@ public class GerritChangeDetailsPanel {
                         }
                         sb.append(": ");
                     }
-                    sb.append(changeMessageInfo.getMessage()).append("<br/>");
+                    sb.append(TextToHtml.textToHtml(changeMessageInfo.getMessage())).append("<br/>");
                 }
                 sb.append("</td></tr>");
             }

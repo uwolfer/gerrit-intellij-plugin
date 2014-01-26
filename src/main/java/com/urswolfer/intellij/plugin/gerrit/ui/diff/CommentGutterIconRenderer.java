@@ -26,6 +26,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
+import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,7 +80,9 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Nullable
     @Override
     public String getTooltipText() {
-        return String.format("<strong>%s</strong><br/>%s", fileComment.getAuthor().getName(), fileComment.getMessage());
+        return String.format("<strong>%s</strong><br/>%s",
+                fileComment.getAuthor().getName(),
+                TextToHtml.textToHtml(fileComment.getMessage()));
     }
 
     @Nullable

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
@@ -28,37 +28,22 @@ public class ReviewDialog extends DialogWrapper {
 
     private final ReviewPanel reviewPanel;
 
-    public ReviewDialog() {
-        super(true);
-        reviewPanel = new ReviewPanel(this);
+    public ReviewDialog(Project project) {
+        super(project, true);
+        reviewPanel = new ReviewPanel(project);
         setTitle("Review Change");
         setOKButtonText("Review");
         init();
     }
 
-    @NotNull
-    protected Action[] createActions() {
-        return new Action[]{getOKAction(), getCancelAction(), getHelpAction()};
-    }
-
     @Override
     protected JComponent createCenterPanel() {
-        return reviewPanel.getPanel();
-    }
-
-    @Override
-    protected String getHelpId() {
-        return "gerrit_review";
+        return reviewPanel;
     }
 
     @Override
     public JComponent getPreferredFocusedComponent() {
         return reviewPanel.getPreferrableFocusComponent();
-    }
-
-    @Override
-    protected void doOKAction() {
-        super.doOKAction();
     }
 
     public ReviewPanel getReviewPanel() {

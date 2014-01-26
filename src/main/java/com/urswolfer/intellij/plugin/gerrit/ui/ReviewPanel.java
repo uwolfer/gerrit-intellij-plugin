@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,30 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.ui.CommitMessage;
+import com.intellij.ui.EditorTextField;
+
 import javax.swing.*;
+import java.awt.*;
 
 /**
  * @author Urs Wolfer
  */
-public class ReviewPanel {
-    private JPanel pane;
-    private JTextArea messageField;
+public class ReviewPanel extends JPanel {
+    private EditorTextField messageField;
     private JCheckBox submitCheckBox;
 
-    public ReviewPanel(final ReviewDialog dialog) {
-    }
+    public ReviewPanel(Project project) {
+        super(new BorderLayout());
 
-    public JComponent getPanel() {
-        return pane;
+        messageField = CommitMessage.createCommitTextEditor(project, false);
+        add(messageField, BorderLayout.CENTER);
+
+        submitCheckBox = new JCheckBox("Submit Change");
+        add(submitCheckBox, BorderLayout.SOUTH);
+
+        setBorder(BorderFactory.createEmptyBorder());
     }
 
     public void setMessage(final String message) {
@@ -47,6 +56,11 @@ public class ReviewPanel {
 
     public JComponent getPreferrableFocusComponent() {
         return messageField;
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(600, 400);
     }
 }
 

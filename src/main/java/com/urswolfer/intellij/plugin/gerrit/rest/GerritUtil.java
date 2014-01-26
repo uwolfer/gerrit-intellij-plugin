@@ -353,7 +353,7 @@ public class GerritUtil {
     }
 
     public void getChangeDetails(@NotNull String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
-        final String request = "/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES";
+        final String request = "/changes/?q=" + changeNr + "&o=CURRENT_REVISION&o=MESSAGES&o=LABELS&o=DETAILED_LABELS";
         gerritRestAccess.getRequest(request, project, new Consumer<ConsumerResult<JsonElement>>() {
             @Override
             public void consume(final ConsumerResult<JsonElement> result) {

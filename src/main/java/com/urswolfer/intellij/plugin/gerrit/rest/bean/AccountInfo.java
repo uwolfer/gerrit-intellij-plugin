@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,5 +68,37 @@ public class AccountInfo {
                 ", email='" + email + '\'' +
                 ", username='" + username + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AccountInfo)) return false;
+
+        AccountInfo that = (AccountInfo) o;
+
+        if (accountId != null && that.accountId != null) {
+            if (!accountId.equals(that.accountId)) return false;
+        }
+        if (name != null && that.name != null) {
+            if (!name.equals(that.name)) return false;
+        }
+        if (email != null && that.email != null) {
+            if (!email.equals(that.email)) return false;
+        }
+        if (username != null && that.username != null) {
+            if (!username.equals(that.username)) return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = accountId != null ? accountId.hashCode() : 0;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (email != null ? email.hashCode() : 0);
+        result = 31 * result + (username != null ? username.hashCode() : 0);
+        return result;
     }
 }

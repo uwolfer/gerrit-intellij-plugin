@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.Date;
+
 /**
  * @author Urs Wolfer
  */
@@ -27,6 +29,7 @@ public class ChangeMessageInfo {
     private String message;
     @SerializedName("_revision_number")
     private String revisionNumber;
+    private Date date;
 
     public String getId() {
         return id;
@@ -60,6 +63,14 @@ public class ChangeMessageInfo {
         this.revisionNumber = revisionNumber;
     }
 
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -67,21 +78,24 @@ public class ChangeMessageInfo {
 
         ChangeMessageInfo that = (ChangeMessageInfo) o;
 
-        if (!id.equals(that.id)) return false;
-        if (message != null ? !message.equals(that.message) : that.message != null) return false;
-        if (author != null ? !author.equals(that.author) : that.author != null) return false;
-        if (revisionNumber != null ? !revisionNumber.equals(that.revisionNumber) : that.revisionNumber != null)
-            return false;
+        if (id != null ? !id.equals(that.id) : that.id != null) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        int result = id.hashCode();
-        result = 31 * result + (author != null ? author.hashCode() : 0);
-        result = 31 * result + (message != null ? message.hashCode() : 0);
-        result = 31 * result + (revisionNumber != null ? revisionNumber.hashCode() : 0);
-        return result;
+        return id != null ? id.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return "ChangeMessageInfo{" +
+                "id='" + id + '\'' +
+                ", author=" + author +
+                ", message='" + message + '\'' +
+                ", revisionNumber='" + revisionNumber + '\'' +
+                ", date=" + date +
+                '}';
     }
 }

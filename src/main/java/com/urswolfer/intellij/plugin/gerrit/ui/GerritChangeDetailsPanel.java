@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  * Copyright 2000-2011 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,19 +18,20 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 
+import com.google.common.collect.Lists;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.issueLinks.IssueLinkHtmlRenderer;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.AccountInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeMessageInfo;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parts based on:
@@ -101,6 +102,7 @@ public class GerritChangeDetailsPanel {
             jEditorPane.setText(presentationData.getText());
             panel.revalidate();
             panel.repaint();
+            jEditorPane.setCaretPosition(0);
         }
     }
 
@@ -118,9 +120,16 @@ public class GerritChangeDetailsPanel {
         }
 
         public void setCommit(final ChangeInfo changeInfo) {
-            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.getSubject());
+            StringBuilder stringBuilder = new StringBuilder();
+            addMetaData(changeInfo, stringBuilder);
+            addLabels(changeInfo, stringBuilder);
+            addMessages(changeInfo, stringBuilder);
+            startPattern = stringBuilder.toString();
+        }
 
-            final StringBuilder sb = new StringBuilder().append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
+        private void addMetaData(ChangeInfo changeInfo, StringBuilder sb) {
+            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.getSubject());
+            sb.append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
                     .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.getChangeId()).append("</b></td></tr>")
                     .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.getOwner().getName()).append("</td></tr>")
@@ -135,20 +144,57 @@ public class GerritChangeDetailsPanel {
                     .append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.getStatus()).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
+        }
 
+        private void addLabels(ChangeInfo changeInfo, StringBuilder sb) {
+            if (changeInfo.getLabels() != null) {
+                List<ApprovalInfo> ccAccounts = null;
+                for (Map.Entry<String, LabelInfo> labelInfoEntry : changeInfo.getLabels().entrySet()) {
+                    sb.append("<tr valign=\"top\"><td><i>").append(labelInfoEntry.getKey()).append(":</i></td><td>");
+                    List<ApprovalInfo> all = labelInfoEntry.getValue().getAll();
+                    if (ccAccounts == null) {
+                        if (all != null) {
+                            ccAccounts = Lists.newArrayList(all);
+                        } else {
+                            ccAccounts = Lists.newArrayList();
+                        }
+                    }
+                    if (all != null) {
+                        for (ApprovalInfo approvalInfo : all) {
+                            if (approvalInfo.getValue() != 0) {
+                                sb.append("<b>").append(approvalInfo.getName()).append("</b>").append(": ");
+                                sb.append(approvalInfo.getValue()).append("<br/>");
+                                ccAccounts.remove(approvalInfo); // remove accounts from CC which are already listed in a review section
+                            }
+                        }
+                    }
+                    sb.append("</td></tr>");
+                }
+                if (ccAccounts != null) {
+                    sb.append("<tr valign=\"top\"><td><i>").append("CC").append(":</i></td><td>");
+                    for (ApprovalInfo approvalInfo : ccAccounts) {
+                        sb.append("<b>").append(approvalInfo.getName()).append("</b>").append("<br/>");
+                    }
+                }
+            }
+        }
+
+        private void addMessages(ChangeInfo changeInfo, StringBuilder sb) {
             if (changeInfo.getMessages() != null && changeInfo.getMessages().length > 0) {
                 sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
                 for (ChangeMessageInfo changeMessageInfo : changeInfo.getMessages()) {
                     AccountInfo author = changeMessageInfo.getAuthor();
                     if (author != null && author.getName() != null) {
-                        sb.append("<b>").append(author.getName()).append("</b>").append(": ");
+                        sb.append("<b>").append(author.getName()).append("</b>");
+                        if (changeMessageInfo.getDate() != null) {
+                            sb.append(" (").append(DateFormatUtil.formatPrettyDateTime(changeMessageInfo.getDate())).append(')');
+                        }
+                        sb.append(": ");
                     }
                     sb.append(changeMessageInfo.getMessage()).append("<br/>");
                 }
                 sb.append("</td></tr>");
             }
-
-            startPattern = sb.toString();
         }
 
         public boolean isReady() {

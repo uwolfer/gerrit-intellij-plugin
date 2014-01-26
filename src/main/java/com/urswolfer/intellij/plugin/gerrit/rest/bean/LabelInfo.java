@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest.bean;
 
+import java.util.List;
+
 /**
  * @author Urs Wolfer
  */
@@ -24,6 +26,7 @@ public class LabelInfo {
     private AccountInfo rejected;
     private AccountInfo recommended;
     private AccountInfo disliked;
+    private List<ApprovalInfo> all;
     private String value;
 
     public AccountInfo getApproved() {
@@ -64,6 +67,14 @@ public class LabelInfo {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public List<ApprovalInfo> getAll() {
+        return all;
+    }
+
+    public void setAll(List<ApprovalInfo> all) {
+        this.all = all;
     }
 
     @Override

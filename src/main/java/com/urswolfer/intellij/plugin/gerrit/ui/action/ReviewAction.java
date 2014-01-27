@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ public class ReviewAction extends AbstractChangeAction {
 
                 boolean submitChange = false;
                 if (showDialog) {
-                    final ReviewDialog dialog = new ReviewDialog();
+                    final ReviewDialog dialog = new ReviewDialog(project);
                     dialog.show();
                     if (!dialog.isOK()) {
                         return;

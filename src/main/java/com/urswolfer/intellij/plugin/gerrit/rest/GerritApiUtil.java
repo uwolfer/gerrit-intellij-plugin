@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -45,7 +46,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,6 +57,7 @@ import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -259,7 +260,7 @@ public class GerritApiUtil {
             ;
         client.setDefaultRequestConfig(requestConfig.build());
 
-        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        CredentialsProvider credentialsProvider = getCredentialsProvider();
         client.setDefaultCredentialsProvider(credentialsProvider);
 
         // Configure proxySettings if it is required
@@ -281,12 +282,32 @@ public class GerritApiUtil {
 
             BasicScheme basicAuth = new BasicScheme();
             httpContext.setAttribute(PREEMPTIVE_AUTH, basicAuth);
-            client.addInterceptorFirst(new PreemptiveAuthHttpRequestInterceptor());
+            client.addInterceptorFirst(new PreemptiveAuthHttpRequestInterceptor(authData));
         }
 
         client.addInterceptorLast(new UserAgentHttpRequestInterceptor());
 
         return client;
+    }
+
+    /**
+     * With this impl, it only returns the same credentials once. Otherwise it's possible that a loop will occur.
+     * When server returns status code 401, the HTTP client provides the same credentials forever.
+     * Since we create a new HTTP client for every request, we can handle it this way.
+     */
+    private BasicCredentialsProvider getCredentialsProvider() {
+        return new BasicCredentialsProvider() {
+            private Set<AuthScope> authAlreadyTried = Sets.newHashSet();
+
+            @Override
+            public Credentials getCredentials(AuthScope authscope) {
+                if (authAlreadyTried.contains(authscope)) {
+                    return null;
+                }
+                authAlreadyTried.add(authscope);
+                return super.getCredentials(authscope);
+            }
+        };
     }
 
     @NotNull
@@ -329,19 +350,20 @@ public class GerritApiUtil {
      * https://subversion.jfrog.org/jfrog/build-info/trunk/build-info-client/src/main/java/org/jfrog/build/client/PreemptiveHttpClient.java
      */
     private static class PreemptiveAuthHttpRequestInterceptor implements HttpRequestInterceptor {
+        private GerritAuthData authData;
+
+        public PreemptiveAuthHttpRequestInterceptor(GerritAuthData authData) {
+            this.authData = authData;
+        }
+
         public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
             AuthState authState = (AuthState) context.getAttribute(HttpClientContext.TARGET_AUTH_STATE);
 
             // if no auth scheme available yet, try to initialize it preemptively
             if (authState.getAuthScheme() == null) {
-                AuthScheme authScheme = (AuthScheme) context.getAttribute("preemptive-auth");
-                CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(HttpClientContext.CREDS_PROVIDER);
-                HttpHost targetHost = (HttpHost) context.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
+                AuthScheme authScheme = (AuthScheme) context.getAttribute(PREEMPTIVE_AUTH);
                 if (authScheme != null) {
-                    Credentials creds = credsProvider.getCredentials(new AuthScope(targetHost.getHostName(), targetHost.getPort()));
-                    if (creds == null) {
-                        throw new HttpException("No credentials for preemptive authentication found");
-                    }
+                    UsernamePasswordCredentials creds = new UsernamePasswordCredentials(authData.getLogin(), authData.getPassword());
                     authState.update(authScheme, creds);
                 }
             }

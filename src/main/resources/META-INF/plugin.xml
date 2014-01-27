@@ -76,6 +76,9 @@
 
           <li>0.6.2</li>
           <ul>
+            <li>improve review comment dialog (editor with spell-checking, better size, preview)</li>
+            <li>better display of comment (properly display multi-line and formatted comments)</li>
+            <li>show review status (and CC'ed reviewers) in change detail panel</li>
             <li>fix possible indefinite HTTP request loop (in case of Gerrit server errors)</li>
           </ul>
           <li>0.6.1</li>

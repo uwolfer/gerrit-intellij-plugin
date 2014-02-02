@@ -24,7 +24,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.diff.DiffRequest;
 import com.intellij.openapi.diff.impl.DiffPanelImpl;
 import com.intellij.openapi.diff.impl.external.DiffManagerImpl;
@@ -79,9 +78,6 @@ public class CommentsDiffTool extends FrameDiffTool {
     @Inject
     private ReviewCommentSink reviewCommentSink;
 
-    private ChangeInfo changeInfo;
-    private Project project;
-
     @Override
     public boolean canShow(DiffRequest request) {
         final boolean superCanShow = super.canShow(request);
@@ -90,22 +86,26 @@ public class CommentsDiffTool extends FrameDiffTool {
         final DataContext context = dataContextFromFocus.getResult();
         if (context == null) return false;
 
-        changeInfo = GerritDataKeys.CHANGE.getData(context);
-        project = PlatformDataKeys.PROJECT.getData(context);
-
+        ChangeInfo changeInfo = GerritDataKeys.CHANGE.getData(context);
         return superCanShow && changeInfo != null;
     }
 
     @Nullable
     @Override
     protected DiffPanelImpl createDiffPanelImpl(@NotNull DiffRequest request, @Nullable Window window, @NotNull Disposable parentDisposable) {
-        DiffPanelImpl diffPanel = new CommentableDiffPanel(window, request);
+        DataContext context = dataManager.getDataContextFromFocus().getResult();
+        ChangeInfo changeInfo = GerritDataKeys.CHANGE.getData(context);
+
+        DiffPanelImpl diffPanel = new CommentableDiffPanel(window, request, changeInfo);
         diffPanel.setDiffRequest(request);
         Disposer.register(parentDisposable, diffPanel);
         return diffPanel;
     }
 
-    private void handleComments(final DiffPanelImpl diffPanel, final String filePathString) {
+    private void handleComments(final DiffPanelImpl diffPanel,
+                                final String filePathString,
+                                final Project project,
+                                final ChangeInfo changeInfo) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
 
         addCommentAction(diffPanel, filePath, changeInfo);
@@ -184,6 +184,9 @@ public class CommentsDiffTool extends FrameDiffTool {
                 markup = diffPanel.getEditor2().getMarkupModel();
             }
             int lineCount = markup.getDocument().getLineCount();
+            if (lineCount <= 0) {
+                return;
+            }
 
             int line = fileComment.getLine() - 1;
             if (line < 0) {
@@ -198,8 +201,13 @@ public class CommentsDiffTool extends FrameDiffTool {
     }
 
     private class CommentableDiffPanel extends DiffPanelImpl {
-        public CommentableDiffPanel(Window window, DiffRequest request) {
+        private ChangeInfo changeInfo;
+
+        public CommentableDiffPanel(Window window,
+                                    DiffRequest request,
+                                    ChangeInfo changeInfo) {
             super(window, request.getProject(), true, true, DiffManagerImpl.FULL_DIFF_DIVIDER_POLYGONS_OFFSET, CommentsDiffTool.this);
+            this.changeInfo = changeInfo;
         }
 
         @Override
@@ -211,7 +219,7 @@ public class CommentsDiffTool extends FrameDiffTool {
                 DiffRequestPresentable currentRequest = ((ChangeRequestChain) chain).getCurrentRequest();
                 if (currentRequest != null) {
                     String path = currentRequest.getPathPresentation();
-                    handleComments(this, path);
+                    handleComments(this, path, request.getProject(), changeInfo);
                 }
             }
         }

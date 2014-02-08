@@ -306,7 +306,10 @@ public class GerritUtil {
         for (GitRemote remote : remotes) {
             for (String repositoryUrl : remote.getUrls()) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
-                    projectNames.add("project:" + getProjectName(gerritSettings.getHost(), repositoryUrl));
+                    String projectName = getProjectName(gerritSettings.getHost(), repositoryUrl);
+                    if (Strings.isNullOrEmpty(projectName)) {
+                        projectNames.add("project:" + projectName);
+                    }
                 }
             }
         }
@@ -325,7 +328,9 @@ public class GerritUtil {
         String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
         String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
-        path = path.substring(basePath.length());
+        if (path.length() >= basePath.length()) {
+            path = path.substring(basePath.length());
+        }
 
         path = path.replace(".git", ""); // some repositories end their name with ".git"
 

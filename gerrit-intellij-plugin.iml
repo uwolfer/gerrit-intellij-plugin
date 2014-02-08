@@ -13,13 +13,13 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:idea:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:openapi:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:util:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:extensions:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:annotations:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:git4idea:13.eap.425" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:forms_rt:13.eap.425" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:idea:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:openapi:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:util:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:extensions:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:annotations:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:git4idea:13" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:forms_rt:13" level="project" />
     <orderEntry type="library" name="Maven: com.google.inject:guice:4.0-beta" level="project" />
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
     <orderEntry type="library" name="Maven: aopalliance:aopalliance:1.0" level="project" />

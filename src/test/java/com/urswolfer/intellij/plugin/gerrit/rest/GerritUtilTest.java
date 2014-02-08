@@ -139,6 +139,13 @@ public class GerritUtilTest {
                         "http://gerrit.server/r",
                         "http://gerrit.server/r/project/blah/test.git"
                 ));
+
+        // should not fail with an StringIndexOutOfBoundsException
+        Assert.assertEquals("",
+                getProjectName.invoke(gerritUtil,
+                        "http://gerrit.server",
+                        "http://gerrit.server"
+                ));
     }
 
     @Test

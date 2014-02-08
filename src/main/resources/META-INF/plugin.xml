@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.2-SNAPSHOT</version>
+  <version>0.6.2</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -70,6 +70,10 @@
 
       <p>
         <ul>
+          <li><strong>Important Note:</strong> You can report exception-issues directly from your IDE. Please
+          add at least a comment what you have done when it occured / how you can reproduce it. It would be even better
+          when add an email address so I can contact you in case of questions.</li>
+
           <li>Would you like to try test-builds of this plugin before official release? Please check out: <a
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
@@ -80,6 +84,7 @@
             <li>better display of comment (properly display multi-line and formatted comments)</li>
             <li>show review status (and CC'ed reviewers) in change detail panel</li>
             <li>fix possible indefinite HTTP request loop (in case of Gerrit server errors)</li>
+            <li>minor fixes and improvements</li>
           </ul>
           <li>0.6.1</li>
           <ul>

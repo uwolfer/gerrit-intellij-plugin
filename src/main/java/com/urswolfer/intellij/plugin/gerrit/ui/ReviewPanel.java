@@ -46,7 +46,7 @@ public class ReviewPanel extends JPanel {
         messageField.setBorder(BorderFactory.createEmptyBorder());
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);
-        messagePanel.add(new JLabel("Write your review comment here. You can use a simple markdown-like syntax."), BorderLayout.SOUTH);
+        messagePanel.add(new JLabel("Write your comment here. You can use a simple markdown-like syntax."), BorderLayout.SOUTH);
         tabbedPane.addTab("Write", AllIcons.Actions.Edit, messagePanel);
 
         final JEditorPane previewEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
@@ -92,6 +92,10 @@ public class ReviewPanel extends JPanel {
     @Override
     public Dimension getPreferredSize() {
         return new Dimension(600, 400);
+    }
+
+    public void setSubmitCheckboxVisible(boolean visible) {
+        submitCheckBox.setVisible(visible);
     }
 }
 

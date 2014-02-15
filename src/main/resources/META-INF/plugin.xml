@@ -78,6 +78,10 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.6.3</li>
+          <ul>
+            <li>action to abandon a change</li>
+          </ul>
           <li>0.6.2</li>
           <ul>
             <li>improve review comment dialog (editor with spell-checking, better size, preview)</li>
@@ -218,6 +222,10 @@
     <action id="Gerrit.Submit" text="Submit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.ListPopup.Verify"/>
+    </action>
+    <action id="Gerrit.Abandon" text="Abandon"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.AbandonAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Submit"/>
     </action>
     <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction$Proxy">

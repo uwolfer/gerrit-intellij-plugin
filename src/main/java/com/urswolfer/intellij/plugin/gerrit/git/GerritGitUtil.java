@@ -312,7 +312,7 @@ public class GerritGitUtil {
 
             @Override
             protected void onFailure() {
-                log.error("Error fetching: " + h.errors());
+                log.warn("Error fetching: " + h.errors());
                 Collection<Exception> errors = Lists.newArrayList();
                 if (!h.hadAuthRequest()) {
                     errors.addAll(h.errors());

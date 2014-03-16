@@ -53,6 +53,15 @@ There are two workarounds for this issue:
 * allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit (should be preferred anyways)
 * use a recent Java setup (> 1.6)
 
+### Checking out from VCS with Gerrit plugin does not work
+Checking out directly with the Gerrit plugin does not work for some authentication methods. If you get an authentication
+error or checking out does not properly finish, you can try:
+* use SSH clone URL in checkout dialog (you can find the SSH URL in the Gerrit Web UI project settings)
+* or: check out with the default Git plugin and set up the Gerrit plugin manually afterwards
+
+You can find background information about this issue in a [Gerrit mailing list topic].
+[Gerrit mailing list topic]: https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820
+
 Architecture
 ------------
 ### IntelliJ Integration

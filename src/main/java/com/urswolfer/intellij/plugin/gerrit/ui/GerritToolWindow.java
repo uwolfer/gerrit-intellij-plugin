@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
@@ -190,7 +189,14 @@ public class GerritToolWindow {
                 try {
                     gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.getCurrentRevision()));
                 } catch (VcsException e) {
-                    throw Throwables.propagate(e);
+                    log.warn("Error getting Git commit details.", e);
+                    NotificationBuilder notification = new NotificationBuilder(
+                            project, "Cannot show change",
+                            "Git error occurred while getting commit. Please check if Gerrit is configured as remote " +
+                            "for the currently used Git repository."
+                    );
+                    notificationService.notifyError(notification);
+                    return null;
                 }
                 final GitHeavyCommit gitCommit = Iterables.get(gitCommits, 0);
 

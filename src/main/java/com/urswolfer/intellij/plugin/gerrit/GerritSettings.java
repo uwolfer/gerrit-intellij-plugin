@@ -62,6 +62,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String LIST_ALL_CHANGES = "ListAllChanges";
     private static final String REFRESH_TIMEOUT = "RefreshTimeout";
     private static final String REVIEW_NOTIFICATIONS = "ReviewNotifications";
+    private static final String PUSH_TO_GERRIT = "PushToGerrit";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
     private static final String TRUSTED_HOST = "HOST";
@@ -73,6 +74,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean automaticRefresh;
     private int refreshTimeout;
     private boolean refreshNotifications;
+    private boolean pushToGerrit;
     private Collection<String> trustedHosts = new ArrayList<String>();
 
     private Logger log;
@@ -106,6 +108,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
         element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
+        element.setAttribute(PUSH_TO_GERRIT, "" + getPushToGerrit());
         Element trustedHosts = new Element(TRUSTED_HOSTS);
         for (String host : this.trustedHosts) {
             Element hostEl = new Element(TRUSTED_HOST);
@@ -126,6 +129,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setAutomaticRefresh(getBooleanValue(element, AUTOMATIC_REFRESH));
             setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
             setReviewNotifications(getBooleanValue(element, REVIEW_NOTIFICATIONS));
+            setPushToGerrit(getBooleanValue(element, PUSH_TO_GERRIT));
 
             for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
                 Element trustedHosts = (Element) trustedHostsObj;
@@ -260,6 +264,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public void setReviewNotifications(final boolean reviewNotifications) {
         refreshNotifications = reviewNotifications;
+    }
+
+    public void setPushToGerrit(boolean pushToGerrit) {
+        this.pushToGerrit = pushToGerrit;
+    }
+
+    public boolean getPushToGerrit() {
+        return pushToGerrit;
     }
 
     @NotNull

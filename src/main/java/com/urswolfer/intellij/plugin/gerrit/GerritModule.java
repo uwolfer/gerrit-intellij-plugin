@@ -26,6 +26,7 @@ import com.intellij.openapi.components.ServiceManager;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritRestModule;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
@@ -67,6 +68,7 @@ public class GerritModule extends AbstractModule {
         bind(GerritToolWindow.class);
         bind(GerritCheckoutProvider.class);
         bind(GerritHttpAuthDataProvider.class);
+        bind(GerritPushExtension.class);
 
         install(new GerritActionsModule());
         install(new GerritDiffModule());

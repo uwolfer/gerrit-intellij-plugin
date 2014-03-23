@@ -177,6 +177,23 @@ public class GerritUtil {
         });
     }
 
+    public void postAbandon(@NotNull String changeId,
+                            @NotNull AbandonInput abandonInput,
+                            final Project project) {
+        final String request = "/changes/" + changeId + "/abandon";
+        String json = new Gson().toJson(abandonInput);
+        gerritRestAccess.postRequest(request, json, project, new Consumer<ConsumerResult<JsonElement>>() {
+            @Override
+            public void consume(ConsumerResult<JsonElement> result) {
+                if (result.getException().isPresent()) {
+                    NotificationBuilder notification = new NotificationBuilder(project, "Failed to abandon Gerrit change.",
+                            getErrorTextFromException(result.getException().get()));
+                    notificationService.notifyError(notification);
+                }
+            }
+        });
+    }
+
     /**
      * Star-endpoint added in Gerrit 2.8.
      */

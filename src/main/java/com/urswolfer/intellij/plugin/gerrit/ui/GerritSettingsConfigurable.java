@@ -72,7 +72,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 !Comparing.equal(gerritSettings.getAutomaticRefresh(), settingsPane.getAutomaticRefresh()) ||
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
-                !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()));
+                !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()) ||
+                !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()));
     }
 
     private boolean isPasswordModified() {
@@ -91,6 +92,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
             gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
             gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
+            gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
 
             gerritUpdatesNotificationComponent.handleConfigurationChange();
         }
@@ -107,6 +109,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             settingsPane.setAutomaticRefresh(gerritSettings.getAutomaticRefresh());
             settingsPane.setRefreshTimeout(gerritSettings.getRefreshTimeout());
             settingsPane.setReviewNotifications(gerritSettings.getReviewNotifications());
+            settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
         }
     }
 

@@ -54,6 +54,7 @@ public class SettingsPanel {
     private JCheckBox notificationOnNewReviewsCheckbox;
     private JCheckBox automaticRefreshCheckbox;
     private JCheckBox listAllChangesCheckbox;
+    private JCheckBox pushToGerritCheckbox;
 
     private boolean passwordModified;
 
@@ -188,6 +189,14 @@ public class SettingsPanel {
 
     public boolean getReviewNotifications() {
         return notificationOnNewReviewsCheckbox.isSelected();
+    }
+
+    public void setPushToGerrit(final boolean pushToGerrit) {
+        pushToGerritCheckbox.setSelected(pushToGerrit);
+    }
+
+    public boolean getPushToGerrit() {
+        return pushToGerritCheckbox.isSelected();
     }
 
     public boolean isPasswordModified() {

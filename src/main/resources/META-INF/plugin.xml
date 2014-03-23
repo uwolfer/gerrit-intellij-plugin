@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.2</version>
+  <version>0.6.3-SNAPSHOT</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -80,6 +80,7 @@
 
           <li>0.6.3</li>
           <ul>
+            <li>add settings in push dialog (allows to push to Gerrit without modifying remote branch)</li>
             <li>action to abandon a change</li>
           </ul>
           <li>0.6.2</li>
@@ -172,6 +173,12 @@
        on how to target different products -->
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
+
+  <application-components>
+    <component>
+      <implementation-class>com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension$Proxy</implementation-class>
+    </component>
+  </application-components>
 
   <project-components>
     <component>

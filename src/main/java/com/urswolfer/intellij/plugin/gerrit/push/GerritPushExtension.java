@@ -60,9 +60,9 @@ public class GerritPushExtension implements ApplicationComponent {
         try {
             boolean pushToGerrit = gerritSettings.getPushToGerrit();
 
-            CtClass citManualPushToBranchClass = classPool.get("git4idea.push.GitManualPushToBranch");
+            CtClass gitManualPushToBranchClass = classPool.get("git4idea.push.GitManualPushToBranch");
 
-            CtMethod loadComponentsMethod = citManualPushToBranchClass.getDeclaredMethod("layoutComponents");
+            CtMethod loadComponentsMethod = gitManualPushToBranchClass.getDeclaredMethod("layoutComponents");
             loadComponentsMethod.insertAfter(
                 "add(" +
                     "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel(" +
@@ -71,8 +71,8 @@ public class GerritPushExtension implements ApplicationComponent {
                 ");"
             );
 
-            citManualPushToBranchClass.toClass(classLoader, GitPusher.class.getProtectionDomain());
-            citManualPushToBranchClass.detach();
+            gitManualPushToBranchClass.toClass(classLoader, GitPusher.class.getProtectionDomain());
+            gitManualPushToBranchClass.detach();
         } catch (CannotCompileException e) {
             log.error("Failed to inject Gerrit push UI.", e);
         } catch (NotFoundException e) {

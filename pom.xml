@@ -69,20 +69,19 @@
     <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
-      <version>4.0-beta</version>
+      <version>4.0-beta4</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.google.inject.extensions</groupId>
       <artifactId>guice-multibindings</artifactId>
-      <version>4.0-beta</version>
+      <version>4.0-beta4</version>
       <scope>compile</scope>
     </dependency>
-
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.3.2</version>
+      <version>4.3.3</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>

@@ -21,6 +21,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
@@ -46,6 +48,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JCheckBox submitChangeCheckBox;
     private JTextField topicTextField;
     private JTextField reviewersTextField;
+    private JTextField ccTextField;
 
     private Optional<String> originalDestinationBranch = Optional.absent();
 
@@ -72,18 +75,31 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel();
-        indentedSettingPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        indentedSettingPanel.setLayout(new BoxLayout(indentedSettingPanel, BoxLayout.Y_AXIS));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(5, 2));
 
         draftChangeCheckBox = new JCheckBox("Draft-Change");
-        indentedSettingPanel.add(draftChangeCheckBox);
+        draftChangeCheckBox.setToolTipText("Publish change as draft (reviewers cannot submit change).");
+        indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         submitChangeCheckBox = new JCheckBox("Submit Change");
-        indentedSettingPanel.add(submitChangeCheckBox);
+        submitChangeCheckBox.setToolTipText("Changes can be directly submitted on push. This is primarily useful for " +
+                "teams that don't want to do code review but want to use Gerrit’s submit strategies to handle " +
+                "contention on busy branches. Using submit creates a change and submits it immediately, if the caller " +
+                "has submit permission.");
+        indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        indentedSettingPanel.add(createTopicSetting());
-        indentedSettingPanel.add(createReviewersSetting());
+        indentedSettingPanel.add(new JLabel("Topic:"), new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(topicTextField = new JTextField(), new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        topicTextField.setToolTipText("A short tag associated with all of the changes in the same group, such as the " +
+                "local topic branch name.");
+
+        indentedSettingPanel.add(new JLabel("Reviewers (Usernames comma-separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(reviewersTextField = new JTextField(), new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        reviewersTextField.setToolTipText("Users which will be addeds as reviewers.");
+
+        indentedSettingPanel.add(new JLabel("CC (Usernames comma-separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(ccTextField = new JTextField(), new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        ccTextField.setToolTipText("Users which will receive carbon copies of the notification message.");
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -98,30 +114,6 @@ public class GerritPushExtensionPanel extends JPanel {
         add(Box.createHorizontalGlue());
     }
 
-    private JPanel createTopicSetting() {
-        JPanel formLayoutedPanel = createFormLayoutedPanel("Topic:");
-        topicTextField = new JTextField();
-        formLayoutedPanel.add(topicTextField);
-        return formLayoutedPanel;
-    }
-
-    private JPanel createReviewersSetting() {
-        JPanel formLayoutedPanel = createFormLayoutedPanel("Reviewers (Usernames comma-separated):");
-        reviewersTextField = new JTextField();
-        formLayoutedPanel.add(reviewersTextField);
-        return formLayoutedPanel;
-    }
-
-    private JPanel createFormLayoutedPanel(String labelText) {
-        JPanel formLayoutedPanel = new JPanel();
-        formLayoutedPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        formLayoutedPanel.setLayout(new BoxLayout(formLayoutedPanel, BoxLayout.X_AXIS));
-        JLabel label = new JLabel(labelText);
-        label.setPreferredSize(new Dimension(280, label.getHeight()));
-        formLayoutedPanel.add(label);
-        return formLayoutedPanel;
-    }
-
     private void addChangeListener() {
         ChangeActionListener gerritPushChangeListener = new ChangeActionListener();
         pushToGerritCheckBox.addActionListener(gerritPushChangeListener);
@@ -131,6 +123,7 @@ public class GerritPushExtensionPanel extends JPanel {
         ChangeTextActionListener gerritPushTextChangeListener = new ChangeTextActionListener();
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
+        ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
 
     private String getRef() {
@@ -151,6 +144,9 @@ public class GerritPushExtensionPanel extends JPanel {
             }
             if (!reviewersTextField.getText().isEmpty()) {
                 gerritSpecs.add("r=" + reviewersTextField.getText());
+            }
+            if (!ccTextField.getText().isEmpty()) {
+                gerritSpecs.add("cc=" + ccTextField.getText());
             }
             String gerritSpec = Joiner.on(',').join(gerritSpecs);
             if (!Strings.isNullOrEmpty(gerritSpec)) {

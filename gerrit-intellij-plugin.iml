@@ -20,11 +20,11 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:annotations:12.1.5" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:git4idea:12.1.5" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.intellij:forms_rt:12.1.5" level="project" />
-    <orderEntry type="library" name="Maven: com.google.inject:guice:4.0-beta" level="project" />
+    <orderEntry type="library" name="Maven: com.google.inject:guice:4.0-beta4" level="project" />
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
     <orderEntry type="library" name="Maven: aopalliance:aopalliance:1.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.guava:guava:14.0.1" level="project" />
-    <orderEntry type="library" name="Maven: com.google.inject.extensions:guice-multibindings:4.0-beta" level="project" />
+    <orderEntry type="library" name="Maven: com.google.inject.extensions:guice-multibindings:4.0-beta4" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.3.2" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.3.1" level="project" />
     <orderEntry type="library" name="Maven: commons-codec:commons-codec:1.6" level="project" />

@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.6.3-SNAPSHOT</version>
+  <version>0.7.0</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -35,6 +35,7 @@
         <ul>
           <li>Do reviews directly from your IDE (voting and commenting)</li>
           <li>List open changes</li>
+          <li>Optimized push dialog for Gerrit operations (refs/for, add reviewers, ...)</li>
           <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
           <li>Submit changes</li>
           <li>Notifications for new changes which are waiting for your review</li>
@@ -78,10 +79,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
-          <li>0.6.3</li>
+          <li>0.7.0</li>
           <ul>
-            <li>add settings in push dialog (allows to push to Gerrit without modifying remote branch)</li>
+            <li>add settings in push dialog (allows to push to Gerrit without modifying remote branch;
+            can be activated by default in plugin settings)</li>
             <li>action to abandon a change</li>
+            <li>many minor fixes and improvements</li>
           </ul>
           <li>0.6.2</li>
           <ul>

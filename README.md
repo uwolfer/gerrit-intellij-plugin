@@ -62,6 +62,12 @@ error or checking out does not properly finish, you can try:
 You can find background information about this issue in a [Gerrit mailing list topic].
 [Gerrit mailing list topic]: https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820
 
+### Loading file-diff-list is slow
+Diff viewing is based on Git operations (i.e. it fetches the commit from the Gerrit remote). When loading the file list
+takes a lot of time, you can run a local "[git gc]" and ask your Gerrit administrator to do run a "[gerrit gc]".
+[git gc]: https://www.kernel.org/pub/software/scm/git/docs/git-gc.html
+[gerrit gc]: https://gerrit-review.googlesource.com/Documentation/cmd-gc.html
+
 Architecture
 ------------
 ### IntelliJ Integration

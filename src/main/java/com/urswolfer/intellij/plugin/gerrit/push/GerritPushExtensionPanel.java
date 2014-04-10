@@ -93,11 +93,11 @@ public class GerritPushExtensionPanel extends JPanel {
         topicTextField.setToolTipText("A short tag associated with all of the changes in the same group, such as the " +
                 "local topic branch name.");
 
-        indentedSettingPanel.add(new JLabel("Reviewers (Usernames comma-separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(new JLabel("Reviewers (user names, comma separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         indentedSettingPanel.add(reviewersTextField = new JTextField(), new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         reviewersTextField.setToolTipText("Users which will be addeds as reviewers.");
 
-        indentedSettingPanel.add(new JLabel("CC (Usernames comma-separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(new JLabel("CC (user names, comma separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         indentedSettingPanel.add(ccTextField = new JTextField(), new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         ccTextField.setToolTipText("Users which will receive carbon copies of the notification message.");
 

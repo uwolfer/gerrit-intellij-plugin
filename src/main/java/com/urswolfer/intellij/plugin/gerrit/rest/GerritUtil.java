@@ -638,7 +638,12 @@ public class GerritUtil {
 
     @NotNull
     public String getErrorTextFromException(@NotNull Exception e) {
-        return e.getMessage();
+        String message = e.getMessage();
+        if (message == null) {
+            message = "(No exception message available)";
+            log.error(message, e);
+        }
+        return message;
     }
 
     private String appendToUrlQuery(String requestUrl, String queryString) {

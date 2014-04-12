@@ -79,6 +79,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.7.1</li>
+          <ul>
+            <li>fix handling of comma separated user names in push dialog</li>
+            <li>improve HTTP proxy handling</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.7.0</li>
           <ul>
             <li>add settings in push dialog (allows to push to Gerrit without modifying remote branch;

@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
@@ -31,11 +32,14 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritPushExtensionPanel extends JPanel {
+
+    private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
     private final boolean pushToGerritByDefault;
     private final JTextField destinationBranchTextField;
@@ -142,12 +146,8 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!topicTextField.getText().isEmpty()) {
                 gerritSpecs.add("topic=" + topicTextField.getText());
             }
-            if (!reviewersTextField.getText().isEmpty()) {
-                gerritSpecs.add("r=" + reviewersTextField.getText());
-            }
-            if (!ccTextField.getText().isEmpty()) {
-                gerritSpecs.add("cc=" + ccTextField.getText());
-            }
+            handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
+            handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
             String gerritSpec = Joiner.on(',').join(gerritSpecs);
             if (!Strings.isNullOrEmpty(gerritSpec)) {
                 ref += "%%" + gerritSpec;
@@ -156,6 +156,13 @@ public class GerritPushExtensionPanel extends JPanel {
             manualPush.setSelected(false);
         }
         return ref;
+    }
+
+    private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
+        Iterable<String> items = COMMA_SPLITTER.split(textField.getText());
+        for (String item : items) {
+            gerritSpecs.add(option + '=' + item);
+        }
     }
 
     private void updateDestinationBranch() {

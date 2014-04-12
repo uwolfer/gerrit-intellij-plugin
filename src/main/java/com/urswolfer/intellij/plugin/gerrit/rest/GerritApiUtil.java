@@ -25,7 +25,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.net.HttpConfigurable;
 import com.intellij.util.net.IdeaWideProxySelector;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
@@ -59,7 +58,6 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -67,7 +65,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.intellij.util.net.HttpConfigurable.isRealProxy;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubApiUtil
@@ -271,35 +268,7 @@ public class GerritApiUtil {
         CredentialsProvider credentialsProvider = getCredentialsProvider();
         client.setDefaultCredentialsProvider(credentialsProvider);
 
-        // Configure proxySettings if it is required
-        final HttpConfigurable proxySettings = HttpConfigurable.getInstance();
-        IdeaWideProxySelector ideaWideProxySelector = new IdeaWideProxySelector(proxySettings);
-
-        try {
-            // This will always return at least one proxy, which can be the "NO_PROXY" instance.
-            List<Proxy> proxies = ideaWideProxySelector.select(new URI(authData.getHost()));
-
-            // Find the first real proxy with an address type we support.
-            for (Proxy proxy : proxies) {
-                SocketAddress socketAddress = proxy.address();
-
-                if (isRealProxy(proxy) && socketAddress instanceof InetSocketAddress) {
-                    InetSocketAddress address = (InetSocketAddress) socketAddress;
-                    HttpHost proxyHttpHost = new HttpHost(address.getHostName(), address.getPort());
-                    client.setProxy(proxyHttpHost);
-
-                    // Here we use the single username/password that we got from IDEA's settings. It feels kinda strange
-                    // to use these credential but it's probably what the user expects.
-                    if (proxySettings.PROXY_AUTHENTICATION) {
-                        AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
-                        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword());
-                        credentialsProvider.setCredentials(authScope, credentials);
-                    }
-                }
-            }
-        } catch (URISyntaxException ignore) {
-            LOG.warn("Unable to search for a proxy, continuing without a proxy. Invalid URL: " + authData.getHost());
-        }
+        handleProxySettings(authData, client, credentialsProvider);
 
         if (authData.isLoginAndPasswordAvailable()) {
             credentialsProvider.setCredentials(AuthScope.ANY,
@@ -313,6 +282,36 @@ public class GerritApiUtil {
         client.addInterceptorLast(new UserAgentHttpRequestInterceptor());
 
         return client;
+    }
+
+    private void handleProxySettings(GerritAuthData authData,
+                                     HttpClientBuilder client,
+                                     CredentialsProvider credentialsProvider) {
+        HttpConfigurable proxySettings = HttpConfigurable.getInstance();
+        IdeaWideProxySelector ideaWideProxySelector = new IdeaWideProxySelector(proxySettings);
+
+        // This will always return at least one proxy, which can be the "NO_PROXY" instance.
+        List<Proxy> proxies = ideaWideProxySelector.select(URI.create(authData.getHost()));
+
+        // Find the first real proxy with an address type we support.
+        for (Proxy proxy : proxies) {
+            SocketAddress socketAddress = proxy.address();
+
+            if (HttpConfigurable.isRealProxy(proxy) && socketAddress instanceof InetSocketAddress) {
+                InetSocketAddress address = (InetSocketAddress) socketAddress;
+                HttpHost proxyHttpHost = new HttpHost(address.getHostName(), address.getPort());
+                client.setProxy(proxyHttpHost);
+
+                // Here we use the single username/password that we got from IDEA's settings. It feels kinda strange
+                // to use these credential but it's probably what the user expects.
+                if (proxySettings.PROXY_AUTHENTICATION) {
+                    AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
+                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword());
+                    credentialsProvider.setCredentials(authScope, credentials);
+                    break;
+                }
+            }
+        }
     }
 
     /**

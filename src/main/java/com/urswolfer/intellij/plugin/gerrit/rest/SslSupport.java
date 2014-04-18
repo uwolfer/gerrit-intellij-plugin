@@ -37,8 +37,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.security.validator.ValidatorException;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
@@ -93,7 +96,12 @@ public class SslSupport {
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
             try {
                 SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
-                sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+                sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy() {
+                    @Override
+                    public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        return true;
+                    }
+                });
                 SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(
                         sslContextBuilder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 
@@ -115,6 +123,9 @@ public class SslSupport {
         List<Throwable> causalChain = Throwables.getCausalChain(e);
         for (Throwable throwable : causalChain) {
             if (throwable instanceof ValidatorException) {
+                return true;
+            }
+            if (throwable instanceof SSLException) { // e.g. "SSLException: hostname in certificate didn't match: <localhost> != <unknown>"
                 return true;
             }
         }

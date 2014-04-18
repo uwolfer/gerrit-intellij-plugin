@@ -43,7 +43,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -255,8 +254,7 @@ public class GerritApiUtil {
                                             HttpContext httpContext) {
         HttpClientBuilder client = HttpClients.custom();
 
-        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
-        client.setConnectionManager(connectionManager);
+        client.useSystemProperties(); // see also: com.intellij.util.net.ssl.CertificateManager
 
         RequestConfig.Builder requestConfig = RequestConfig.custom()
             .setConnectTimeout(CONNECTION_TIMEOUT_MS) // how long it takes to connect to remote host

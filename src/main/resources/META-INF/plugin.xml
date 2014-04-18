@@ -83,6 +83,8 @@
           <ul>
             <li>fix handling of comma separated user names in push dialog</li>
             <li>improve HTTP proxy handling</li>
+            <li>improve SSL certificate handling (support for IntelliJ 13.1 certificate manager,
+            certificates signed by an untrusted authority)</li>
             <li>minor fixes and improvements</li>
           </ul>
           <li>0.7.0</li>

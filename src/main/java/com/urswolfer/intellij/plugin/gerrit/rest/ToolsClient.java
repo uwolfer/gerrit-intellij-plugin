@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.http.GerritRestClientFactory;
+import java.io.InputStream;
 
 /**
- * @author Thomas Forrer
+ * @author Urs Wolfer
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(SslSupport.class);
+public interface ToolsClient {
 
-        bind(GerritRestClientFactory.class);
-    }
+    InputStream getCommitMessageHook() throws GerritClientException;
 }

@@ -22,6 +22,7 @@ import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.rest.http.HttpRequestExecutor;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.config.Registry;
@@ -51,7 +52,7 @@ import java.util.List;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class SslSupport {
+public class SslSupport extends HttpRequestExecutor {
 
     @Inject
     private GerritSettings gerritSettings;
@@ -65,10 +66,10 @@ public class SslSupport {
      *         and which can be {@link org.apache.http.HttpResponse#getEntity()} asked for the response.
      * @throws IOException in case of other errors or if user declines the proposal of non-trusted connection.
      */
-    @NotNull
-    public HttpResponse executeSelfSignedCertificateAwareRequest(HttpClientBuilder client,
-                                                                 HttpRequestBase method,
-                                                                 @Nullable HttpContext context)
+    @Override
+    public HttpResponse execute(HttpClientBuilder client,
+                                HttpRequestBase method,
+                                @Nullable HttpContext context)
             throws IOException {
         try {
             return client.build().execute(method, context);

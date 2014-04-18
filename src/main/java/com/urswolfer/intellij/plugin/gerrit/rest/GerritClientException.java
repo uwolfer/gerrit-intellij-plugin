@@ -16,17 +16,24 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.http.GerritRestClientFactory;
-
 /**
- * @author Thomas Forrer
+ * @author Urs Wolfer
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(SslSupport.class);
+public class GerritClientException extends Exception {
 
-        bind(GerritRestClientFactory.class);
+    public GerritClientException() {
+        super();
+    }
+
+    public GerritClientException(String message) {
+        super(message);
+    }
+
+    public GerritClientException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public GerritClientException(Throwable cause) {
+        super(cause);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +19,13 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 /**
  * @author Urs Wolfer
  */
-public class HttpStatusException extends RestApiException {
-    private int statusCode;
-    private String statusText;
+public interface GerritClient {
 
-    public HttpStatusException(int statusCode, String statusText, String message) {
-        super(message);
-        this.statusCode = statusCode;
-        this.statusText = statusText;
-    }
+    ChangesClient getChangesClient();
 
-    public int getStatusCode() {
-        return statusCode;
-    }
+    AccountsClient getAccountsClient();
 
-    public String getStatusText() {
-        return statusText;
-    }
+    ProjectsClient getProjectsClient();
+
+    ToolsClient getToolsClient();
 }

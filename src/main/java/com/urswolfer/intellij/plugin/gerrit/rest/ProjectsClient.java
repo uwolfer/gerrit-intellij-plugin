@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Optional;
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
+
+import java.util.List;
 
 /**
- * @author Thomas Forrer
+ * @author Urs Wolfer
  */
-public interface ConsumerResult<T> {
-    T getResult();
+public interface ProjectsClient {
 
-    Optional<Exception> getException();
+    List<ProjectInfo> getProjects() throws GerritClientException;
 }

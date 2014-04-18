@@ -1,5 +1,4 @@
 /*
- * Copyright 2000-2012 JetBrains s.r.o.
  * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.rest.http;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
@@ -23,11 +22,8 @@ import com.google.common.io.CharStreams;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.google.inject.Inject;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.util.net.HttpConfigurable;
-import com.intellij.util.net.IdeaWideProxySelector;
 import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
+import com.urswolfer.intellij.plugin.gerrit.rest.*;
 import com.urswolfer.intellij.plugin.gerrit.util.Version;
 import org.apache.http.*;
 import org.apache.http.auth.*;
@@ -46,17 +42,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -66,66 +56,80 @@ import java.util.regex.Pattern;
 
 
 /**
- * Parts based on org.jetbrains.plugins.github.GithubApiUtil
- *
  * @author Urs Wolfer
- * @author Kirill Likhodedov
  */
-public class GerritApiUtil {
+public class GerritRestClient implements GerritClient {
 
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
     private static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final String PREEMPTIVE_AUTH = "preemptive-auth";
 
-    @Inject
-    private Logger LOG;
-    @Inject
-    private GerritAuthData authData;
-    @Inject
-    private SslSupport sslSupport;
+    private final GerritAuthData authData;
+    private final HttpRequestExecutor httpRequestExecutor;
+    private final List<HttpClientBuilderExtension> httpClientBuilderExtensions;
+
+    private final AccountsRestClient accountsRestClient;
+    private final ChangesRestClient changesRestClient;
+    private final ProjectsRestClient projectsRestClient;
+    private final ToolsRestClient toolsRestClient;
+
+    public GerritRestClient(GerritAuthData authData,
+                            HttpRequestExecutor httpRequestExecutor,
+                            HttpClientBuilderExtension... httpClientBuilderExtensions) {
+        this.authData = authData;
+        this.httpRequestExecutor = httpRequestExecutor;
+        this.httpClientBuilderExtensions = Arrays.asList(httpClientBuilderExtensions);
+
+        changesRestClient = new ChangesRestClient(this);
+        accountsRestClient = new AccountsRestClient(this);
+        projectsRestClient = new ProjectsRestClient(this);
+        toolsRestClient = new ToolsRestClient(this);
+    }
 
     public enum HttpVerb {
         GET, POST, DELETE, HEAD, PUT
     }
 
-    public JsonElement getRequest(@NotNull GerritAuthData gerritAuthData, @NotNull String path, @NotNull Header... headers) throws RestApiException {
-        return request(gerritAuthData, path, null, Arrays.asList(headers), HttpVerb.GET);
+    @Override
+    public ChangesClient getChangesClient() {
+        return changesRestClient;
     }
 
-    @Nullable
-    public JsonElement getRequest(@NotNull String path,
-                                         @NotNull Header... headers) throws RestApiException {
-        return request(authData, path, null, Arrays.asList(headers), HttpVerb.GET);
+    @Override
+    public AccountsClient getAccountsClient() {
+        return accountsRestClient;
     }
 
-    @Nullable
-    public JsonElement postRequest(@NotNull String path,
-                                          @Nullable String requestBody,
-                                          @NotNull Header... headers) throws RestApiException {
-        return request(authData, path, requestBody, Arrays.asList(headers), HttpVerb.POST);
+    @Override
+    public ProjectsClient getProjectsClient() {
+        return projectsRestClient;
     }
 
-    @Nullable
-    public JsonElement putRequest(@NotNull String path,
-                                  @NotNull Header... headers) throws RestApiException {
-        return request(authData, path, null, Arrays.asList(headers), HttpVerb.PUT);
+    @Override
+    public ToolsClient getToolsClient() {
+        return toolsRestClient;
     }
 
-    @Nullable
-    public JsonElement deleteRequest(@NotNull String path,
-                                            @NotNull Header... headers) throws RestApiException {
-        return request(authData, path, null, Arrays.asList(headers), HttpVerb.DELETE);
+    public JsonElement getRequest(String path, Header... headers) throws GerritClientException {
+        return request(path, null, Arrays.asList(headers), HttpVerb.GET);
     }
 
-    @Nullable
-    private JsonElement request(@NotNull GerritAuthData authData,
-                                       @NotNull String path,
-                                       @Nullable String requestBody,
-                                       @NotNull Collection<Header> headers,
-                                       @NotNull HttpVerb verb) throws RestApiException {
+    public JsonElement postRequest(String path, String requestBody, Header... headers) throws GerritClientException {
+        return request(path, requestBody, Arrays.asList(headers), HttpVerb.POST);
+    }
+
+    public JsonElement putRequest(String path, Header... headers) throws GerritClientException {
+        return request(path, null, Arrays.asList(headers), HttpVerb.PUT);
+    }
+
+    public JsonElement deleteRequest(String path, Header... headers) throws GerritClientException {
+        return request(path, null, Arrays.asList(headers), HttpVerb.DELETE);
+    }
+
+    public JsonElement request(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws GerritClientException {
         try {
-            HttpResponse response = doREST(authData, path, requestBody, headers, verb);
+            HttpResponse response = doRest(path, requestBody, headers, verb);
 
             checkStatusCode(response);
 
@@ -137,38 +141,22 @@ public class GerritApiUtil {
             JsonElement ret = parseResponse(resp);
             if (ret.isJsonNull()) {
                 String message = String.format("Unexpectedly empty response: %s.", CharStreams.toString(new InputStreamReader(resp)));
-                LOG.warn(message);
-                throw new RestApiException(message);
+                throw new GerritClientException(message);
             }
             return ret;
         } catch (IOException e) {
-            LOG.warn(String.format("Request failed: %s", e.getMessage()), e);
-            throw new RestApiException(e);
+            throw new GerritClientException(e);
         }
     }
 
-    @NotNull
-    public HttpResponse doREST(@NotNull String path,
-                                    @Nullable final String requestBody,
-                                    @NotNull final Collection<Header> headers,
-                                    @NotNull final HttpVerb verb) throws IOException {
-        return doREST(authData, path, requestBody, headers, verb);
-    }
-
-
-    @NotNull
-    public HttpResponse doREST(@NotNull GerritAuthData authData,
-                                    @NotNull String path,
-                                    @Nullable final String requestBody,
-                                    @NotNull final Collection<Header> headers,
-                                    @NotNull final HttpVerb verb) throws IOException {
+    public HttpResponse doRest(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws IOException, GerritClientException {
         HttpContext httpContext = new BasicHttpContext();
-        HttpClientBuilder client = getHttpClient(authData, httpContext);
+        HttpClientBuilder client = getHttpClient(httpContext);
 
         BasicCookieStore cookieStore = new BasicCookieStore();
         httpContext.setAttribute(HttpClientContext.COOKIE_STORE, cookieStore);
 
-        final Optional<String> gerritAuthOptional = tryGerritHttpAuth(authData, client, httpContext);
+        final Optional<String> gerritAuthOptional = tryGerritHttpAuth(client, httpContext);
         String uri = authData.getHost();
         if (authData.isLoginAndPasswordAvailable()) {
             uri += "/a";
@@ -206,7 +194,7 @@ public class GerritApiUtil {
         }
         method.addHeader("Accept", ContentType.APPLICATION_JSON.getMimeType());
 
-        return sslSupport.executeSelfSignedCertificateAwareRequest(client, method, httpContext);
+        return httpRequestExecutor.execute(client, method, httpContext);
     }
 
     /*
@@ -228,16 +216,13 @@ public class GerritApiUtil {
      * [Gerrit documentation].
      * [Gerrit documentation]: https://gerrit-review.googlesource.com/Documentation/rest-api.html#authentication
      */
-    private Optional<String> tryGerritHttpAuth(GerritAuthData authData,
-                                               HttpClientBuilder client,
-                                               HttpContext httpContext) throws IOException {
+    private Optional<String> tryGerritHttpAuth(HttpClientBuilder client, HttpContext httpContext) throws IOException {
         String loginUrl = authData.getHost() + "/login/";
-        HttpResponse loginRequest = sslSupport.executeSelfSignedCertificateAwareRequest(client, new HttpGet(loginUrl), httpContext);
+        HttpResponse loginRequest = httpRequestExecutor.execute(client, new HttpGet(loginUrl), httpContext);
         if (loginRequest.getStatusLine().getStatusCode() != HttpStatus.SC_UNAUTHORIZED) {
             List<Cookie> cookies = ((BasicCookieStore) httpContext.getAttribute(HttpClientContext.COOKIE_STORE)).getCookies();
             for (Cookie cookie : cookies) {
                 if (cookie.getName().equals("GerritAccount")) {
-                    LOG.info("Successfully logged in with /login/ request.");
                     Matcher matcher = GERRIT_AUTH_PATTERN.matcher(EntityUtils.toString(loginRequest.getEntity(), Consts.UTF_8));
                     if (matcher.find()) {
                         return Optional.of(matcher.group(1));
@@ -249,24 +234,19 @@ public class GerritApiUtil {
         return Optional.absent();
     }
 
-    @NotNull
-    private HttpClientBuilder getHttpClient(GerritAuthData authData,
-                                            HttpContext httpContext) {
+    private HttpClientBuilder getHttpClient(HttpContext httpContext) {
         HttpClientBuilder client = HttpClients.custom();
 
         client.useSystemProperties(); // see also: com.intellij.util.net.ssl.CertificateManager
 
         RequestConfig.Builder requestConfig = RequestConfig.custom()
-            .setConnectTimeout(CONNECTION_TIMEOUT_MS) // how long it takes to connect to remote host
-            .setSocketTimeout(CONNECTION_TIMEOUT_MS) // (how long it takes to retrieve data from remote host
-            .setConnectionRequestTimeout(CONNECTION_TIMEOUT_MS)
-            ;
+                .setConnectTimeout(CONNECTION_TIMEOUT_MS) // how long it takes to connect to remote host
+                .setSocketTimeout(CONNECTION_TIMEOUT_MS) // how long it takes to retrieve data from remote host
+                .setConnectionRequestTimeout(CONNECTION_TIMEOUT_MS);
         client.setDefaultRequestConfig(requestConfig.build());
 
         CredentialsProvider credentialsProvider = getCredentialsProvider();
         client.setDefaultCredentialsProvider(credentialsProvider);
-
-        handleProxySettings(authData, client, credentialsProvider);
 
         if (authData.isLoginAndPasswordAvailable()) {
             credentialsProvider.setCredentials(AuthScope.ANY,
@@ -279,37 +259,12 @@ public class GerritApiUtil {
 
         client.addInterceptorLast(new UserAgentHttpRequestInterceptor());
 
-        return client;
-    }
-
-    private void handleProxySettings(GerritAuthData authData,
-                                     HttpClientBuilder client,
-                                     CredentialsProvider credentialsProvider) {
-        HttpConfigurable proxySettings = HttpConfigurable.getInstance();
-        IdeaWideProxySelector ideaWideProxySelector = new IdeaWideProxySelector(proxySettings);
-
-        // This will always return at least one proxy, which can be the "NO_PROXY" instance.
-        List<Proxy> proxies = ideaWideProxySelector.select(URI.create(authData.getHost()));
-
-        // Find the first real proxy with an address type we support.
-        for (Proxy proxy : proxies) {
-            SocketAddress socketAddress = proxy.address();
-
-            if (HttpConfigurable.isRealProxy(proxy) && socketAddress instanceof InetSocketAddress) {
-                InetSocketAddress address = (InetSocketAddress) socketAddress;
-                HttpHost proxyHttpHost = new HttpHost(address.getHostName(), address.getPort());
-                client.setProxy(proxyHttpHost);
-
-                // Here we use the single username/password that we got from IDEA's settings. It feels kinda strange
-                // to use these credential but it's probably what the user expects.
-                if (proxySettings.PROXY_AUTHENTICATION) {
-                    AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
-                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword());
-                    credentialsProvider.setCredentials(authScope, credentials);
-                    break;
-                }
-            }
+        for (HttpClientBuilderExtension httpClientBuilderExtension : httpClientBuilderExtensions) {
+            client = httpClientBuilderExtension.extend(client);
+            credentialsProvider = httpClientBuilderExtension.extendCredentialProvider(client, credentialsProvider);
         }
+
+        return client;
     }
 
     /**
@@ -332,8 +287,7 @@ public class GerritApiUtil {
         };
     }
 
-    @NotNull
-    private JsonElement parseResponse(@NotNull InputStream response) throws IOException {
+    private JsonElement parseResponse(InputStream response) throws IOException {
         Reader reader = new InputStreamReader(response, UTF_8);
         try {
             return new JsonParser().parse(reader);
@@ -344,7 +298,7 @@ public class GerritApiUtil {
         }
     }
 
-    private void checkStatusCode(@NotNull HttpResponse response) throws HttpStatusException {
+    private void checkStatusCode(HttpResponse response) throws HttpStatusException {
         StatusLine statusLine = response.getStatusLine();
         int code = statusLine.getStatusCode();
         switch (code) {
@@ -359,7 +313,6 @@ public class GerritApiUtil {
             case HttpStatus.SC_FORBIDDEN:
             default:
                 String message = String.format("Request not successful. Message: %s. Status-Code: %s.", statusLine.getReasonPhrase(), statusLine.getStatusCode());
-                LOG.warn(message);
                 throw new HttpStatusException(statusLine.getStatusCode(), statusLine.getReasonPhrase(), message);
         }
     }

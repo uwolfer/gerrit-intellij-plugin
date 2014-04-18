@@ -14,19 +14,28 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.rest.http;
 
-import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.http.GerritRestClientFactory;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritClientException;
 
 /**
- * @author Thomas Forrer
+ * @author Urs Wolfer
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(SslSupport.class);
+public class HttpStatusException extends GerritClientException {
+    private int statusCode;
+    private String statusText;
 
-        bind(GerritRestClientFactory.class);
+    public HttpStatusException(int statusCode, String statusText, String message) {
+        super(message);
+        this.statusCode = statusCode;
+        this.statusText = statusText;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public String getStatusText() {
+        return statusText;
     }
 }

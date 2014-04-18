@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.urswolfer.intellij.plugin.gerrit.rest.bean.AccountInfo;
+
 /**
  * @author Urs Wolfer
  */
-public class RestApiException extends Exception {
-    public RestApiException() {
-        super();
-    }
+public interface AccountsClient {
 
-    public RestApiException(String message) {
-        super(message);
-    }
+    AccountInfo getAccountInfo() throws GerritClientException;
 
-    public RestApiException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public RestApiException(Throwable cause) {
-        super(cause);
-    }
+    void changeStarredStatus(String changeNr, boolean starred) throws GerritClientException;
 }

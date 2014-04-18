@@ -202,7 +202,7 @@ public class GerritGitUtil {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
                     "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
 
-            UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, platformFacade, untrackedFilesDetector.getFiles(),
+            UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, untrackedFilesDetector.getFiles(),
                     "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {

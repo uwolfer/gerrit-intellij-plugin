@@ -76,7 +76,7 @@ public class SettingsPanel {
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
                 try {
-                    GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(getHost(), getLogin(), password);
+                    GerritAuthData.BasicAuthData gerritAuthData = new GerritAuthData.BasicAuthData(getHost(), getLogin(), password);
                     if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
                         Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {

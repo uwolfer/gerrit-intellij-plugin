@@ -83,7 +83,7 @@ public class LoginDialog extends DialogWrapper {
         final String login = loginPanel.getLogin();
         final String password = loginPanel.getPassword();
         final String host = loginPanel.getHost();
-        GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(host, login, password);
+        GerritAuthData.BasicAuthData gerritAuthData = new GerritAuthData.BasicAuthData(host, login, password);
         try {
             boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {

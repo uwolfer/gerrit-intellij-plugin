@@ -25,8 +25,8 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
 import javax.swing.*;
 import java.awt.*;

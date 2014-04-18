@@ -22,10 +22,10 @@ import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.ui.AnActionButton;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
+import com.urswolfer.gerrit.client.rest.bean.CommentInfo;
+import com.urswolfer.gerrit.client.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 
 /**
  * @author Urs Wolfer

@@ -25,7 +25,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
+import com.urswolfer.gerrit.client.rest.bean.*;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 

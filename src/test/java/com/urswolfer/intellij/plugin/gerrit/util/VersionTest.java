@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
+import com.urswolfer.gerrit.client.rest.Version;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

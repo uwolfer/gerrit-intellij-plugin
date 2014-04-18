@@ -24,12 +24,12 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
+import com.urswolfer.gerrit.client.rest.bean.CommentInput;
+import com.urswolfer.gerrit.client.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;

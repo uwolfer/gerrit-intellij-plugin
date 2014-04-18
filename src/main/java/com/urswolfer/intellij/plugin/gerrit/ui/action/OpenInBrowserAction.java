@@ -21,9 +21,9 @@ import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.util.IconLoader;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
 /**
  * @author Urs Wolfer

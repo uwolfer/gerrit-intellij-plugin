@@ -17,7 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.inject.AbstractModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.http.GerritRestClientFactory;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
 
 /**
  * @author Thomas Forrer

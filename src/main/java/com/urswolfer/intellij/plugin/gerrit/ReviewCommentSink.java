@@ -18,7 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
+import com.urswolfer.gerrit.client.rest.bean.CommentInput;
 
 /**
  * This is a holder for new comments which got added locally. They get removed again once they are submitted.

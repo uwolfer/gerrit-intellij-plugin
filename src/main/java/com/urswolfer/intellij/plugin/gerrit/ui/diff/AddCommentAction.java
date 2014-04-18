@@ -30,11 +30,11 @@ import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.ui.AnActionButton;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
+import com.urswolfer.gerrit.client.rest.bean.CommentBase;
+import com.urswolfer.gerrit.client.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

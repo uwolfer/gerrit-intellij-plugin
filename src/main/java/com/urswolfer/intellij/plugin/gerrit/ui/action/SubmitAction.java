@@ -21,9 +21,9 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
+import com.urswolfer.gerrit.client.rest.bean.SubmitInput;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.SubmitInput;
 
 /**
  * @author Urs Wolfer

@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.Logger;
@@ -35,7 +36,6 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -158,14 +158,14 @@ public class GerritGitUtil {
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
-                    Optional<GitRepository> gitRepositoryOptional = getRepositoryForGerritProject(project, changeInfo.getProject());
+                    Optional<GitRepository> gitRepositoryOptional = getRepositoryForGerritProject(project, changeInfo.project);
                     if (!gitRepositoryOptional.isPresent()) return;
                     GitRepository gitRepository = gitRepositoryOptional.get();
 
                     final VirtualFile virtualFile = gitRepository.getGitDir();
 
                     final String notLoaded = "Not loaded";
-                    String ref = changeInfo.getCurrentRevision();
+                    String ref = changeInfo.currentRevision;
                     GitCommit gitCommit = new GitCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
                             notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
                             notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,13 @@
 
 package com.urswolfer.gerrit.client.rest;
 
+import com.google.gerrit.extensions.restapi.RestApiException;
+
 /**
  * @author Urs Wolfer
  */
-public class GerritClientException extends Exception {
-
-    public GerritClientException() {
-        super();
-    }
-
-    public GerritClientException(String message) {
-        super(message);
-    }
-
-    public GerritClientException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public GerritClientException(Throwable cause) {
-        super(cause);
+public class NotImplementedException extends RestApiException {
+    public NotImplementedException() {
+        super("REST API not implemented yet. Do not hesitate start doing it! :)");
     }
 }

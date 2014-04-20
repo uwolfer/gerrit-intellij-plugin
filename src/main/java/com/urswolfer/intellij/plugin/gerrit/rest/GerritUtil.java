@@ -22,6 +22,12 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.SubmitInput;
+import com.google.gerrit.extensions.common.*;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
@@ -39,9 +45,6 @@ import com.intellij.util.Consumer;
 import com.intellij.util.net.HttpConfigurable;
 import com.intellij.util.net.IdeaWideProxySelector;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.gerrit.client.rest.GerritClient;
-import com.urswolfer.gerrit.client.rest.GerritClientException;
-import com.urswolfer.gerrit.client.rest.bean.*;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
@@ -71,6 +74,7 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -86,7 +90,7 @@ public class GerritUtil {
     private final SslSupport sslSupport;
     private final Logger log;
     private final NotificationService notificationService;
-    private final GerritClient gerritClient;
+    private final GerritApi gerritClient;
     private final GerritRestClientFactory gerritRestClientFactory;
 
     @Inject
@@ -157,8 +161,8 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.getChangesClient().postReview(changeId, revision, reviewInput);
-                } catch (GerritClientException e) {
+                    gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to post Gerrit review.", project);
                 }
                 return null;
@@ -174,8 +178,8 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.getChangesClient().postSubmit(changeId, submitInput);
-                } catch (GerritClientException e) {
+                    gerritClient.changes().id(changeId).current().submit(submitInput);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to submit Gerrit change.", project);
                 }
                 return null;
@@ -191,8 +195,8 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.getChangesClient().postAbandon(changeId, abandonInput);
-                } catch (GerritClientException e) {
+                    gerritClient.changes().id(changeId).abandon(abandonInput);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to abandon Gerrit change.", project);
                 }
                 return null;
@@ -211,8 +215,8 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.getAccountsClient().changeStarredStatus(changeNr, starred);
-                } catch (GerritClientException e) {
+                    gerritClient.accounts().self().changeStarredStatus(changeNr, starred);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to star Gerrit change." +
                             "<br/>Not supported for Gerrit instances older than version 2.8.", project);
                 }
@@ -232,8 +236,8 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.getChangesClient().changeReviewed(changeId, revision, filePath, reviewed);
-                } catch (GerritClientException e) {
+                    gerritClient.changes().id(changeId).revision(revision).changeReviewed(filePath, reviewed);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed set file review status for Gerrit change.", project);
                 }
                 return null;
@@ -261,8 +265,8 @@ public class GerritUtil {
             @Override
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
-                    return gerritClient.getChangesClient().getChanges(finalQuery);
-                } catch (GerritClientException e) {
+                    return gerritClient.changes().list(finalQuery);
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();
                 }
@@ -357,8 +361,8 @@ public class GerritUtil {
             @Override
             public ChangeInfo apply(Void aVoid) {
                 try {
-                    return gerritClient.getChangesClient().getChangeDetails(changeNr);
-                } catch (GerritClientException e) {
+                    return gerritClient.changes().id(changeNr).get();
+                } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit change.", project);
                     return new ChangeInfo();
                 }
@@ -373,43 +377,43 @@ public class GerritUtil {
     public void getComments(final String changeId,
                             final String revision,
                             final Project project,
-                            final Consumer<TreeMap<String, List<CommentInfo>>> consumer) {
+                            final Consumer<Map<String, List<ReviewInput.Comment>>> consumer) {
 
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
-            public TreeMap<String, List<CommentInfo>> apply(Void aVoid) {
+            public Map<String, List<ReviewInput.Comment>> apply(Void aVoid) {
                 try {
-                    return gerritClient.getChangesClient().getComments(changeId, revision);
-                } catch (GerritClientException e) {
+                    return gerritClient.changes().id(changeId).revision(revision).getComments();
+                } catch (RestApiException e) {
                     // remove check once we drop Gerrit < 2.7 support and fail in any case
                     if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
                         notifyError(e, "Failed to get Gerrit comments.", project);
                     }
-                    return new TreeMap<String, List<CommentInfo>>();
+                    return new TreeMap<String, List<ReviewInput.Comment>>();
                 }
             }
         };
         accessGerrit(function, consumer, project);
     }
 
-    private boolean testConnection(GerritAuthData gerritAuthData) throws GerritClientException {
+    private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
         // we need to test with a temporary client with probably new (unsaved) credentials
-        GerritClient tempClient = createGerritClient(gerritAuthData);
+        GerritApi tempClient = createGerritClient(gerritAuthData);
         if (gerritAuthData.isLoginAndPasswordAvailable()) {
             AccountInfo user = retrieveCurrentUserInfo(tempClient);
             return user != null;
         } else {
-            tempClient.getChangesClient().getChanges();
+            tempClient.changes().list();
             return true;
         }
     }
 
-    public AccountInfo retrieveCurrentUserInfo(GerritClient tempClient) throws GerritClientException {
-        return tempClient.getAccountsClient().getAccountInfo();
+    public AccountInfo retrieveCurrentUserInfo(GerritApi tempClient) throws RestApiException {
+        return tempClient.accounts().self().get();
     }
 
-    private List<ProjectInfo> getAvailableProjects() throws GerritClientException {
-        return gerritClient.getProjectsClient().getProjects();
+    private List<ProjectInfo> getAvailableProjects() throws RestApiException {
+        return gerritClient.projects().list();
     }
 
     /**
@@ -465,17 +469,17 @@ public class GerritUtil {
         });
     }
 
-    public InputStream getCommitMessageHook() throws GerritClientException {
-        return gerritClient.getToolsClient().getCommitMessageHook();
+    public InputStream getCommitMessageHook() throws RestApiException {
+        return gerritClient.tools().getCommitMessageHook();
     }
 
     public String getRef(ChangeInfo changeDetails) {
         String ref = null;
-        final TreeMap<String, RevisionInfo> revisions = changeDetails.getRevisions();
+        final Map<String, RevisionInfo> revisions = changeDetails.revisions;
         for (RevisionInfo revisionInfo : revisions.values()) {
-            final TreeMap<String, FetchInfo> fetch = revisionInfo.getFetch();
+            final Map<String, FetchInfo> fetch = revisionInfo.fetch;
             for (FetchInfo fetchInfo : fetch.values()) {
-                ref = fetchInfo.getRef();
+                ref = fetchInfo.ref;
             }
         }
         return ref;
@@ -578,7 +582,7 @@ public class GerritUtil {
         };
     }
 
-    private GerritClient createGerritClient(GerritAuthData gerritAuthData) {
+    private GerritApi createGerritClient(GerritAuthData gerritAuthData) {
         return gerritRestClientFactory.create(gerritAuthData, sslSupport, createProxyGerritHttpClientBuilderExtension());
     }
 }

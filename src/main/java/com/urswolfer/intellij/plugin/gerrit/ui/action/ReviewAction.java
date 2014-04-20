@@ -18,21 +18,24 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
-import com.urswolfer.gerrit.client.rest.bean.CommentInput;
-import com.urswolfer.gerrit.client.rest.bean.ReviewInput;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 import javax.swing.*;
+import java.util.List;
+import java.util.Map;
 
 import static com.intellij.icons.AllIcons.Actions.*;
 
@@ -76,11 +79,11 @@ public class ReviewAction extends AbstractChangeAction {
             @Override
             public void consume(final ChangeInfo changeDetails) {
                 final ReviewInput reviewInput = new ReviewInput();
-                reviewInput.addLabel(label, rating);
+                reviewInput.label(label, rating);
 
-                Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.getId());
-                for (CommentInput commentInput : commentInputs) {
-                    reviewInput.addComment(commentInput.getPath(), commentInput);
+                Iterable<ReviewInput.Comment> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.id);
+                for (ReviewInput.Comment commentInput : commentInputs) {
+                    addComment(reviewInput, commentInput.path, commentInput);
                 }
 
                 boolean submitChange = false;
@@ -92,20 +95,20 @@ public class ReviewAction extends AbstractChangeAction {
                     }
                     final String message = dialog.getReviewPanel().getMessage();
                     if (!Strings.isNullOrEmpty(message)) {
-                        reviewInput.setMessage(message);
+                        reviewInput.message = message;
                     }
                     submitChange = dialog.getReviewPanel().getSubmitChange();
                 }
 
                 final boolean finalSubmitChange = submitChange;
-                gerritUtil.postReview(changeDetails.getId(),
-                        changeDetails.getCurrentRevision(),
+                gerritUtil.postReview(changeDetails.id,
+                        changeDetails.currentRevision,
                         reviewInput,
                         project,
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                reviewCommentSink.removeCommentsForChange(changeDetails.getId());
+                                reviewCommentSink.removeCommentsForChange(changeDetails.id);
                                 if (finalSubmitChange) {
                                     submitAction.actionPerformed(anActionEvent);
                                 }
@@ -114,6 +117,22 @@ public class ReviewAction extends AbstractChangeAction {
                 );
             }
         });
+    }
+
+    private void addComment(ReviewInput reviewInput, String path, ReviewInput.Comment comment) {
+        List<ReviewInput.Comment> commentInputs;
+        Map<String, List<ReviewInput.Comment>> comments = reviewInput.comments;
+        if (comments == null) {
+            comments = Maps.newHashMap();
+            reviewInput.comments = comments;
+        }
+        if (comments.containsKey(path)) {
+            commentInputs = comments.get(path);
+        } else {
+            commentInputs = Lists.newArrayList();
+            comments.put(path, commentInputs);
+        }
+        commentInputs.add(comment);
     }
 
     public abstract static class Proxy extends AnAction implements DumbAware {

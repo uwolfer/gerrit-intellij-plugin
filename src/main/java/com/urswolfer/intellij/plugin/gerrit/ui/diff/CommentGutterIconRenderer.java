@@ -16,6 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.AccountInfo;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -23,9 +26,8 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
-import com.urswolfer.gerrit.client.rest.bean.CommentInfo;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,13 +38,13 @@ import javax.swing.*;
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
-    private final CommentInfo fileComment;
+    private final ReviewInput.Comment fileComment;
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
     private final MarkupModel markup;
 
-    public CommentGutterIconRenderer(CommentInfo fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public CommentGutterIconRenderer(ReviewInput.Comment fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
@@ -67,22 +69,20 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
         CommentGutterIconRenderer that = (CommentGutterIconRenderer) o;
 
-        if (!fileComment.equals(that.fileComment)) return false;
+        if (!CommentHelper.equals(fileComment, that.fileComment)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return fileComment.hashCode();
+        return CommentHelper.hashCode(fileComment);
     }
 
     @Nullable
     @Override
     public String getTooltipText() {
-        return String.format("<strong>%s</strong><br/>%s",
-                fileComment.getAuthor().getName(),
-                TextToHtml.textToHtml(fileComment.getMessage()));
+        return String.format("<strong>%s</strong><br/>%s", getAuthorName(), TextToHtml.textToHtml(fileComment.message));
     }
 
     @Nullable
@@ -103,7 +103,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     }
 
     private boolean isNewCommentFromMyself() {
-        String name = fileComment.getAuthor().getName();
+        String name = getAuthorName();
         return name != null && name.equals("Myself");
     }
 
@@ -112,5 +112,14 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public AnAction getClickAction() {
         // TODO: remove gutter also when removing comment
         return new RemoveCommentAction(fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+    }
+
+    private String getAuthorName() {
+        AccountInfo author = fileComment.author;
+        String name = "Myself";
+        if (author != null) {
+            name = author.name;
+        }
+        return name;
     }
 }

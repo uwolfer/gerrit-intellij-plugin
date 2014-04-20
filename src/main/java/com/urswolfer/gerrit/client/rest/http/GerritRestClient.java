@@ -19,10 +19,21 @@ package com.urswolfer.gerrit.client.rest.http;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.accounts.Accounts;
+import com.google.gerrit.extensions.api.changes.Changes;
+import com.google.gerrit.extensions.api.projects.Projects;
+import com.google.gerrit.extensions.api.tools.Tools;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import com.urswolfer.gerrit.client.rest.*;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.Version;
+import com.urswolfer.gerrit.client.rest.http.accounts.AccountsRestClient;
+import com.urswolfer.gerrit.client.rest.http.changes.ChangesRestClient;
+import com.urswolfer.gerrit.client.rest.http.projects.ProjectsRestClient;
+import com.urswolfer.gerrit.client.rest.http.tools.ToolsRestClient;
 import org.apache.http.*;
 import org.apache.http.auth.*;
 import org.apache.http.client.CredentialsProvider;
@@ -56,7 +67,7 @@ import java.util.regex.Pattern;
 /**
  * @author Urs Wolfer
  */
-public class GerritRestClient implements GerritClient {
+public class GerritRestClient implements GerritApi {
 
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
@@ -90,42 +101,42 @@ public class GerritRestClient implements GerritClient {
     }
 
     @Override
-    public ChangesClient getChangesClient() {
-        return changesRestClient;
-    }
-
-    @Override
-    public AccountsClient getAccountsClient() {
+    public Accounts accounts() {
         return accountsRestClient;
     }
 
     @Override
-    public ProjectsClient getProjectsClient() {
+    public Changes changes() {
+        return changesRestClient;
+    }
+
+    @Override
+    public Projects projects() {
         return projectsRestClient;
     }
 
     @Override
-    public ToolsClient getToolsClient() {
+    public Tools tools() {
         return toolsRestClient;
     }
 
-    public JsonElement getRequest(String path, Header... headers) throws GerritClientException {
+    public JsonElement getRequest(String path, Header... headers) throws RestApiException {
         return request(path, null, Arrays.asList(headers), HttpVerb.GET);
     }
 
-    public JsonElement postRequest(String path, String requestBody, Header... headers) throws GerritClientException {
+    public JsonElement postRequest(String path, String requestBody, Header... headers) throws RestApiException {
         return request(path, requestBody, Arrays.asList(headers), HttpVerb.POST);
     }
 
-    public JsonElement putRequest(String path, Header... headers) throws GerritClientException {
+    public JsonElement putRequest(String path, Header... headers) throws RestApiException {
         return request(path, null, Arrays.asList(headers), HttpVerb.PUT);
     }
 
-    public JsonElement deleteRequest(String path, Header... headers) throws GerritClientException {
+    public JsonElement deleteRequest(String path, Header... headers) throws RestApiException {
         return request(path, null, Arrays.asList(headers), HttpVerb.DELETE);
     }
 
-    public JsonElement request(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws GerritClientException {
+    public JsonElement request(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws RestApiException {
         try {
             HttpResponse response = doRest(path, requestBody, headers, verb);
 
@@ -139,15 +150,15 @@ public class GerritRestClient implements GerritClient {
             JsonElement ret = parseResponse(resp);
             if (ret.isJsonNull()) {
                 String message = String.format("Unexpectedly empty response: %s.", CharStreams.toString(new InputStreamReader(resp)));
-                throw new GerritClientException(message);
+                throw new RestApiException(message);
             }
             return ret;
         } catch (IOException e) {
-            throw new GerritClientException(e);
+            throw new RestApiException(e);
         }
     }
 
-    public HttpResponse doRest(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws IOException, GerritClientException {
+    public HttpResponse doRest(String path, String requestBody, Collection<Header> headers, HttpVerb verb) throws IOException, RestApiException {
         HttpContext httpContext = new BasicHttpContext();
         HttpClientBuilder client = getHttpClient(httpContext);
 

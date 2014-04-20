@@ -17,12 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.gerrit.extensions.api.changes.SubmitInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
-import com.urswolfer.gerrit.client.rest.bean.SubmitInput;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 /**
@@ -44,7 +44,7 @@ public class SubmitAction extends AbstractChangeAction {
             return;
         }
         SubmitInput submitInput = new SubmitInput();
-        gerritUtil.postSubmit(selectedChange.get().getId(), submitInput, project);
+        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project);
     }
 
     public static class Proxy extends SubmitAction {

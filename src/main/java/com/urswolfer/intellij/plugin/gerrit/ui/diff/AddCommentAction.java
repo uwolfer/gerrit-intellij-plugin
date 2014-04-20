@@ -16,6 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -30,9 +32,6 @@ import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.ui.AnActionButton;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
-import com.urswolfer.gerrit.client.rest.bean.CommentBase;
-import com.urswolfer.gerrit.client.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import org.jetbrains.annotations.NotNull;
@@ -53,7 +52,7 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
     private final FilePath filePath;
     private final GerritGitUtil gerritGitUtil;
     private final CommentBalloonBuilder commentBalloonBuilder;
-    private final CommentBase.CommentSide commentSide;
+    private final ReviewInput.Side commentSide;
 
     public AddCommentAction(ReviewCommentSink reviewCommentSink,
                             ChangeInfo changeInfo,
@@ -61,7 +60,7 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
                             @Nullable FilePath filePath,
                             GerritGitUtil gerritGitUtil,
                             CommentBalloonBuilder commentBalloonBuilder,
-                            CommentBase.CommentSide commentSide) {
+                            ReviewInput.Side commentSide) {
         super("Add Comment", "Add a comment at current line", AllIcons.Toolwindows.ToolWindowMessages);
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
@@ -88,11 +87,11 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
         balloon.addListener(new JBPopupAdapter() {
             @Override
             public void onClosed(LightweightWindowEvent event) {
-                CommentInput comment = commentForm.getComment();
+                ReviewInput.Comment comment = commentForm.getComment();
                 if (comment != null) {
                     final MarkupModel markup = editor.getMarkupModel();
-                    final RangeHighlighter highlighter = markup.addLineHighlighter(comment.getLine() - 1, HighlighterLayer.ERROR + 1, null);
-                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment.toCommentInfo(), reviewCommentSink, changeInfo, highlighter, markup));
+                    final RangeHighlighter highlighter = markup.addLineHighlighter(comment.line - 1, HighlighterLayer.ERROR + 1, null);
+                    highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(comment, reviewCommentSink, changeInfo, highlighter, markup));
                 }
             }
         });

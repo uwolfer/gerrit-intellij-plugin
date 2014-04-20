@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package com.urswolfer.gerrit.client.rest.http;
+package com.urswolfer.gerrit.client.rest.http.projects;
 
+import com.google.gerrit.extensions.api.projects.ProjectApi;
+import com.google.gerrit.extensions.api.projects.Projects;
+import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.urswolfer.gerrit.client.rest.GerritClientException;
-import com.urswolfer.gerrit.client.rest.ProjectsClient;
-import com.urswolfer.gerrit.client.rest.bean.ProjectInfo;
+import com.urswolfer.gerrit.client.rest.NotImplementedException;
+import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,15 +34,19 @@ import java.util.Map;
 /**
  * @author Urs Wolfer
  */
-public class ProjectsRestClient extends AbstractRestClient implements ProjectsClient {
-    private final GerritRestClient gerritRestClient;
+public class ProjectsRestClient extends AbstractRestClient implements Projects {
 
     public ProjectsRestClient(GerritRestClient gerritRestClient) {
-        this.gerritRestClient = gerritRestClient;
+        super(gerritRestClient);
     }
 
     @Override
-    public List<ProjectInfo> getProjects() throws GerritClientException {
+    public ProjectApi name(String name) throws RestApiException {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public List<ProjectInfo> list() throws RestApiException {
         String request = "/projects/";
         JsonElement result = gerritRestClient.getRequest(request);
         if (result == null) {
@@ -47,12 +55,12 @@ public class ProjectsRestClient extends AbstractRestClient implements ProjectsCl
         return parseProjectInfos(result);
     }
 
-    private List<ProjectInfo> parseProjectInfos(JsonElement result) throws GerritClientException {
+    private List<ProjectInfo> parseProjectInfos(JsonElement result) throws RestApiException {
         List<ProjectInfo> repositories = new ArrayList<ProjectInfo>();
         final JsonObject jsonObject = result.getAsJsonObject();
         for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
             if (!element.getValue().isJsonObject()) {
-                throw new GerritClientException(String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
+                throw new RestApiException(String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
             }
             repositories.add(parseSingleRepositoryInfo(element.getValue().getAsJsonObject()));
 

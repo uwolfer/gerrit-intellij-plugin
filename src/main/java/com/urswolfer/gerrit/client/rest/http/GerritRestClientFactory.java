@@ -16,22 +16,22 @@
 
 package com.urswolfer.gerrit.client.rest.http;
 
+import com.google.gerrit.extensions.api.GerritApi;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.gerrit.client.rest.GerritClient;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritRestClientFactory {
 
-    public GerritClient create(GerritAuthData authData,
-                               HttpClientBuilderExtension... httpClientBuilderExtensions) {
+    public GerritApi create(GerritAuthData authData,
+                            HttpClientBuilderExtension... httpClientBuilderExtensions) {
         return create(authData, new HttpRequestExecutor(), httpClientBuilderExtensions);
     }
 
-    public GerritClient create(GerritAuthData authData,
-                               HttpRequestExecutor httpRequestExecutor,
-                               HttpClientBuilderExtension... httpClientBuilderExtensions) {
+    public GerritApi create(GerritAuthData authData,
+                            HttpRequestExecutor httpRequestExecutor,
+                            HttpClientBuilderExtension... httpClientBuilderExtensions) {
         return new GerritRestClient(authData, httpRequestExecutor, httpClientBuilderExtensions);
     }
 }

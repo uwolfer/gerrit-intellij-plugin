@@ -16,8 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.DataKey;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 

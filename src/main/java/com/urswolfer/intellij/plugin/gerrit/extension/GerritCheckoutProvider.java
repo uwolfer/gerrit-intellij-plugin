@@ -18,6 +18,8 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.io.ByteStreams;
+import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -26,7 +28,6 @@ import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.urswolfer.gerrit.client.rest.bean.ProjectInfo;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -89,14 +90,14 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         Collections.sort(availableProjects, new Comparator<ProjectInfo>() {
             @Override
             public int compare(final ProjectInfo p1, final ProjectInfo p2) {
-                return p1.getId().compareTo(p2.getId());
+                return p1.id.compareTo(p2.id);
             }
         });
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
         // Add predefined repositories to history
         for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + availableProjects.get(i).getDecodedId());
+            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(availableProjects.get(i).id));
         }
         dialog.show();
         if (!dialog.isOK()) {

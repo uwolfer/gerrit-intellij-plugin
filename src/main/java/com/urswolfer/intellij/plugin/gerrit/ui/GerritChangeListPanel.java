@@ -19,6 +19,9 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
@@ -31,9 +34,6 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
-import com.urswolfer.gerrit.client.rest.bean.CommentInput;
-import com.urswolfer.gerrit.client.rest.bean.LabelInfo;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import icons.Git4ideaIcons;
@@ -78,8 +78,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component component = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) ) {
-                    Iterable<CommentInput> commentInputs = GerritChangeListPanel.this.reviewCommentSink
-                            .getCommentsForChange(this.getRow(row).getId());
+                    Iterable<ReviewInput.Comment> commentInputs = GerritChangeListPanel.this.reviewCommentSink
+                            .getCommentsForChange(this.getRow(row).id);
                     if (!Iterables.isEmpty(commentInputs)) {
                         component.setForeground(JBColor.BLUE);
                     } else {
@@ -199,7 +199,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 new ColumnInfo<ChangeInfo, String>("Subject") {
                     @Override
                     public String valueOf(ChangeInfo change) {
-                        return change.getSubject();
+                        return change.subject;
                     }
                 },
                 new GerritChangeColumnInfo("Owner", author.item) {
@@ -260,23 +260,23 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getHash(ChangeInfo change) {
-        return change.getChangeId().substring(0, 9);
+        return change.changeId.substring(0, 9);
     }
 
     private static String getOwner(ChangeInfo change) {
-        return change.getOwner().getName();
+        return change.owner.name;
     }
 
     private static String getProject(ChangeInfo change) {
-        return change.getProject();
+        return change.project;
     }
 
     private static String getBranch(ChangeInfo change) {
-        return change.getBranch();
+        return change.branch;
     }
 
     private static String getTime(ChangeInfo change) {
-        return DateFormatUtil.formatPrettyDateTime(change.getUpdated());
+        return DateFormatUtil.formatPrettyDateTime(change.updated);
     }
 
     private static LabelInfo getCodeReview(ChangeInfo change) {
@@ -288,7 +288,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static LabelInfo getLabel(ChangeInfo change, String labelName) {
-        Map<String,LabelInfo> labels = change.getLabels();
+        Map<String,LabelInfo> labels = change.labels;
         if (labels != null) {
             return labels.get(labelName);
         } else {
@@ -355,16 +355,16 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         private static Icon getIconForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
-                if (labelInfo.getApproved() != null) {
+                if (labelInfo.approved != null) {
                     return Checked;
                 }
-                if (labelInfo.getRecommended() != null) {
+                if (labelInfo.recommended != null) {
                     return MoveUp;
                 }
-                if (labelInfo.getDisliked() != null) {
+                if (labelInfo.disliked != null) {
                     return MoveDown;
                 }
-                if (labelInfo.getRejected() != null) {
+                if (labelInfo.recommended != null) {
                     return Cancel;
                 }
             }
@@ -373,17 +373,17 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         private static String getToolTipForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
-                if (labelInfo.getApproved() != null) {
-                    return labelInfo.getApproved().getName();
+                if (labelInfo.approved != null) {
+                    return labelInfo.approved.name;
                 }
-                if (labelInfo.getRecommended() != null) {
-                    return labelInfo.getRecommended().getName();
+                if (labelInfo.recommended != null) {
+                    return labelInfo.recommended.name;
                 }
-                if (labelInfo.getDisliked() != null) {
-                    return labelInfo.getDisliked().getName();
+                if (labelInfo.disliked != null) {
+                    return labelInfo.disliked.name;
                 }
-                if (labelInfo.getRejected() != null) {
-                    return labelInfo.getRejected().getName();
+                if (labelInfo.rejected != null) {
+                    return labelInfo.rejected.name;
                 }
             }
             return null;
@@ -409,7 +409,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                     JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    if (changeInfo.getStarred()) {
+                    if (changeInfo.starred != null && changeInfo.starred) {
                         label.setIcon(Git4ideaIcons.Star);
                     }
                     label.setHorizontalAlignment(CENTER);

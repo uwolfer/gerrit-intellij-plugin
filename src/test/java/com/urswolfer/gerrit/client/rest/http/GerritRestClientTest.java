@@ -16,9 +16,9 @@
 
 package com.urswolfer.gerrit.client.rest.http;
 
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.gerrit.client.rest.GerritClient;
-import com.urswolfer.gerrit.client.rest.bean.ChangeInfo;
 import org.testng.annotations.Test;
 
 import java.util.List;
@@ -30,8 +30,8 @@ public class GerritRestClientTest {
     @Test(enabled = false) // requires running Gerrit instance
     public void testBasicRestCallToLocalhost() throws Exception {
         GerritRestClientFactory gerritRestClientFactory = new GerritRestClientFactory();
-        GerritClient gerritClient = gerritRestClientFactory.create(new GerritAuthData.BasicAuthData("http://localhost:8080"));
-        List<ChangeInfo> changes = gerritClient.getChangesClient().getChanges();
+        GerritApi gerritClient = gerritRestClientFactory.create(new GerritAuthData.BasicAuthData("http://localhost:8080"));
+        List<ChangeInfo> changes = gerritClient.changes().list();
         System.out.println(String.format("Got %s changes.", changes.size()));
         System.out.println(changes);
     }

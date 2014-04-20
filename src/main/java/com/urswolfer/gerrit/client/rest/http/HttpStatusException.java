@@ -16,12 +16,12 @@
 
 package com.urswolfer.gerrit.client.rest.http;
 
-import com.urswolfer.gerrit.client.rest.GerritClientException;
+import com.google.gerrit.extensions.restapi.RestApiException;
 
 /**
  * @author Urs Wolfer
  */
-public class HttpStatusException extends GerritClientException {
+public class HttpStatusException extends RestApiException {
     private int statusCode;
     private String statusText;
 

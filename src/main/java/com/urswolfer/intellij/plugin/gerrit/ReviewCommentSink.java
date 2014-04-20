@@ -16,9 +16,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.urswolfer.gerrit.client.rest.bean.CommentInput;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
+
+import java.util.Collection;
 
 /**
  * This is a holder for new comments which got added locally. They get removed again once they are submitted.
@@ -27,18 +32,24 @@ import com.urswolfer.gerrit.client.rest.bean.CommentInput;
  */
 public class ReviewCommentSink {
 
-    private Multimap<String, CommentInput> comments = ArrayListMultimap.create();
+    private Multimap<String, CommentHelper> comments = ArrayListMultimap.create();
 
-    public void addComment(String changeId, CommentInput comment) {
-        comments.put(changeId, comment);
+    public void addComment(String changeId, ReviewInput.Comment comment) {
+        comments.put(changeId, new CommentHelper(comment));
     }
 
-    public Iterable<CommentInput> getCommentsForChange(String changeId) {
-        return comments.get(changeId);
+    public Iterable<ReviewInput.Comment> getCommentsForChange(String changeId) {
+        Collection<CommentHelper> comments = this.comments.get(changeId);
+        return Iterables.transform(comments, new Function<CommentHelper, ReviewInput.Comment>() {
+            @Override
+            public ReviewInput.Comment apply(CommentHelper commentHelper) {
+                return commentHelper.getComment();
+            }
+        });
     }
 
-    public void removeCommentForChange(String changeId, CommentInput commentInput) {
-        comments.get(changeId).remove(commentInput);
+    public void removeCommentForChange(String changeId, ReviewInput.Comment commentInput) {
+        comments.get(changeId).remove(new CommentHelper(commentInput));
     }
 
     public void removeCommentsForChange(String changeId) {

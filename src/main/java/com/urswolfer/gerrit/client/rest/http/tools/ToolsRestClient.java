@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.urswolfer.gerrit.client.rest.http;
+package com.urswolfer.gerrit.client.rest.http.tools;
 
-import com.urswolfer.gerrit.client.rest.GerritClientException;
-import com.urswolfer.gerrit.client.rest.ToolsClient;
+import com.google.gerrit.extensions.api.tools.Tools;
+import com.google.gerrit.extensions.restapi.RestApiException;
+import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 
@@ -28,20 +30,19 @@ import java.util.Collections;
 /**
  * @author Urs Wolfer
  */
-public class ToolsRestClient extends AbstractRestClient implements ToolsClient {
-    private final GerritRestClient gerritRestClient;
+public class ToolsRestClient extends AbstractRestClient implements Tools {
 
     public ToolsRestClient(GerritRestClient gerritRestClient) {
-        this.gerritRestClient = gerritRestClient;
+        super(gerritRestClient);
     }
 
     @Override
-    public InputStream getCommitMessageHook() throws GerritClientException {
+    public InputStream getCommitMessageHook() throws RestApiException {
         try {
             HttpResponse response = gerritRestClient.doRest("/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritRestClient.HttpVerb.GET);
             return response.getEntity().getContent();
         } catch (IOException e) {
-            throw new GerritClientException(e);
+            throw new RestApiException(e);
         }
     }
 }

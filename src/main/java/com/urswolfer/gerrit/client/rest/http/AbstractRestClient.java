@@ -30,6 +30,20 @@ public class AbstractRestClient {
 
     protected static final Gson gson = initGson();
 
+    protected final GerritRestClient gerritRestClient;
+
+    protected AbstractRestClient(GerritRestClient gerritRestClient) {
+        this.gerritRestClient = gerritRestClient;
+    }
+
+    public Gson getGson() {
+        return gson;
+    }
+
+    public GerritRestClient getGerritRestClient() {
+        return gerritRestClient;
+    }
+
     private static Gson initGson() {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(Date.class, new DateDeserializer());

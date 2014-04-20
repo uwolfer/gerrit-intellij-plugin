@@ -14,8 +14,10 @@
 
 package com.google.gerrit.extensions.api.changes;
 
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.restapi.DefaultInput;
 
+import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +80,9 @@ public class ReviewInput {
     public String inReplyTo;
     public String message;
     public Range range;
+    public String path; // added uwolfer
+    public Timestamp updated; // added uwolfer
+    public AccountInfo author; // added uwolfer
 
     public static class Range {
       public int startLine;

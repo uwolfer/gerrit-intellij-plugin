@@ -16,6 +16,9 @@ package com.google.gerrit.extensions.api.changes;
 
 import com.google.gerrit.extensions.restapi.RestApiException;
 
+import java.util.List;
+import java.util.Map;
+
 public interface RevisionApi {
   void delete() throws RestApiException;
   void review(ReviewInput in) throws RestApiException;
@@ -27,4 +30,6 @@ public interface RevisionApi {
   ChangeApi cherryPick(CherryPickInput in) throws RestApiException;
   ChangeApi rebase() throws RestApiException;
   boolean canRebase();
+  void changeReviewed(String filePath, boolean reviewed) throws RestApiException; // added uwolfer
+  Map<String, List<ReviewInput.Comment>> getComments() throws RestApiException; // added uwolfer
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.urswolfer.gerrit.client.rest;
+package com.google.gerrit.extensions.api.accounts;
 
-import com.urswolfer.gerrit.client.rest.bean.ProjectInfo;
-
-import java.util.List;
+import com.google.gerrit.extensions.restapi.RestApiException;
 
 /**
  * @author Urs Wolfer
  */
-public interface ProjectsClient {
-
-    List<ProjectInfo> getProjects() throws GerritClientException;
+public interface Accounts {
+    AccountApi name(String name) throws RestApiException;
+    AccountApi self() throws RestApiException;
 }

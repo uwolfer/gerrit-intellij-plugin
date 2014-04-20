@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Map;
 
 public class ChangeInfo {
+  public String _number; // added uwolfer
   public String id;
   public String project;
   public String branch;

@@ -14,10 +14,14 @@
 
 package com.google.gerrit.extensions.api;
 
+import com.google.gerrit.extensions.api.accounts.Accounts;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.projects.Projects;
+import com.google.gerrit.extensions.api.tools.Tools;
 
 public interface GerritApi {
+  public Accounts accounts(); // added uwolfer
   public Changes changes();
   public Projects projects();
+  public Tools tools(); // added uwolfer
 }

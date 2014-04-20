@@ -14,11 +14,17 @@
 
 package com.google.gerrit.extensions.api.changes;
 
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
+
+import java.util.List;
 
 public interface Changes {
   ChangeApi id(int id) throws RestApiException;
   ChangeApi id(String triplet) throws RestApiException;
   ChangeApi id(String project, String branch, String id)
       throws RestApiException;
+
+  List<ChangeInfo> list() throws RestApiException; // added uwolfer
+  List<ChangeInfo> list(String query) throws RestApiException; // added uwolfer
 }

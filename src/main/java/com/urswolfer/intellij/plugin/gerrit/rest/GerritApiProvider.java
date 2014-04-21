@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,27 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 
 /**
- * @author Thomas Forrer
+ * @author Urs Wolfer
  */
-public class GerritRestModule extends AbstractModule {
+public class GerritApiProvider implements Provider<GerritApi> {
+
+    @Inject
+    private GerritSettings gerritSettings;
+    @Inject
+    private SslSupport sslSupport;
+    @Inject
+    private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
+    @Inject
+    private GerritRestClientFactory gerritRestClientFactory;
+
     @Override
-    protected void configure() {
-        bind(SslSupport.class);
-        bind(ProxyHttpClientBuilderExtension.class);
-        bind(GerritRestClientFactory.class);
-        bind(GerritApi.class).toProvider(new GerritApiProvider());
+    public GerritApi get() {
+        return gerritRestClientFactory.create(gerritSettings, sslSupport, proxyHttpClientBuilderExtension);
     }
 }

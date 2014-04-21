@@ -42,11 +42,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
-import com.intellij.util.net.HttpConfigurable;
-import com.intellij.util.net.IdeaWideProxySelector;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
-import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -59,19 +56,9 @@ import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.SocketAddress;
-import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,27 +73,20 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class GerritUtil {
 
-    private final GerritSettings gerritSettings;
-    private final SslSupport sslSupport;
-    private final Logger log;
-    private final NotificationService notificationService;
-    private final GerritApi gerritClient;
-    private final GerritRestClientFactory gerritRestClientFactory;
-
     @Inject
-    public GerritUtil(GerritSettings gerritSettings,
-                      SslSupport sslSupport,
-                      Logger log,
-                      NotificationService notificationService,
-                      GerritRestClientFactory gerritRestClientFactory) {
-        this.gerritSettings = gerritSettings;
-        this.sslSupport = sslSupport;
-        this.log = log;
-        this.notificationService = notificationService;
-        this.gerritRestClientFactory = gerritRestClientFactory;
-
-        this.gerritClient = createGerritClient(gerritSettings);
-    }
+    private GerritSettings gerritSettings;
+    @Inject
+    private SslSupport sslSupport;
+    @Inject
+    private Logger log;
+    @Inject
+    private NotificationService notificationService;
+    @Inject
+    private GerritApi gerritClient;
+    @Inject
+    private GerritRestClientFactory gerritRestClientFactory;
+    @Inject
+    private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
 
     public <T> T accessToGerritWithModalProgress(Project project,
                                                  ThrowableComputable<T, Exception> computable) {
@@ -398,22 +378,14 @@ public class GerritUtil {
 
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
         // we need to test with a temporary client with probably new (unsaved) credentials
-        GerritApi tempClient = createGerritClient(gerritAuthData);
+        GerritApi tempClient = createClientWithCustomAuthData(gerritAuthData);
         if (gerritAuthData.isLoginAndPasswordAvailable()) {
-            AccountInfo user = retrieveCurrentUserInfo(tempClient);
+            AccountInfo user = tempClient.accounts().self().get();
             return user != null;
         } else {
             tempClient.changes().list();
             return true;
         }
-    }
-
-    public AccountInfo retrieveCurrentUserInfo(GerritApi tempClient) throws RestApiException {
-        return tempClient.accounts().self().get();
-    }
-
-    private List<ProjectInfo> getAvailableProjects() throws RestApiException {
-        return gerritClient.projects().list();
     }
 
     /**
@@ -464,13 +436,9 @@ public class GerritUtil {
             @Override
             public List<ProjectInfo> compute() throws Exception {
                 ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
-                return getAvailableProjects();
+                return gerritClient.projects().list();
             }
         });
-    }
-
-    public InputStream getCommitMessageHook() throws RestApiException {
-        return gerritClient.tools().getCommitMessageHook();
     }
 
     public String getRef(ChangeInfo changeDetails) {
@@ -548,41 +516,7 @@ public class GerritUtil {
         notificationService.notifyError(notification);
     }
 
-    private HttpClientBuilderExtension createProxyGerritHttpClientBuilderExtension() {
-        return new HttpClientBuilderExtension() {
-            @Override
-            public CredentialsProvider extendCredentialProvider(HttpClientBuilder httpClientBuilder, CredentialsProvider credentialsProvider) {
-                HttpConfigurable proxySettings = HttpConfigurable.getInstance();
-                IdeaWideProxySelector ideaWideProxySelector = new IdeaWideProxySelector(proxySettings);
-
-                // This will always return at least one proxy, which can be the "NO_PROXY" instance.
-                List<Proxy> proxies = ideaWideProxySelector.select(URI.create(gerritSettings.getHost()));
-
-                // Find the first real proxy with an address type we support.
-                for (Proxy proxy : proxies) {
-                    SocketAddress socketAddress = proxy.address();
-
-                    if (HttpConfigurable.isRealProxy(proxy) && socketAddress instanceof InetSocketAddress) {
-                        InetSocketAddress address = (InetSocketAddress) socketAddress;
-                        HttpHost proxyHttpHost = new HttpHost(address.getHostName(), address.getPort());
-                        httpClientBuilder.setProxy(proxyHttpHost);
-
-                        // Here we use the single username/password that we got from IDEA's settings. It feels kinda strange
-                        // to use these credential but it's probably what the user expects.
-                        if (proxySettings.PROXY_AUTHENTICATION) {
-                            AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
-                            UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword());
-                            credentialsProvider.setCredentials(authScope, credentials);
-                            break;
-                        }
-                    }
-                }
-                return credentialsProvider;
-            }
-        };
-    }
-
-    private GerritApi createGerritClient(GerritAuthData gerritAuthData) {
-        return gerritRestClientFactory.create(gerritAuthData, sslSupport, createProxyGerritHttpClientBuilderExtension());
+    private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
+        return gerritRestClientFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
     }
 }

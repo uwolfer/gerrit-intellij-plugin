@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.io.ByteStreams;
+import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
@@ -66,6 +67,8 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private Logger log;
     @Inject
     private NotificationService notificationService;
+    @Inject
+    private GerritApi gerritApi;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -147,7 +150,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            InputStream commitMessageHook = gerritUtil.getCommitMessageHook();
+            InputStream commitMessageHook = gerritApi.tools().getCommitMessageHook();
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             ByteStreams.copy(commitMessageHook, new FileOutputStream(targetFile));
             //noinspection ResultOfMethodCallIgnored

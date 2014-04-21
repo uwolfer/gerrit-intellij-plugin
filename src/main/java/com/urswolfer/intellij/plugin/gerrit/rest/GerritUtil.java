@@ -324,7 +324,7 @@ public class GerritUtil {
             for (String repositoryUrl : remote.getUrls()) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
                     String projectName = getProjectName(gerritSettings.getHost(), repositoryUrl);
-                    if (Strings.isNullOrEmpty(projectName)) {
+                    if (!Strings.isNullOrEmpty(projectName)) {
                         projectNames.add("project:" + projectName);
                     }
                 }

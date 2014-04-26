@@ -269,8 +269,8 @@ public class GerritRestClient implements GerritApi {
         client.addInterceptorLast(new UserAgentHttpRequestInterceptor());
 
         for (HttpClientBuilderExtension httpClientBuilderExtension : httpClientBuilderExtensions) {
-            client = httpClientBuilderExtension.extend(client);
-            credentialsProvider = httpClientBuilderExtension.extendCredentialProvider(client, credentialsProvider);
+            client = httpClientBuilderExtension.extend(client, authData);
+            credentialsProvider = httpClientBuilderExtension.extendCredentialProvider(client, credentialsProvider, authData);
         }
 
         return client;

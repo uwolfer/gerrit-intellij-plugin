@@ -16,11 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.Inject;
 import com.intellij.util.net.HttpConfigurable;
 import com.intellij.util.net.IdeaWideProxySelector;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -38,16 +37,15 @@ import java.util.List;
  */
 public class ProxyHttpClientBuilderExtension extends HttpClientBuilderExtension {
 
-    @Inject
-    private GerritSettings gerritSettings;
-
     @Override
-    public CredentialsProvider extendCredentialProvider(HttpClientBuilder httpClientBuilder, CredentialsProvider credentialsProvider) {
+    public CredentialsProvider extendCredentialProvider(HttpClientBuilder httpClientBuilder,
+                                                        CredentialsProvider credentialsProvider,
+                                                        GerritAuthData authData) {
         HttpConfigurable proxySettings = HttpConfigurable.getInstance();
         IdeaWideProxySelector ideaWideProxySelector = new IdeaWideProxySelector(proxySettings);
 
         // This will always return at least one proxy, which can be the "NO_PROXY" instance.
-        List<Proxy> proxies = ideaWideProxySelector.select(URI.create(gerritSettings.getHost()));
+        List<Proxy> proxies = ideaWideProxySelector.select(URI.create(authData.getHost()));
 
         // Find the first real proxy with an address type we support.
         for (Proxy proxy : proxies) {

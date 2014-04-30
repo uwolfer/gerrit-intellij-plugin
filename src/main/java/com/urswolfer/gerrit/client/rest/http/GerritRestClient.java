@@ -25,11 +25,10 @@ import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.api.tools.Tools;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.Version;
+import com.urswolfer.gerrit.client.rest.gson.DateDeserializer;
 import com.urswolfer.gerrit.client.rest.http.accounts.AccountsRestClient;
 import com.urswolfer.gerrit.client.rest.http.changes.ChangesRestClient;
 import com.urswolfer.gerrit.client.rest.http.projects.ProjectsRestClient;
@@ -56,10 +55,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,6 +69,7 @@ public class GerritRestClient implements GerritApi {
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
     private static final int CONNECTION_TIMEOUT_MS = 30000;
     private static final String PREEMPTIVE_AUTH = "preemptive-auth";
+    private static final Gson GSON = initGson();
 
     private final GerritAuthData authData;
     private final HttpRequestExecutor httpRequestExecutor;
@@ -118,6 +115,10 @@ public class GerritRestClient implements GerritApi {
     @Override
     public Tools tools() {
         return toolsRestClient;
+    }
+
+    public Gson getGson() {
+        return GSON;
     }
 
     public JsonElement getRequest(String path, Header... headers) throws RestApiException {
@@ -366,4 +367,10 @@ public class GerritRestClient implements GerritApi {
         }
     }
 
+    private static Gson initGson() {
+        GsonBuilder builder = new GsonBuilder();
+        builder.registerTypeAdapter(Date.class, new DateDeserializer());
+        builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+        return builder.create();
+    }
 }

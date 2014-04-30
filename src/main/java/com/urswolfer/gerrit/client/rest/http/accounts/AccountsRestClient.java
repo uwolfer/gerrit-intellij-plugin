@@ -19,25 +19,30 @@ package com.urswolfer.gerrit.client.rest.http.accounts;
 import com.google.gerrit.extensions.api.accounts.AccountApi;
 import com.google.gerrit.extensions.api.accounts.Accounts;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 /**
  * @author Urs Wolfer
  */
-public class AccountsRestClient extends AbstractRestClient implements Accounts {
+public class AccountsRestClient extends AccountApi.NotImplemented implements Accounts {
+
+    private final GerritRestClient gerritRestClient;
 
     public AccountsRestClient(GerritRestClient gerritRestClient) {
-        super(gerritRestClient);
+        this.gerritRestClient = gerritRestClient;
     }
 
     @Override
-    public AccountApi name(String name) throws RestApiException {
-        return new AccountApiRestClient(this, name);
+    public AccountApi id(String id) throws RestApiException {
+        return new AccountApiRestClient(this, id);
     }
 
     @Override
     public AccountApi self() throws RestApiException {
-        return name("self");
+        return id("self");
+    }
+
+    protected GerritRestClient getGerritRestClient() {
+        return gerritRestClient;
     }
 }

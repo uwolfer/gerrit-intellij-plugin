@@ -49,7 +49,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
 
     private String getUrl(ChangeInfo change) {
         String url = gerritSettings.getHost();
-        String changeNumber = change._number;
+        int changeNumber = change._number;
         return String.format("%s/%s", url, changeNumber);
     }
 

@@ -14,6 +14,7 @@
 
 package com.google.gerrit.extensions.api.changes;
 
+import com.google.gerrit.extensions.restapi.NotImplementedException;
 import com.google.gerrit.extensions.restapi.RestApiException;
 
 import java.util.List;
@@ -30,6 +31,63 @@ public interface RevisionApi {
   ChangeApi cherryPick(CherryPickInput in) throws RestApiException;
   ChangeApi rebase() throws RestApiException;
   boolean canRebase();
+
   void changeReviewed(String filePath, boolean reviewed) throws RestApiException; // added uwolfer
   Map<String, List<ReviewInput.Comment>> getComments() throws RestApiException; // added uwolfer
+
+  /**
+   * A default implementation which allows source compatibility
+   * when adding new methods to the interface.
+   **/
+  public class NotImplemented implements RevisionApi {
+    @Override
+    public void delete() throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void review(ReviewInput in) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void submit() throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void submit(SubmitInput in) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void publish() throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ChangeApi cherryPick(CherryPickInput in) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ChangeApi rebase() throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public boolean canRebase() {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void changeReviewed(String filePath, boolean reviewed) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public Map<String, List<ReviewInput.Comment>> getComments() throws RestApiException {
+      throw new NotImplementedException();
+    }
+  }
 }

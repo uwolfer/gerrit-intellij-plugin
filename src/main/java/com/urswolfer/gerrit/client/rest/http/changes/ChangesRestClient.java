@@ -23,7 +23,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 import java.util.ArrayList;
@@ -33,19 +32,21 @@ import java.util.List;
 /**
  * @author Urs Wolfer
  */
-public class ChangesRestClient extends AbstractRestClient implements Changes {
+public class ChangesRestClient extends Changes.NotImplemented implements Changes {
+
+    private final GerritRestClient gerritRestClient;
 
     public ChangesRestClient(GerritRestClient gerritRestClient) {
-        super(gerritRestClient);
+        this.gerritRestClient = gerritRestClient;
     }
 
     @Override
-    public List<ChangeInfo> list() throws RestApiException {
-        return list(null);
+    public List<ChangeInfo> query() throws RestApiException {
+        return query(null);
     }
 
     @Override
-    public List<ChangeInfo> list(String query) throws RestApiException {
+    public List<ChangeInfo> query(String query) throws RestApiException {
         String endPoint = "changes";
         String url;
         if (Strings.isNullOrEmpty(query)) {
@@ -91,7 +92,10 @@ public class ChangesRestClient extends AbstractRestClient implements Changes {
     }
 
     protected ChangeInfo parseSingleChangeInfos(JsonObject result) {
-        return gson.fromJson(result, ChangeInfo.class);
+        return gerritRestClient.getGson().fromJson(result, ChangeInfo.class);
     }
 
+    protected GerritRestClient getGerritRestClient() {
+        return gerritRestClient;
+    }
 }

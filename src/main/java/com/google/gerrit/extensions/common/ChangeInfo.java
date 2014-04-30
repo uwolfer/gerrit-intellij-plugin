@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Map;
 
 public class ChangeInfo {
-  public String _number; // added uwolfer
   public String id;
   public String project;
   public String branch;
@@ -40,4 +39,5 @@ public class ChangeInfo {
   public Map<String, LabelInfo> labels;
   public Collection<ChangeMessageInfo> messages;
   public Map<String, RevisionInfo> revisions;
+  public int _number;
 }

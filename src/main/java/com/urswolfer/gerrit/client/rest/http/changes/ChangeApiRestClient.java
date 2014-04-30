@@ -16,12 +16,13 @@
 
 package com.urswolfer.gerrit.client.rest.http.changes;
 
-import com.google.gerrit.extensions.api.changes.*;
+import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
+import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
-import com.urswolfer.gerrit.client.rest.NotImplementedException;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 
 import java.util.EnumSet;
@@ -29,7 +30,7 @@ import java.util.EnumSet;
 /**
  * @author Urs Wolfer
  */
-public class ChangeApiRestClient implements ChangeApi {
+public class ChangeApiRestClient extends ChangeApi.NotImplemented implements ChangeApi {
 
     private final ChangesRestClient changesRestClient;
     private final String id;
@@ -76,43 +77,13 @@ public class ChangeApiRestClient implements ChangeApi {
     @Override
     public void abandon(AbandonInput abandonInput) throws RestApiException {
         String request = "/changes/" + id + "/abandon";
-        String json = changesRestClient.getGson().toJson(abandonInput);
+        String json = changesRestClient.getGerritRestClient().getGson().toJson(abandonInput);
         changesRestClient.getGerritRestClient().postRequest(request, json);
     }
 
     @Override
-    public void restore() throws RestApiException {
-        restore(new RestoreInput());
-    }
-
-    @Override
-    public void restore(RestoreInput in) throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public ChangeApi revert() throws RestApiException {
-        return revert(new RevertInput());
-    }
-
-    @Override
-    public ChangeApi revert(RevertInput in) throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public void addReviewer(AddReviewerInput in) throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public void addReviewer(String in) throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
     public ChangeInfo get(EnumSet<ListChangesOption> options) throws RestApiException {
-        return null;
+        return get(); // TODO: impl: see api doc
     }
 
     @Override

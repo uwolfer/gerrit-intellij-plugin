@@ -15,6 +15,7 @@
 package com.google.gerrit.extensions.api.projects;
 
 import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.NotImplementedException;
 import com.google.gerrit.extensions.restapi.RestApiException;
 
 import java.util.List;
@@ -23,4 +24,20 @@ public interface Projects {
   ProjectApi name(String name) throws RestApiException;
 
   List<ProjectInfo> list() throws RestApiException; // added uwolfer
+
+  /**
+   * A default implementation which allows source compatibility
+   * when adding new methods to the interface.
+   **/
+  public class NotImplemented implements Projects {
+    @Override
+    public ProjectApi name(String name) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public List<ProjectInfo> list() throws RestApiException {
+      throw new NotImplementedException();
+    }
+  }
 }

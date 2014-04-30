@@ -31,7 +31,7 @@ public class GerritRestClientTest {
     public void testBasicRestCallToLocalhost() throws Exception {
         GerritRestClientFactory gerritRestClientFactory = new GerritRestClientFactory();
         GerritApi gerritClient = gerritRestClientFactory.create(new GerritAuthData.BasicAuthData("http://localhost:8080"));
-        List<ChangeInfo> changes = gerritClient.changes().list();
+        List<ChangeInfo> changes = gerritClient.changes().query();
         System.out.println(String.format("Got %s changes.", changes.size()));
         System.out.println(changes);
     }

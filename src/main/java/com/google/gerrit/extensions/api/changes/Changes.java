@@ -15,6 +15,7 @@
 package com.google.gerrit.extensions.api.changes;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.restapi.NotImplementedException;
 import com.google.gerrit.extensions.restapi.RestApiException;
 
 import java.util.List;
@@ -25,6 +26,37 @@ public interface Changes {
   ChangeApi id(String project, String branch, String id)
       throws RestApiException;
 
-  List<ChangeInfo> list() throws RestApiException; // added uwolfer
-  List<ChangeInfo> list(String query) throws RestApiException; // added uwolfer
+  List<ChangeInfo> query() throws RestApiException; // added uwolfer
+  List<ChangeInfo> query(String query) throws RestApiException; // added uwolfer
+
+  /**
+   * A default implementation which allows source compatibility
+   * when adding new methods to the interface.
+   **/
+  public class NotImplemented implements Changes {
+    @Override
+    public ChangeApi id(int id) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ChangeApi id(String triplet) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public ChangeApi id(String project, String branch, String id) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+      @Override
+      public List<ChangeInfo> query() throws RestApiException {
+          throw new NotImplementedException();
+      }
+
+      @Override
+      public List<ChangeInfo> query(String query) throws RestApiException {
+          throw new NotImplementedException();
+      }
+  }
 }

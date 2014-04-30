@@ -24,7 +24,7 @@ import com.google.gson.JsonElement;
 /**
  * @author Urs Wolfer
  */
-public class AccountApiRestClient implements AccountApi {
+public class AccountApiRestClient extends AccountApi.NotImplemented implements AccountApi {
 
     private final AccountsRestClient accountsRestClient;
     private final String name;
@@ -47,19 +47,23 @@ public class AccountApiRestClient implements AccountApi {
         if (!result.isJsonObject()) {
             throw new RestApiException(String.format("Unexpected JSON result format: %s", result));
         }
-        return accountsRestClient.getGson().fromJson(result, AccountInfo.class);
+        return accountsRestClient.getGerritRestClient().getGson().fromJson(result, AccountInfo.class);
+    }
+
+    @Override
+    public void starChange(String id) throws RestApiException {
+        accountsRestClient.getGerritRestClient().putRequest(createStarUrl(id));
+    }
+
+    @Override
+    public void unstarChange(String id) throws RestApiException {
+        accountsRestClient.getGerritRestClient().deleteRequest(createStarUrl(id));
     }
 
     /**
      * Star-endpoint added in Gerrit 2.8.
      */
-    @Override
-    public void changeStarredStatus(String changeNr, boolean starred) throws RestApiException {
-        final String request = "/accounts/" + name + "/starred.changes/" + changeNr;
-        if (starred) {
-            accountsRestClient.getGerritRestClient().putRequest(request);
-        } else {
-            accountsRestClient.getGerritRestClient().deleteRequest(request);
-        }
+    private String createStarUrl(String id) throws RestApiException {
+        return "/accounts/" + name + "/starred.changes/" + id;
     }
 }

@@ -18,7 +18,6 @@ package com.urswolfer.gerrit.client.rest.http.tools;
 
 import com.google.gerrit.extensions.api.tools.Tools;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -30,10 +29,12 @@ import java.util.Collections;
 /**
  * @author Urs Wolfer
  */
-public class ToolsRestClient extends AbstractRestClient implements Tools {
+public class ToolsRestClient implements Tools {
+
+    private final GerritRestClient gerritRestClient;
 
     public ToolsRestClient(GerritRestClient gerritRestClient) {
-        super(gerritRestClient);
+        this.gerritRestClient = gerritRestClient;
     }
 
     @Override

@@ -188,14 +188,18 @@ public class GerritUtil {
     /**
      * Star-endpoint added in Gerrit 2.8.
      */
-    public void changeStarredStatus(final String changeNr,
+    public void changeStarredStatus(final String id,
                                     final boolean starred,
                                     final Project project) {
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.accounts().self().changeStarredStatus(changeNr, starred);
+                    if (starred) {
+                        gerritClient.accounts().self().starChange(id);
+                    } else {
+                        gerritClient.accounts().self().unstarChange(id);
+                    }
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to star Gerrit change." +
                             "<br/>Not supported for Gerrit instances older than version 2.8.", project);
@@ -245,7 +249,7 @@ public class GerritUtil {
             @Override
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
-                    return gerritClient.changes().list(finalQuery);
+                    return gerritClient.changes().query(finalQuery);
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();
@@ -336,7 +340,7 @@ public class GerritUtil {
         notificationService.notifyWarning(notification);
     }
 
-    public void getChangeDetails(final String changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
+    public void getChangeDetails(final int changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public ChangeInfo apply(Void aVoid) {
@@ -383,7 +387,7 @@ public class GerritUtil {
             AccountInfo user = tempClient.accounts().self().get();
             return user != null;
         } else {
-            tempClient.changes().list();
+            tempClient.changes().query();
             return true;
         }
     }

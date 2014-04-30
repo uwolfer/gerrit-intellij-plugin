@@ -18,12 +18,14 @@ package com.urswolfer.gerrit.client.rest.http.changes;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.gerrit.extensions.api.changes.*;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.RevisionApi;
+import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.urswolfer.gerrit.client.rest.NotImplementedException;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +34,7 @@ import java.util.TreeMap;
 /**
  * @author Urs Wolfer
  */
-public class RevisionApiRestClient implements RevisionApi {
+public class RevisionApiRestClient extends RevisionApi.NotImplemented implements RevisionApi {
 
     private final ChangeApiRestClient changeApiRestClient;
     private final String revision;
@@ -43,14 +45,9 @@ public class RevisionApiRestClient implements RevisionApi {
     }
 
     @Override
-    public void delete() throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
     public void review(ReviewInput reviewInput) throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/revisions/" + revision + "/review";
-        String json = changeApiRestClient.getChangesRestClient().getGson().toJson(reviewInput);
+        String json = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson().toJson(reviewInput);
         changeApiRestClient.getChangesRestClient().getGerritRestClient().postRequest(request, json);
     }
 
@@ -62,28 +59,8 @@ public class RevisionApiRestClient implements RevisionApi {
     @Override
     public void submit(SubmitInput submitInput) throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/submit";
-        String json = changeApiRestClient.getChangesRestClient().getGson().toJson(submitInput);
+        String json = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson().toJson(submitInput);
         changeApiRestClient.getChangesRestClient().getGerritRestClient().postRequest(request, json);
-    }
-
-    @Override
-    public void publish() throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public ChangeApi cherryPick(CherryPickInput in) throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public ChangeApi rebase() throws RestApiException {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public boolean canRebase() {
-        return false;
     }
 
     @Override
@@ -125,6 +102,7 @@ public class RevisionApiRestClient implements RevisionApi {
     }
 
     private ReviewInput.Comment parseSingleCommentInfos(JsonObject result) {
-        return changeApiRestClient.getChangesRestClient().getGson().fromJson(result, ReviewInput.Comment.class);
+        Gson gson = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson();
+        return gson.fromJson(result, ReviewInput.Comment.class);
     }
 }

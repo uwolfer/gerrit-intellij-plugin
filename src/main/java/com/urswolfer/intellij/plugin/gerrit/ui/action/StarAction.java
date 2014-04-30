@@ -30,7 +30,7 @@ public class StarAction extends AbstractChangeAction {
         }
         Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
         ChangeInfo changeInfo = selectedChange.get();
-        gerritUtil.changeStarredStatus(changeInfo._number, !(changeInfo.starred != null && changeInfo.starred), project);
+        gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project);
     }
 
     public static class Proxy extends StarAction {

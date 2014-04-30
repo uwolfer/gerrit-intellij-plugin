@@ -18,10 +18,37 @@ import com.google.gerrit.extensions.api.accounts.Accounts;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.api.tools.Tools;
+import com.google.gerrit.extensions.restapi.NotImplementedException;
 
 public interface GerritApi {
-  public Accounts accounts(); // added uwolfer
+  public Accounts accounts();
   public Changes changes();
   public Projects projects();
   public Tools tools(); // added uwolfer
+
+  /**
+   * A default implementation which allows source compatibility
+   * when adding new methods to the interface.
+   **/
+  public class NotImplemented implements GerritApi {
+    @Override
+    public Accounts accounts() {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public Changes changes() {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public Projects projects() {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public Tools tools() {
+      throw new NotImplementedException();
+    }
+  }
 }

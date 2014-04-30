@@ -16,14 +16,11 @@
 
 package com.urswolfer.gerrit.client.rest.http.projects;
 
-import com.google.gerrit.extensions.api.projects.ProjectApi;
 import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.urswolfer.gerrit.client.rest.NotImplementedException;
-import com.urswolfer.gerrit.client.rest.http.AbstractRestClient;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 import java.util.ArrayList;
@@ -34,15 +31,12 @@ import java.util.Map;
 /**
  * @author Urs Wolfer
  */
-public class ProjectsRestClient extends AbstractRestClient implements Projects {
+public class ProjectsRestClient extends Projects.NotImplemented implements Projects {
+
+    private final GerritRestClient gerritRestClient;
 
     public ProjectsRestClient(GerritRestClient gerritRestClient) {
-        super(gerritRestClient);
-    }
-
-    @Override
-    public ProjectApi name(String name) throws RestApiException {
-        throw new NotImplementedException();
+        this.gerritRestClient = gerritRestClient;
     }
 
     @Override
@@ -69,6 +63,10 @@ public class ProjectsRestClient extends AbstractRestClient implements Projects {
     }
 
     private ProjectInfo parseSingleRepositoryInfo(JsonObject result) {
-        return gson.fromJson(result, ProjectInfo.class);
+        return gerritRestClient.getGson().fromJson(result, ProjectInfo.class);
+    }
+
+    protected GerritRestClient getGerritRestClient() {
+        return gerritRestClient;
     }
 }

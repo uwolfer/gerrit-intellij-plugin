@@ -32,13 +32,13 @@ import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
  */
 public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
-    private final ReviewInput.Comment comment;
+    private final ReviewInput.CommentInput comment;
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
     private final MarkupModel markup;
 
-    public RemoveCommentAction(ReviewInput.Comment comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public RemoveCommentAction(ReviewInput.CommentInput comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         super("Remove Comment", "Remove selected comment", AllIcons.Actions.Delete);
         this.comment = comment;
         this.reviewCommentSink = reviewCommentSink;
@@ -49,9 +49,9 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        Iterable<ReviewInput.Comment> commentInputs = reviewCommentSink.getCommentsForChange(changeInfo.id);
-        ReviewInput.Comment toRemove = null;
-        for (ReviewInput.Comment commentInput : commentInputs) {
+        Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeInfo.id);
+        ReviewInput.CommentInput toRemove = null;
+        for (ReviewInput.CommentInput commentInput : commentInputs) {
             if (CommentHelper.equals(commentInput, comment)) {
                 toRemove = commentInput;
                 break;

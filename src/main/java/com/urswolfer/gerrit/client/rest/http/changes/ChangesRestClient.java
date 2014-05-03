@@ -20,10 +20,12 @@ import com.google.common.base.Strings;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
+import com.urswolfer.gerrit.client.rest.http.util.UrlUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,18 +44,31 @@ public class ChangesRestClient extends Changes.NotImplemented implements Changes
 
     @Override
     public List<ChangeInfo> query() throws RestApiException {
-        return query(null);
+        return query(new QueryParameter());
     }
 
     @Override
-    public List<ChangeInfo> query(String query) throws RestApiException {
-        String endPoint = "changes";
-        String url;
-        if (Strings.isNullOrEmpty(query)) {
-            url = String.format("/%s/", endPoint);
-        } else {
-            url = String.format("/%s/?%s", endPoint, query);
+    public List<ChangeInfo> query(QueryParameter queryParameter) throws RestApiException {
+        String query = "";
+
+        if (!Strings.isNullOrEmpty(queryParameter.getQuery())) {
+            query = UrlUtils.appendToUrlQuery(query, "q=" + queryParameter.getQuery());
         }
+        if (queryParameter.getLimit() > 0) {
+            query = UrlUtils.appendToUrlQuery(query, "n=" + queryParameter.getLimit());
+        }
+        if (queryParameter.getStart() > 0) {
+            query = UrlUtils.appendToUrlQuery(query, "S=" + queryParameter.getStart());
+        }
+        for (ListChangesOption option : queryParameter.getOptions()) {
+            query = UrlUtils.appendToUrlQuery(query, "o=" + option);
+        }
+
+        String url = "/changes/";
+        if (!Strings.isNullOrEmpty(query)) {
+            url += '?' + query;
+        }
+
         JsonElement jsonElement = gerritRestClient.getRequest(url);
         return parseChangeInfos(jsonElement);
     }

@@ -21,6 +21,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.Comment;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 
 import java.util.Collection;
@@ -34,21 +35,21 @@ public class ReviewCommentSink {
 
     private Multimap<String, CommentHelper> comments = ArrayListMultimap.create();
 
-    public void addComment(String changeId, ReviewInput.Comment comment) {
+    public void addComment(String changeId, ReviewInput.CommentInput comment) {
         comments.put(changeId, new CommentHelper(comment));
     }
 
-    public Iterable<ReviewInput.Comment> getCommentsForChange(String changeId) {
+    public Iterable<ReviewInput.CommentInput> getCommentsForChange(String changeId) {
         Collection<CommentHelper> comments = this.comments.get(changeId);
-        return Iterables.transform(comments, new Function<CommentHelper, ReviewInput.Comment>() {
+        return Iterables.transform(comments, new Function<CommentHelper, ReviewInput.CommentInput>() {
             @Override
-            public ReviewInput.Comment apply(CommentHelper commentHelper) {
-                return commentHelper.getComment();
+            public ReviewInput.CommentInput apply(CommentHelper commentHelper) {
+                return (ReviewInput.CommentInput) commentHelper.getComment();
             }
         });
     }
 
-    public void removeCommentForChange(String changeId, ReviewInput.Comment commentInput) {
+    public void removeCommentForChange(String changeId, Comment commentInput) {
         comments.get(changeId).remove(new CommentHelper(commentInput));
     }
 

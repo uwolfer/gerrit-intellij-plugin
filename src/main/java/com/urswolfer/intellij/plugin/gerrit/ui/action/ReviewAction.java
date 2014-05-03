@@ -81,8 +81,8 @@ public class ReviewAction extends AbstractChangeAction {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.label(label, rating);
 
-                Iterable<ReviewInput.Comment> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.id);
-                for (ReviewInput.Comment commentInput : commentInputs) {
+                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.id);
+                for (ReviewInput.CommentInput commentInput : commentInputs) {
                     addComment(reviewInput, commentInput.path, commentInput);
                 }
 
@@ -119,9 +119,9 @@ public class ReviewAction extends AbstractChangeAction {
         });
     }
 
-    private void addComment(ReviewInput reviewInput, String path, ReviewInput.Comment comment) {
-        List<ReviewInput.Comment> commentInputs;
-        Map<String, List<ReviewInput.Comment>> comments = reviewInput.comments;
+    private void addComment(ReviewInput reviewInput, String path, ReviewInput.CommentInput comment) {
+        List<ReviewInput.CommentInput> commentInputs;
+        Map<String, List<ReviewInput.CommentInput>> comments = reviewInput.comments;
         if (comments == null) {
             comments = Maps.newHashMap();
             reviewInput.comments = comments;

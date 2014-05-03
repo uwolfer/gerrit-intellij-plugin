@@ -14,10 +14,9 @@
 
 package com.google.gerrit.extensions.api.changes;
 
-import com.google.gerrit.extensions.common.AccountInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.restapi.DefaultInput;
 
-import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,7 @@ public class ReviewInput {
   public String message;
 
   public Map<String, Short> labels;
-  public Map<String, List<Comment>> comments;
+  public Map<String, List<CommentInput>> comments;
 
   /**
    * If true require all labels to be within the user's permitted ranges based
@@ -69,27 +68,7 @@ public class ReviewInput {
     NONE, OWNER, OWNER_REVIEWERS, ALL
   }
 
-  public static enum Side {
-    PARENT, REVISION
-  }
-
-  public static class Comment {
-    public String id;
-    public Side side;
-    public int line;
-    public String inReplyTo;
-    public String message;
-    public Range range;
-    public String path; // added uwolfer
-    public Timestamp updated; // added uwolfer
-    public AccountInfo author; // added uwolfer
-
-    public static class Range {
-      public int startLine;
-      public int startCharacter;
-      public int endLine;
-      public int endCharacter;
-    }
+  public static class CommentInput extends Comment {
   }
 
   public ReviewInput message(String msg) {

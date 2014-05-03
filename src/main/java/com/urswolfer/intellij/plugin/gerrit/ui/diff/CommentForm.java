@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileTypes.PlainTextLanguage;
@@ -61,14 +62,14 @@ public class CommentForm extends JPanel {
     private Editor editor;
     @Nullable
     private FilePath filePath;
-    private ReviewInput.Comment commentInput;
+    private ReviewInput.CommentInput commentInput;
 
     public CommentForm(@NotNull final Project project,
                        @Nullable FilePath filePath,
                        final ReviewCommentSink reviewCommentSink,
                        final ChangeInfo changeInfo,
                        final GerritGitUtil gerritGitUtil,
-                       final ReviewInput.Side commentSide) {
+                       final Comment.Side commentSide) {
         super(new BorderLayout());
         this.filePath = filePath;
 
@@ -89,7 +90,7 @@ public class CommentForm extends JPanel {
         reviewTextField.getActionMap().put("postComment", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ReviewInput.Comment comment = new ReviewInput.Comment();
+                ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
 
                 Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
                 if (!gitRepositoryOptional.isPresent()) return;
@@ -127,7 +128,7 @@ public class CommentForm extends JPanel {
         this.editor = editor;
     }
 
-    public ReviewInput.Comment getComment() {
+    public ReviewInput.CommentInput getComment() {
         return commentInput;
     }
 }

@@ -20,6 +20,8 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -98,9 +100,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
             @Override
             public void consume(ChangeInfo changeDetails) {
                 gerritUtil.getComments(changeDetails.id, changeDetails.currentRevision, project,
-                    new Consumer<Map<String, List<ReviewInput.Comment>>>() {
+                    new Consumer<Map<String, List<CommentInfo>>>() {
                         @Override
-                        public void consume(Map<String, List<ReviewInput.Comment>> comments) {
+                        public void consume(Map<String, List<CommentInfo>> comments) {
                             addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
                         }
                     });
@@ -116,14 +118,14 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private void addCommentAction(final DiffPanelImpl diffPanel,
                                   @Nullable final FilePath filePath,
                                   ChangeInfo changeInfo) {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, ReviewInput.Side.PARENT);
-            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, ReviewInput.Side.REVISION);
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, Comment.Side.PARENT);
+            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, Comment.Side.REVISION);
     }
 
     private void addCommentActionToEditor(@Nullable Editor editor,
                                           @Nullable FilePath filePath,
                                           ChangeInfo changeInfo,
-                                          ReviewInput.Side commentSide) {
+                                          Comment.Side commentSide) {
         if (editor != null) {
             DefaultActionGroup group = new DefaultActionGroup();
             final AddCommentAction addCommentAction = addCommentActionBuilder.build(
@@ -140,29 +142,29 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addCommentsGutter(DiffPanelImpl diffPanel,
                                    FilePath filePath,
-                                   Map<String, List<ReviewInput.Comment>> comments,
+                                   Map<String, List<CommentInfo>> comments,
                                    ChangeInfo changeInfo,
                                    Project project) {
         String repositoryPath = getGitRepositoryPathForChange(project, changeInfo);
 
-        List<ReviewInput.Comment> fileComments = Lists.newArrayList();
-        for (Map.Entry<String, List<ReviewInput.Comment>> entry : comments.entrySet()) {
+        List<Comment> fileComments = Lists.newArrayList();
+        for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
-                fileComments = entry.getValue();
+                fileComments.addAll(entry.getValue());
                 break;
             }
         }
 
-        Iterable<ReviewInput.Comment> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id);
-        for (ReviewInput.Comment commentInput : commentInputsFromSink) {
+        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id);
+        for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
             if (isForCurrentFile(filePath, commentInput.path, repositoryPath)) {
                 fileComments.add(commentInput);
             }
         }
 
-        for (ReviewInput.Comment fileComment : fileComments) {
+        for (Comment fileComment : fileComments) {
             MarkupModel markup;
-            if (fileComment.side != null && fileComment.side.equals(ReviewInput.Side.PARENT)) {
+            if (fileComment.side != null && fileComment.side.equals(Comment.Side.PARENT)) {
                 markup = diffPanel.getEditor1().getMarkupModel();
             } else {
                 markup = diffPanel.getEditor2().getMarkupModel();

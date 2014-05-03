@@ -16,14 +16,14 @@
 
 package com.urswolfer.gerrit.client.rest.http.changes;
 
+import com.google.common.collect.Iterables;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
+import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.google.gson.JsonElement;
-import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 
 import java.util.EnumSet;
 
@@ -83,28 +83,16 @@ public class ChangeApiRestClient extends ChangeApi.NotImplemented implements Cha
 
     @Override
     public ChangeInfo get(EnumSet<ListChangesOption> options) throws RestApiException {
-        return get(); // TODO: impl: see api doc
+        return Iterables.getFirst(changesRestClient.query(new Changes.QueryParameter(id).withOptions(options)), null);
     }
 
     @Override
     public ChangeInfo get() throws RestApiException {
-        String request = "/changes/?q=" + id + "&o=CURRENT_REVISION&o=MESSAGES&o=LABELS&o=DETAILED_LABELS";
-        JsonElement jsonElement;
-        try {
-            jsonElement = changesRestClient.getGerritRestClient().getRequest(request);
-        } catch (HttpStatusException e) {
-            // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
-            if (e.getStatusCode() == 400) {
-                jsonElement = changesRestClient.getGerritRestClient().getRequest(request.replace("&o=MESSAGES", ""));
-            } else {
-                throw e;
-            }
-        }
-        return changesRestClient.parseSingleChangeInfos(jsonElement.getAsJsonArray().get(0).getAsJsonObject());
+        return get(EnumSet.allOf(ListChangesOption.class));
     }
 
     @Override
     public ChangeInfo info() throws RestApiException {
-        return get(); // TODO: impl: see api doc
+        return get(EnumSet.noneOf(ListChangesOption.class));
     }
 }

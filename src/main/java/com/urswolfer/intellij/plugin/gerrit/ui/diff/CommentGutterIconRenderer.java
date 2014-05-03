@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -38,13 +40,13 @@ import javax.swing.*;
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
-    private final ReviewInput.Comment fileComment;
+    private final Comment fileComment;
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
     private final MarkupModel markup;
 
-    public CommentGutterIconRenderer(ReviewInput.Comment fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public CommentGutterIconRenderer(Comment fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
@@ -90,7 +92,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public ActionGroup getPopupMenuActions() {
         if (isNewCommentFromMyself()) {
             DefaultActionGroup actionGroup = new DefaultActionGroup();
-            RemoveCommentAction action = new RemoveCommentAction(fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+            RemoveCommentAction action = new RemoveCommentAction((ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, markup);
             action.setEnabled(true);
             actionGroup.add(action);
 
@@ -103,22 +105,27 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     }
 
     private boolean isNewCommentFromMyself() {
-        String name = getAuthorName();
-        return name != null && name.equals("Myself");
+        return fileComment instanceof ReviewInput.CommentInput;
     }
 
     @Nullable
     @Override
     public AnAction getClickAction() {
         // TODO: remove gutter also when removing comment
-        return new RemoveCommentAction(fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+        if (isNewCommentFromMyself()) {
+            return new RemoveCommentAction((ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+        } else {
+            return null;
+        }
     }
 
     private String getAuthorName() {
-        AccountInfo author = fileComment.author;
         String name = "Myself";
-        if (author != null) {
-            name = author.name;
+        if (!isNewCommentFromMyself()) {
+            AccountInfo author = ((CommentInfo) fileComment).author;
+            if (author != null) {
+                name = author.name;
+            }
         }
         return name;
     }

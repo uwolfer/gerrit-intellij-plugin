@@ -21,6 +21,7 @@ import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.gson.Gson;
@@ -79,18 +80,18 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
      * Support starting from Gerrit 2.7.
      */
     @Override
-    public TreeMap<String, List<ReviewInput.Comment>> getComments() throws RestApiException {
+    public TreeMap<String, List<CommentInfo>> getComments() throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/revisions/" + revision + "/comments/";
         JsonElement jsonElement = changeApiRestClient.getChangesRestClient().getGerritRestClient().getRequest(request);
         return parseCommentInfos(jsonElement);
     }
 
-    private TreeMap<String, List<ReviewInput.Comment>> parseCommentInfos(JsonElement result) {
-        TreeMap<String, List<ReviewInput.Comment>> commentInfos = Maps.newTreeMap();
+    private TreeMap<String, List<CommentInfo>> parseCommentInfos(JsonElement result) {
+        TreeMap<String, List<CommentInfo>> commentInfos = Maps.newTreeMap();
         JsonObject jsonObject = result.getAsJsonObject();
 
         for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
-            List<ReviewInput.Comment> currentCommentInfos = Lists.newArrayList();
+            List<CommentInfo> currentCommentInfos = Lists.newArrayList();
 
             for (JsonElement jsonElement : element.getValue().getAsJsonArray()) {
                 currentCommentInfos.add(parseSingleCommentInfos(jsonElement.getAsJsonObject()));
@@ -101,8 +102,8 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
         return commentInfos;
     }
 
-    private ReviewInput.Comment parseSingleCommentInfos(JsonObject result) {
+    private CommentInfo parseSingleCommentInfos(JsonObject result) {
         Gson gson = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson();
-        return gson.fromJson(result, ReviewInput.Comment.class);
+        return gson.fromJson(result, CommentInfo.class);
     }
 }

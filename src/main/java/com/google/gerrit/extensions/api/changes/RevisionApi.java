@@ -14,6 +14,7 @@
 
 package com.google.gerrit.extensions.api.changes;
 
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.NotImplementedException;
 import com.google.gerrit.extensions.restapi.RestApiException;
 
@@ -33,7 +34,8 @@ public interface RevisionApi {
   boolean canRebase();
 
   void changeReviewed(String filePath, boolean reviewed) throws RestApiException; // added uwolfer
-  Map<String, List<ReviewInput.Comment>> getComments() throws RestApiException; // added uwolfer
+
+  Map<String, List<CommentInfo>> getComments() throws RestApiException; // added uwolfer
 
   /**
    * A default implementation which allows source compatibility
@@ -86,7 +88,7 @@ public interface RevisionApi {
     }
 
     @Override
-    public Map<String, List<ReviewInput.Comment>> getComments() throws RestApiException {
+    public Map<String, List<CommentInfo>> getComments() throws RestApiException {
       throw new NotImplementedException();
     }
   }

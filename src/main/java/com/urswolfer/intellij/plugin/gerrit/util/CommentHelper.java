@@ -16,22 +16,22 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.Comment;
 
 /**
- * ReviewInput.Comment does not provide equals and hashCode as required for map handling.
+ * CommentInfo and ReviewInput.CommentInput do not provide equals and hashCode as required for map handling.
  *
  * @author Urs Wolfer
  */
 public class CommentHelper {
 
-    private final ReviewInput.Comment comment;
+    private final Comment comment;
 
-    public CommentHelper(ReviewInput.Comment comment) {
+    public CommentHelper(Comment comment) {
         this.comment = comment;
     }
 
-    public ReviewInput.Comment getComment() {
+    public Comment getComment() {
         return comment;
     }
 
@@ -48,11 +48,11 @@ public class CommentHelper {
         return hashCode(comment);
     }
 
-    public static boolean equals(ReviewInput.Comment comment1, ReviewInput.Comment comment2) {
+    public static boolean equals(Comment comment1, Comment comment2) {
         if (comment1 == comment2) return true;
         if (comment2 == null || comment1.getClass() != comment2.getClass()) return false;
 
-        ReviewInput.Comment that = comment2;
+        Comment that = comment2;
 
         if (comment1.line != that.line) return false;
         if (comment1.id != null ? !comment1.id.equals(that.id) : that.id != null) return false;
@@ -65,7 +65,7 @@ public class CommentHelper {
         return true;
     }
 
-    public static int hashCode(ReviewInput.Comment comment) {
+    public static int hashCode(Comment comment) {
         int result = 0;
         result = 31 * result + comment.id.hashCode();
         result = 31 * result + (comment.path != null ? comment.path.hashCode() : 0);

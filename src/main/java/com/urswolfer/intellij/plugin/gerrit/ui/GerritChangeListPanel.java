@@ -78,7 +78,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component component = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) ) {
-                    Iterable<ReviewInput.Comment> commentInputs = GerritChangeListPanel.this.reviewCommentSink
+                    Iterable<ReviewInput.CommentInput> commentInputs = GerritChangeListPanel.this.reviewCommentSink
                             .getCommentsForChange(this.getRow(row).id);
                     if (!Iterables.isEmpty(commentInputs)) {
                         component.setForeground(JBColor.BLUE);

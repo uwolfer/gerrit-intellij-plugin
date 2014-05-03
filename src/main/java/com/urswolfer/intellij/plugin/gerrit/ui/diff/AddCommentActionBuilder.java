@@ -1,7 +1,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.vcs.FilePath;
@@ -23,7 +23,7 @@ public class AddCommentActionBuilder {
             ChangeInfo changeInfo,
             @Nullable Editor editor,
             @Nullable FilePath filePath,
-            ReviewInput.Side commentSide) {
+            Comment.Side commentSide) {
         return new AddCommentAction(reviewCommentSink, changeInfo, editor, filePath,
                 gerritGitUtil, commentBalloonBuilder, commentSide);
     }

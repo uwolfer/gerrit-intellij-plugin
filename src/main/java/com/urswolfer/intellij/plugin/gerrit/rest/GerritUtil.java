@@ -24,6 +24,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.common.*;
@@ -59,10 +60,7 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -242,14 +240,13 @@ public class GerritUtil {
     }
 
     public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
-        String request = formatRequestUrl(query);
-        request = appendToUrlQuery(request, "o=LABELS");
-        final String finalQuery = request;
+        final Changes.QueryParameter queryParameter = new Changes.QueryParameter(query)
+                .withOptions(ListChangesOption.LABELS);
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
-                    return gerritClient.changes().query(finalQuery);
+                    return gerritClient.changes().query(queryParameter);
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();
@@ -345,7 +342,22 @@ public class GerritUtil {
             @Override
             public ChangeInfo apply(Void aVoid) {
                 try {
-                    return gerritClient.changes().id(changeNr).get();
+                    EnumSet<ListChangesOption> options = EnumSet.of(
+                            ListChangesOption.CURRENT_REVISION,
+                            ListChangesOption.MESSAGES,
+                            ListChangesOption.LABELS,
+                            ListChangesOption.DETAILED_LABELS);
+                    try {
+                        return gerritClient.changes().id(changeNr).get(options);
+                    } catch (HttpStatusException e) {
+                        // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
+                        if (e.getStatusCode() == 400) {
+                            options.remove(ListChangesOption.MESSAGES);
+                            return gerritClient.changes().id(changeNr).get(options);
+                        } else {
+                            throw e;
+                        }
+                    }
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit change.", project);
                     return new ChangeInfo();
@@ -361,11 +373,11 @@ public class GerritUtil {
     public void getComments(final String changeId,
                             final String revision,
                             final Project project,
-                            final Consumer<Map<String, List<ReviewInput.Comment>>> consumer) {
+                            final Consumer<Map<String, List<CommentInfo>>> consumer) {
 
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
-            public Map<String, List<ReviewInput.Comment>> apply(Void aVoid) {
+            public Map<String, List<CommentInfo>> apply(Void aVoid) {
                 try {
                     return gerritClient.changes().id(changeId).revision(revision).getComments();
                 } catch (RestApiException e) {
@@ -373,7 +385,7 @@ public class GerritUtil {
                     if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
                         notifyError(e, "Failed to get Gerrit comments.", project);
                     }
-                    return new TreeMap<String, List<ReviewInput.Comment>>();
+                    return new TreeMap<String, List<CommentInfo>>();
                 }
             }
         };
@@ -484,14 +496,6 @@ public class GerritUtil {
             log.error(message, e);
         }
         return message;
-    }
-
-    private String appendToUrlQuery(String requestUrl, String queryString) {
-        if (!Strings.isNullOrEmpty(requestUrl)) {
-            requestUrl += "&";
-        }
-        requestUrl += queryString;
-        return requestUrl;
     }
 
     private void accessGerrit(final Function<Void, Object> function, final Consumer consumer, final Project project) {

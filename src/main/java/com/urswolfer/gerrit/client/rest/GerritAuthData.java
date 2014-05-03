@@ -30,18 +30,18 @@ public interface GerritAuthData {
 
     boolean isLoginAndPasswordAvailable();
 
-    public final class BasicAuthData implements GerritAuthData {
+    public final class Basic implements GerritAuthData {
         private final String host;
         private final String login;
         private final String password;
 
-        public BasicAuthData(String host) {
+        public Basic(String host) {
             this.host = host;
             this.login = "";
             this.password = "";
         }
 
-        public BasicAuthData(String host, String login, String password) {
+        public Basic(String host, String login, String password) {
             this.host = host;
             this.login = login;
             this.password = password;

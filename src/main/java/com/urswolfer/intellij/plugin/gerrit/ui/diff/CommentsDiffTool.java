@@ -18,6 +18,10 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -39,10 +43,6 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +50,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * @author Urs Wolfer
@@ -97,21 +96,21 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         addCommentAction(diffPanel, filePath, changeInfo);
 
-        gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+        gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                gerritUtil.getComments(changeDetails.getId(), changeDetails.getCurrentRevision(), project,
-                    new Consumer<TreeMap<String, List<CommentInfo>>>() {
+                gerritUtil.getComments(changeDetails.id, changeDetails.currentRevision, project,
+                    new Consumer<Map<String, List<CommentInfo>>>() {
                         @Override
-                        public void consume(TreeMap<String, List<CommentInfo>> comments) {
+                        public void consume(Map<String, List<CommentInfo>> comments) {
                             addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
                         }
                     });
 
                 String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
                 String relativePath = filePathString.replace(repositoryPath + File.separator, "");
-                gerritUtil.getChangeReviewed(changeDetails.getId(), changeDetails.getCurrentRevision(),
-                        relativePath, true, project);
+                gerritUtil.setReviewed(changeDetails.id, changeDetails.currentRevision,
+                        relativePath, project);
             }
         });
     }
@@ -119,14 +118,14 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private void addCommentAction(final DiffPanelImpl diffPanel,
                                   @Nullable final FilePath filePath,
                                   ChangeInfo changeInfo) {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, CommentBase.CommentSide.PARENT);
-            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, CommentBase.CommentSide.REVISION);
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, Comment.Side.PARENT);
+            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, Comment.Side.REVISION);
     }
 
     private void addCommentActionToEditor(@Nullable Editor editor,
                                           @Nullable FilePath filePath,
                                           ChangeInfo changeInfo,
-                                          CommentBase.CommentSide commentSide) {
+                                          Comment.Side commentSide) {
         if (editor != null) {
             DefaultActionGroup group = new DefaultActionGroup();
             final AddCommentAction addCommentAction = addCommentActionBuilder.build(
@@ -143,36 +142,36 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addCommentsGutter(DiffPanelImpl diffPanel,
                                    FilePath filePath,
-                                   TreeMap<String, List<CommentInfo>> comments,
+                                   Map<String, List<CommentInfo>> comments,
                                    ChangeInfo changeInfo,
                                    Project project) {
         String repositoryPath = getGitRepositoryPathForChange(project, changeInfo);
 
-        List<CommentInfo> fileComments = Lists.newArrayList();
+        List<Comment> fileComments = Lists.newArrayList();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
             if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
-                fileComments = entry.getValue();
+                fileComments.addAll(entry.getValue());
                 break;
             }
         }
 
-        Iterable<CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.getId());
-        for (CommentInput commentInput : commentInputsFromSink) {
-            if (isForCurrentFile(filePath, commentInput.getPath(), repositoryPath)) {
-                fileComments.add(commentInput.toCommentInfo());
+        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id);
+        for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
+            if (isForCurrentFile(filePath, commentInput.path, repositoryPath)) {
+                fileComments.add(commentInput);
             }
         }
 
-        for (CommentInfo fileComment : fileComments) {
+        for (Comment fileComment : fileComments) {
             MarkupModel markup;
-            if (fileComment.getSide() != null && fileComment.getSide().equals(CommentBase.CommentSide.PARENT)) {
+            if (fileComment.side != null && fileComment.side.equals(Comment.Side.PARENT)) {
                 markup = diffPanel.getEditor1().getMarkupModel();
             } else {
                 markup = diffPanel.getEditor2().getMarkupModel();
             }
             int lineCount = markup.getDocument().getLineCount();
 
-            int line = fileComment.getLine() - 1;
+            int line = fileComment.line - 1;
             if (line < 0) {
                 line = 0;
             }
@@ -189,7 +188,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     }
 
     private String getGitRepositoryPathForChange(Project project, ChangeInfo changeInfo) {
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
         String repositoryPath = repository.getRoot().getPath();

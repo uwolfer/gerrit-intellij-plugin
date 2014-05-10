@@ -17,6 +17,9 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.common.base.Optional;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileTypes.PlainTextLanguage;
@@ -31,9 +34,6 @@ import com.intellij.ui.*;
 import com.intellij.util.containers.ContainerUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentBase;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -62,14 +62,14 @@ public class CommentForm extends JPanel {
     private Editor editor;
     @Nullable
     private FilePath filePath;
-    private CommentInput commentInput;
+    private ReviewInput.CommentInput commentInput;
 
     public CommentForm(@NotNull final Project project,
                        @Nullable FilePath filePath,
                        final ReviewCommentSink reviewCommentSink,
                        final ChangeInfo changeInfo,
                        final GerritGitUtil gerritGitUtil,
-                       final CommentBase.CommentSide commentSide) {
+                       final Comment.Side commentSide) {
         super(new BorderLayout());
         this.filePath = filePath;
 
@@ -90,20 +90,20 @@ public class CommentForm extends JPanel {
         reviewTextField.getActionMap().put("postComment", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                CommentInput comment = new CommentInput();
+                ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
 
-                Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
                 if (!gitRepositoryOptional.isPresent()) return;
                 GitRepository gitRepository = gitRepositoryOptional.get();
                 VirtualFile root = gitRepository.getRoot();
                 String path = CommentForm.this.filePath.getPath();
                 String relativePath = FileUtil.getRelativePath(new File(root.getPath()), new File(path));
 
-                comment.setPath(relativePath);
-                comment.setSide(commentSide);
-                comment.setLine(editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1);
-                comment.setMessage(getText());
-                reviewCommentSink.addComment(changeInfo.getId(), comment);
+                comment.path = relativePath;
+                comment.side = commentSide;
+                comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+                comment.message = getText();
+                reviewCommentSink.addComment(changeInfo.id, comment);
 
                 commentInput = comment;
                 balloon.dispose();
@@ -128,7 +128,7 @@ public class CommentForm extends JPanel {
         this.editor = editor;
     }
 
-    public CommentInput getComment() {
+    public ReviewInput.CommentInput getComment() {
         return commentInput;
     }
 }

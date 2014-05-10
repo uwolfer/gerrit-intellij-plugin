@@ -17,7 +17,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
-import com.google.common.io.Files;
+import com.google.common.io.ByteStreams;
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -28,25 +31,20 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.HttpStatusException;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
-import org.apache.http.Consts;
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -66,11 +64,11 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     @Inject
     private GerritSettings gerritSettings;
     @Inject
-    private GerritApiUtil gerritApiUtil;
-    @Inject
     private Logger log;
     @Inject
     private NotificationService notificationService;
+    @Inject
+    private GerritApi gerritApi;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -95,14 +93,14 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         Collections.sort(availableProjects, new Comparator<ProjectInfo>() {
             @Override
             public int compare(final ProjectInfo p1, final ProjectInfo p2) {
-                return p1.getId().compareTo(p2.getId());
+                return p1.id.compareTo(p2.id);
             }
         });
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
         // Add predefined repositories to history
         for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + availableProjects.get(i).getDecodedId());
+            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(availableProjects.get(i).id));
         }
         dialog.show();
         if (!dialog.isOK()) {
@@ -152,13 +150,10 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            HttpResponse response = gerritApiUtil.doREST(
-                    "/tools/hooks/commit-msg", null, Collections.<Header>emptyList(), GerritApiUtil.HttpVerb.GET);
-            if (response.getStatusLine().getStatusCode() != 200) {
-                throw new HttpStatusException(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase(), response.getStatusLine().getReasonPhrase());
-            }
+            InputStream commitMessageHook = gerritApi.tools().getCommitMessageHook();
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
-            Files.write(EntityUtils.toString(response.getEntity(), Consts.UTF_8).getBytes(), targetFile);
+            ByteStreams.copy(commitMessageHook, new FileOutputStream(targetFile));
+            //noinspection ResultOfMethodCallIgnored
             targetFile.setExecutable(true);
         } catch (Exception e) {
             log.info(e);

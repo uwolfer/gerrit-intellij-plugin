@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -42,7 +43,6 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
@@ -152,7 +152,7 @@ public class GerritToolWindow {
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        gerritUtil.getChangeDetails(changeInfo.getNumber(), project, new Consumer<ChangeInfo>() {
+        gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
                 detailsPanel.setData(changeDetails);
@@ -165,7 +165,7 @@ public class GerritToolWindow {
     private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
         repositoryChangesBrowser.getViewer().setEmptyText("Loading...");
         repositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.getProject());
+        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.project);
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository gitRepository = gitRepositoryOptional.get();
         final VirtualFile virtualFile = gitRepository.getGitDir();
@@ -187,7 +187,7 @@ public class GerritToolWindow {
             public Void call() throws Exception {
                 final List<GitCommit> gitCommits;
                 try {
-                    gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.getCurrentRevision()));
+                    gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.currentRevision));
                 } catch (VcsException e) {
                     log.warn("Error getting Git commit details.", e);
                     NotificationBuilder notification = new NotificationBuilder(

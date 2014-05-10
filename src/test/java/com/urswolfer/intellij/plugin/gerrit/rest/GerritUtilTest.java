@@ -17,11 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.collect.Iterables;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.Url;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ProjectInfo;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -159,9 +160,8 @@ public class GerritUtilTest {
         parseSingleRepositoryInfo.setAccessible(true);
 
         ProjectInfo projectInfo = (ProjectInfo) parseSingleRepositoryInfo.invoke(gerritUtil, firstElement);
-        Assert.assertEquals("gerritcodereview#project", projectInfo.getKind());
-        Assert.assertEquals("packages%2Ftest", projectInfo.getId());
-        Assert.assertEquals("packages/test", projectInfo.getDecodedId());
+        Assert.assertEquals("packages%2Ftest", projectInfo.id);
+        Assert.assertEquals("packages/test", Url.decode(projectInfo.id));
     }
 
 
@@ -179,9 +179,9 @@ public class GerritUtilTest {
 
         ChangeInfo firstChangeInfo = changeInfos.get(0);
 
-        Assert.assertEquals(1375080914000l, firstChangeInfo.getUpdated().getTime()); // verify that the date parser uses correct format and UTC for parsing
+        Assert.assertEquals(1375080914000l, firstChangeInfo.updated.getTime()); // verify that the date parser uses correct format and UTC for parsing
 
-        Assert.assertEquals("Urs Wolfer", firstChangeInfo.getLabels().get("Code-Review").getApproved().getName());
+        Assert.assertEquals("Urs Wolfer", firstChangeInfo.labels.get("Code-Review").approved.name);
     }
 
 }

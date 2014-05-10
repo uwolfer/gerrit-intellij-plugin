@@ -23,6 +23,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 import com.intellij.openapi.components.ServiceManager;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;

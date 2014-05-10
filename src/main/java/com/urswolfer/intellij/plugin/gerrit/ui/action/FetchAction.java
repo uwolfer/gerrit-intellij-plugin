@@ -17,12 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import git4idea.repo.GitRepository;
 
 import java.util.concurrent.Callable;
@@ -38,12 +38,12 @@ public class FetchAction {
 
 
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> successCallable) {
-        gerritUtil.getChangeDetails(selectedChange.getNumber(), project, new Consumer<ChangeInfo>() {
+        gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeInfo) {
                 String ref = gerritUtil.getRef(changeInfo);
 
-                Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.getProject());
+                Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
                 if (!gitRepository.isPresent()) return;
 
                 gerritGitUtil.fetchChange(project, gitRepository.get(), ref, successCallable);

@@ -23,7 +23,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.GuiUtils;
-import com.urswolfer.intellij.plugin.gerrit.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
@@ -76,7 +76,7 @@ public class SettingsPanel {
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
                 try {
-                    GerritAuthData.TempGerritAuthData gerritAuthData = new GerritAuthData.TempGerritAuthData(getHost(), getLogin(), password);
+                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(getHost(), getLogin(), password);
                     if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
                         Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {

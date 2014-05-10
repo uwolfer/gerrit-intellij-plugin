@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.7.0</version>
+  <version>0.8.0-SNAPSHOT</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,15 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.8.0</li>
+          <ul>
+            <li>fix handling of comma separated user names in push dialog</li>
+            <li>improve HTTP proxy handling</li>
+            <li>improve SSL certificate handling (support for IntelliJ 13.1 certificate manager,
+            certificates signed by an untrusted authority)</li>
+            <li>major refactoring</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.7.0</li>
           <ul>
             <li>add settings in push dialog (allows to push to Gerrit without modifying remote branch;

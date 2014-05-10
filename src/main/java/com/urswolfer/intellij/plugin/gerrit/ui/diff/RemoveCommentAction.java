@@ -16,6 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.editor.markup.MarkupModel;
@@ -23,22 +25,20 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInfo;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.CommentInput;
+import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 
 /**
  * @author Urs Wolfer
  */
 public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
-    private final CommentInfo comment;
+    private final ReviewInput.CommentInput comment;
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
     private final MarkupModel markup;
 
-    public RemoveCommentAction(CommentInfo comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public RemoveCommentAction(ReviewInput.CommentInput comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
         super("Remove Comment", "Remove selected comment", AllIcons.Actions.Delete);
         this.comment = comment;
         this.reviewCommentSink = reviewCommentSink;
@@ -49,17 +49,16 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        Iterable<CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeInfo.getId());
-        CommentInput toRemove = null;
-        for (CommentInput commentInput : commentInputs) {
-            //noinspection EqualsBetweenInconvertibleTypes
-            if (commentInput.equals(comment)) { // implemented in base class
+        Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeInfo.id);
+        ReviewInput.CommentInput toRemove = null;
+        for (ReviewInput.CommentInput commentInput : commentInputs) {
+            if (CommentHelper.equals(commentInput, comment)) {
                 toRemove = commentInput;
                 break;
             }
         }
         if (toRemove != null) {
-            reviewCommentSink.removeCommentForChange(changeInfo.getId(), toRemove);
+            reviewCommentSink.removeCommentForChange(changeInfo.id, toRemove);
             markup.removeHighlighter(highlighter);
             highlighter.dispose();
         }

@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -26,7 +27,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 
 import javax.swing.*;
 import java.awt.*;
@@ -57,6 +57,6 @@ public abstract class AbstractChangeAction extends AnAction implements DumbAware
     }
 
     protected void getChangeDetail(ChangeInfo selectedChange, Project project, final Consumer<ChangeInfo> consumer) {
-        gerritUtil.getChangeDetails(selectedChange.getNumber(), project, consumer);
+        gerritUtil.getChangeDetails(selectedChange._number, project, consumer);
     }
 }

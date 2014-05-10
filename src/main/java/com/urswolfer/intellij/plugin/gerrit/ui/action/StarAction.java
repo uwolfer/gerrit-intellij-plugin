@@ -1,13 +1,13 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import icons.Git4ideaIcons;
 
 /**
@@ -29,7 +29,8 @@ public class StarAction extends AbstractChangeAction {
             return;
         }
         Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-        gerritUtil.changeStarredStatus(selectedChange.get().getNumber(), !selectedChange.get().getStarred(), project);
+        ChangeInfo changeInfo = selectedChange.get();
+        gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project);
     }
 
     public static class Proxy extends StarAction {

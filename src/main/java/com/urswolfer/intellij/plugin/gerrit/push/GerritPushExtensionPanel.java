@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.intellij.openapi.application.ApplicationManager;
@@ -31,11 +32,14 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritPushExtensionPanel extends JPanel {
+
+    private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
     private final boolean pushToGerritByDefault;
     private final JTextField destinationBranchTextField;
@@ -93,11 +97,11 @@ public class GerritPushExtensionPanel extends JPanel {
         topicTextField.setToolTipText("A short tag associated with all of the changes in the same group, such as the " +
                 "local topic branch name.");
 
-        indentedSettingPanel.add(new JLabel("Reviewers (Usernames comma-separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(new JLabel("Reviewers (user names, comma separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         indentedSettingPanel.add(reviewersTextField = new JTextField(), new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         reviewersTextField.setToolTipText("Users which will be addeds as reviewers.");
 
-        indentedSettingPanel.add(new JLabel("CC (Usernames comma-separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(new JLabel("CC (user names, comma separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         indentedSettingPanel.add(ccTextField = new JTextField(), new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
         ccTextField.setToolTipText("Users which will receive carbon copies of the notification message.");
 
@@ -142,12 +146,8 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!topicTextField.getText().isEmpty()) {
                 gerritSpecs.add("topic=" + topicTextField.getText());
             }
-            if (!reviewersTextField.getText().isEmpty()) {
-                gerritSpecs.add("r=" + reviewersTextField.getText());
-            }
-            if (!ccTextField.getText().isEmpty()) {
-                gerritSpecs.add("cc=" + ccTextField.getText());
-            }
+            handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
+            handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
             String gerritSpec = Joiner.on(',').join(gerritSpecs);
             if (!Strings.isNullOrEmpty(gerritSpec)) {
                 ref += "%%" + gerritSpec;
@@ -156,6 +156,13 @@ public class GerritPushExtensionPanel extends JPanel {
             manualPush.setSelected(false);
         }
         return ref;
+    }
+
+    private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
+        Iterable<String> items = COMMA_SPLITTER.split(textField.getText());
+        for (String item : items) {
+            gerritSpecs.add(option + '=' + item);
+        }
     }
 
     private void updateDestinationBranch() {

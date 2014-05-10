@@ -18,13 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.AbandonInput;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 
 /**
@@ -63,10 +63,10 @@ public class AbandonAction extends AbstractChangeAction {
         }
         final String message = dialog.getReviewPanel().getMessage();
         if (!Strings.isNullOrEmpty(message)) {
-            abandonInput.setMessage(message);
+            abandonInput.message = message;
         }
 
-        gerritUtil.postAbandon(selectedChange.get().getId(), abandonInput, project);
+        gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project);
     }
 
     public static class Proxy extends AbandonAction {

@@ -21,6 +21,7 @@ import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vcs.CalledInAwt;
+import com.urswolfer.gerrit.client.rest.http.HttpRequestExecutor;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
@@ -37,8 +38,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.security.validator.ValidatorException;
 
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
 
 /**
@@ -48,7 +52,7 @@ import java.util.List;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class SslSupport {
+public class SslSupport extends HttpRequestExecutor {
 
     @Inject
     private GerritSettings gerritSettings;
@@ -62,10 +66,10 @@ public class SslSupport {
      *         and which can be {@link org.apache.http.HttpResponse#getEntity()} asked for the response.
      * @throws IOException in case of other errors or if user declines the proposal of non-trusted connection.
      */
-    @NotNull
-    public HttpResponse executeSelfSignedCertificateAwareRequest(HttpClientBuilder client,
-                                                                 HttpRequestBase method,
-                                                                 @Nullable HttpContext context)
+    @Override
+    public HttpResponse execute(HttpClientBuilder client,
+                                HttpRequestBase method,
+                                @Nullable HttpContext context)
             throws IOException {
         try {
             return client.build().execute(method, context);
@@ -93,7 +97,12 @@ public class SslSupport {
             // creating a special configuration that allows connections to non-trusted HTTPS hosts
             try {
                 SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
-                sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+                sslContextBuilder.loadTrustMaterial(null, new TrustSelfSignedStrategy() {
+                    @Override
+                    public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                        return true;
+                    }
+                });
                 SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(
                         sslContextBuilder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 
@@ -115,6 +124,9 @@ public class SslSupport {
         List<Throwable> causalChain = Throwables.getCausalChain(e);
         for (Throwable throwable : causalChain) {
             if (throwable instanceof ValidatorException) {
+                return true;
+            }
+            if (throwable instanceof SSLException) { // e.g. "SSLException: hostname in certificate didn't match: <localhost> != <unknown>"
                 return true;
             }
         }

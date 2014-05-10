@@ -24,38 +24,37 @@ You can install this plugin from the [IntelliJ Plugin Manager].
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
 [IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
 
-
 Your Support
 ------------
 If you like this plugin, you can support it:
-* Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)
+* Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even encourage them to use these fantastic products!)
 * Vote for it: Write your review and vote for it at the [IntelliJ plugin repository].
 * Star it: [Star it at GitHub]. GitHub account required.
 * Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!
 * Donate: You can find donation-possibilities at the bottom of this file.
 [IntelliJ plugin repository]: http://plugins.jetbrains.com/plugin/7272
-[Star it at GitHub]: https://github.com/uwolfer/gerrit-intellij-plugin/star
+[Star it at GitHub]: https://github.com/uwolfer/gerrit-intellij-plugin
 
 Troubleshooting
 ---------------
 ### List of changes is empty
-By default, only changes of Git repositories which are configured in current IntelliJ project are listed.
-* Make sure that Git repositories are configured in 'Version Control' settings.
+By default, you will only see changes to Git repositories that are configured in the current project of your IntelliJ IDE.
+* Make sure that Git repositories are configured in the 'Version Control' settings.
 * Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings.
 
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
-Since Gerrit 2.8, fetch information got pulled out of default functionality into a plugin.
+In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.
 You need to install the plugin <code>download-commands</code>. When you run the Gerrit update procedure, it asks you to install
 this plugin (but it isn't selected by default). Just run the update script again if you have not installed it yet.
 
 ### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
 There are two workarounds for this issue:
-* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit (should be preferred anyways)
+* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should by the default in any case.
 * use a recent Java setup (> 1.6)
 
 ### Checking out from VCS with Gerrit plugin does not work
 Checking out directly with the Gerrit plugin does not work for some authentication methods. If you get an authentication
-error or checking out does not properly finish, you can try:
+error or checking out does not properly finish, you can try to:
 * use SSH clone URL in checkout dialog (you can find the SSH URL in the Gerrit Web UI project settings)
 * or: check out with the default Git plugin and set up the Gerrit plugin manually afterwards
 
@@ -86,7 +85,7 @@ Some actions like comparing and listing files are based on Git operations. [Inte
 See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 
 
-Build (and Develop!) the Plugin
+Build (and develop!) the Plugin
 ------------------
 
 To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
@@ -102,14 +101,14 @@ you are unsure.
 5. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set Scope to "provided"
 6. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines) (strange, but IntelliJ breaks things here...), reload project. You might must repeat this step if you change project settings...
 7. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin -> (Name: "Gerrit" or whatever you like)
-8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories which are set up in current workspace).
+8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories that are set up in current workspace).
 
 ### Maven (not officially supported)
 
 The plugin depends on multiple jars of IntelliJ IDEA but as these are not available via Maven Central, you'll have to
 install the various Intellij jars located in the lib folder of your IntelliJ install into your local Maven repository.
 
-For your convienience there is a bash script which will do exactly this for you
+For your convienience there is a bash script that will do exactly this for you
 ```
     $ cd gerrit-intellij-plugin/
     $ ./install-intellij-libs.sh <IntelliJ Version> <Path to IntelliJ>
@@ -122,7 +121,7 @@ See that readme for installation instructions.
 Current issue: You need to change the scope of idea and forms_rt in pom.xml from provided to compile in order to
 successfully build it with maven.
 
-After you install all jars which this plugin needs into your local repo, just run
+After you install all jars that this plugin needs into your local repo, just run
 
     mvn package
 

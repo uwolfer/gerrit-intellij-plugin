@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.project.Project;
@@ -24,7 +25,6 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.ChangeInfo;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.NotNull;
@@ -96,7 +96,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     public void consume(List<ChangeInfo> changes) {
         boolean newChange = false;
         for (ChangeInfo change : changes) {
-            if (!notifiedChanges.contains(change.getChangeId())) {
+            if (!notifiedChanges.contains(change.changeId)) {
                 newChange = true;
                 break;
             }
@@ -107,12 +107,12 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
             for (ChangeInfo change : changes) {
                 stringBuilder
                         .append("<li>")
-                        .append(!notifiedChanges.contains(change.getChangeId()) ? "<strong>NEW: </strong>" : "")
-                        .append(change.getSubject())
-                        .append(" (Owner: ").append(change.getOwner().getName()).append(')')
+                        .append(!notifiedChanges.contains(change.changeId) ? "<strong>NEW: </strong>" : "")
+                        .append(change.subject)
+                        .append(" (Owner: ").append(change.owner.name).append(')')
                         .append("</li>");
 
-                notifiedChanges.add(change.getChangeId());
+                notifiedChanges.add(change.changeId);
             }
             stringBuilder.append("</ul>");
             NotificationBuilder notification = new NotificationBuilder(

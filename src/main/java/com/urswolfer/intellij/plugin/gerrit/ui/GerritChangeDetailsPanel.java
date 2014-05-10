@@ -19,13 +19,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 
 import com.google.common.collect.Lists;
+import com.google.gerrit.extensions.common.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.issueLinks.IssueLinkHtmlRenderer;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.bean.*;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 
@@ -129,30 +129,30 @@ public class GerritChangeDetailsPanel {
         }
 
         private void addMetaData(ChangeInfo changeInfo, StringBuilder sb) {
-            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.getSubject());
+            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.subject);
             sb.append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
-                    .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.getChangeId()).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.getOwner().getName()).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.getProject()).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.getBranch()).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.getTopic() != null ? changeInfo.getTopic() : "").append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner.name).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Uploaded:</i></td><td>")
-                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.getCreated()))
+                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.created))
                     .append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Updated:</i></td><td>")
-                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.getUpdated()))
+                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.updated))
                     .append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.getStatus()).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.status).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
         }
 
         private void addLabels(ChangeInfo changeInfo, StringBuilder sb) {
-            if (changeInfo.getLabels() != null) {
+            if (changeInfo.labels != null) {
                 List<ApprovalInfo> ccAccounts = null;
-                for (Map.Entry<String, LabelInfo> labelInfoEntry : changeInfo.getLabels().entrySet()) {
+                for (Map.Entry<String, LabelInfo> labelInfoEntry : changeInfo.labels.entrySet()) {
                     sb.append("<tr valign=\"top\"><td><i>").append(labelInfoEntry.getKey()).append(":</i></td><td>");
-                    List<ApprovalInfo> all = labelInfoEntry.getValue().getAll();
+                    List<ApprovalInfo> all = labelInfoEntry.getValue().all;
                     if (ccAccounts == null) {
                         if (all != null) {
                             ccAccounts = Lists.newArrayList(all);
@@ -162,9 +162,9 @@ public class GerritChangeDetailsPanel {
                     }
                     if (all != null) {
                         for (ApprovalInfo approvalInfo : all) {
-                            if (approvalInfo.getValue() != 0) {
-                                sb.append("<b>").append(approvalInfo.getName()).append("</b>").append(": ");
-                                sb.append(approvalInfo.getValue()).append("<br/>");
+                            if (approvalInfo.value != null && approvalInfo.value != 0) {
+                                sb.append("<b>").append(approvalInfo.name).append("</b>").append(": ");
+                                sb.append(approvalInfo.value).append("<br/>");
                                 ccAccounts.remove(approvalInfo); // remove accounts from CC which are already listed in a review section
                             }
                         }
@@ -174,25 +174,25 @@ public class GerritChangeDetailsPanel {
                 if (ccAccounts != null) {
                     sb.append("<tr valign=\"top\"><td><i>").append("CC").append(":</i></td><td>");
                     for (ApprovalInfo approvalInfo : ccAccounts) {
-                        sb.append("<b>").append(approvalInfo.getName()).append("</b>").append("<br/>");
+                        sb.append("<b>").append(approvalInfo.name).append("</b>").append("<br/>");
                     }
                 }
             }
         }
 
         private void addMessages(ChangeInfo changeInfo, StringBuilder sb) {
-            if (changeInfo.getMessages() != null && changeInfo.getMessages().length > 0) {
+            if (changeInfo.messages != null && changeInfo.messages.size() > 0) {
                 sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
-                for (ChangeMessageInfo changeMessageInfo : changeInfo.getMessages()) {
-                    AccountInfo author = changeMessageInfo.getAuthor();
-                    if (author != null && author.getName() != null) {
-                        sb.append("<b>").append(author.getName()).append("</b>");
-                        if (changeMessageInfo.getDate() != null) {
-                            sb.append(" (").append(DateFormatUtil.formatPrettyDateTime(changeMessageInfo.getDate())).append(')');
+                for (ChangeMessageInfo changeMessageInfo : changeInfo.messages) {
+                    AccountInfo author = changeMessageInfo.author;
+                    if (author != null && author.name != null) {
+                        sb.append("<b>").append(author.name).append("</b>");
+                        if (changeMessageInfo.date != null) {
+                            sb.append(" (").append(DateFormatUtil.formatPrettyDateTime(changeMessageInfo.date)).append(')');
                         }
                         sb.append(": ");
                     }
-                    sb.append(TextToHtml.textToHtml(changeMessageInfo.getMessage())).append("<br/>");
+                    sb.append(TextToHtml.textToHtml(changeMessageInfo.message)).append("<br/>");
                 }
                 sb.append("</td></tr>");
             }

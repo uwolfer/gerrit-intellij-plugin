@@ -33,9 +33,10 @@ public interface RevisionApi {
   ChangeApi rebase() throws RestApiException;
   boolean canRebase();
 
-  void changeReviewed(String filePath, boolean reviewed) throws RestApiException; // added uwolfer
+  void setReviewed(String unencodedFilePath) throws RestApiException;
+  void deleteReviewed(String unencodedFilePath) throws RestApiException;
 
-  Map<String, List<CommentInfo>> getComments() throws RestApiException; // added uwolfer
+  Map<String, List<CommentInfo>> getComments() throws RestApiException;
 
   /**
    * A default implementation which allows source compatibility
@@ -83,7 +84,12 @@ public interface RevisionApi {
     }
 
     @Override
-    public void changeReviewed(String filePath, boolean reviewed) throws RestApiException {
+    public void setReviewed(String unencodedFilePath) throws RestApiException {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public void deleteReviewed(String unencodedFilePath) throws RestApiException {
       throw new NotImplementedException();
     }
 

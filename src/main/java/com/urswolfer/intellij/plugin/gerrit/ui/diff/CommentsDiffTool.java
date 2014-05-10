@@ -109,8 +109,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
                 String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
                 String relativePath = filePathString.replace(repositoryPath + File.separator, "");
-                gerritUtil.getChangeReviewed(changeDetails.id, changeDetails.currentRevision,
-                        relativePath, true, project);
+                gerritUtil.setReviewed(changeDetails.id, changeDetails.currentRevision,
+                        relativePath, project);
             }
         });
     }

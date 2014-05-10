@@ -65,15 +65,20 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
     }
 
     @Override
-    public void changeReviewed(String filePath, boolean reviewed) throws RestApiException {
-        String encodedPath = Url.encode(filePath);
-        String request = String.format("/changes/%s/revisions/%s/files/%s/reviewed", changeApiRestClient.id(), revision, encodedPath);
+    public void setReviewed(String unencodedFilePath) throws RestApiException {
+        String url = createReviewedUrl(unencodedFilePath);
+        changeApiRestClient.getChangesRestClient().getGerritRestClient().putRequest(url);
+    }
 
-        if (reviewed) {
-            changeApiRestClient.getChangesRestClient().getGerritRestClient().putRequest(request);
-        } else {
-            changeApiRestClient.getChangesRestClient().getGerritRestClient().deleteRequest(request);
-        }
+    @Override
+    public void deleteReviewed(String unencodedFilePath) throws RestApiException {
+        String url = createReviewedUrl(unencodedFilePath);
+        changeApiRestClient.getChangesRestClient().getGerritRestClient().deleteRequest(url);
+    }
+
+    public String createReviewedUrl(String unencodedFilePath) {
+        String encodedPath = Url.encode(unencodedFilePath);
+        return String.format("/changes/%s/revisions/%s/files/%s/reviewed", changeApiRestClient.id(), revision, encodedPath);
     }
 
     /**

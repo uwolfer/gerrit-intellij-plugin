@@ -208,17 +208,16 @@ public class GerritUtil {
         accessGerrit(function, Consumer.EMPTY_CONSUMER, project);
     }
 
-    public void getChangeReviewed(final String changeId,
-                                  final String revision,
-                                  final String filePath,
-                                  final boolean reviewed,
-                                  final Project project) {
+    public void setReviewed(final String changeId,
+                            final String revision,
+                            final String filePath,
+                            final Project project) {
 
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.changes().id(changeId).revision(revision).changeReviewed(filePath, reviewed);
+                    gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath);
                 } catch (RestApiException e) {
                     notifyError(e, "Failed set file review status for Gerrit change.", project);
                 }

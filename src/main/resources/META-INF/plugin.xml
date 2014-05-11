@@ -85,6 +85,7 @@
             <li>improve HTTP proxy handling</li>
             <li>improve SSL certificate handling (support for IntelliJ 13.1 certificate manager,
             certificates signed by an untrusted authority)</li>
+            <li>fix handling when Gerrit url and git remote url are not equal</li>
             <li>major refactoring</li>
             <li>minor fixes and improvements</li>
           </ul>

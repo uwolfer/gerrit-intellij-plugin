@@ -29,6 +29,7 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitRemoteBranch;
 import git4idea.history.wholeTree.BasePopupAction;
 import git4idea.repo.GitRepository;
@@ -84,7 +85,7 @@ public class BranchFilter extends AbstractChangesFilter {
             Iterable<GitRepository> repositories = gerritGitUtil.getRepositories(project);
             for (GitRepository repository : repositories) {
                 DefaultActionGroup group = new DefaultActionGroup();
-                group.add(new Separator(repository.getRoot().getName().replace(".git", "")));
+                group.add(new Separator(UrlUtils.stripGitExtension(repository.getRoot().getName())));
                 List<GitRemoteBranch> branches = Lists.newArrayList(repository.getBranches().getRemoteBranches());
                 Ordering<GitRemoteBranch> ordering = Ordering.natural().onResultOf(new Function<GitRemoteBranch, String>() {
                     @Override

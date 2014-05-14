@@ -18,11 +18,14 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
@@ -36,15 +39,22 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
-    private final MarkupModel markup;
+    private final Editor editor;
+    private final RangeHighlighter rangeHighlighter;
 
-    public RemoveCommentAction(ReviewInput.CommentInput comment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public RemoveCommentAction(ReviewInput.CommentInput comment,
+                               ReviewCommentSink reviewCommentSink,
+                               ChangeInfo changeInfo,
+                               RangeHighlighter highlighter,
+                               Editor editor,
+                               RangeHighlighter rangeHighlighter) {
         super("Remove Comment", "Remove selected comment", AllIcons.Actions.Delete);
         this.comment = comment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
         this.highlighter = highlighter;
-        this.markup = markup;
+        this.editor = editor;
+        this.rangeHighlighter = rangeHighlighter;
     }
 
     @Override
@@ -59,8 +69,14 @@ public class RemoveCommentAction extends AnActionButton implements DumbAware {
         }
         if (toRemove != null) {
             reviewCommentSink.removeCommentForChange(changeInfo.id, toRemove);
-            markup.removeHighlighter(highlighter);
+            editor.getMarkupModel().removeHighlighter(highlighter);
             highlighter.dispose();
+
+            Project project = e.getData(PlatformDataKeys.PROJECT);
+            HighlightManager highlightManager = HighlightManager.getInstance(project);
+            if (rangeHighlighter != null) {
+                highlightManager.removeSegmentHighlighter(editor, rangeHighlighter);
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.inject.Inject;
+import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -34,10 +35,12 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
@@ -48,6 +51,7 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -163,12 +167,20 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         }
 
         for (Comment fileComment : fileComments) {
-            MarkupModel markup;
+            Editor editor;
             if (fileComment.side != null && fileComment.side.equals(Comment.Side.PARENT)) {
-                markup = diffPanel.getEditor1().getMarkupModel();
+                editor = diffPanel.getEditor1();
             } else {
-                markup = diffPanel.getEditor2().getMarkupModel();
+                editor = diffPanel.getEditor2();
             }
+            if (editor == null) continue;
+            MarkupModel markup = editor.getMarkupModel();
+
+            RangeHighlighter rangeHighlighter = null;
+            if (fileComment.range != null) {
+                rangeHighlighter = highlightRangeComment(fileComment.range, editor, project);
+            }
+
             int lineCount = markup.getDocument().getLineCount();
 
             int line = fileComment.line - 1;
@@ -179,7 +191,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                 line = lineCount - 1;
             }
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
-            highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
+            CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
+                    fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
+            highlighter.setGutterIconRenderer(iconRenderer);
         }
     }
 
@@ -191,7 +205,19 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
-        String repositoryPath = repository.getRoot().getPath();
-        return repositoryPath;
+        return repository.getRoot().getPath();
+    }
+
+    public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {
+        CharSequence charsSequence = editor.getMarkupModel().getDocument().getCharsSequence();
+
+        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(charsSequence, range);
+
+        TextAttributes attributes = new TextAttributes();
+        attributes.setBackgroundColor(JBColor.YELLOW);
+        ArrayList<RangeHighlighter> highlighters = Lists.newArrayList();
+        HighlightManager highlightManager = HighlightManager.getInstance(project);
+        highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
+        return highlighters.get(0);
     }
 }

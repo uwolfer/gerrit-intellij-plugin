@@ -22,6 +22,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
@@ -101,7 +102,15 @@ public class CommentForm extends JPanel {
 
                 comment.path = relativePath;
                 comment.side = commentSide;
-                comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+
+                SelectionModel selectionModel = editor.getSelectionModel();
+                if (selectionModel.hasSelection()) {
+                    comment.range = handleRangeComment(selectionModel);
+                    comment.line = comment.range.endLine; // end line as per specification
+                } else {
+                    comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+                }
+
                 comment.message = getText();
                 reviewCommentSink.addComment(changeInfo.id, comment);
 
@@ -130,5 +139,12 @@ public class CommentForm extends JPanel {
 
     public ReviewInput.CommentInput getComment() {
         return commentInput;
+    }
+
+    private Comment.Range handleRangeComment(SelectionModel selectionModel) {
+        int startSelection = selectionModel.getBlockSelectionStarts()[0];
+        int endSelection = selectionModel.getBlockSelectionEnds()[0];
+        CharSequence charsSequence = editor.getMarkupModel().getDocument().getCharsSequence();
+        return RangeUtils.textOffsetToRange(charsSequence, startSelection, endSelection);
     }
 }

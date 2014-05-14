@@ -21,6 +21,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
@@ -261,14 +262,6 @@ public class GerritUtil {
         return query;
     }
 
-    private String formatRequestUrl(String query) {
-        if (query.isEmpty()) {
-            return "";
-        } else {
-            return String.format("q=%s", query);
-        }
-    }
-
     private String getProjectQueryPart(Project project) {
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
@@ -283,12 +276,11 @@ public class GerritUtil {
 
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
-            for (String repositoryUrl : remote.getUrls()) {
-                if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
-                    String projectName = getProjectName(gerritSettings.getHost(), repositoryUrl);
-                    if (!Strings.isNullOrEmpty(projectName)) {
-                        projectNames.add("project:" + projectName);
-                    }
+            for (String remoteUrl : remote.getUrls()) {
+                remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
+                String projectName = getProjectName(gerritSettings.getHost(), remoteUrl);
+                if (!Strings.isNullOrEmpty(projectName) && remoteUrl.endsWith(projectName)) {
+                    projectNames.add("project:" + projectName);
                 }
             }
         }
@@ -311,7 +303,7 @@ public class GerritUtil {
             path = path.substring(basePath.length());
         }
 
-        path = path.replace(".git", ""); // some repositories end their name with ".git"
+        path = UrlUtils.stripGitExtension(path);
 
         if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
@@ -456,16 +448,9 @@ public class GerritUtil {
         });
     }
 
-    public String getRef(ChangeInfo changeDetails) {
-        String ref = null;
-        final Map<String, RevisionInfo> revisions = changeDetails.revisions;
-        for (RevisionInfo revisionInfo : revisions.values()) {
-            final Map<String, FetchInfo> fetch = revisionInfo.fetch;
-            for (FetchInfo fetchInfo : fetch.values()) {
-                ref = fetchInfo.ref;
-            }
-        }
-        return ref;
+    public FetchInfo getFirstFetchInfo(ChangeInfo changeDetails) {
+        RevisionInfo currentRevision = changeDetails.revisions.get(changeDetails.currentRevision);
+        return Iterables.getFirst(currentRevision.fetch.values(), null);
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")

@@ -81,12 +81,14 @@
 
           <li>0.8.0</li>
           <ul>
+            <li>add support for range comments (visible in "new" Gerrit Web UI)</li>
             <li>fix handling of comma separated user names in push dialog</li>
             <li>improve HTTP proxy handling</li>
             <li>improve SSL certificate handling (support for IntelliJ 13.1 certificate manager,
             certificates signed by an untrusted authority)</li>
+            <li>fix handling when Gerrit url and git remote url are not equal</li>
             <li>major refactoring</li>
-            <li>minor fixes and improvements</li>
+            <li>many minor fixes and improvements</li>
           </ul>
           <li>0.7.0</li>
           <ul>

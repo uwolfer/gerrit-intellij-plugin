@@ -25,9 +25,10 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
-import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.util.text.DateFormatUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
@@ -44,14 +45,21 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
     private final RangeHighlighter highlighter;
-    private final MarkupModel markup;
+    private final Editor editor;
+    private final RangeHighlighter rangeHighlighter;
 
-    public CommentGutterIconRenderer(Comment fileComment, ReviewCommentSink reviewCommentSink, ChangeInfo changeInfo, RangeHighlighter highlighter, MarkupModel markup) {
+    public CommentGutterIconRenderer(Comment fileComment,
+                                     ReviewCommentSink reviewCommentSink,
+                                     ChangeInfo changeInfo,
+                                     RangeHighlighter highlighter,
+                                     Editor editor,
+                                     RangeHighlighter rangeHighlighter) {
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
         this.highlighter = highlighter;
-        this.markup = markup;
+        this.editor = editor;
+        this.rangeHighlighter = rangeHighlighter;
     }
 
     @NotNull
@@ -84,7 +92,14 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Nullable
     @Override
     public String getTooltipText() {
-        return String.format("<strong>%s</strong><br/>%s", getAuthorName(), TextToHtml.textToHtml(fileComment.message));
+        String message = String.format("<strong>%s</strong> (%s)<br/>%s",
+                getAuthorName(),
+                fileComment.updated != null ? DateFormatUtil.formatPrettyDateTime(fileComment.updated) : "unsaved",
+                TextToHtml.textToHtml(fileComment.message));
+        if (isNewCommentFromMyself()) {
+            message += "<br/><br/><i>Click icon to remove comment</i>";
+        }
+        return message;
     }
 
     @Nullable
@@ -92,7 +107,8 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public ActionGroup getPopupMenuActions() {
         if (isNewCommentFromMyself()) {
             DefaultActionGroup actionGroup = new DefaultActionGroup();
-            RemoveCommentAction action = new RemoveCommentAction((ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+            RemoveCommentAction action = new RemoveCommentAction(
+                    (ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
             action.setEnabled(true);
             actionGroup.add(action);
 
@@ -111,9 +127,9 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Nullable
     @Override
     public AnAction getClickAction() {
-        // TODO: remove gutter also when removing comment
         if (isNewCommentFromMyself()) {
-            return new RemoveCommentAction((ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, markup);
+            return new RemoveCommentAction(
+                    (ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
         } else {
             return null;
         }

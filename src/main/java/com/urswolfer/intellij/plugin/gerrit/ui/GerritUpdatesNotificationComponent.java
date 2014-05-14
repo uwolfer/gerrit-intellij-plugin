@@ -108,6 +108,8 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
                 stringBuilder
                         .append("<li>")
                         .append(!notifiedChanges.contains(change.changeId) ? "<strong>NEW: </strong>" : "")
+                        .append(change.project)
+                        .append(": ")
                         .append(change.subject)
                         .append(" (Owner: ").append(change.owner.name).append(')')
                         .append("</li>");

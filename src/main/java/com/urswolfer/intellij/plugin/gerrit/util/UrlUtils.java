@@ -37,4 +37,8 @@ public class UrlUtils {
         }
         return URI.create(gitConfigUrl);
     }
+
+    public static String stripGitExtension(String url) {
+        return url.replace(".git", ""); // some repositories end their name with ".git"
+    }
 }

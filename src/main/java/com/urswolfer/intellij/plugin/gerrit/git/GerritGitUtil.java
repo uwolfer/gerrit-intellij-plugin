@@ -100,7 +100,7 @@ public class GerritGitUtil {
         for (GitRepository repository : repositoriesFromRoots) {
             for (GitRemote remote : repository.getRemotes()) {
                 for (String remoteUrl : remote.getUrls()) {
-                    remoteUrl = remoteUrl.replace(".git", ""); // some repositories end their name with ".git"
+                    remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                     if (remoteUrl.endsWith(gerritProjectName)) {
                         return Optional.of(repository);
                     }
@@ -115,6 +115,7 @@ public class GerritGitUtil {
 
     public void fetchChange(final Project project,
                             final GitRepository gitRepository,
+                            final String url,
                             final String branch,
                             @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
@@ -134,7 +135,8 @@ public class GerritGitUtil {
             public void run(@NotNull ProgressIndicator indicator) {
                 for (GitRemote remote : gitRepository.getRemotes()) {
                     for (String repositoryUrl : remote.getUrls()) {
-                        if (UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
+                        if (UrlUtils.urlHasSameHost(repositoryUrl, url)
+                                || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
                             fetchNatively(gitRepository.getGitDir(), remote, repositoryUrl, branch, project, indicator);
                             return;
                         }

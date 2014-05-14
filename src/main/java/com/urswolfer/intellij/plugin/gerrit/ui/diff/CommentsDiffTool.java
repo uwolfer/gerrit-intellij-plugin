@@ -23,6 +23,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.inject.Inject;
+import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -36,6 +37,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.util.Disposer;
@@ -44,6 +46,7 @@ import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.openapi.vcs.changes.ChangeRequestChain;
 import com.intellij.openapi.vcs.changes.actions.DiffRequestPresentable;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
@@ -56,6 +59,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -113,12 +117,13 @@ public class CommentsDiffTool extends FrameDiffTool {
             @Override
             public void consume(ChangeInfo changeDetails) {
                 gerritUtil.getComments(changeDetails.id, changeDetails.currentRevision, project,
-                    new Consumer<Map<String, List<CommentInfo>>>() {
-                        @Override
-                        public void consume(Map<String, List<CommentInfo>> comments) {
-                            addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
+                        new Consumer<Map<String, List<CommentInfo>>>() {
+                            @Override
+                            public void consume(Map<String, List<CommentInfo>> comments) {
+                                addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
+                            }
                         }
-                    });
+                );
 
                 String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
                 String relativePath = filePathString.replace(repositoryPath + File.separator, "");
@@ -176,12 +181,20 @@ public class CommentsDiffTool extends FrameDiffTool {
         }
 
         for (Comment fileComment : fileComments) {
-            MarkupModel markup;
+            Editor editor;
             if (fileComment.side != null && fileComment.side.equals(Comment.Side.PARENT)) {
-                markup = diffPanel.getEditor1().getMarkupModel();
+                editor = diffPanel.getEditor1();
             } else {
-                markup = diffPanel.getEditor2().getMarkupModel();
+                editor = diffPanel.getEditor2();
             }
+            if (editor == null) continue;
+            MarkupModel markup = editor.getMarkupModel();
+
+            RangeHighlighter rangeHighlighter = null;
+            if (fileComment.range != null) {
+                rangeHighlighter = highlightRangeComment(fileComment.range, editor, project);
+            }
+
             int lineCount = markup.getDocument().getLineCount();
             if (lineCount <= 0) {
                 return;
@@ -195,7 +208,10 @@ public class CommentsDiffTool extends FrameDiffTool {
                 line = lineCount - 1;
             }
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
-            highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(fileComment, reviewCommentSink, changeInfo, highlighter, markup));
+            CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
+                    fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
+            highlighter.setGutterIconRenderer(iconRenderer);
+
         }
     }
 
@@ -232,7 +248,19 @@ public class CommentsDiffTool extends FrameDiffTool {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
-        String repositoryPath = repository.getRoot().getPath();
-        return repositoryPath;
+        return repository.getRoot().getPath();
+    }
+
+    public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {
+        CharSequence charsSequence = editor.getMarkupModel().getDocument().getCharsSequence();
+
+        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(charsSequence, range);
+
+        TextAttributes attributes = new TextAttributes();
+        attributes.setBackgroundColor(JBColor.YELLOW);
+        ArrayList<RangeHighlighter> highlighters = Lists.newArrayList();
+        HighlightManager highlightManager = HighlightManager.getInstance(project);
+        highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
+        return highlighters.get(0);
     }
 }

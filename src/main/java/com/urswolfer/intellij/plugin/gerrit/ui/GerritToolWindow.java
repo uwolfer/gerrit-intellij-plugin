@@ -21,6 +21,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -171,7 +172,9 @@ public class GerritToolWindow {
         final VirtualFile virtualFile = gitRepository.getGitDir();
         final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
-        String ref = gerritUtil.getRef(changeDetails);
+        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
+        String ref = firstFetchInfo != null ? firstFetchInfo.ref : null;
+
         if (Strings.isNullOrEmpty(ref)) {
             NotificationBuilder notification = new NotificationBuilder(
                     project, "Cannot fetch changes",
@@ -182,7 +185,8 @@ public class GerritToolWindow {
             return;
         }
 
-        gerritGitUtil.fetchChange(project, gitRepository, ref, new Callable<Void>() {
+        String url = firstFetchInfo != null ? firstFetchInfo.url : null;
+        gerritGitUtil.fetchChange(project, gitRepository, url, ref, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
                 final List<GitHeavyCommit> gitCommits;

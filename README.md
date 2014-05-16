@@ -47,6 +47,12 @@ In Gerrit 2.8, fetch information was pulled out of default functionality into a 
 You need to install the plugin <code>download-commands</code>. When you run the Gerrit update procedure, it asks you to install
 this plugin (but it isn't selected by default). Just run the update script again if you have not installed it yet.
 
+When installing Gerrit 2.8 (or newer) from scratch (rather than using the update script) the following command will install the
+<code>download-commands</code> plugin (for a new installation or an existing Gerrit instance):
+
+    $ java -jar gerrit.war init -d {gerrit-instance} --install-plugin=download-commands
+
+
 ### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
 There are two workarounds for this issue:
 * allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should by the default in any case.

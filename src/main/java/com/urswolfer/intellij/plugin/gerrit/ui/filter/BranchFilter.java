@@ -16,6 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import java.util.Collections;
+import java.util.List;
+
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -35,9 +38,6 @@ import git4idea.history.wholeTree.BasePopupAction;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.List;
-
 /**
  * @author Thomas Forrer
  */
@@ -45,7 +45,7 @@ public class BranchFilter extends AbstractChangesFilter {
     @Inject
     private GerritGitUtil gerritGitUtil;
 
-    private Optional<GitRemoteBranch> value = Optional.absent();
+    private Optional<BranchDescriptor> value = Optional.absent();
 
     @Override
     public AnAction getAction(Project project) {
@@ -56,7 +56,9 @@ public class BranchFilter extends AbstractChangesFilter {
     @Nullable
     public String getSearchQueryPart() {
         if (value.isPresent()) {
-            return String.format("branch:%s", value.get().getNameForRemoteOperations());
+            return String.format("project:%s+branch:%s",
+                    getNameForRepository(value.get().getRepository()),
+                    value.get().getBranch().getNameForRemoteOperations());
         } else {
             return null;
         }
@@ -83,9 +85,9 @@ public class BranchFilter extends AbstractChangesFilter {
                 }
             });
             Iterable<GitRepository> repositories = gerritGitUtil.getRepositories(project);
-            for (GitRepository repository : repositories) {
+            for (final GitRepository repository : repositories) {
                 DefaultActionGroup group = new DefaultActionGroup();
-                group.add(new Separator(UrlUtils.stripGitExtension(repository.getRoot().getName())));
+                group.add(new Separator(getNameForRepository(repository)));
                 List<GitRemoteBranch> branches = Lists.newArrayList(repository.getBranches().getRemoteBranches());
                 Ordering<GitRemoteBranch> ordering = Ordering.natural().onResultOf(new Function<GitRemoteBranch, String>() {
                     @Override
@@ -99,7 +101,7 @@ public class BranchFilter extends AbstractChangesFilter {
                         group.add(new DumbAwareAction(branch.getNameForRemoteOperations()) {
                             @Override
                             public void actionPerformed(AnActionEvent e) {
-                                value = Optional.of(branch);
+                                value = Optional.of(new BranchDescriptor(repository, branch));
                                 myLabel.setText(branch.getNameForRemoteOperations());
                                 setChanged();
                                 notifyObservers(project);
@@ -109,6 +111,28 @@ public class BranchFilter extends AbstractChangesFilter {
                 }
                 actionConsumer.consume(group);
             }
+        }
+    }
+
+    private String getNameForRepository(GitRepository repository) {
+        return UrlUtils.stripGitExtension(repository.getRoot().getName());
+    }
+
+    private static final class BranchDescriptor {
+        private final GitRepository repository;
+        private final GitRemoteBranch branch;
+
+        private BranchDescriptor(GitRepository repository, GitRemoteBranch branch) {
+            this.repository = repository;
+            this.branch = branch;
+        }
+
+        public GitRepository getRepository() {
+            return repository;
+        }
+
+        public GitRemoteBranch getBranch() {
+            return branch;
         }
     }
 }

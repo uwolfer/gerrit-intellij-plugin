@@ -19,20 +19,11 @@ package com.urswolfer.gerrit.client.rest.http;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
-import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.accounts.Accounts;
-import com.google.gerrit.extensions.api.changes.Changes;
-import com.google.gerrit.extensions.api.projects.Projects;
-import com.google.gerrit.extensions.api.tools.Tools;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.*;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.Version;
 import com.urswolfer.gerrit.client.rest.gson.DateDeserializer;
-import com.urswolfer.gerrit.client.rest.http.accounts.AccountsRestClient;
-import com.urswolfer.gerrit.client.rest.http.changes.ChangesRestClient;
-import com.urswolfer.gerrit.client.rest.http.projects.ProjectsRestClient;
-import com.urswolfer.gerrit.client.rest.http.tools.ToolsRestClient;
 import org.apache.http.*;
 import org.apache.http.auth.*;
 import org.apache.http.client.CredentialsProvider;
@@ -61,9 +52,11 @@ import java.util.regex.Pattern;
 
 
 /**
+ * This class provides basic http access to the rest interface of a gerrit instance.
+ *
  * @author Urs Wolfer
  */
-public class GerritRestClient implements GerritApi {
+public class GerritRestClient {
 
     private static final String UTF_8 = "UTF-8";
     private static final Pattern GERRIT_AUTH_PATTERN = Pattern.compile(".*?xGerritAuth=\"(.+?)\"");
@@ -75,46 +68,16 @@ public class GerritRestClient implements GerritApi {
     private final HttpRequestExecutor httpRequestExecutor;
     private final List<HttpClientBuilderExtension> httpClientBuilderExtensions;
 
-    private final AccountsRestClient accountsRestClient;
-    private final ChangesRestClient changesRestClient;
-    private final ProjectsRestClient projectsRestClient;
-    private final ToolsRestClient toolsRestClient;
-
     public GerritRestClient(GerritAuthData authData,
                             HttpRequestExecutor httpRequestExecutor,
                             HttpClientBuilderExtension... httpClientBuilderExtensions) {
         this.authData = authData;
         this.httpRequestExecutor = httpRequestExecutor;
         this.httpClientBuilderExtensions = Arrays.asList(httpClientBuilderExtensions);
-
-        changesRestClient = new ChangesRestClient(this);
-        accountsRestClient = new AccountsRestClient(this);
-        projectsRestClient = new ProjectsRestClient(this);
-        toolsRestClient = new ToolsRestClient(this);
     }
 
     public enum HttpVerb {
         GET, POST, DELETE, HEAD, PUT
-    }
-
-    @Override
-    public Accounts accounts() {
-        return accountsRestClient;
-    }
-
-    @Override
-    public Changes changes() {
-        return changesRestClient;
-    }
-
-    @Override
-    public Projects projects() {
-        return projectsRestClient;
-    }
-
-    @Override
-    public Tools tools() {
-        return toolsRestClient;
     }
 
     public Gson getGson() {

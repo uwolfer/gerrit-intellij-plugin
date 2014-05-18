@@ -20,6 +20,7 @@ import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import org.testng.annotations.Test;
 
@@ -31,8 +32,8 @@ import java.util.List;
 public class GerritRestClientTest {
     @Test(enabled = false) // requires running Gerrit instance
     public void testBasicRestCallToLocalhost() throws Exception {
-        GerritRestClientFactory gerritRestClientFactory = new GerritRestClientFactory();
-        GerritApi gerritClient = gerritRestClientFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
+        GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
+        GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
         List<ChangeInfo> changes = gerritClient.changes().query();
         System.out.println(String.format("Got %s changes.", changes.size()));
         System.out.println(changes);
@@ -40,8 +41,8 @@ public class GerritRestClientTest {
 
     @Test(enabled = false) // requires running Gerrit instance
     public void testBasicRestCallToLocalhostProjects() throws Exception {
-        GerritRestClientFactory gerritRestClientFactory = new GerritRestClientFactory();
-        GerritApi gerritClient = gerritRestClientFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
+        GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
+        GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
         List<ProjectInfo> projects = gerritClient.projects().list();
         System.out.println(String.format("Got %s projects.", projects.size()));
         System.out.println(projects);
@@ -49,8 +50,8 @@ public class GerritRestClientTest {
 
     @Test(enabled = false) // requires running Gerrit instance
     public void testBasicRestCallToLocalhostProjectsQuery() throws Exception {
-        GerritRestClientFactory gerritRestClientFactory = new GerritRestClientFactory();
-        GerritApi gerritClient = gerritRestClientFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
+        GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
+        GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
         List<ProjectInfo> projects = gerritClient.projects().list(new Projects.ListParameter().withLimit(1).withDescription(true));
         System.out.println(String.format("Got %s projects.", projects.size()));
         System.out.println(projects);

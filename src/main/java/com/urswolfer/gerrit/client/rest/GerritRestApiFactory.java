@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package com.urswolfer.gerrit.client.rest.http;
+package com.urswolfer.gerrit.client.rest;
 
 import com.google.gerrit.extensions.api.GerritApi;
-import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
+import com.urswolfer.gerrit.client.rest.http.HttpRequestExecutor;
 
 /**
  * @author Urs Wolfer
  */
-public class GerritRestClientFactory {
+public class GerritRestApiFactory {
 
     public GerritApi create(GerritAuthData authData,
                             HttpClientBuilderExtension... httpClientBuilderExtensions) {
@@ -32,6 +33,6 @@ public class GerritRestClientFactory {
     public GerritApi create(GerritAuthData authData,
                             HttpRequestExecutor httpRequestExecutor,
                             HttpClientBuilderExtension... httpClientBuilderExtensions) {
-        return new GerritRestClient(authData, httpRequestExecutor, httpClientBuilderExtensions);
+        return new GerritApiImpl(authData, httpRequestExecutor, httpClientBuilderExtensions);
     }
 }

@@ -21,14 +21,11 @@ import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import com.urswolfer.gerrit.client.rest.http.util.UrlUtils;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author Urs Wolfer
@@ -36,9 +33,12 @@ import java.util.Map;
 public class ProjectsRestClient extends Projects.NotImplemented implements Projects {
 
     private final GerritRestClient gerritRestClient;
+    private final ProjectsParser projectsParser;
 
-    public ProjectsRestClient(GerritRestClient gerritRestClient) {
+    public ProjectsRestClient(GerritRestClient gerritRestClient,
+                              ProjectsParser projectsParser) {
         this.gerritRestClient = gerritRestClient;
+        this.projectsParser = projectsParser;
     }
 
     @Override
@@ -72,24 +72,7 @@ public class ProjectsRestClient extends Projects.NotImplemented implements Proje
         if (result == null) {
             return Collections.emptyList();
         }
-        return parseProjectInfos(result);
-    }
-
-    private List<ProjectInfo> parseProjectInfos(JsonElement result) throws RestApiException {
-        List<ProjectInfo> repositories = new ArrayList<ProjectInfo>();
-        final JsonObject jsonObject = result.getAsJsonObject();
-        for (Map.Entry<String, JsonElement> element : jsonObject.entrySet()) {
-            if (!element.getValue().isJsonObject()) {
-                throw new RestApiException(String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
-            }
-            repositories.add(parseSingleRepositoryInfo(element.getValue().getAsJsonObject()));
-
-        }
-        return repositories;
-    }
-
-    private ProjectInfo parseSingleRepositoryInfo(JsonObject result) {
-        return gerritRestClient.getGson().fromJson(result, ProjectInfo.class);
+        return projectsParser.parseProjectInfos(result);
     }
 
     protected GerritRestClient getGerritRestClient() {

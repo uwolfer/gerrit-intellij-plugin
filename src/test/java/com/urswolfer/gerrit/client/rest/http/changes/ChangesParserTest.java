@@ -20,8 +20,8 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ChangeStatus;
-import com.google.gson.*;
-import com.urswolfer.gerrit.client.rest.gson.DateDeserializer;
+import com.google.gson.JsonElement;
+import com.urswolfer.gerrit.client.rest.http.common.AbstractParserTest;
 import com.urswolfer.gerrit.client.rest.http.common.AccountInfoBuilder;
 import com.urswolfer.gerrit.client.rest.http.common.ChangeInfoBuilder;
 import com.urswolfer.gerrit.client.rest.http.common.GerritAssert;
@@ -29,16 +29,12 @@ import com.urswolfer.gerrit.client.rest.http.common.LabelInfoBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.FileReader;
-import java.net.URL;
-import java.util.Date;
 import java.util.List;
 
 /**
  * @author Thomas Forrer
  */
-public class ChangesParserTest {
+public class ChangesParserTest extends AbstractParserTest {
     private static final List<ChangeInfo> CHANGE_INFOS = Lists.newArrayList();
 
     static {
@@ -101,18 +97,5 @@ public class ChangesParserTest {
             ChangeInfo expected = CHANGE_INFOS.get(i);
             GerritAssert.assertEquals(actual, expected);
         }
-    }
-
-    private JsonElement getJsonElement(String resourceName) throws Exception {
-        URL url = this.getClass().getResource(resourceName);
-        File file = new File(url.toURI());
-        return new JsonParser().parse(new FileReader(file));
-    }
-
-    private Gson getGson() {
-        GsonBuilder builder = new GsonBuilder();
-        builder.registerTypeAdapter(Date.class, new DateDeserializer());
-        builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
-        return builder.create();
     }
 }

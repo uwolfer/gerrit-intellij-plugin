@@ -17,6 +17,7 @@
 package com.urswolfer.gerrit.client.rest.http.common;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ProjectInfo;
 import com.thoughtworks.xstream.XStream;
 import org.testng.Assert;
 
@@ -34,6 +35,14 @@ public class GerritAssert {
      * <code>hashCode()</code> methods.
      */
     public static void assertEquals(ChangeInfo actual, ChangeInfo expected) {
+        assertXmlOutputEqual(actual, expected);
+    }
+
+    public static void assertEquals(ProjectInfo actual, ProjectInfo expected) {
+        assertXmlOutputEqual(actual, expected);
+    }
+
+    private static void assertXmlOutputEqual(Object actual, Object expected) {
         XStream xStream = new XStream();
         xStream.setMode(XStream.NO_REFERENCES);
         String actualXml = xStream.toXML(actual);

@@ -35,7 +35,7 @@ import java.util.TimeZone;
  * @author Urs Wolfer
  */
 public class DateDeserializer implements JsonDeserializer<Date> {
-    private static final String DATE_PATTERN = "yyyy-MM-dd hh:mm:ss";
+    private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
         @Override

@@ -18,23 +18,25 @@ package com.urswolfer.gerrit.client.rest.http.changes;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.Changes;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
-import com.google.gson.*;
-import com.urswolfer.gerrit.client.rest.gson.DateDeserializer;
+import com.google.gson.JsonElement;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import org.easymock.EasyMock;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.FileReader;
-import java.net.URL;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Iterator;
 
+/**
+ * @author Thomas Forrer
+ */
 public class ChangesRestClientTest {
+    private static final JsonElement MOCK_JSON_ELEMENT = EasyMock.createMock(JsonElement.class);
+
     private static final Function<ChangesQueryTestCase, ChangesQueryTestCase[]> WRAP_IN_ARRAY_FUNCTION =
             new Function<ChangesQueryTestCase, ChangesQueryTestCase[]>() {
                 @Override
@@ -76,50 +78,49 @@ public class ChangesRestClientTest {
     @Test(dataProvider = "ChangesQueryTestCases")
     public void testQueryWithParameter(ChangesQueryTestCase testCase) throws Exception {
         GerritRestClient gerritRestClient = setupGerritRestClient(testCase);
-        ChangesRestClient changes = new ChangesRestClient(gerritRestClient);
+        ChangesParser changesParser = setupChangesParser();
+
+        ChangesRestClient changes = new ChangesRestClient(gerritRestClient, changesParser);
 
         changes.query(testCase.queryParameter);
 
-        EasyMock.verify(gerritRestClient);
+        EasyMock.verify(gerritRestClient, changesParser);
     }
 
     @Test
     public void testQuery() throws Exception {
         ChangesQueryTestCase testCase = new ChangesQueryTestCase().expectUrl("/changes/");
         GerritRestClient gerritRestClient = setupGerritRestClient(testCase);
+        ChangesParser changesParser = setupChangesParser();
 
-        ChangesRestClient changes = new ChangesRestClient(gerritRestClient);
+        ChangesRestClient changes = new ChangesRestClient(gerritRestClient, changesParser);
 
         changes.query();
 
-        EasyMock.verify(gerritRestClient);
+        EasyMock.verify(gerritRestClient, changesParser);
     }
 
     private GerritRestClient setupGerritRestClient(ChangesQueryTestCase testCase) throws Exception {
         GerritRestClient gerritRestClient = EasyMock.createMock(GerritRestClient.class);
 
-        // this test does not care about json parsing, just return a fake json file containing some valid changes...
+        // this test does not care about json parsing, just return a mocked json element...
         EasyMock.expect(gerritRestClient.getRequest(testCase.expectedUrl))
-                .andReturn(getJsonElement("changes.json")).once();
+                .andReturn(MOCK_JSON_ELEMENT)
+                .once();
 
-        EasyMock.expect(gerritRestClient.getGson())
-                .andStubReturn(getGson());
         EasyMock.replay(gerritRestClient);
         return gerritRestClient;
     }
 
-    private JsonElement getJsonElement(String resourceName) throws Exception {
-        URL url = this.getClass().getResource(resourceName);
-        File file = new File(url.toURI());
-        return new JsonParser().parse(new FileReader(file));
+    private ChangesParser setupChangesParser() throws Exception {
+        ChangesParser changesParser = EasyMock.createMock(ChangesParser.class);
+        EasyMock.expect(changesParser.parseChangeInfos(MOCK_JSON_ELEMENT))
+                .andReturn(Lists.<ChangeInfo>newArrayList())
+                .once();
+        EasyMock.replay(changesParser);
+        return changesParser;
     }
 
-    private static Gson getGson() {
-        GsonBuilder builder = new GsonBuilder();
-        builder.registerTypeAdapter(Date.class, new DateDeserializer());
-        builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
-        return builder.create();
-    }
 
     private static ChangesQueryTestCase queryParameter(Changes.QueryParameter parameter) {
         return new ChangesQueryTestCase().withQueryParameter(parameter);

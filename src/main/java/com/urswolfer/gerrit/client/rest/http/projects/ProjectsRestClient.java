@@ -42,12 +42,16 @@ public class ProjectsRestClient extends Projects.NotImplemented implements Proje
     }
 
     @Override
-    public List<ProjectInfo> list() throws RestApiException {
-        return list(new ListParameter());
+    public ListRequest list() {
+        return new ListRequest() {
+            @Override
+            public List<ProjectInfo> get() throws RestApiException {
+                return ProjectsRestClient.this.list(this);
+            }
+        };
     }
 
-    @Override
-    public List<ProjectInfo> list(ListParameter listParameter) throws RestApiException {
+    private List<ProjectInfo> list(ListRequest listParameter) throws RestApiException {
         String query = "";
 
         if (listParameter.getDescription()) {

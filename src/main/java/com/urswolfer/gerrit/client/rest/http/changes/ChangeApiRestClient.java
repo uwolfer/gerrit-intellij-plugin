@@ -19,7 +19,6 @@ package com.urswolfer.gerrit.client.rest.http.changes;
 import com.google.common.collect.Iterables;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
-import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
@@ -83,7 +82,7 @@ public class ChangeApiRestClient extends ChangeApi.NotImplemented implements Cha
 
     @Override
     public ChangeInfo get(EnumSet<ListChangesOption> options) throws RestApiException {
-        return Iterables.getFirst(changesRestClient.query(new Changes.QueryParameter(id).withOptions(options)), null);
+        return Iterables.getFirst(changesRestClient.query(id).withOptions(options).get(), null);
     }
 
     @Override

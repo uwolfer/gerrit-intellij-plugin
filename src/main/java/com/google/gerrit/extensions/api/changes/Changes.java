@@ -28,50 +28,45 @@ public interface Changes {
   ChangeApi id(String triplet) throws RestApiException;
   ChangeApi id(String project, String branch, String id)
       throws RestApiException;
+  ChangeApi create(ChangeInfo in) throws RestApiException;
 
-  /**
-   * Shorthand for {@link #query(QueryParameter)} without any conditions (i.e. lists all changes).
-   */
-  List<ChangeInfo> query() throws RestApiException;
-  List<ChangeInfo> query(QueryParameter queryParameter) throws RestApiException;
+  QueryRequest query();
+  QueryRequest query(String query);
 
-  public class QueryParameter {
+  public abstract class QueryRequest {
     private String query;
     private int limit;
     private int start;
     private EnumSet<ListChangesOption> options = EnumSet.noneOf(ListChangesOption.class);
 
-    public QueryParameter() {}
+    public abstract List<ChangeInfo> get() throws RestApiException;
 
-    public QueryParameter(String query) {
-      this.query = query;
-    }
-
-    public QueryParameter withQuery(String query) {
+    public QueryRequest withQuery(String query) {
       this.query = query;
       return this;
     }
 
-    public QueryParameter withLimit(int limit) {
+    public QueryRequest withLimit(int limit) {
       this.limit = limit;
       return this;
     }
 
-    public QueryParameter withStart(int start) {
+    public QueryRequest withStart(int start) {
       this.start = start;
       return this;
     }
 
-    public QueryParameter withOption(ListChangesOption options) {
+    public QueryRequest withOption(ListChangesOption options) {
       this.options.add(options);
       return this;
     }
-    public QueryParameter withOptions(ListChangesOption... options) {
+
+    public QueryRequest withOptions(ListChangesOption... options) {
       this.options.addAll(Arrays.asList(options));
       return this;
     }
 
-    public QueryParameter withOptions(EnumSet<ListChangesOption> options) {
+    public QueryRequest withOptions(EnumSet<ListChangesOption> options) {
       this.options = options;
       return this;
     }
@@ -114,12 +109,17 @@ public interface Changes {
     }
 
     @Override
-    public List<ChangeInfo> query() throws RestApiException {
+    public ChangeApi create(ChangeInfo in) throws RestApiException {
       throw new NotImplementedException();
     }
 
     @Override
-    public List<ChangeInfo> query(QueryParameter queryParameter) throws RestApiException {
+    public QueryRequest query() {
+      throw new NotImplementedException();
+    }
+
+    @Override
+    public QueryRequest query(String query) {
       throw new NotImplementedException();
     }
   }

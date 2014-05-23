@@ -79,6 +79,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.8.1</li>
+          <ul>
+            <li>improve usability for file comments (add, reply, edit)</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.8.0</li>
           <ul>
             <li>add support for range comments (visible in "new" Gerrit Web UI)</li>

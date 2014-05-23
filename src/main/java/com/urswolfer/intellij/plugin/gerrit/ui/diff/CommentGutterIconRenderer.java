@@ -22,12 +22,11 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.util.text.DateFormatUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
@@ -36,30 +35,37 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.event.MouseEvent;
 
 /**
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
-    private final Comment fileComment;
-    private final ReviewCommentSink reviewCommentSink;
-    private final ChangeInfo changeInfo;
-    private final RangeHighlighter highlighter;
+    private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
+    private final ReviewCommentSink reviewCommentSink;
+    private final AddCommentActionBuilder addCommentActionBuilder;
+    private final Comment fileComment;
+    private final ChangeInfo changeInfo;
+    private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
 
-    public CommentGutterIconRenderer(Comment fileComment,
-                                     ReviewCommentSink reviewCommentSink,
-                                     ChangeInfo changeInfo,
-                                     RangeHighlighter highlighter,
+    public CommentGutterIconRenderer(CommentsDiffTool commentsDiffTool,
                                      Editor editor,
+                                     ReviewCommentSink reviewCommentSink,
+                                     AddCommentActionBuilder addCommentActionBuilder,
+                                     Comment fileComment,
+                                     ChangeInfo changeInfo,
+                                     RangeHighlighter lineHighlighter,
                                      RangeHighlighter rangeHighlighter) {
+        this.commentsDiffTool = commentsDiffTool;
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
-        this.highlighter = highlighter;
+        this.lineHighlighter = lineHighlighter;
         this.editor = editor;
         this.rangeHighlighter = rangeHighlighter;
+        this.addCommentActionBuilder = addCommentActionBuilder;
     }
 
     @NotNull
@@ -92,32 +98,16 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Nullable
     @Override
     public String getTooltipText() {
-        String message = String.format("<strong>%s</strong> (%s)<br/>%s",
+        return String.format("<strong>%s</strong> (%s)<br/>%s",
                 getAuthorName(),
                 fileComment.updated != null ? DateFormatUtil.formatPrettyDateTime(fileComment.updated) : "unsaved",
                 TextToHtml.textToHtml(fileComment.message));
-        if (isNewCommentFromMyself()) {
-            message += "<br/><br/><i>Click icon to remove comment</i>";
-        }
-        return message;
     }
 
     @Nullable
     @Override
     public ActionGroup getPopupMenuActions() {
-        if (isNewCommentFromMyself()) {
-            DefaultActionGroup actionGroup = new DefaultActionGroup();
-            RemoveCommentAction action = new RemoveCommentAction(
-                    (ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
-            action.setEnabled(true);
-            actionGroup.add(action);
-
-            actionGroup = null; // TODO FIXME: does not work yet, action is always disabled. thus do not return action. remove this line when fixes
-
-            return actionGroup;
-        } else {
-            return null;
-        }
+        return createPopupMenuActionGroup();
     }
 
     private boolean isNewCommentFromMyself() {
@@ -127,12 +117,47 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Nullable
     @Override
     public AnAction getClickAction() {
+        return new DumbAwareAction() {
+            @Override
+            public void actionPerformed(AnActionEvent e) {
+                MouseEvent inputEvent = (MouseEvent) e.getInputEvent();
+                ActionManager actionManager = ActionManager.getInstance();
+                DefaultActionGroup actionGroup = createPopupMenuActionGroup();
+                ActionPopupMenu popupMenu = actionManager.createActionPopupMenu(ActionPlaces.UNKNOWN, actionGroup);
+                popupMenu.getComponent().show(inputEvent.getComponent(), inputEvent.getX(), inputEvent.getY());
+            }
+        };
+    }
+
+    private DefaultActionGroup createPopupMenuActionGroup() {
+        DefaultActionGroup actionGroup = new DefaultActionGroup();
         if (isNewCommentFromMyself()) {
-            return new RemoveCommentAction(
-                    (ReviewInput.CommentInput) fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
+            AddCommentAction commentAction = addCommentActionBuilder
+                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .withText("Edit")
+                    .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
+                    .update((ReviewInput.CommentInput) fileComment, lineHighlighter, rangeHighlighter)
+                    .get();
+            actionGroup.add(commentAction);
+
+            RemoveCommentAction removeCommentAction = new RemoveCommentAction(
+                    commentsDiffTool, editor, reviewCommentSink, changeInfo, (ReviewInput.CommentInput) fileComment,
+                    lineHighlighter, rangeHighlighter);
+            actionGroup.add(removeCommentAction);
         } else {
-            return null;
+            AddCommentAction commentAction = addCommentActionBuilder
+                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .withText("Reply")
+                    .withIcon(AllIcons.Actions.Back)
+                    .reply(fileComment)
+                    .get();
+            actionGroup.add(commentAction);
+
+            CommentDoneAction commentDoneAction = new CommentDoneAction(
+                    editor, commentsDiffTool, reviewCommentSink, fileComment, changeInfo);
+            actionGroup.add(commentDoneAction);
         }
+        return actionGroup;
     }
 
     private String getAuthorName() {

@@ -26,28 +26,23 @@ import com.google.gson.JsonElement;
  */
 public class AccountApiRestClient extends AccountApi.NotImplemented implements AccountApi {
 
+    private final AccountsParser accountsParser;
+
     private final AccountsRestClient accountsRestClient;
     private final String name;
 
-    public AccountApiRestClient(AccountsRestClient accountsRestClient, String name) {
+    public AccountApiRestClient(AccountsRestClient accountsRestClient,
+                                AccountsParser accountsParser,
+                                String name) {
         this.accountsRestClient = accountsRestClient;
+        this.accountsParser = accountsParser;
         this.name = name;
     }
 
     @Override
     public AccountInfo get() throws RestApiException {
         JsonElement result = accountsRestClient.getGerritRestClient().getRequest("/accounts/" + name);
-        return parseUserInfo(result);
-    }
-
-    private AccountInfo parseUserInfo(JsonElement result) throws RestApiException {
-        if (result == null) {
-            return null;
-        }
-        if (!result.isJsonObject()) {
-            throw new RestApiException(String.format("Unexpected JSON result format: %s", result));
-        }
-        return accountsRestClient.getGerritRestClient().getGson().fromJson(result, AccountInfo.class);
+        return accountsParser.parseUserInfo(result);
     }
 
     @Override

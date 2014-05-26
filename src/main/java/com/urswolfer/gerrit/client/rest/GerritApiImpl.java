@@ -21,9 +21,11 @@ import com.google.gerrit.extensions.api.accounts.Accounts;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.api.tools.Tools;
+import com.google.gson.Gson;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.gerrit.client.rest.http.HttpRequestExecutor;
+import com.urswolfer.gerrit.client.rest.http.accounts.AccountsParser;
 import com.urswolfer.gerrit.client.rest.http.accounts.AccountsRestClient;
 import com.urswolfer.gerrit.client.rest.http.changes.ChangesParser;
 import com.urswolfer.gerrit.client.rest.http.changes.ChangesRestClient;
@@ -41,9 +43,10 @@ public class GerritApiImpl extends GerritApi.NotImplemented implements GerritApi
                          HttpRequestExecutor httpRequestExecutor,
                          HttpClientBuilderExtension... httpClientBuilderExtensions) {
         GerritRestClient gerritRestClient = new GerritRestClient(authData, httpRequestExecutor, httpClientBuilderExtensions);
-        changesRestClient = new ChangesRestClient(gerritRestClient, new ChangesParser(gerritRestClient.getGson()));
-        accountsRestClient = new AccountsRestClient(gerritRestClient);
-        projectsRestClient = new ProjectsRestClient(gerritRestClient, new ProjectsParser(gerritRestClient.getGson()));
+        Gson gson = gerritRestClient.getGson();
+        changesRestClient = new ChangesRestClient(gerritRestClient, new ChangesParser(gson));
+        accountsRestClient = new AccountsRestClient(gerritRestClient, new AccountsParser(gson));
+        projectsRestClient = new ProjectsRestClient(gerritRestClient, new ProjectsParser(gson));
         toolsRestClient = new ToolsRestClient(gerritRestClient);
     }
 

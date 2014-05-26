@@ -84,20 +84,16 @@ public class ChangesRestClient extends Changes.NotImplemented implements Changes
 
     @Override
     public ChangeApi id(int id) throws RestApiException {
-        return new ChangeApiRestClient(this, id);
+        return new ChangeApiRestClient(gerritRestClient, this, id);
     }
 
     @Override
     public ChangeApi id(String triplet) throws RestApiException {
-        return new ChangeApiRestClient(this, triplet);
+        return new ChangeApiRestClient(gerritRestClient, this, triplet);
     }
 
     @Override
     public ChangeApi id(String project, String branch, String id) throws RestApiException {
-        return new ChangeApiRestClient(this, String.format("%s~%s~%s", project, branch, id));
-    }
-
-    protected GerritRestClient getGerritRestClient() {
-        return gerritRestClient;
+        return new ChangeApiRestClient(gerritRestClient, this, String.format("%s~%s~%s", project, branch, id));
     }
 }

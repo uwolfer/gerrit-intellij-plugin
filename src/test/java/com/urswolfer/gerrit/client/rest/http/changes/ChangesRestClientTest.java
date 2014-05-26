@@ -29,6 +29,7 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Iterator;
 
 /**
@@ -49,25 +50,25 @@ public class ChangesRestClientTest {
     public Iterator<ChangesQueryTestCase[]> getChangesQueryTestCases() {
         return Iterables.transform(Arrays.asList(
                 queryParameter(
-                        new Changes.QueryParameter().withQuery("is:open")
+                        new TestQueryRequest().withQuery("is:open")
                 ).expectUrl("/changes/?q=is:open"),
                 queryParameter(
-                        new Changes.QueryParameter("is:open+is:watched")
+                        new TestQueryRequest().withQuery("is:open+is:watched")
                 ).expectUrl("/changes/?q=is:open+is:watched"),
                 queryParameter(
-                        new Changes.QueryParameter().withLimit(10)
+                        new TestQueryRequest().withLimit(10)
                 ).expectUrl("/changes/?n=10"),
                 queryParameter(
-                        new Changes.QueryParameter("is:open").withLimit(10)
+                        new TestQueryRequest().withQuery("is:open").withLimit(10)
                 ).expectUrl("/changes/?q=is:open&n=10"),
                 queryParameter(
-                        new Changes.QueryParameter().withOption(ListChangesOption.LABELS)
+                        new TestQueryRequest().withOption(ListChangesOption.LABELS)
                 ).expectUrl("/changes/?o=LABELS"),
                 queryParameter(
-                        new Changes.QueryParameter().withStart(50)
+                        new TestQueryRequest().withStart(50)
                 ).expectUrl("/changes/?S=50"),
                 queryParameter(
-                        new Changes.QueryParameter("is:open")
+                        new TestQueryRequest().withQuery("is:open")
                                 .withLimit(10)
                                 .withOption(ListChangesOption.CURRENT_FILES)
                                 .withStart(30)
@@ -82,7 +83,8 @@ public class ChangesRestClientTest {
 
         ChangesRestClient changes = new ChangesRestClient(gerritRestClient, changesParser);
 
-        changes.query(testCase.queryParameter);
+        Changes.QueryRequest queryRequest = changes.query();
+        testCase.queryParameter.apply(queryRequest).get();
 
         EasyMock.verify(gerritRestClient, changesParser);
     }
@@ -95,7 +97,7 @@ public class ChangesRestClientTest {
 
         ChangesRestClient changes = new ChangesRestClient(gerritRestClient, changesParser);
 
-        changes.query();
+        changes.query().get();
 
         EasyMock.verify(gerritRestClient, changesParser);
     }
@@ -122,16 +124,16 @@ public class ChangesRestClientTest {
     }
 
 
-    private static ChangesQueryTestCase queryParameter(Changes.QueryParameter parameter) {
+    private static ChangesQueryTestCase queryParameter(TestQueryRequest parameter) {
         return new ChangesQueryTestCase().withQueryParameter(parameter);
     }
 
     private static final class ChangesQueryTestCase {
-        private Changes.QueryParameter queryParameter;
+        private TestQueryRequest queryParameter;
 
         private String expectedUrl;
 
-        private ChangesQueryTestCase withQueryParameter(Changes.QueryParameter queryParameter) {
+        private ChangesQueryTestCase withQueryParameter(TestQueryRequest queryParameter) {
             this.queryParameter = queryParameter;
             return this;
         }
@@ -144,6 +146,49 @@ public class ChangesRestClientTest {
         @Override
         public String toString() {
             return expectedUrl;
+        }
+    }
+
+    private static final class TestQueryRequest {
+        private String query = null;
+        private Integer limit = null;
+        private Integer start = null;
+        private EnumSet<ListChangesOption> options = EnumSet.noneOf(ListChangesOption.class);
+
+        public TestQueryRequest withQuery(String query) {
+            this.query = query;
+            return this;
+        }
+
+        public TestQueryRequest withLimit(int limit) {
+            this.limit = limit;
+            return this;
+        }
+
+        public TestQueryRequest withStart(int start) {
+            this.start = start;
+            return this;
+        }
+
+        public TestQueryRequest withOption(ListChangesOption options) {
+            this.options.add(options);
+            return this;
+        }
+
+        public Changes.QueryRequest apply(Changes.QueryRequest queryRequest) {
+            if (query != null) {
+                queryRequest.withQuery(query);
+            }
+            if (limit != null) {
+                queryRequest.withLimit(limit);
+            }
+            if (start != null) {
+                queryRequest.withStart(start);
+            }
+            if (!options.isEmpty()) {
+                queryRequest.withOptions(options);
+            }
+            return queryRequest;
         }
     }
 }

@@ -17,7 +17,6 @@
 package com.urswolfer.gerrit.client.rest.http;
 
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.projects.Projects;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
@@ -34,7 +33,7 @@ public class GerritRestClientTest {
     public void testBasicRestCallToLocalhost() throws Exception {
         GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
         GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
-        List<ChangeInfo> changes = gerritClient.changes().query();
+        List<ChangeInfo> changes = gerritClient.changes().query().get();
         System.out.println(String.format("Got %s changes.", changes.size()));
         System.out.println(changes);
     }
@@ -43,7 +42,7 @@ public class GerritRestClientTest {
     public void testBasicRestCallToLocalhostProjects() throws Exception {
         GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
         GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
-        List<ProjectInfo> projects = gerritClient.projects().list();
+        List<ProjectInfo> projects = gerritClient.projects().list().get();
         System.out.println(String.format("Got %s projects.", projects.size()));
         System.out.println(projects);
     }
@@ -52,7 +51,7 @@ public class GerritRestClientTest {
     public void testBasicRestCallToLocalhostProjectsQuery() throws Exception {
         GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
         GerritApi gerritClient = gerritRestApiFactory.create(new GerritAuthData.Basic("http://localhost:8080"));
-        List<ProjectInfo> projects = gerritClient.projects().list(new Projects.ListParameter().withLimit(1).withDescription(true));
+        List<ProjectInfo> projects = gerritClient.projects().list().withLimit(1).withDescription(true).get();
         System.out.println(String.format("Got %s projects.", projects.size()));
         System.out.println(projects);
     }

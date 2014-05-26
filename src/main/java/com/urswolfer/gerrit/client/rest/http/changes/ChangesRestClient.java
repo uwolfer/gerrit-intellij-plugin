@@ -43,24 +43,33 @@ public class ChangesRestClient extends Changes.NotImplemented implements Changes
     }
 
     @Override
-    public List<ChangeInfo> query() throws RestApiException {
-        return query(new QueryParameter());
+    public QueryRequest query() {
+        return new QueryRequest() {
+            @Override
+            public List<ChangeInfo> get() throws RestApiException {
+                return ChangesRestClient.this.get(this);
+            }
+        };
     }
 
     @Override
-    public List<ChangeInfo> query(QueryParameter queryParameter) throws RestApiException {
+    public QueryRequest query(String query)  {
+        return query().withQuery(query);
+    }
+
+    private List<ChangeInfo> get(QueryRequest queryRequest) throws RestApiException {
         String query = "";
 
-        if (!Strings.isNullOrEmpty(queryParameter.getQuery())) {
-            query = UrlUtils.appendToUrlQuery(query, "q=" + queryParameter.getQuery());
+        if (!Strings.isNullOrEmpty(queryRequest.getQuery())) {
+            query = UrlUtils.appendToUrlQuery(query, "q=" + queryRequest.getQuery());
         }
-        if (queryParameter.getLimit() > 0) {
-            query = UrlUtils.appendToUrlQuery(query, "n=" + queryParameter.getLimit());
+        if (queryRequest.getLimit() > 0) {
+            query = UrlUtils.appendToUrlQuery(query, "n=" + queryRequest.getLimit());
         }
-        if (queryParameter.getStart() > 0) {
-            query = UrlUtils.appendToUrlQuery(query, "S=" + queryParameter.getStart());
+        if (queryRequest.getStart() > 0) {
+            query = UrlUtils.appendToUrlQuery(query, "S=" + queryRequest.getStart());
         }
-        for (ListChangesOption option : queryParameter.getOptions()) {
+        for (ListChangesOption option : queryRequest.getOptions()) {
             query = UrlUtils.appendToUrlQuery(query, "o=" + option);
         }
 

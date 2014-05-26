@@ -49,22 +49,22 @@ public class ProjectsRestClientTest {
     public Iterator<ProjectListTestCase[]> listProjectTestCases() throws Exception {
         return Iterables.transform(Arrays.asList(
                 testCase().withListParameter(
-                        new Projects.ListParameter().withDescription(true)
+                        new TestListRequest().withDescription(true)
                 ).expectUrl("/projects/?d"),
                 testCase().withListParameter(
-                        new Projects.ListParameter().withDescription(false)
+                        new TestListRequest().withDescription(false)
                 ).expectUrl("/projects/"),
                 testCase().withListParameter(
-                        new Projects.ListParameter().withLimit(10)
+                        new TestListRequest().withLimit(10)
                 ).expectUrl("/projects/?n=10"),
                 testCase().withListParameter(
-                        new Projects.ListParameter().withPrefix("test")
+                        new TestListRequest().withPrefix("test")
                 ).expectUrl("/projects/?p=test"),
                 testCase().withListParameter(
-                        new Projects.ListParameter().withStart(5)
+                        new TestListRequest().withStart(5)
                 ).expectUrl("/projects/?S=5"),
                 testCase().withListParameter(
-                        new Projects.ListParameter()
+                        new TestListRequest()
                                 .withDescription(true)
                                 .withLimit(15)
                                 .withStart(10)
@@ -83,13 +83,13 @@ public class ProjectsRestClientTest {
     }
 
     private static final class ProjectListTestCase {
-        private Projects.ListParameter listParameter = null;
+        private TestListRequest listParameter = new TestListRequest();
         private String expectedUrl;
         private JsonElement mockJsonElement = EasyMock.createMock(JsonElement.class);
         private GerritRestClient gerritRestClient;
         private ProjectsParser projectsParser;
 
-        public ProjectListTestCase withListParameter(Projects.ListParameter listParameter) {
+        public ProjectListTestCase withListParameter(TestListRequest listParameter) {
             this.listParameter = listParameter;
             return this;
         }
@@ -101,11 +101,8 @@ public class ProjectsRestClientTest {
 
         public ProjectListTestCase execute() throws Exception {
             ProjectsRestClient projectsRestClient = getProjectsRestClient();
-            if (listParameter == null) {
-                projectsRestClient.list();
-            } else {
-                projectsRestClient.list(listParameter);
-            }
+            Projects.ListRequest list = projectsRestClient.list();
+            listParameter.apply(list).get();
             return this;
         }
 
@@ -141,6 +138,49 @@ public class ProjectsRestClientTest {
         @Override
         public String toString() {
             return expectedUrl;
+        }
+    }
+
+    private final static class TestListRequest {
+        private Boolean description = null;
+        private String prefix = null;
+        private Integer limit = null;
+        private Integer start = null;
+
+        public TestListRequest withDescription(boolean description) {
+            this.description = description;
+            return this;
+        }
+
+        public TestListRequest withPrefix(String prefix) {
+            this.prefix = prefix;
+            return this;
+        }
+
+        public TestListRequest withLimit(int limit) {
+            this.limit = limit;
+            return this;
+        }
+
+        public TestListRequest withStart(int start) {
+            this.start = start;
+            return this;
+        }
+
+        public Projects.ListRequest apply(Projects.ListRequest target) {
+            if (description != null) {
+                target.withDescription(description);
+            }
+            if (prefix != null) {
+                target.withPrefix(prefix);
+            }
+            if (limit != null) {
+                target.withLimit(limit);
+            }
+            if (start != null) {
+                target.withStart(start);
+            }
+            return target;
         }
     }
 }

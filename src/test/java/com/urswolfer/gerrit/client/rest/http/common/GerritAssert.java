@@ -16,6 +16,7 @@
 
 package com.urswolfer.gerrit.client.rest.http.common;
 
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.thoughtworks.xstream.XStream;
@@ -39,6 +40,10 @@ public class GerritAssert {
     }
 
     public static void assertEquals(ProjectInfo actual, ProjectInfo expected) {
+        assertXmlOutputEqual(actual, expected);
+    }
+
+    public static void assertEquals(AccountInfo actual, AccountInfo expected) {
         assertXmlOutputEqual(actual, expected);
     }
 

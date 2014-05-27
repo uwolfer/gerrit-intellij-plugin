@@ -27,14 +27,16 @@ import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 public class AccountsRestClient extends AccountApi.NotImplemented implements Accounts {
 
     private final GerritRestClient gerritRestClient;
+    private final AccountsParser accountsParser;
 
-    public AccountsRestClient(GerritRestClient gerritRestClient) {
+    public AccountsRestClient(GerritRestClient gerritRestClient, AccountsParser accountsParser) {
         this.gerritRestClient = gerritRestClient;
+        this.accountsParser = accountsParser;
     }
 
     @Override
     public AccountApi id(String id) throws RestApiException {
-        return new AccountApiRestClient(this, id);
+        return new AccountApiRestClient(this, accountsParser, id);
     }
 
     @Override

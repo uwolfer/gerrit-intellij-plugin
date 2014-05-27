@@ -82,7 +82,9 @@ See package <code>com.urswolfer.intellij.plugin.gerrit.ui</code>.
 
 ### REST API
 Most of the communication between the plugin and a Gerrit instance is based on the [Gerrit REST API].
+The REST specific part is available as [standalone implementation].
 [Gerrit REST API]: https://gerrit-review.googlesource.com/Documentation/rest-api.html
+[standalone implementation]: https://github.com/uwolfer/gerrit-rest-java-client
 See package <code>com.urswolfer.intellij.plugin.gerrit.rest</code>.
 
 ### Git

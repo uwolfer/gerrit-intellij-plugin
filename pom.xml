@@ -127,12 +127,6 @@
       <version>3.2</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.thoughtworks.xstream</groupId>
-      <artifactId>xstream</artifactId>
-      <version>1.4.7</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>

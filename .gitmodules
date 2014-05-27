@@ -1,0 +1,3 @@
+[submodule "gerrit-rest-java-client"]
+	path = gerrit-rest-java-client
+	url = https://github.com/uwolfer/gerrit-rest-java-client.git

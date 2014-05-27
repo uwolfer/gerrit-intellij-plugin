@@ -24,6 +24,7 @@ import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 import java.util.EnumSet;
 
@@ -32,21 +33,24 @@ import java.util.EnumSet;
  */
 public class ChangeApiRestClient extends ChangeApi.NotImplemented implements ChangeApi {
 
+    private final GerritRestClient gerritRestClient;
     private final ChangesRestClient changesRestClient;
     private final String id;
 
-    public ChangeApiRestClient(ChangesRestClient changesRestClient, String triplet) {
+    public ChangeApiRestClient(GerritRestClient gerritRestClient,
+                               ChangesRestClient changesRestClient,
+                               String triplet) {
+        this.gerritRestClient = gerritRestClient;
         this.changesRestClient = changesRestClient;
         this.id = triplet;
     }
 
-    public ChangeApiRestClient(ChangesRestClient changesRestClient, int id) {
+    public ChangeApiRestClient(GerritRestClient gerritRestClient,
+                               ChangesRestClient changesRestClient,
+                               int id) {
         this.changesRestClient = changesRestClient;
+        this.gerritRestClient = gerritRestClient;
         this.id = "" + id;
-    }
-
-    public ChangesRestClient getChangesRestClient() {
-        return changesRestClient;
     }
 
     @Override
@@ -56,17 +60,17 @@ public class ChangeApiRestClient extends ChangeApi.NotImplemented implements Cha
 
     @Override
     public RevisionApi current() throws RestApiException {
-        return new RevisionApiRestClient(this, "current");
+        return new RevisionApiRestClient(gerritRestClient, this, "current");
     }
 
     @Override
     public RevisionApi revision(int id) throws RestApiException {
-        return new RevisionApiRestClient(this, "" + id);
+        return new RevisionApiRestClient(gerritRestClient, this, "" + id);
     }
 
     @Override
     public RevisionApi revision(String id) throws RestApiException {
-        return new RevisionApiRestClient(this, id);
+        return new RevisionApiRestClient(gerritRestClient, this, id);
     }
 
     @Override
@@ -77,15 +81,15 @@ public class ChangeApiRestClient extends ChangeApi.NotImplemented implements Cha
     @Override
     public void abandon(AbandonInput abandonInput) throws RestApiException {
         String request = "/changes/" + id + "/abandon";
-        String json = changesRestClient.getGerritRestClient().getGson().toJson(abandonInput);
-        changesRestClient.getGerritRestClient().postRequest(request, json);
+        String json = gerritRestClient.getGson().toJson(abandonInput);
+        gerritRestClient.postRequest(request, json);
     }
 
     @Override
     public void addReviewer(AddReviewerInput in) throws RestApiException {
         String request = "/changes/" + id + "/reviewers";
-        String json = changesRestClient.getGerritRestClient().getGson().toJson(in);
-        changesRestClient.getGerritRestClient().postRequest(request, json);
+        String json = gerritRestClient.getGson().toJson(in);
+        gerritRestClient.postRequest(request, json);
     }
 
     @Override

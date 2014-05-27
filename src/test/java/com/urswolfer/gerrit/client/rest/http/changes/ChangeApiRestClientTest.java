@@ -37,10 +37,10 @@ public class ChangeApiRestClientTest {
         GerritRestClient gerritRestClient = getGerritRestClient(
                 "/changes/myProject~master~I8473b95934b5732ac55d26311a706c9c2bde9940/reviewers",
                 "{\"reviewer\":\"jdoe\",\"confirmed\":true}");
-        ChangesRestClient changesRestClient = getChangesRestClient(gerritRestClient);
+        ChangesRestClient changesRestClient = getChangesRestClient();
 
         ChangeApiRestClient changeApiRestClient = new ChangeApiRestClient(
-                changesRestClient,
+                gerritRestClient, changesRestClient,
                 "myProject~master~I8473b95934b5732ac55d26311a706c9c2bde9940");
 
         AddReviewerInput input = new AddReviewerInput();
@@ -57,10 +57,10 @@ public class ChangeApiRestClientTest {
         GerritRestClient gerritRestClient = getGerritRestClient(
                 "/changes/myProject~master~I8473b95934b5732ac55d26311a706c9c2bde9940/reviewers",
                 "{\"reviewer\":\"jdoe\"}");
-        ChangesRestClient changesRestClient = getChangesRestClient(gerritRestClient);
+        ChangesRestClient changesRestClient = getChangesRestClient();
 
         ChangeApiRestClient changeApiRestClient = new ChangeApiRestClient(
-                changesRestClient,
+                gerritRestClient, changesRestClient,
                 "myProject~master~I8473b95934b5732ac55d26311a706c9c2bde9940");
 
         changeApiRestClient.addReviewer("jdoe");
@@ -77,9 +77,8 @@ public class ChangeApiRestClientTest {
         return gerritRestClient;
     }
 
-    private ChangesRestClient getChangesRestClient(GerritRestClient gerritRestClient) {
+    private ChangesRestClient getChangesRestClient() {
         ChangesRestClient changesRestClient = EasyMock.createMock(ChangesRestClient.class);
-        EasyMock.expect(changesRestClient.getGerritRestClient()).andStubReturn(gerritRestClient);
         EasyMock.replay(changesRestClient);
         return changesRestClient;
     }

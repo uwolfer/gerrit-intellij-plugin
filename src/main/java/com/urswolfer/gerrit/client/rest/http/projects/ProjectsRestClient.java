@@ -78,8 +78,4 @@ public class ProjectsRestClient extends Projects.NotImplemented implements Proje
         }
         return projectsParser.parseProjectInfos(result);
     }
-
-    protected GerritRestClient getGerritRestClient() {
-        return gerritRestClient;
-    }
 }

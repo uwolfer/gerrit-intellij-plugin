@@ -27,6 +27,7 @@ import com.google.gerrit.extensions.restapi.Url;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 import java.util.List;
 import java.util.Map;
@@ -37,10 +38,14 @@ import java.util.TreeMap;
  */
 public class RevisionApiRestClient extends RevisionApi.NotImplemented implements RevisionApi {
 
+    private final GerritRestClient gerritRestClient;
     private final ChangeApiRestClient changeApiRestClient;
     private final String revision;
 
-    public RevisionApiRestClient(ChangeApiRestClient changeApiRestClient, String revision) {
+    public RevisionApiRestClient(GerritRestClient gerritRestClient,
+                                 ChangeApiRestClient changeApiRestClient,
+                                 String revision) {
+        this.gerritRestClient = gerritRestClient;
         this.changeApiRestClient = changeApiRestClient;
         this.revision = revision;
     }
@@ -48,8 +53,8 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
     @Override
     public void review(ReviewInput reviewInput) throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/revisions/" + revision + "/review";
-        String json = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson().toJson(reviewInput);
-        changeApiRestClient.getChangesRestClient().getGerritRestClient().postRequest(request, json);
+        String json = gerritRestClient.getGson().toJson(reviewInput);
+        gerritRestClient.postRequest(request, json);
     }
 
     @Override
@@ -60,20 +65,20 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
     @Override
     public void submit(SubmitInput submitInput) throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/submit";
-        String json = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson().toJson(submitInput);
-        changeApiRestClient.getChangesRestClient().getGerritRestClient().postRequest(request, json);
+        String json = gerritRestClient.getGson().toJson(submitInput);
+        gerritRestClient.postRequest(request, json);
     }
 
     @Override
     public void setReviewed(String unencodedFilePath) throws RestApiException {
         String url = createReviewedUrl(unencodedFilePath);
-        changeApiRestClient.getChangesRestClient().getGerritRestClient().putRequest(url);
+        gerritRestClient.putRequest(url);
     }
 
     @Override
     public void deleteReviewed(String unencodedFilePath) throws RestApiException {
         String url = createReviewedUrl(unencodedFilePath);
-        changeApiRestClient.getChangesRestClient().getGerritRestClient().deleteRequest(url);
+        gerritRestClient.deleteRequest(url);
     }
 
     public String createReviewedUrl(String unencodedFilePath) {
@@ -87,7 +92,7 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
     @Override
     public TreeMap<String, List<CommentInfo>> getComments() throws RestApiException {
         String request = "/changes/" + changeApiRestClient.id() + "/revisions/" + revision + "/comments/";
-        JsonElement jsonElement = changeApiRestClient.getChangesRestClient().getGerritRestClient().getRequest(request);
+        JsonElement jsonElement = gerritRestClient.getRequest(request);
         return parseCommentInfos(jsonElement);
     }
 
@@ -108,7 +113,7 @@ public class RevisionApiRestClient extends RevisionApi.NotImplemented implements
     }
 
     private CommentInfo parseSingleCommentInfos(JsonObject result) {
-        Gson gson = changeApiRestClient.getChangesRestClient().getGerritRestClient().getGson();
+        Gson gson = gerritRestClient.getGson();
         return gson.fromJson(result, CommentInfo.class);
     }
 }

@@ -50,6 +50,8 @@ public class GerritAssert {
     private static void assertXmlOutputEqual(Object actual, Object expected) {
         XStream xStream = new XStream();
         xStream.setMode(XStream.NO_REFERENCES);
+        xStream.aliasSystemAttribute(null, "class"); // we only care about the content (but not internal attributes)
+        xStream.aliasSystemAttribute(null, "resolves-to");
         String actualXml = xStream.toXML(actual);
         String expectedXml = xStream.toXML(expected);
 

@@ -20,6 +20,7 @@ import com.google.gerrit.extensions.api.accounts.AccountApi;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
+import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 
 /**
  * @author Urs Wolfer
@@ -28,31 +29,31 @@ public class AccountApiRestClient extends AccountApi.NotImplemented implements A
 
     private final AccountsParser accountsParser;
 
-    private final AccountsRestClient accountsRestClient;
+    private final GerritRestClient gerritRestClient;
     private final String name;
 
-    public AccountApiRestClient(AccountsRestClient accountsRestClient,
+    public AccountApiRestClient(GerritRestClient gerritRestClient,
                                 AccountsParser accountsParser,
                                 String name) {
-        this.accountsRestClient = accountsRestClient;
+        this.gerritRestClient = gerritRestClient;
         this.accountsParser = accountsParser;
         this.name = name;
     }
 
     @Override
     public AccountInfo get() throws RestApiException {
-        JsonElement result = accountsRestClient.getGerritRestClient().getRequest("/accounts/" + name);
+        JsonElement result = gerritRestClient.getRequest("/accounts/" + name);
         return accountsParser.parseUserInfo(result);
     }
 
     @Override
     public void starChange(String id) throws RestApiException {
-        accountsRestClient.getGerritRestClient().putRequest(createStarUrl(id));
+        gerritRestClient.putRequest(createStarUrl(id));
     }
 
     @Override
     public void unstarChange(String id) throws RestApiException {
-        accountsRestClient.getGerritRestClient().deleteRequest(createStarUrl(id));
+        gerritRestClient.deleteRequest(createStarUrl(id));
     }
 
     /**

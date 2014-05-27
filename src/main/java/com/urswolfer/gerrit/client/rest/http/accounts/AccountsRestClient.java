@@ -36,15 +36,11 @@ public class AccountsRestClient extends AccountApi.NotImplemented implements Acc
 
     @Override
     public AccountApi id(String id) throws RestApiException {
-        return new AccountApiRestClient(this, accountsParser, id);
+        return new AccountApiRestClient(gerritRestClient, accountsParser, id);
     }
 
     @Override
     public AccountApi self() throws RestApiException {
         return id("self");
-    }
-
-    protected GerritRestClient getGerritRestClient() {
-        return gerritRestClient;
     }
 }

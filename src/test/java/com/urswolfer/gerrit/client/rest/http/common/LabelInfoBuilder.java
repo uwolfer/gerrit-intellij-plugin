@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.gerrit.client.rest.http.common;
 
-import com.google.gerrit.extensions.api.GerritApi;
-import com.google.inject.AbstractModule;
-import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
+import com.google.gerrit.extensions.common.AccountInfo;
+import com.google.gerrit.extensions.common.LabelInfo;
 
 /**
  * @author Thomas Forrer
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(SslSupport.class);
-        bind(ProxyHttpClientBuilderExtension.class);
-        bind(GerritRestApiFactory.class);
-        bind(GerritApi.class).toProvider(new GerritApiProvider());
+public final class LabelInfoBuilder {
+    private final LabelInfo labelInfo = new LabelInfo();
+
+    public LabelInfo get() {
+        return labelInfo;
+    }
+
+    public LabelInfoBuilder withApproved(AccountInfo accountInfo) {
+        labelInfo.approved = accountInfo;
+        return this;
     }
 }

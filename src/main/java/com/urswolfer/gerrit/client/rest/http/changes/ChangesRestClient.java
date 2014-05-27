@@ -23,12 +23,9 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.urswolfer.gerrit.client.rest.http.GerritRestClient;
 import com.urswolfer.gerrit.client.rest.http.util.UrlUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -37,9 +34,12 @@ import java.util.List;
 public class ChangesRestClient extends Changes.NotImplemented implements Changes {
 
     private final GerritRestClient gerritRestClient;
+    private final ChangesParser changesParser;
 
-    public ChangesRestClient(GerritRestClient gerritRestClient) {
+    public ChangesRestClient(GerritRestClient gerritRestClient,
+                             ChangesParser changesParser) {
         this.gerritRestClient = gerritRestClient;
+        this.changesParser = changesParser;
     }
 
     @Override
@@ -79,7 +79,7 @@ public class ChangesRestClient extends Changes.NotImplemented implements Changes
         }
 
         JsonElement jsonElement = gerritRestClient.getRequest(url);
-        return parseChangeInfos(jsonElement);
+        return changesParser.parseChangeInfos(jsonElement);
     }
 
     @Override
@@ -95,28 +95,6 @@ public class ChangesRestClient extends Changes.NotImplemented implements Changes
     @Override
     public ChangeApi id(String project, String branch, String id) throws RestApiException {
         return new ChangeApiRestClient(this, String.format("%s~%s~%s", project, branch, id));
-    }
-
-    private List<ChangeInfo> parseChangeInfos(JsonElement result) throws RestApiException {
-        if (!result.isJsonArray()) {
-            if (!result.isJsonObject()) {
-                throw new RestApiException(String.format("Unexpected JSON result format: %s", result));
-            }
-            return Collections.singletonList(parseSingleChangeInfos(result.getAsJsonObject()));
-        }
-
-        List<ChangeInfo> changeInfoList = new ArrayList<ChangeInfo>();
-        for (JsonElement element : result.getAsJsonArray()) {
-            if (!element.isJsonObject()) {
-                throw new RestApiException(String.format("This element should be a JsonObject: %s%nTotal JSON response: %n%s", element, result));
-            }
-            changeInfoList.add(parseSingleChangeInfos(element.getAsJsonObject()));
-        }
-        return changeInfoList;
-    }
-
-    protected ChangeInfo parseSingleChangeInfos(JsonObject result) {
-        return gerritRestClient.getGson().fromJson(result, ChangeInfo.class);
     }
 
     protected GerritRestClient getGerritRestClient() {

@@ -18,6 +18,7 @@ package com.urswolfer.gerrit.client.rest.http.changes;
 
 import com.google.common.collect.Iterables;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.AddReviewerInput;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -78,6 +79,20 @@ public class ChangeApiRestClient extends ChangeApi.NotImplemented implements Cha
         String request = "/changes/" + id + "/abandon";
         String json = changesRestClient.getGerritRestClient().getGson().toJson(abandonInput);
         changesRestClient.getGerritRestClient().postRequest(request, json);
+    }
+
+    @Override
+    public void addReviewer(AddReviewerInput in) throws RestApiException {
+        String request = "/changes/" + id + "/reviewers";
+        String json = changesRestClient.getGerritRestClient().getGson().toJson(in);
+        changesRestClient.getGerritRestClient().postRequest(request, json);
+    }
+
+    @Override
+    public void addReviewer(String in) throws RestApiException {
+        AddReviewerInput input = new AddReviewerInput();
+        input.reviewer = in;
+        addReviewer(input);
     }
 
     @Override

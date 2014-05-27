@@ -43,8 +43,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -82,7 +82,7 @@ public class GerritUtil {
     @Inject
     private GerritApi gerritClient;
     @Inject
-    private GerritRestClientFactory gerritRestClientFactory;
+    private GerritRestApiFactory gerritRestApiFactory;
     @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
 
@@ -508,6 +508,6 @@ public class GerritUtil {
     }
 
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
-        return gerritRestClientFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
+        return gerritRestApiFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
     }
 }

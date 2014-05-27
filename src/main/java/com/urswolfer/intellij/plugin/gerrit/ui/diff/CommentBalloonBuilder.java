@@ -36,7 +36,7 @@ public class CommentBalloonBuilder {
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {
         final ComponentPopupBuilder builder = jbPopupFactory.
                 createComponentPopupBuilder(balloonContent, balloonContent);
-        builder.setAdText("Hit Ctrl+Enter to add comment. It will be saved once you submit the review.");
+        builder.setAdText("Hit Ctrl+Enter to add comment. It will be saved once you post your review.");
         builder.setTitle(title);
         builder.setResizable(true);
         builder.setMovable(true);

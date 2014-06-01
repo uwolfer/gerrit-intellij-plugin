@@ -26,8 +26,9 @@ import java.awt.*;
  * @author Urs Wolfer
  */
 public class ReviewPanel extends JPanel {
-    private EditorTextField messageField;
-    private JCheckBox submitCheckBox;
+    private final EditorTextField messageField;
+    private final JCheckBox notifyCheckBox;
+    private final JCheckBox submitCheckBox;
 
     public ReviewPanel(Project project) {
         super(new BorderLayout());
@@ -36,8 +37,16 @@ public class ReviewPanel extends JPanel {
         messageField = editor.getMessageField();
         add(editor, BorderLayout.CENTER);
 
+        JPanel southPanel = new JPanel();
+        BoxLayout southLayout = new BoxLayout(southPanel, BoxLayout.Y_AXIS);
+        southPanel.setLayout(southLayout);
+        add(southPanel, BorderLayout.SOUTH);
+
+        notifyCheckBox = new JCheckBox("Send Notification Mails", true);
+        southPanel.add(notifyCheckBox);
+
         submitCheckBox = new JCheckBox("Submit Change");
-        add(submitCheckBox, BorderLayout.SOUTH);
+        southPanel.add(submitCheckBox);
 
         setBorder(BorderFactory.createEmptyBorder());
     }
@@ -54,17 +63,12 @@ public class ReviewPanel extends JPanel {
         return submitCheckBox.isSelected();
     }
 
+    public boolean getDoNotify() {
+        return notifyCheckBox.isSelected();
+    }
+
     public JComponent getPreferrableFocusComponent() {
         return messageField;
-    }
-
-    @Override
-    public Dimension getPreferredSize() {
-        return new Dimension(600, 400);
-    }
-
-    public void setSubmitCheckboxVisible(boolean visible) {
-        submitCheckBox.setVisible(visible);
     }
 }
 

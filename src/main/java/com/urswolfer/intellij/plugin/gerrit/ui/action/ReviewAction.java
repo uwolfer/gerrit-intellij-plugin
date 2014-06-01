@@ -98,6 +98,10 @@ public class ReviewAction extends AbstractChangeAction {
                         reviewInput.message = message;
                     }
                     submitChange = dialog.getReviewPanel().getSubmitChange();
+
+                    if (!dialog.getReviewPanel().getDoNotify()) {
+                        reviewInput.notify = ReviewInput.NotifyHandling.NONE;
+                    }
                 }
 
                 final boolean finalSubmitChange = submitChange;

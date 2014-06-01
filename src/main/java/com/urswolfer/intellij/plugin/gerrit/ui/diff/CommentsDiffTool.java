@@ -24,7 +24,9 @@ import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -40,9 +42,11 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
+import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.openapi.vcs.changes.ChangeRequestChain;
 import com.intellij.openapi.vcs.changes.actions.DiffRequestPresentable;
@@ -110,8 +114,9 @@ public class CommentsDiffTool extends FrameDiffTool {
                                 final Project project,
                                 final ChangeInfo changeInfo) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
+        final String relativeFilePath = getRelativePath(project, filePath.getPath(), changeInfo);
 
-        addCommentAction(diffPanel, filePath, changeInfo);
+        addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
@@ -120,62 +125,56 @@ public class CommentsDiffTool extends FrameDiffTool {
                         new Consumer<Map<String, List<CommentInfo>>>() {
                             @Override
                             public void consume(Map<String, List<CommentInfo>> comments) {
-                                addCommentsGutter(diffPanel, filePath, comments, changeInfo, project);
+                                addCommentsGutter(diffPanel, relativeFilePath, comments, changeInfo, project);
                             }
                         }
                 );
 
-                String repositoryPath = getGitRepositoryPathForChange(project, changeDetails);
-                String relativePath = filePathString.replace(repositoryPath + File.separator, "");
                 gerritUtil.setReviewed(changeDetails.id, changeDetails.currentRevision,
-                        relativePath, project);
+                        relativeFilePath, project);
             }
         });
     }
 
-    private void addCommentAction(final DiffPanelImpl diffPanel,
-                                  @Nullable final FilePath filePath,
-                                  ChangeInfo changeInfo) {
+    private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
             addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, Comment.Side.PARENT);
             addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, Comment.Side.REVISION);
     }
 
-    private void addCommentActionToEditor(@Nullable Editor editor,
-                                          @Nullable FilePath filePath,
-                                          ChangeInfo changeInfo,
-                                          Comment.Side commentSide) {
-        if (editor != null) {
-            DefaultActionGroup group = new DefaultActionGroup();
-            final AddCommentAction addCommentAction = addCommentActionBuilder.build(
-                    reviewCommentSink,
-                    changeInfo,
-                    editor,
-                    filePath,
-                    commentSide);
-            addCommentAction.setContextComponent(editor.getComponent());
-            group.add(addCommentAction);
-            PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
-        }
+    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, Comment.Side commentSide) {
+        if (editor == null) return;
+
+        DefaultActionGroup group = new DefaultActionGroup();
+        final AddCommentAction addCommentAction = addCommentActionBuilder
+                .create(this, changeInfo, editor, filePath, commentSide)
+                .withText("Add Comment")
+                .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
+                .get();
+        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getComponent());
+        group.add(addCommentAction);
+        PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
     }
 
     private void addCommentsGutter(DiffPanelImpl diffPanel,
-                                   FilePath filePath,
+                                   String filePath,
                                    Map<String, List<CommentInfo>> comments,
                                    ChangeInfo changeInfo,
                                    Project project) {
-        String repositoryPath = getGitRepositoryPathForChange(project, changeInfo);
-
         List<Comment> fileComments = Lists.newArrayList();
         for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-            if (isForCurrentFile(filePath, entry.getKey(), repositoryPath)) {
-                fileComments.addAll(entry.getValue());
+            if (entry.getKey().equals(filePath)) {
+                List<CommentInfo> commentList = entry.getValue();
+                for (CommentInfo commentInfo : commentList) {
+                    commentInfo.path = filePath;
+                }
+                fileComments.addAll(commentList);
                 break;
             }
         }
 
         Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id);
         for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
-            if (isForCurrentFile(filePath, commentInput.path, repositoryPath)) {
+            if (commentInput.path.equals(filePath)) {
                 fileComments.add(commentInput);
             }
         }
@@ -187,31 +186,41 @@ public class CommentsDiffTool extends FrameDiffTool {
             } else {
                 editor = diffPanel.getEditor2();
             }
-            if (editor == null) continue;
-            MarkupModel markup = editor.getMarkupModel();
+            addComment(editor, changeInfo, project, fileComment);
+        }
+    }
 
-            RangeHighlighter rangeHighlighter = null;
-            if (fileComment.range != null) {
-                rangeHighlighter = highlightRangeComment(fileComment.range, editor, project);
-            }
+    public void addComment(Editor editor, ChangeInfo changeInfo, Project project, Comment comment) {
+        if (editor == null) return;
+        MarkupModel markup = editor.getMarkupModel();
 
-            int lineCount = markup.getDocument().getLineCount();
-            if (lineCount <= 0) {
-                return;
-            }
+        RangeHighlighter rangeHighlighter = null;
+        if (comment.range != null) {
+            rangeHighlighter = highlightRangeComment(comment.range, editor, project);
+        }
 
-            int line = fileComment.line - 1;
-            if (line < 0) {
-                line = 0;
-            }
-            if (line > lineCount - 1) {
-                line = lineCount - 1;
-            }
-            final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
-            CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                    fileComment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
-            highlighter.setGutterIconRenderer(iconRenderer);
+        int lineCount = markup.getDocument().getLineCount();
 
+        int line = comment.line - 1;
+        if (line < 0) {
+            line = 0;
+        }
+        if (line > lineCount - 1) {
+            line = lineCount - 1;
+        }
+        final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
+        CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
+                this, editor, reviewCommentSink, addCommentActionBuilder, comment, changeInfo, highlighter, rangeHighlighter);
+        highlighter.setGutterIconRenderer(iconRenderer);
+    }
+
+    public void removeComment(Project project, Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
+        editor.getMarkupModel().removeHighlighter(lineHighlighter);
+        lineHighlighter.dispose();
+
+        if (rangeHighlighter != null) {
+            HighlightManager highlightManager = HighlightManager.getInstance(project);
+            highlightManager.removeSegmentHighlighter(editor, rangeHighlighter);
         }
     }
 
@@ -240,15 +249,12 @@ public class CommentsDiffTool extends FrameDiffTool {
         }
     }
 
-    private boolean isForCurrentFile(FilePath currentFilePath, String projectFilePath, String repositoryPath) {
-        return currentFilePath.getPath().equals(repositoryPath + File.separator + projectFilePath);
-    }
-
-    private String getGitRepositoryPathForChange(Project project, ChangeInfo changeInfo) {
+    private String getRelativePath(Project project, String absoluteFilePath, ChangeInfo changeInfo) {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
-        return repository.getRoot().getPath();
+        VirtualFile root = repository.getRoot();
+        return FileUtil.getRelativePath(new File(root.getPath()), new File(absoluteFilePath));
     }
 
     public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {

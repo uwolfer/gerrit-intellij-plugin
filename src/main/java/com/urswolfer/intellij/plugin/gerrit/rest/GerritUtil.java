@@ -25,7 +25,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
-import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.common.*;
@@ -44,8 +43,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -83,7 +82,7 @@ public class GerritUtil {
     @Inject
     private GerritApi gerritClient;
     @Inject
-    private GerritRestClientFactory gerritRestClientFactory;
+    private GerritRestApiFactory gerritRestApiFactory;
     @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
 
@@ -239,14 +238,14 @@ public class GerritUtil {
         getChanges(query, project, consumer);
     }
 
-    public void getChanges(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
-        final Changes.QueryParameter queryParameter = new Changes.QueryParameter(query)
-                .withOptions(ListChangesOption.LABELS);
+    public void getChanges(final String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
-                    return gerritClient.changes().query(queryParameter);
+                    return gerritClient.changes().query(query)
+                            .withOption(ListChangesOption.LABELS)
+                            .get();
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();
@@ -443,7 +442,7 @@ public class GerritUtil {
             @Override
             public List<ProjectInfo> compute() throws Exception {
                 ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
-                return gerritClient.projects().list();
+                return gerritClient.projects().list().get();
             }
         });
     }
@@ -509,6 +508,6 @@ public class GerritUtil {
     }
 
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
-        return gerritRestClientFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
+        return gerritRestApiFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
     }
 }

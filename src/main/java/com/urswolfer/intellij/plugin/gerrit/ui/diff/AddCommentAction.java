@@ -19,24 +19,19 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
-import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.markup.HighlighterLayer;
-import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.ui.AnActionButton;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer
@@ -44,32 +39,47 @@ import org.jetbrains.annotations.Nullable;
  * Some parts based on code from:
  * https://github.com/ktisha/Crucible4IDEA
  */
-public class AddCommentAction extends AnActionButton implements DumbAware {
+@SuppressWarnings("ComponentNotRegistered") // added with code
+public class AddCommentAction extends AnAction implements DumbAware {
 
     private final Editor editor;
+    private final CommentsDiffTool commentsDiffTool;
     private final ReviewCommentSink reviewCommentSink;
     private final ChangeInfo changeInfo;
-    @Nullable
-    private final FilePath filePath;
-    private final GerritGitUtil gerritGitUtil;
+    private final String filePath;
     private final CommentBalloonBuilder commentBalloonBuilder;
     private final Comment.Side commentSide;
+    private final ReviewInput.CommentInput commentToEdit;
+    private final RangeHighlighter lineHighlighter;
+    private final RangeHighlighter rangeHighlighter;
+    private final Comment replyToComment;
 
-    public AddCommentAction(ReviewCommentSink reviewCommentSink,
-                            ChangeInfo changeInfo,
-                            @Nullable final Editor editor,
-                            @Nullable FilePath filePath,
-                            GerritGitUtil gerritGitUtil,
+    public AddCommentAction(String label,
+                            Icon icon,
+                            CommentsDiffTool commentsDiffTool,
+                            ReviewCommentSink reviewCommentSink,
+                            Editor editor,
                             CommentBalloonBuilder commentBalloonBuilder,
-                            Comment.Side commentSide) {
-        super("Add Comment", "Add a comment at current line", AllIcons.Toolwindows.ToolWindowMessages);
+                            ChangeInfo changeInfo,
+                            String filePath,
+                            Comment.Side commentSide,
+                            ReviewInput.CommentInput commentToEdit,
+                            RangeHighlighter lineHighlighter,
+                            RangeHighlighter rangeHighlighter,
+                            Comment replyToComment) {
+        super(label, null, icon);
+
+        this.commentsDiffTool = commentsDiffTool;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
         this.filePath = filePath;
         this.editor = editor;
-        this.gerritGitUtil = gerritGitUtil;
         this.commentBalloonBuilder = commentBalloonBuilder;
         this.commentSide = commentSide;
+        this.commentToEdit = commentToEdit;
+        this.lineHighlighter = lineHighlighter;
+        this.rangeHighlighter = rangeHighlighter;
+        this.replyToComment = replyToComment;
     }
 
     public void actionPerformed(AnActionEvent e) {
@@ -78,32 +88,36 @@ public class AddCommentAction extends AnActionButton implements DumbAware {
         addVersionedComment(project);
     }
 
-    private void addVersionedComment(@NotNull final Project project) {
+    private void addVersionedComment(final Project project) {
         if (editor == null || filePath == null) return;
 
-        final CommentForm commentForm = new CommentForm(
-                project, filePath, reviewCommentSink, changeInfo, gerritGitUtil, commentSide);
-        commentForm.setEditor(editor);
+        final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupAdapter() {
             @Override
             public void onClosed(LightweightWindowEvent event) {
                 ReviewInput.CommentInput comment = commentForm.getComment();
                 if (comment != null) {
-                    RangeHighlighter rangeHighlighter = null;
-                    if (comment.range != null) {
-                        rangeHighlighter = CommentsDiffTool.highlightRangeComment(comment.range, editor, project);
-                    }
-                    MarkupModel markup = editor.getMarkupModel();
-                    RangeHighlighter highlighter = markup.addLineHighlighter(comment.line - 1, HighlighterLayer.ERROR + 1, null);
-                    CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                            comment, reviewCommentSink, changeInfo, highlighter, editor, rangeHighlighter);
-                    highlighter.setGutterIconRenderer(iconRenderer);
+                    handleComment(comment, project);
                 }
             }
         });
         commentForm.setBalloon(balloon);
         balloon.showInBestPositionFor(editor);
         commentForm.requestFocus();
+    }
+
+    private void handleComment(ReviewInput.CommentInput comment, Project project) {
+        if (commentToEdit != null) {
+            reviewCommentSink.removeCommentForChange(changeInfo.id, commentToEdit);
+            commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+        }
+
+        if (replyToComment != null) {
+            comment.inReplyTo = replyToComment.id;
+        }
+
+        reviewCommentSink.addComment(changeInfo.id, comment);
+        commentsDiffTool.addComment(editor, changeInfo, project, comment);
     }
 }

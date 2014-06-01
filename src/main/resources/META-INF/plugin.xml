@@ -72,13 +72,20 @@
       <p>
         <ul>
           <li><strong>Important Note:</strong> You can report exception-issues directly from your IDE. Please
-          add at least a comment what you have done when it occured / how you can reproduce it. It would be even better
+          add at least a comment what you have done when it occurred / how you can reproduce it. It would be even better
           when add an email address so I can contact you in case of questions.</li>
 
           <li>Would you like to try test-builds of this plugin before official release? Please check out: <a
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.8.1</li>
+          <ul>
+            <li>improve usability for file comments (add, reply, edit)</li>
+            <li>new editor with preview for file comments</li>
+            <li>add option to not send notification mails in review dialog</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.8.0</li>
           <ul>
             <li>add support for range comments (visible in "new" Gerrit Web UI)</li>

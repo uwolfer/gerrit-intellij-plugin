@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2014 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
@@ -32,38 +32,39 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // added with code
-public class RemoveCommentAction extends AnAction implements DumbAware {
-
-    private final CommentsDiffTool commentsDiffTool;
+public class CommentDoneAction extends AnAction implements DumbAware {
     private final Editor editor;
+    private final CommentsDiffTool commentsDiffTool;
     private final ReviewCommentSink reviewCommentSink;
+    private final Comment fileComment;
     private final ChangeInfo changeInfo;
-    private final ReviewInput.CommentInput comment;
-    private final RangeHighlighter lineHighlighter;
-    private final RangeHighlighter rangeHighlighter;
 
-    public RemoveCommentAction(CommentsDiffTool commentsDiffTool,
-                               Editor editor,
-                               ReviewCommentSink reviewCommentSink,
-                               ChangeInfo changeInfo,
-                               ReviewInput.CommentInput comment,
-                               RangeHighlighter lineHighlighter,
-                               RangeHighlighter rangeHighlighter) {
-        super("Remove", "Remove selected comment", AllIcons.Actions.Delete);
+    public CommentDoneAction(Editor editor,
+                             CommentsDiffTool commentsDiffTool,
+                             ReviewCommentSink reviewCommentSink,
+                             Comment fileComment,
+                             ChangeInfo changeInfo) {
+        super("Done", null, AllIcons.Actions.Checked);
 
-        this.commentsDiffTool = commentsDiffTool;
-        this.comment = comment;
-        this.reviewCommentSink = reviewCommentSink;
-        this.changeInfo = changeInfo;
-        this.lineHighlighter = lineHighlighter;
         this.editor = editor;
-        this.rangeHighlighter = rangeHighlighter;
+        this.commentsDiffTool = commentsDiffTool;
+        this.reviewCommentSink = reviewCommentSink;
+        this.fileComment = fileComment;
+        this.changeInfo = changeInfo;
     }
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        reviewCommentSink.removeCommentForChange(changeInfo.id, comment);
+        ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
+        comment.inReplyTo = fileComment.id;
+        comment.message = "Done";
+        comment.line = fileComment.line;
+        comment.path = fileComment.path;
+        comment.side = fileComment.side;
+
+        reviewCommentSink.addComment(changeInfo.id, comment);
+
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+        commentsDiffTool.addComment(editor, changeInfo, project, comment);
     }
 }

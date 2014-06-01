@@ -18,7 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.inject.AbstractModule;
-import com.urswolfer.gerrit.client.rest.http.GerritRestClientFactory;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 
 /**
  * @author Thomas Forrer
@@ -28,7 +28,7 @@ public class GerritRestModule extends AbstractModule {
     protected void configure() {
         bind(SslSupport.class);
         bind(ProxyHttpClientBuilderExtension.class);
-        bind(GerritRestClientFactory.class);
+        bind(GerritRestApiFactory.class);
         bind(GerritApi.class).toProvider(new GerritApiProvider());
     }
 }

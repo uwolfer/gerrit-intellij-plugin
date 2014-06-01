@@ -16,36 +16,22 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
-import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.util.io.FileUtil;
-import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.IdeFocusManager;
-import com.intellij.spellchecker.ui.SpellCheckingEditorCustomization;
-import com.intellij.ui.*;
-import com.intellij.util.containers.ContainerUtil;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import git4idea.repo.GitRepository;
+import com.intellij.ui.EditorTextField;
+import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.util.Set;
 
 /**
  * @author Urs Wolfer
@@ -54,70 +40,73 @@ import java.util.Set;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentForm extends JPanel {
-    private static final int ourBalloonWidth = 350;
-    private static final int ourBalloonHeight = 200;
+    private static final int BALLOON_WIDTH = 550;
+    private static final int BALLOON_HEIGHT = 300;
+
+    private final Editor editor;
+    private final String filePath;
+    private final Comment.Side commentSide;
+    private final ReviewInput.CommentInput commentToEdit;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
-
-    private Editor editor;
-    @Nullable
-    private FilePath filePath;
     private ReviewInput.CommentInput commentInput;
 
-    public CommentForm(@NotNull final Project project,
-                       @Nullable FilePath filePath,
-                       final ReviewCommentSink reviewCommentSink,
-                       final ChangeInfo changeInfo,
-                       final GerritGitUtil gerritGitUtil,
-                       final Comment.Side commentSide) {
+    public CommentForm(Project project,
+                       Editor editor,
+                       String filePath,
+                       Comment.Side commentSide,
+                       ReviewInput.CommentInput commentToEdit) {
         super(new BorderLayout());
+
         this.filePath = filePath;
+        this.editor = editor;
+        this.commentSide = commentSide;
+        this.commentToEdit = commentToEdit;
 
-        final EditorTextFieldProvider service = ServiceManager.getService(project, EditorTextFieldProvider.class);
-        final Set<EditorCustomization> editorFeatures = ContainerUtil.newHashSet();
-        editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
-        editorFeatures.add(SpellCheckingEditorCustomization.ENABLED);
-        reviewTextField = service.getEditorField(PlainTextLanguage.INSTANCE, project, editorFeatures);
+        SafeHtmlTextEditor safeHtmlTextEditor = new SafeHtmlTextEditor(project);
+        reviewTextField = safeHtmlTextEditor.getMessageField();
+        add(safeHtmlTextEditor);
 
-        final JScrollPane pane = ScrollPaneFactory.createScrollPane(reviewTextField);
-        pane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        add(pane);
-
-        reviewTextField.setPreferredSize(new Dimension(ourBalloonWidth, ourBalloonHeight));
+        reviewTextField.setPreferredSize(new Dimension(BALLOON_WIDTH, BALLOON_HEIGHT));
 
         reviewTextField.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).
                 put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), "postComment");
         reviewTextField.getActionMap().put("postComment", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
-
-                Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
-                if (!gitRepositoryOptional.isPresent()) return;
-                GitRepository gitRepository = gitRepositoryOptional.get();
-                VirtualFile root = gitRepository.getRoot();
-                String path = CommentForm.this.filePath.getPath();
-                String relativePath = FileUtil.getRelativePath(new File(root.getPath()), new File(path));
-
-                comment.path = relativePath;
-                comment.side = commentSide;
-
-                SelectionModel selectionModel = editor.getSelectionModel();
-                if (selectionModel.hasSelection()) {
-                    comment.range = handleRangeComment(selectionModel);
-                    comment.line = comment.range.endLine; // end line as per specification
-                } else {
-                    comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
-                }
-
-                comment.message = getText();
-                reviewCommentSink.addComment(changeInfo.id, comment);
-
-                commentInput = comment;
+                commentInput = createComment();
                 balloon.dispose();
             }
         });
+
+        if (commentToEdit != null) {
+            reviewTextField.setText(commentToEdit.message);
+        }
+    }
+
+    private ReviewInput.CommentInput createComment() {
+        ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
+
+        comment.message = getText();
+        comment.path = filePath;
+        comment.side = commentSide;
+
+        SelectionModel selectionModel = editor.getSelectionModel();
+        if (selectionModel.hasSelection()) {
+            comment.range = handleRangeComment(selectionModel);
+            comment.line = comment.range.endLine; // end line as per specification
+        } else {
+            comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+        }
+
+        if (commentToEdit != null) { // preserve: the selection might not exist anymore but we should not loose it
+            comment.range = commentToEdit.range;
+            comment.line = commentToEdit.line;
+            comment.inReplyTo = commentToEdit.inReplyTo;
+        }
+
+        return comment;
     }
 
     public void requestFocus() {
@@ -131,10 +120,6 @@ public class CommentForm extends JPanel {
 
     public void setBalloon(@NotNull final JBPopup balloon) {
         this.balloon = balloon;
-    }
-
-    public void setEditor(@NotNull final Editor editor) {
-        this.editor = editor;
     }
 
     public ReviewInput.CommentInput getComment() {

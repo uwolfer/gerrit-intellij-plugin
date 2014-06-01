@@ -16,22 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.collect.Iterables;
-import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.ProjectInfo;
-import com.google.gerrit.extensions.restapi.Url;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.io.File;
-import java.io.FileReader;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -148,40 +137,4 @@ public class GerritUtilTest {
                         "http://gerrit.server"
                 ));
     }
-
-    @Test
-    public void testParseProjectInfos() throws Exception {
-        URL url = GerritUtilTest.class.getResource("/com/urswolfer/intellij/plugin/gerrit/rest/projects.json");
-        File file = new File(url.toURI());
-        JsonElement jsonElement = new JsonParser().parse(new FileReader(file));
-        JsonObject firstElement = (JsonObject) Iterables.get(jsonElement.getAsJsonObject().entrySet(), 0, null).getValue();
-
-        final Method parseSingleRepositoryInfo = GerritUtil.class.getDeclaredMethod("parseSingleRepositoryInfo", JsonObject.class);
-        parseSingleRepositoryInfo.setAccessible(true);
-
-        ProjectInfo projectInfo = (ProjectInfo) parseSingleRepositoryInfo.invoke(gerritUtil, firstElement);
-        Assert.assertEquals("packages%2Ftest", projectInfo.id);
-        Assert.assertEquals("packages/test", Url.decode(projectInfo.id));
-    }
-
-
-    @Test
-    public void testParseChanges() throws Exception {
-        URL url = GerritUtilTest.class.getResource("/com/urswolfer/intellij/plugin/gerrit/rest/changes.json");
-        File file = new File(url.toURI());
-        JsonElement jsonElement = new JsonParser().parse(new FileReader(file));
-
-        final Method parseChangeInfos = GerritUtil.class.getDeclaredMethod("parseChangeInfos", JsonElement.class);
-        parseChangeInfos.setAccessible(true);
-
-        List<ChangeInfo> changeInfos = (List<ChangeInfo>) parseChangeInfos.invoke(gerritUtil, jsonElement);
-        Assert.assertEquals(3, changeInfos.size());
-
-        ChangeInfo firstChangeInfo = changeInfos.get(0);
-
-        Assert.assertEquals(1375080914000l, firstChangeInfo.updated.getTime()); // verify that the date parser uses correct format and UTC for parsing
-
-        Assert.assertEquals("Urs Wolfer", firstChangeInfo.labels.get("Code-Review").approved.name);
-    }
-
 }

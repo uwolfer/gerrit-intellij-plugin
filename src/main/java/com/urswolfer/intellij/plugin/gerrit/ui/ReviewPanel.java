@@ -16,59 +16,37 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.ui.CommitMessage;
 import com.intellij.ui.EditorTextField;
-import com.intellij.ui.TabbedPaneImpl;
-import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 
 /**
  * @author Urs Wolfer
  */
 public class ReviewPanel extends JPanel {
-    private EditorTextField messageField;
-    private JCheckBox submitCheckBox;
+    private final EditorTextField messageField;
+    private final JCheckBox notifyCheckBox;
+    private final JCheckBox submitCheckBox;
 
     public ReviewPanel(Project project) {
         super(new BorderLayout());
 
-        TabbedPaneImpl tabbedPane = new TabbedPaneImpl(SwingConstants.TOP);
-        tabbedPane.setKeyboardNavigation(TabbedPaneImpl.DEFAULT_PREV_NEXT_SHORTCUTS);
+        SafeHtmlTextEditor editor = new SafeHtmlTextEditor(project);
+        messageField = editor.getMessageField();
+        add(editor, BorderLayout.CENTER);
 
-        messageField = CommitMessage.createCommitTextEditor(project, false);
-        messageField.setBorder(BorderFactory.createEmptyBorder());
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messagePanel.add(messageField, BorderLayout.CENTER);
-        messagePanel.add(new JLabel("Write your comment here. You can use a simple markdown-like syntax."), BorderLayout.SOUTH);
-        tabbedPane.addTab("Write", AllIcons.Actions.Edit, messagePanel);
+        JPanel southPanel = new JPanel();
+        BoxLayout southLayout = new BoxLayout(southPanel, BoxLayout.Y_AXIS);
+        southPanel.setLayout(southLayout);
+        add(southPanel, BorderLayout.SOUTH);
 
-        final JEditorPane previewEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
-        previewEditorPane.setEditable(false);
-        tabbedPane.addTab("Preview", AllIcons.Actions.Preview, previewEditorPane);
-
-        tabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (((TabbedPaneImpl) e.getSource()).getSelectedComponent() == previewEditorPane) {
-                    String content = String.format("<html><head>%s</head><body>%s</body></html>",
-                            UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()),
-                            TextToHtml.textToHtml(messageField.getText()));
-                    previewEditorPane.setText(content);
-                }
-            }
-        });
-
-        add(tabbedPane, BorderLayout.CENTER);
+        notifyCheckBox = new JCheckBox("Send Notification Mails", true);
+        southPanel.add(notifyCheckBox);
 
         submitCheckBox = new JCheckBox("Submit Change");
-        add(submitCheckBox, BorderLayout.SOUTH);
+        southPanel.add(submitCheckBox);
 
         setBorder(BorderFactory.createEmptyBorder());
     }
@@ -85,17 +63,12 @@ public class ReviewPanel extends JPanel {
         return submitCheckBox.isSelected();
     }
 
+    public boolean getDoNotify() {
+        return notifyCheckBox.isSelected();
+    }
+
     public JComponent getPreferrableFocusComponent() {
         return messageField;
-    }
-
-    @Override
-    public Dimension getPreferredSize() {
-        return new Dimension(600, 400);
-    }
-
-    public void setSubmitCheckboxVisible(boolean visible) {
-        submitCheckBox.setVisible(visible);
     }
 }
 

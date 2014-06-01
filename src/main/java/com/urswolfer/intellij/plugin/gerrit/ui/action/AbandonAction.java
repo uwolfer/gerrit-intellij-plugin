@@ -24,8 +24,12 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
+import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
 
 /**
  * @author Urs Wolfer
@@ -48,25 +52,41 @@ public class AbandonAction extends AbstractChangeAction {
 
         AbandonInput abandonInput = new AbandonInput();
 
-        final ReviewDialog dialog = new ReviewDialog(project) {
-            @Override
-            protected void init() {
-                super.init();
-                setTitle("Abandon Change");
-                setOKButtonText("Abandon");
-            }
-        };
-        dialog.getReviewPanel().setSubmitCheckboxVisible(false);
+        SafeHtmlTextEditor editor = new SafeHtmlTextEditor(project);
+        AbandonDialog dialog = new AbandonDialog(project, true, editor);
         dialog.show();
         if (!dialog.isOK()) {
             return;
         }
-        final String message = dialog.getReviewPanel().getMessage();
+        String message = editor.getMessageField().getText().trim();
         if (!Strings.isNullOrEmpty(message)) {
             abandonInput.message = message;
         }
 
         gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project);
+    }
+
+    private static class AbandonDialog extends DialogWrapper {
+        private final SafeHtmlTextEditor editor;
+
+        protected AbandonDialog(Project project, boolean canBeParent, SafeHtmlTextEditor editor) {
+            super(project, canBeParent);
+            this.editor = editor;
+            setTitle("Abandon Change");
+            setOKButtonText("Abandon");
+            init();
+        }
+
+        @Nullable
+        @Override
+        protected JComponent createCenterPanel() {
+            return editor;
+        }
+
+        @Override
+        public JComponent getPreferredFocusedComponent() {
+            return editor.getMessageField();
+        }
     }
 
     public static class Proxy extends AbandonAction {

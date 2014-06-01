@@ -69,4 +69,9 @@ public class SafeHtmlTextEditor extends JPanel {
     public EditorTextField getMessageField() {
         return messageField;
     }
+
+    @Override
+    public Dimension getPreferredSize() {
+        return new Dimension(600, 400);
+    }
 }

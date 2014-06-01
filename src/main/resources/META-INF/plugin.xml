@@ -82,6 +82,7 @@
           <li>0.8.1</li>
           <ul>
             <li>improve usability for file comments (add, reply, edit)</li>
+            <li>new editor with preview for file comments</li>
             <li>minor fixes and improvements</li>
           </ul>
           <li>0.8.0</li>

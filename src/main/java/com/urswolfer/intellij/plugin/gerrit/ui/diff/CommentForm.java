@@ -18,16 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.Comment;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
-import com.intellij.openapi.fileTypes.PlainTextLanguage;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.wm.IdeFocusManager;
-import com.intellij.spellchecker.ui.SpellCheckingEditorCustomization;
-import com.intellij.ui.*;
-import com.intellij.util.containers.ContainerUtil;
+import com.intellij.ui.EditorTextField;
+import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -35,7 +32,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.util.Set;
 
 /**
  * @author Urs Wolfer
@@ -44,8 +40,8 @@ import java.util.Set;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentForm extends JPanel {
-    private static final int BALLOON_WIDTH = 350;
-    private static final int BALLOON_HEIGHT = 200;
+    private static final int BALLOON_WIDTH = 550;
+    private static final int BALLOON_HEIGHT = 300;
 
     private final Editor editor;
     private final String filePath;
@@ -68,15 +64,9 @@ public class CommentForm extends JPanel {
         this.commentSide = commentSide;
         this.commentToEdit = commentToEdit;
 
-        final EditorTextFieldProvider service = ServiceManager.getService(project, EditorTextFieldProvider.class);
-        final Set<EditorCustomization> editorFeatures = ContainerUtil.newHashSet();
-        editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
-        editorFeatures.add(SpellCheckingEditorCustomization.ENABLED);
-        reviewTextField = service.getEditorField(PlainTextLanguage.INSTANCE, project, editorFeatures);
-
-        final JScrollPane pane = ScrollPaneFactory.createScrollPane(reviewTextField);
-        pane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        add(pane);
+        SafeHtmlTextEditor safeHtmlTextEditor = new SafeHtmlTextEditor(project);
+        reviewTextField = safeHtmlTextEditor.getMessageField();
+        add(safeHtmlTextEditor);
 
         reviewTextField.setPreferredSize(new Dimension(BALLOON_WIDTH, BALLOON_HEIGHT));
 

@@ -40,7 +40,8 @@ Troubleshooting
 ### List of changes is empty
 By default, you will only see changes to Git repositories that are configured in the current project of your IntelliJ IDE.
 * Make sure that Git repositories are configured in the 'Version Control' settings.
-* Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings.
+* Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings. Or:
+* Add a remote whose name equals the Gerrit project name with Gerrit as remote url.
 
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
 In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.

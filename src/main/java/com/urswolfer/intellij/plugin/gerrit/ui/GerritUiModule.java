@@ -26,7 +26,8 @@ public class GerritUiModule extends AbstractModule {
     @Override
     protected void configure() {
         install(new GerritFilterModule());
-        bind(GerritChangeListPanel.class);
+        bind(GerritChangeListPanel.class).asEagerSingleton();
+        bind(RepositoryChangesBrowserProvider.class);
         bind(SettingsPanel.class);
         bind(GerritSettingsConfigurable.class);
         bind(GerritUpdatesNotificationComponent.class).asEagerSingleton();

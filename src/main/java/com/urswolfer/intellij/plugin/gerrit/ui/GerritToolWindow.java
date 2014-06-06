@@ -17,50 +17,29 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.diff.DiffManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
-import com.intellij.openapi.vcs.FilePathImpl;
-import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
-import com.intellij.openapi.vcs.versionBrowser.CommittedChangeList;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.SideBorder;
-import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
-import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
-import git4idea.history.GitHistoryUtils;
-import git4idea.history.browser.GitCommit;
-import git4idea.history.browser.SymbolicRefs;
-import git4idea.repo.GitRepository;
 
 import javax.swing.*;
-import java.util.Collections;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.concurrent.Callable;
 
 /**
  * @author Urs Wolfer
@@ -70,8 +49,6 @@ public class GerritToolWindow {
     @Inject
     private DiffManager diffManager;
     @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
@@ -80,18 +57,13 @@ public class GerritToolWindow {
     @Inject
     private GerritChangeListPanel changeListPanel;
     @Inject
-    private ReviewCommentSink reviewCommentSink;
-    @Inject
     private Logger log;
     @Inject
     private GerritChangesFilters changesFilters;
     @Inject
-    private NotificationService notificationService;
+    private RepositoryChangesBrowserProvider repositoryChangesBrowserProvider;
 
-    private RepositoryChangesBrowser repositoryChangesBrowser;
     private GerritChangeDetailsPanel detailsPanel;
-    private Splitter detailsSplitter;
-    private ChangeInfo selectedChange;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel.registerChangeListPanel(this);
@@ -103,15 +75,21 @@ public class GerritToolWindow {
         toolbar.setTargetComponent(changeListPanel);
         panel.setToolbar(toolbar.getComponent());
 
-        repositoryChangesBrowser = createRepositoryChangesBrowser(project);
+        RepositoryChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project);
 
-        detailsSplitter = new Splitter(true, 0.6f);
+        Splitter detailsSplitter = new Splitter(true, 0.6f);
         detailsSplitter.setShowDividerControls(true);
 
         changeListPanel.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT | SideBorder.BOTTOM));
         detailsSplitter.setFirstComponent(changeListPanel);
 
         detailsPanel = new GerritChangeDetailsPanel(project);
+        changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
+            @Override
+            public void consume(ChangeInfo changeInfo) {
+                changeSelected(changeInfo, project);
+            }
+        });
         JPanel details = detailsPanel.getComponent();
         details.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT));
         detailsSplitter.setSecondComponent(details);
@@ -128,89 +106,11 @@ public class GerritToolWindow {
         return panel;
     }
 
-    private RepositoryChangesBrowser createRepositoryChangesBrowser(final Project project) {
-        TableView<ChangeInfo> table = changeListPanel.getTable();
-
-        RepositoryChangesBrowser repositoryChangesBrowser = new RepositoryChangesBrowser(project, Collections.<CommittedChangeList>emptyList(), Collections.<Change>emptyList(), null) {
-            @Override
-            public void calcData(DataKey key, DataSink sink) {
-                super.calcData(key, sink);
-                sink.put(GerritDataKeys.CHANGE, selectedChange);
-                sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, reviewCommentSink);
-            }
-        };
-        repositoryChangesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
-        repositoryChangesBrowser.getViewer().setScrollPaneBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
-
-        changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeInfo) {
-                changeSelected(changeInfo, project);
-                selectedChange = changeInfo;
-            }
-        });
-        return repositoryChangesBrowser;
-    }
-
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
                 detailsPanel.setData(changeDetails);
-
-                updateChangesBrowser(changeDetails, project);
-            }
-        });
-    }
-
-    private void updateChangesBrowser(final ChangeInfo changeDetails, final Project project) {
-        repositoryChangesBrowser.getViewer().setEmptyText("Loading...");
-        repositoryChangesBrowser.setChangesToDisplay(Collections.<Change>emptyList());
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.project);
-        if (!gitRepositoryOptional.isPresent()) return;
-        GitRepository gitRepository = gitRepositoryOptional.get();
-        final VirtualFile virtualFile = gitRepository.getGitDir();
-        final FilePathImpl filePath = new FilePathImpl(virtualFile);
-
-        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
-        String ref = firstFetchInfo != null ? firstFetchInfo.ref : null;
-
-        if (Strings.isNullOrEmpty(ref)) {
-            NotificationBuilder notification = new NotificationBuilder(
-                    project, "Cannot fetch changes",
-                    "No fetch information provided. If you are using Gerrit 2.8 or later, " +
-                    "you need to install the plugin 'download-commands' in Gerrit."
-            );
-            notificationService.notifyError(notification);
-            return;
-        }
-
-        String url = firstFetchInfo != null ? firstFetchInfo.url : null;
-        gerritGitUtil.fetchChange(project, gitRepository, url, ref, new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                final List<GitCommit> gitCommits;
-                try {
-                    gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(changeDetails.currentRevision));
-                } catch (VcsException e) {
-                    log.warn("Error getting Git commit details.", e);
-                    NotificationBuilder notification = new NotificationBuilder(
-                            project, "Cannot show change",
-                            "Git error occurred while getting commit. Please check if Gerrit is configured as remote " +
-                            "for the currently used Git repository."
-                    );
-                    notificationService.notifyError(notification);
-                    return null;
-                }
-                final GitCommit gitCommit = Iterables.get(gitCommits, 0);
-
-                ApplicationManager.getApplication().invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        repositoryChangesBrowser.setChangesToDisplay(gitCommit.getChanges());
-                    }
-                });
-                return null;
             }
         });
     }

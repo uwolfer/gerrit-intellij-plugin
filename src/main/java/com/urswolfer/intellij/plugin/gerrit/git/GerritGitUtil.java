@@ -102,6 +102,9 @@ public class GerritGitUtil {
         final Iterable<GitRepository> repositoriesFromRoots = getRepositories(project);
         for (GitRepository repository : repositoriesFromRoots) {
             for (GitRemote remote : repository.getRemotes()) {
+                if (remote.getName().equals(gerritProjectName)) {
+                    return Optional.of(repository);
+                }
                 for (String remoteUrl : remote.getUrls()) {
                     remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                     if (remoteUrl.endsWith(gerritProjectName)) {

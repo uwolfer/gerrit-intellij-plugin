@@ -25,18 +25,19 @@ import com.google.gerrit.extensions.common.Comment;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 
 import java.util.Collection;
+import java.util.Observable;
 
 /**
  * This is a holder for new comments which got added locally. They get removed again once they are submitted.
  *
  * @author Urs Wolfer
  */
-public class ReviewCommentSink {
-
+public class ReviewCommentSink extends Observable {
     private Multimap<String, CommentHelper> comments = ArrayListMultimap.create();
 
     public void addComment(String changeId, ReviewInput.CommentInput comment) {
         comments.put(changeId, new CommentHelper(comment));
+        update();
     }
 
     public Iterable<ReviewInput.CommentInput> getCommentsForChange(String changeId) {
@@ -50,10 +51,18 @@ public class ReviewCommentSink {
     }
 
     public void removeCommentForChange(String changeId, Comment commentInput) {
-        comments.get(changeId).remove(new CommentHelper(commentInput));
+        boolean removed = comments.get(changeId).remove(new CommentHelper(commentInput));
+        if (removed) {
+            update();
+        }
     }
 
     public void removeCommentsForChange(String changeId) {
         comments.removeAll(changeId);
+    }
+
+    private void update() {
+        setChanged();
+        notifyObservers();
     }
 }

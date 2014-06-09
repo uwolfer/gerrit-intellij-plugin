@@ -28,14 +28,18 @@ import com.intellij.openapi.actionSystem.DataSink;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
+import com.intellij.openapi.vcs.changes.ui.ChangeNodeDecorator;
+import com.intellij.openapi.vcs.changes.ui.ChangesBrowserNodeRenderer;
 import com.intellij.openapi.vcs.versionBrowser.CommittedChangeList;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.SideBorder;
+import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
@@ -48,9 +52,9 @@ import git4idea.history.GitHistoryUtils;
 import git4idea.history.browser.GitCommit;
 import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 /**
@@ -69,6 +73,8 @@ public class RepositoryChangesBrowserProvider {
     private NotificationService notificationService;
     @Inject
     private Logger log;
+    @Inject
+    private Set<GerritChangeNodeDecorator> changeNodeDecorators;
 
     public RepositoryChangesBrowser get(final Project project) {
         TableView<ChangeInfo> table = changeListPanel.getTable();
@@ -76,6 +82,14 @@ public class RepositoryChangesBrowserProvider {
         final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project);
         changesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
         changesBrowser.getViewer().setScrollPaneBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
+        changesBrowser.getViewer().setChangeDecorator(changesBrowser.getChangeNodeDecorator());
+
+        reviewCommentSink.addObserver(new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                changesBrowser.repaint();
+            }
+        });
 
         changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
             @Override
@@ -108,6 +122,9 @@ public class RepositoryChangesBrowserProvider {
                 public void consume(ChangeInfo changeDetails) {
                     selectedChange = changeDetails;
                     updateChangesBrowser();
+                    for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
+                        decorator.onChangeSelected(project, selectedChange);
+                    }
                 }
             });
         }
@@ -164,5 +181,25 @@ public class RepositoryChangesBrowserProvider {
             });
         }
 
+        private ChangeNodeDecorator getChangeNodeDecorator() {
+            return new ChangeNodeDecorator() {
+                @Override
+                public void decorate(Change change, SimpleColoredComponent component, boolean isShowFlatten) {
+                    for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
+                        decorator.decorate(project, change, component, selectedChange);
+                    }
+                }
+
+                @Nullable
+                @Override
+                public List<Pair<String, Stress>> stressPartsOfFileName(Change change, String parentPath) {
+                    return null;
+                }
+
+                @Override
+                public void preDecorate(Change change, ChangesBrowserNodeRenderer renderer, boolean showFlatten) {
+                }
+            };
+        }
     }
 }

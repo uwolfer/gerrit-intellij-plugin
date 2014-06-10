@@ -26,16 +26,13 @@ import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import git4idea.repo.GitRepository;
+import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -46,11 +43,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
     @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
     private ReviewCommentSink reviewCommentSink;
     @Inject
     private GerritApi gerritApi;
+    @Inject
+    private PathUtils pathUtils;
 
     private ChangeInfo selectedChange;
     private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
@@ -102,11 +99,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private String getRelativePath(Project project, String absoluteFilePath) {
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project);
-        if (!gitRepositoryOptional.isPresent()) return null;
-        GitRepository repository = gitRepositoryOptional.get();
-        VirtualFile root = repository.getRoot();
-        return FileUtil.getRelativePath(new File(root.getPath()), new File(absoluteFilePath));
+        return pathUtils.getRelativePath(project, absoluteFilePath, selectedChange.project);
     }
 
     private Supplier<Map<String, List<CommentInfo>>> setupCommentsSupplier() {

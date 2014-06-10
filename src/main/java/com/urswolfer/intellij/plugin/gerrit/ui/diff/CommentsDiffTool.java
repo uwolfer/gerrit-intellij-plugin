@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -36,18 +35,15 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
-import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
-import git4idea.repo.GitRepository;
+import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -62,8 +58,6 @@ import java.util.Map;
  */
 public class CommentsDiffTool extends CustomizableFrameDiffTool {
     @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
     private GerritUtil gerritUtil;
     @Inject
     private DataManager dataManager;
@@ -71,6 +65,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private AddCommentActionBuilder addCommentActionBuilder;
     @Inject
     private ReviewCommentSink reviewCommentSink;
+    @Inject
+    private PathUtils pathUtils;
 
     private ChangeInfo changeInfo;
     private Project project;
@@ -206,11 +202,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     }
 
     private String getRelativePath(Project project, String absoluteFilePath) {
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
-        if (!gitRepositoryOptional.isPresent()) return null;
-        GitRepository repository = gitRepositoryOptional.get();
-        VirtualFile root = repository.getRoot();
-        return FileUtil.getRelativePath(new File(root.getPath()), new File(absoluteFilePath));
+        return pathUtils.getRelativePath(project, absoluteFilePath, changeInfo.project);
     }
 
     public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {

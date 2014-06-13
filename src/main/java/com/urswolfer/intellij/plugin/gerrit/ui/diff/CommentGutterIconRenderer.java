@@ -47,6 +47,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final AddCommentActionBuilder addCommentActionBuilder;
     private final Comment fileComment;
     private final ChangeInfo changeInfo;
+    private final String revisionId;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
 
@@ -56,12 +57,14 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
                                      AddCommentActionBuilder addCommentActionBuilder,
                                      Comment fileComment,
                                      ChangeInfo changeInfo,
+                                     String revisionId,
                                      RangeHighlighter lineHighlighter,
                                      RangeHighlighter rangeHighlighter) {
         this.commentsDiffTool = commentsDiffTool;
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
+        this.revisionId = revisionId;
         this.lineHighlighter = lineHighlighter;
         this.editor = editor;
         this.rangeHighlighter = rangeHighlighter;
@@ -133,7 +136,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         if (isNewCommentFromMyself()) {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
                     .withText("Edit")
                     .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                     .update((ReviewInput.CommentInput) fileComment, lineHighlighter, rangeHighlighter)
@@ -146,7 +149,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
             actionGroup.add(removeCommentAction);
         } else {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
                     .withText("Reply")
                     .withIcon(AllIcons.Actions.Back)
                     .reply(fileComment)
@@ -154,7 +157,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
             actionGroup.add(commentAction);
 
             CommentDoneAction commentDoneAction = new CommentDoneAction(
-                    editor, commentsDiffTool, reviewCommentSink, fileComment, changeInfo);
+                    editor, commentsDiffTool, reviewCommentSink, fileComment, changeInfo, revisionId);
             actionGroup.add(commentDoneAction);
         }
         return actionGroup;

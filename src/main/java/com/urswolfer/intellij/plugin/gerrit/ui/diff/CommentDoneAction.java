@@ -38,12 +38,14 @@ public class CommentDoneAction extends AnAction implements DumbAware {
     private final ReviewCommentSink reviewCommentSink;
     private final Comment fileComment;
     private final ChangeInfo changeInfo;
+    private final String revisionId;
 
     public CommentDoneAction(Editor editor,
                              CommentsDiffTool commentsDiffTool,
                              ReviewCommentSink reviewCommentSink,
                              Comment fileComment,
-                             ChangeInfo changeInfo) {
+                             ChangeInfo changeInfo,
+                             String revisionId) {
         super("Done", null, AllIcons.Actions.Checked);
 
         this.editor = editor;
@@ -51,6 +53,7 @@ public class CommentDoneAction extends AnAction implements DumbAware {
         this.reviewCommentSink = reviewCommentSink;
         this.fileComment = fileComment;
         this.changeInfo = changeInfo;
+        this.revisionId = revisionId;
     }
 
     @Override
@@ -62,9 +65,9 @@ public class CommentDoneAction extends AnAction implements DumbAware {
         comment.path = fileComment.path;
         comment.side = fileComment.side;
 
-        reviewCommentSink.addComment(changeInfo.id, comment);
+        reviewCommentSink.addComment(changeInfo.id, revisionId, comment);
 
         Project project = e.getData(PlatformDataKeys.PROJECT);
-        commentsDiffTool.addComment(editor, changeInfo, project, comment);
+        commentsDiffTool.addComment(editor, changeInfo, revisionId, project, comment);
     }
 }

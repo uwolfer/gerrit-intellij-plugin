@@ -81,7 +81,8 @@ public class ReviewAction extends AbstractChangeAction {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.label(label, rating);
 
-                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.id);
+                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink
+                        .getCommentsForChange(changeDetails.id, changeDetails.currentRevision);
                 for (ReviewInput.CommentInput commentInput : commentInputs) {
                     addComment(reviewInput, commentInput.path, commentInput);
                 }
@@ -112,7 +113,7 @@ public class ReviewAction extends AbstractChangeAction {
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                reviewCommentSink.removeCommentsForChange(changeDetails.id);
+                                reviewCommentSink.removeCommentsForChange(changeDetails.id, changeDetails.currentRevision);
                                 if (finalSubmitChange) {
                                     submitAction.actionPerformed(anActionEvent);
                                 }

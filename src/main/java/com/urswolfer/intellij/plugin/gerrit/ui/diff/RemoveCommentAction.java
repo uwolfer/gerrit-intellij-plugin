@@ -60,7 +60,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        reviewCommentSink.removeCommentForChange(changeInfo.id, comment);
+        reviewCommentSink.removeCommentForChange(changeInfo.id, changeInfo.currentRevision, comment);
         commentsDiffTool.removeComment(editor, lineHighlighter, rangeHighlighter);
     }
 }

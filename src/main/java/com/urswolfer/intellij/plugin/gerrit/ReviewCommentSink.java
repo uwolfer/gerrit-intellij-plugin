@@ -35,13 +35,13 @@ import java.util.Observable;
 public class ReviewCommentSink extends Observable {
     private Multimap<String, CommentHelper> comments = ArrayListMultimap.create();
 
-    public void addComment(String changeId, ReviewInput.CommentInput comment) {
-        comments.put(changeId, new CommentHelper(comment));
+    public void addComment(String changeId, String revisionId, ReviewInput.CommentInput comment) {
+        comments.put(makeKey(changeId, revisionId), new CommentHelper(comment));
         update();
     }
 
-    public Iterable<ReviewInput.CommentInput> getCommentsForChange(String changeId) {
-        Collection<CommentHelper> comments = this.comments.get(changeId);
+    public Iterable<ReviewInput.CommentInput> getCommentsForChange(String changeId, String revisionId) {
+        Collection<CommentHelper> comments = this.comments.get(makeKey(changeId, revisionId));
         return Iterables.transform(comments, new Function<CommentHelper, ReviewInput.CommentInput>() {
             @Override
             public ReviewInput.CommentInput apply(CommentHelper commentHelper) {
@@ -50,19 +50,23 @@ public class ReviewCommentSink extends Observable {
         });
     }
 
-    public void removeCommentForChange(String changeId, Comment commentInput) {
-        boolean removed = comments.get(changeId).remove(new CommentHelper(commentInput));
+    public void removeCommentForChange(String changeId, String revisionId, Comment commentInput) {
+        boolean removed = comments.get(makeKey(changeId, revisionId)).remove(new CommentHelper(commentInput));
         if (removed) {
             update();
         }
     }
 
-    public void removeCommentsForChange(String changeId) {
-        comments.removeAll(changeId);
+    public void removeCommentsForChange(String changeId, String revisionId) {
+        comments.removeAll(makeKey(changeId, revisionId));
     }
 
     private void update() {
         setChanged();
         notifyObservers();
+    }
+
+    private String makeKey(String changeId, String revisionId) {
+        return changeId + '/' + revisionId;
     }
 }

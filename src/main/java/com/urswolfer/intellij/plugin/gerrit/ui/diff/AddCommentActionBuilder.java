@@ -21,18 +21,19 @@ public class AddCommentActionBuilder {
 
     public Builder create(CommentsDiffTool commentsDiffTool,
                           ChangeInfo changeInfo,
+                          String revisionId,
                           Editor editor,
                           String filePath,
                           Comment.Side commentSide) {
-        return new Builder().init(commentsDiffTool, changeInfo, editor, filePath, commentSide);
+        return new Builder().init(commentsDiffTool, changeInfo, revisionId, editor, filePath, commentSide);
     }
 
     public class Builder {
-
         private String text;
         private Icon icon;
         private CommentsDiffTool commentsDiffTool;
         private ChangeInfo changeInfo;
+        private String revisionId;
         private Editor editor;
         private String filePath;
         private Comment.Side commentSide;
@@ -43,11 +44,13 @@ public class AddCommentActionBuilder {
 
         private Builder init(CommentsDiffTool commentsDiffTool,
                              ChangeInfo changeInfo,
+                             String revisionId,
                              Editor editor,
                              String filePath,
                              Comment.Side commentSide) {
             this.commentsDiffTool = commentsDiffTool;
             this.changeInfo = changeInfo;
+            this.revisionId = revisionId;
             this.editor = editor;
             this.filePath = filePath;
             this.commentSide = commentSide;
@@ -80,7 +83,7 @@ public class AddCommentActionBuilder {
 
         public AddCommentAction get() {
             return new AddCommentAction(text, icon, commentsDiffTool, reviewCommentSink, editor, commentBalloonBuilder,
-                    changeInfo, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
+                    changeInfo, revisionId, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
         }
     }
 }

@@ -16,11 +16,16 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.icons.AllIcons;
@@ -35,6 +40,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.AsyncResult;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.ui.JBColor;
@@ -57,6 +63,13 @@ import java.util.Map;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool extends CustomizableFrameDiffTool {
+    private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
+        @Override
+        public boolean apply(Comment comment) {
+            return comment.side == null || comment.side.equals(Comment.Side.REVISION);
+        }
+    };
+
     @Inject
     private GerritUtil gerritUtil;
     @Inject
@@ -69,6 +82,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private PathUtils pathUtils;
 
     private ChangeInfo changeInfo;
+    private Optional<Pair<String, RevisionInfo>> baseRevision;
     private Project project;
 
     @Override
@@ -80,6 +94,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (context == null) return false;
 
         changeInfo = GerritDataKeys.CHANGE.getData(context);
+        baseRevision = GerritDataKeys.BASE_REVISION.getData(context);
         project = PlatformDataKeys.PROJECT.getData(context);
 
         return superCanShow && changeInfo != null;
@@ -96,6 +111,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
+        addDraftComments(diffPanel, relativeFilePath);
+
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
@@ -103,9 +120,42 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                     new Consumer<Map<String, List<CommentInfo>>>() {
                         @Override
                         public void consume(Map<String, List<CommentInfo>> comments) {
-                            addCommentsGutter(diffPanel, relativeFilePath, comments, changeInfo, project);
+                            List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                            if (fileComments != null) {
+                                addCommentsGutter(
+                                        diffPanel.getEditor2(),
+                                        relativeFilePath,
+                                        changeInfo.currentRevision,
+                                        Iterables.filter(fileComments, REVISION_COMMENT)
+                                );
+                                if (!baseRevision.isPresent()) {
+                                    addCommentsGutter(
+                                            diffPanel.getEditor1(),
+                                            relativeFilePath,
+                                            changeInfo.currentRevision,
+                                            Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
+                                    );
+                                }
+                            }
                         }
                     });
+
+                if (baseRevision.isPresent()) {
+                    gerritUtil.getComments(changeDetails.id, baseRevision.get().getFirst(), project, new Consumer<Map<String, List<CommentInfo>>>() {
+                        @Override
+                        public void consume(Map<String, List<CommentInfo>> comments) {
+                            List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                            if (fileComments != null) {
+                                addCommentsGutter(
+                                        diffPanel.getEditor1(),
+                                        relativeFilePath,
+                                        baseRevision.get().getFirst(),
+                                        Iterables.filter(fileComments, REVISION_COMMENT)
+                                );
+                            }
+                        }
+                    });
+                }
 
                 gerritUtil.setReviewed(changeDetails.id, changeDetails.currentRevision,
                         relativeFilePath, project);
@@ -113,17 +163,38 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         });
     }
 
-    private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, Comment.Side.PARENT);
-            addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, Comment.Side.REVISION);
+    private void addDraftComments(DiffPanelImpl diffPanel, String relativeFilePath) {
+        List<Comment> draftComments = Lists.newArrayList();
+        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id, changeInfo.currentRevision);
+        for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
+            if (commentInput.path.equals(relativeFilePath)) {
+                draftComments.add(commentInput);
+            }
+        }
+        addCommentsGutter(diffPanel.getEditor2(), relativeFilePath, changeInfo.currentRevision, Iterables.filter(draftComments, REVISION_COMMENT));
+        if (!baseRevision.isPresent()) {
+            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, changeInfo.currentRevision, Iterables.filter(draftComments, Predicates.not(REVISION_COMMENT)));
+        } else {
+            Iterable<ReviewInput.CommentInput> baseRevisionDrafts = reviewCommentSink.getCommentsForChange(changeInfo.id, baseRevision.get().getFirst());
+            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, baseRevision.get().getFirst(), Iterables.filter(baseRevisionDrafts, REVISION_COMMENT));
+        }
     }
 
-    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, Comment.Side commentSide) {
+    private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
+        if (baseRevision.isPresent()) {
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Comment.Side.REVISION);
+        } else {
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, changeInfo.currentRevision, Comment.Side.PARENT);
+        }
+        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, changeInfo.currentRevision, Comment.Side.REVISION);
+    }
+
+    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, String revisionId, Comment.Side commentSide) {
         if (editor == null) return;
 
         DefaultActionGroup group = new DefaultActionGroup();
         final AddCommentAction addCommentAction = addCommentActionBuilder
-                .create(this, changeInfo, editor, filePath, commentSide)
+                .create(this, changeInfo, revisionId, editor, filePath, commentSide)
                 .withText("Add Comment")
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
@@ -132,42 +203,18 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
     }
 
-    private void addCommentsGutter(DiffPanelImpl diffPanel,
+    private void addCommentsGutter(Editor editor,
                                    String filePath,
-                                   Map<String, List<CommentInfo>> comments,
-                                   ChangeInfo changeInfo,
-                                   Project project) {
-        List<Comment> fileComments = Lists.newArrayList();
-        for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-            if (entry.getKey().equals(filePath)) {
-                List<CommentInfo> commentList = entry.getValue();
-                for (CommentInfo commentInfo : commentList) {
-                    commentInfo.path = filePath;
-                }
-                fileComments.addAll(commentList);
-                break;
-            }
-        }
-
-        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id);
-        for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
-            if (commentInput.path.equals(filePath)) {
-                fileComments.add(commentInput);
-            }
-        }
+                                   String revisionId,
+                                   Iterable<? extends Comment> fileComments) {
 
         for (Comment fileComment : fileComments) {
-            Editor editor;
-            if (fileComment.side != null && fileComment.side.equals(Comment.Side.PARENT)) {
-                editor = diffPanel.getEditor1();
-            } else {
-                editor = diffPanel.getEditor2();
-            }
-            addComment(editor, changeInfo, project, fileComment);
+            fileComment.path = filePath;
+            addComment(editor, changeInfo, revisionId, project, fileComment);
         }
     }
 
-    public void addComment(Editor editor, ChangeInfo changeInfo, Project project, Comment comment) {
+    public void addComment(Editor editor, ChangeInfo changeInfo, String revisionId, Project project, Comment comment) {
         if (editor == null) return;
         MarkupModel markup = editor.getMarkupModel();
 
@@ -185,10 +232,13 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (line > lineCount - 1) {
             line = lineCount - 1;
         }
-        final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
-        CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                this, editor, reviewCommentSink, addCommentActionBuilder, comment, changeInfo, highlighter, rangeHighlighter);
-        highlighter.setGutterIconRenderer(iconRenderer);
+        if (line >= 0) {
+            final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
+            CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
+                    this, editor, reviewCommentSink, addCommentActionBuilder,
+                    comment, changeInfo, revisionId, highlighter, rangeHighlighter);
+            highlighter.setGutterIconRenderer(iconRenderer);
+        }
     }
 
     public void removeComment(Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {

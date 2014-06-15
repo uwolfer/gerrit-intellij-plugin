@@ -17,14 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.FetchInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.actionSystem.DataSink;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -44,7 +42,10 @@ import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
+import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -76,7 +77,11 @@ public class RepositoryChangesBrowserProvider {
     @Inject
     private Set<GerritChangeNodeDecorator> changeNodeDecorators;
 
+    private SelectBaseRevisionAction selectBaseRevisionAction;
+
     public RepositoryChangesBrowser get(final Project project) {
+        selectBaseRevisionAction = new SelectBaseRevisionAction(project);
+
         TableView<ChangeInfo> table = changeListPanel.getTable();
 
         final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project);
@@ -102,18 +107,34 @@ public class RepositoryChangesBrowserProvider {
 
     private final class GerritRepositoryChangesBrowser extends RepositoryChangesBrowser {
         private ChangeInfo selectedChange;
+        private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.absent();
         private Project project;
 
         public GerritRepositoryChangesBrowser(Project project) {
             super(project, Collections.<CommittedChangeList>emptyList(), Collections.<Change>emptyList(), null);
             this.project = project;
+            selectBaseRevisionAction.addRevisionSelectedListener(new SelectBaseRevisionAction.Listener() {
+                @Override
+                public void revisionSelected(Optional<Pair<String, RevisionInfo>> revisionInfo) {
+                    baseRevision = revisionInfo;
+                    updateChangesBrowser();
+                }
+            });
         }
 
         @Override
         public void calcData(DataKey key, DataSink sink) {
             super.calcData(key, sink);
             sink.put(GerritDataKeys.CHANGE, selectedChange);
+            sink.put(GerritDataKeys.BASE_REVISION, baseRevision);
             sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, reviewCommentSink);
+        }
+
+        @Override
+        protected void buildToolBar(DefaultActionGroup toolBarGroup) {
+            toolBarGroup.add(selectBaseRevisionAction);
+            toolBarGroup.add(new Separator());
+            super.buildToolBar(toolBarGroup);
         }
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
@@ -121,7 +142,9 @@ public class RepositoryChangesBrowserProvider {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
                     selectedChange = changeDetails;
+                    baseRevision = Optional.absent();
                     updateChangesBrowser();
+                    selectBaseRevisionAction.setSelectedChange(selectedChange);
                     for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
                         decorator.onChangeSelected(project, selectedChange);
                     }
@@ -134,30 +157,29 @@ public class RepositoryChangesBrowserProvider {
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project);
             if (!gitRepositoryOptional.isPresent()) return;
-            GitRepository gitRepository = gitRepositoryOptional.get();
+            final GitRepository gitRepository = gitRepositoryOptional.get();
             final VirtualFile virtualFile = gitRepository.getGitDir();
             final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
-            FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(selectedChange);
-            String ref = firstFetchInfo != null ? firstFetchInfo.ref : null;
-
-            if (Strings.isNullOrEmpty(ref)) {
-                NotificationBuilder notification = new NotificationBuilder(
-                        project, "Cannot fetch changes",
-                        "No fetch information provided. If you are using Gerrit 2.8 or later, " +
-                                "you need to install the plugin 'download-commands' in Gerrit."
-                );
-                notificationService.notifyError(notification);
-                return;
+            Map<String, RevisionInfo> revisions = selectedChange.revisions;
+            RevisionInfo currentRevision = revisions.get(selectedChange.currentRevision);
+            RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, notificationService, project, gitRepository)
+                    .addRevision(currentRevision);
+            if (baseRevision.isPresent()) {
+                revisionFetcher.addRevision(baseRevision.get().getSecond());
             }
-
-            String url = firstFetchInfo != null ? firstFetchInfo.url : null;
-            gerritGitUtil.fetchChange(project, gitRepository, url, ref, new Callable<Void>() {
+            revisionFetcher.fetch(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     final List<GitCommit> gitCommits;
                     try {
-                        gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), Collections.singletonList(selectedChange.currentRevision));
+                        List<String> hashes = Lists.newArrayList();
+                        if (baseRevision.isPresent()) {
+                            hashes.add(baseRevision.get().first);
+                        }
+                        hashes.add(selectedChange.currentRevision);
+
+                        gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), hashes);
                     } catch (VcsException e) {
                         log.warn("Error getting Git commit details.", e);
                         NotificationBuilder notification = new NotificationBuilder(
@@ -168,12 +190,21 @@ public class RepositoryChangesBrowserProvider {
                         notificationService.notifyError(notification);
                         return null;
                     }
-                    final GitCommit gitCommit = Iterables.get(gitCommits, 0);
+                    final List<Change> totalDiff;
+                    if (gitCommits.size() == 1) {
+                        final GitCommit gitCommit = Iterables.getLast(gitCommits);
+                        totalDiff = gitCommit.getChanges();
+                    } else {
+                        GitCommit base = gitCommits.get(0);
+                        GitCommit current = gitCommits.get(1);
+                        totalDiff = new CommitDiffBuilder(base, current).getDiff();
+                    }
 
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                            setChangesToDisplay(gitCommit.getChanges());
+                            getViewer().setEmptyText("No changes");
+                            setChangesToDisplay(totalDiff);
                         }
                     });
                     return null;

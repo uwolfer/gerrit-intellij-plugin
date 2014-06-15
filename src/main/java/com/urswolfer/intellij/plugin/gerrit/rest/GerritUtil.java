@@ -333,7 +333,7 @@ public class GerritUtil {
             public ChangeInfo apply(Void aVoid) {
                 try {
                     EnumSet<ListChangesOption> options = EnumSet.of(
-                            ListChangesOption.CURRENT_REVISION,
+                            ListChangesOption.ALL_REVISIONS,
                             ListChangesOption.MESSAGES,
                             ListChangesOption.LABELS,
                             ListChangesOption.DETAILED_LABELS);
@@ -449,7 +449,11 @@ public class GerritUtil {
 
     public FetchInfo getFirstFetchInfo(ChangeInfo changeDetails) {
         RevisionInfo currentRevision = changeDetails.revisions.get(changeDetails.currentRevision);
-        return Iterables.getFirst(currentRevision.fetch.values(), null);
+        return getFirstFetchInfo(currentRevision);
+    }
+
+    public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {
+        return Iterables.getFirst(revisionInfo.fetch.values(), null);
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")

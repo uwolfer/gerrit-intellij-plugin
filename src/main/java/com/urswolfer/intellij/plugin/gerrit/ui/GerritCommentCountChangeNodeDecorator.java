@@ -27,7 +27,7 @@ import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.Change;
-import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
@@ -55,9 +55,9 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Override
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
         Map<String, List<CommentInfo>> commentsMap = comments.get();
-        VirtualFile file = change.getVirtualFile();
-        if (file != null) {
-            String text = getNodeSuffix(project, selectedChange, commentsMap, file);
+        String affectedFilePath = getAffectedFilePath(change);
+        if (affectedFilePath != null) {
+            String text = getNodeSuffix(project, selectedChange, commentsMap, affectedFilePath);
             if (!Strings.isNullOrEmpty(text)) {
                 component.append(String.format(" (%s)", text), SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
                 component.repaint();
@@ -71,11 +71,23 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         comments = setupCommentsSupplier();
     }
 
+    private String getAffectedFilePath(Change change) {
+        ContentRevision afterRevision = change.getAfterRevision();
+        if (afterRevision != null) {
+            return afterRevision.getFile().getPath();
+        }
+        ContentRevision beforeRevision = change.getBeforeRevision();
+        if (beforeRevision != null) {
+            return beforeRevision.getFile().getPath();
+        }
+        return null;
+    }
+
     private String getNodeSuffix(Project project,
                                  ChangeInfo selectedChange,
                                  Map<String, List<CommentInfo>> commentsMap,
-                                 VirtualFile file) {
-        final String fileName = getRelativePath(project, file.getPath());
+                                 String affectedFilePath) {
+        final String fileName = getRelativePath(project, affectedFilePath);
         List<CommentInfo> commentsForFile = commentsMap.get(fileName);
         Iterable<ReviewInput.CommentInput> drafts = getCommentsForFile(selectedChange, fileName);
         List<String> parts = Lists.newArrayList();
@@ -90,12 +102,15 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private Iterable<ReviewInput.CommentInput> getCommentsForFile(ChangeInfo selectedChange, final String fileName) {
-        return Iterables.filter(reviewCommentSink.getCommentsForChange(selectedChange.id), new Predicate<ReviewInput.CommentInput>() {
-            @Override
-            public boolean apply(ReviewInput.CommentInput commentInput) {
-                return commentInput.path.equals(fileName);
-            }
-        });
+        return Iterables.filter(
+                reviewCommentSink.getCommentsForChange(selectedChange.id, selectedChange.currentRevision),
+                new Predicate<ReviewInput.CommentInput>() {
+                    @Override
+                    public boolean apply(ReviewInput.CommentInput commentInput) {
+                        return commentInput.path.equals(fileName);
+                    }
+                }
+        );
     }
 
     private String getRelativePath(Project project, String absoluteFilePath) {

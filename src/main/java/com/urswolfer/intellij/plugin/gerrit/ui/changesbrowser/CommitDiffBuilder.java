@@ -75,18 +75,29 @@ public class CommitDiffBuilder {
 
     private final String baseHash;
     private final String hash;
-    private final Map<String, Change> baseChanges;
-    private final Map<String, Change> changes;
+    private final GitCommit base;
+    private final GitCommit commit;
+    private Map<String, Change> baseChanges;
+    private Map<String, Change> changes;
     private final List<Change> diff = Lists.newArrayList();
+    private ChangesProvider changesProvider = new SimpleChangesProvider();
 
     public CommitDiffBuilder(GitCommit base, GitCommit commit) {
+        this.base = base;
+        this.commit = commit;
         baseHash = base.getHash().getValue();
         hash = commit.getHash().getValue();
-        baseChanges = Maps.uniqueIndex(base.getChanges(), GET_CHANGED_FILE_PATH);
-        changes = Maps.uniqueIndex(commit.getChanges(), GET_CHANGED_FILE_PATH);
+    }
+
+    public CommitDiffBuilder withChangesProvider(ChangesProvider changesProvider) {
+        this.changesProvider = changesProvider;
+        return this;
     }
 
     public List<Change> getDiff() throws VcsException {
+        baseChanges = Maps.uniqueIndex(changesProvider.provide(base), GET_CHANGED_FILE_PATH);
+        changes = Maps.uniqueIndex(changesProvider.provide(commit), GET_CHANGED_FILE_PATH);
+
         addedFiles();
         changedFiles();
         removedFiles();
@@ -138,6 +149,17 @@ public class CommitDiffBuilder {
                 );
             }
             diff.add(new Change(baseChange.getAfterRevision(), afterRevision));
+        }
+    }
+
+    public static interface ChangesProvider {
+        List<Change> provide(GitCommit gitCommit);
+    }
+
+    private static final class SimpleChangesProvider implements ChangesProvider {
+        @Override
+        public List<Change> provide(GitCommit gitCommit) {
+            return gitCommit.getChanges();
         }
     }
 }

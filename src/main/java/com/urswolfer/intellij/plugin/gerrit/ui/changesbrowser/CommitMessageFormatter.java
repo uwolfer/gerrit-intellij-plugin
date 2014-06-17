@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import git4idea.history.browser.GitCommit;
 
@@ -38,12 +39,13 @@ import java.util.TimeZone;
  *
  * @author Thomas Forrer
  */
-public class CommitMessageDisplayer {
+public class CommitMessageFormatter {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
     private static final String PARENT_PATTERN = "Parent:     %s";
     private static final String MERGE_PATTERN =
-            "Merge Of:   %s\n" +
-            "            %s";
+            "Merge Of:   %s";
+    private static final String MERGE_PATTERN_DELIMITER =
+            "\n            ";
     private static final String PATTERN =
             "%s\n" +
             "Author:     %s <%s>\n" +
@@ -59,7 +61,7 @@ public class CommitMessageDisplayer {
 
     private final GitCommit gitCommit;
 
-    public CommitMessageDisplayer(GitCommit gitCommit) {
+    public CommitMessageFormatter(GitCommit gitCommit) {
         this.gitCommit = gitCommit;
     }
 
@@ -79,10 +81,9 @@ public class CommitMessageDisplayer {
         if (parents.size() == 1) {
             String parent = Iterables.getFirst(parents, null);
             return String.format(PARENT_PATTERN, parent);
-        } else if (parents.size() == 2) {
-            String parent1 = Iterables.get(parents, 1);
-            String parent2 = Iterables.get(parents, 2);
-            return String.format(MERGE_PATTERN, parent1, parent2);
+        } else if (parents.size() > 1) {
+            String allParents = Joiner.on(MERGE_PATTERN_DELIMITER).join(parents);
+            return String.format(MERGE_PATTERN, allParents);
         } else {
             throw new IllegalArgumentException("Cannot handle commit here: '" + gitCommit.getShortHash().getString() + "'.");
         }

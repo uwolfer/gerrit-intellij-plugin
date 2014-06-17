@@ -54,7 +54,7 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
     private List<Change> getChangesWithCommitMessage(GitCommit gitCommit) {
         List<Change> changes = gitCommit.getChanges();
 
-        String content = new CommitMessageDisplayer(gitCommit).getLongCommitMessage();
+        String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         GitRepository repository = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project).get();
         VirtualFile root = getRootDirectory(repository.getRoot());
         FilePathImpl commitMsg = new FilePathImpl(root, "COMMIT_MSG", false) {

@@ -47,6 +47,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
@@ -80,8 +81,11 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private ReviewCommentSink reviewCommentSink;
     @Inject
     private PathUtils pathUtils;
+    @Inject
+    private SelectedRevisions selectedRevisions;
 
     private ChangeInfo changeInfo;
+    private String selectedRevisionId;
     private Optional<Pair<String, RevisionInfo>> baseRevision;
     private Project project;
 
@@ -94,6 +98,11 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (context == null) return false;
 
         changeInfo = GerritDataKeys.CHANGE.getData(context);
+        if (changeInfo != null) {
+            selectedRevisionId = selectedRevisions.get(changeInfo);
+        } else {
+            selectedRevisionId = null;
+        }
         baseRevision = GerritDataKeys.BASE_REVISION.getData(context);
         project = PlatformDataKeys.PROJECT.getData(context);
 
@@ -116,29 +125,30 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                gerritUtil.getComments(changeDetails.id, changeDetails.currentRevision, project,
-                    new Consumer<Map<String, List<CommentInfo>>>() {
-                        @Override
-                        public void consume(Map<String, List<CommentInfo>> comments) {
-                            List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                            if (fileComments != null) {
-                                addCommentsGutter(
-                                        diffPanel.getEditor2(),
-                                        relativeFilePath,
-                                        changeInfo.currentRevision,
-                                        Iterables.filter(fileComments, REVISION_COMMENT)
-                                );
-                                if (!baseRevision.isPresent()) {
+                gerritUtil.getComments(changeDetails.id, selectedRevisionId, project,
+                        new Consumer<Map<String, List<CommentInfo>>>() {
+                            @Override
+                            public void consume(Map<String, List<CommentInfo>> comments) {
+                                List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                                if (fileComments != null) {
                                     addCommentsGutter(
-                                            diffPanel.getEditor1(),
+                                            diffPanel.getEditor2(),
                                             relativeFilePath,
-                                            changeInfo.currentRevision,
-                                            Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
+                                            selectedRevisionId,
+                                            Iterables.filter(fileComments, REVISION_COMMENT)
                                     );
+                                    if (!baseRevision.isPresent()) {
+                                        addCommentsGutter(
+                                                diffPanel.getEditor1(),
+                                                relativeFilePath,
+                                                selectedRevisionId,
+                                                Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
+                                        );
+                                    }
                                 }
                             }
                         }
-                    });
+                );
 
                 if (baseRevision.isPresent()) {
                     gerritUtil.getComments(changeDetails.id, baseRevision.get().getFirst(), project, new Consumer<Map<String, List<CommentInfo>>>() {
@@ -157,7 +167,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                     });
                 }
 
-                gerritUtil.setReviewed(changeDetails.id, changeDetails.currentRevision,
+                gerritUtil.setReviewed(changeDetails.id, selectedRevisionId,
                         relativeFilePath, project);
             }
         });
@@ -165,15 +175,15 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addDraftComments(DiffPanelImpl diffPanel, String relativeFilePath) {
         List<Comment> draftComments = Lists.newArrayList();
-        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id, changeInfo.currentRevision);
+        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id, selectedRevisionId);
         for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
             if (commentInput.path.equals(relativeFilePath)) {
                 draftComments.add(commentInput);
             }
         }
-        addCommentsGutter(diffPanel.getEditor2(), relativeFilePath, changeInfo.currentRevision, Iterables.filter(draftComments, REVISION_COMMENT));
+        addCommentsGutter(diffPanel.getEditor2(), relativeFilePath, selectedRevisionId, Iterables.filter(draftComments, REVISION_COMMENT));
         if (!baseRevision.isPresent()) {
-            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, changeInfo.currentRevision, Iterables.filter(draftComments, Predicates.not(REVISION_COMMENT)));
+            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, selectedRevisionId, Iterables.filter(draftComments, Predicates.not(REVISION_COMMENT)));
         } else {
             Iterable<ReviewInput.CommentInput> baseRevisionDrafts = reviewCommentSink.getCommentsForChange(changeInfo.id, baseRevision.get().getFirst());
             addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, baseRevision.get().getFirst(), Iterables.filter(baseRevisionDrafts, REVISION_COMMENT));
@@ -184,9 +194,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (baseRevision.isPresent()) {
             addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Comment.Side.REVISION);
         } else {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, changeInfo.currentRevision, Comment.Side.PARENT);
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, selectedRevisionId, Comment.Side.PARENT);
         }
-        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, changeInfo.currentRevision, Comment.Side.REVISION);
+        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, selectedRevisionId, Comment.Side.REVISION);
     }
 
     private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, String revisionId, Comment.Side commentSide) {
@@ -235,7 +245,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (line >= 0) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                    this, editor, reviewCommentSink, addCommentActionBuilder,
+                    this, editor, reviewCommentSink, selectedRevisions, addCommentActionBuilder,
                     comment, changeInfo, revisionId, highlighter, rangeHighlighter);
             highlighter.setGutterIconRenderer(iconRenderer);
         }

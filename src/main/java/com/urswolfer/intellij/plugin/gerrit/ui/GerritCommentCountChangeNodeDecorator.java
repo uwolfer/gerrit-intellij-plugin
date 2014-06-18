@@ -31,10 +31,13 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * @author Thomas Forrer
@@ -49,8 +52,25 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Inject
     private PathUtils pathUtils;
 
+    private final SelectedRevisions selectedRevisions;
+
     private ChangeInfo selectedChange;
     private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
+
+    @Inject
+    public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
+        this.selectedRevisions = selectedRevisions;
+        this.selectedRevisions.addObserver(new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                if (arg != null && arg instanceof String) {
+                    if (selectedChange.changeId.equals(arg)) {
+                        comments = setupCommentsSupplier();
+                    }
+                }
+            }
+        });
+    }
 
     @Override
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
@@ -103,7 +123,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private Iterable<ReviewInput.CommentInput> getCommentsForFile(ChangeInfo selectedChange, final String fileName) {
         return Iterables.filter(
-                reviewCommentSink.getCommentsForChange(selectedChange.id, selectedChange.currentRevision),
+                reviewCommentSink.getCommentsForChange(selectedChange.id, getSelectedRevisionId()),
                 new Predicate<ReviewInput.CommentInput>() {
                     @Override
                     public boolean apply(ReviewInput.CommentInput commentInput) {
@@ -124,12 +144,16 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                 try {
                     return gerritApi.changes()
                             .id(selectedChange.id)
-                            .revision(selectedChange.currentRevision)
+                            .revision(getSelectedRevisionId())
                             .getComments();
                 } catch (RestApiException e) {
                     throw Throwables.propagate(e);
                 }
             }
         });
+    }
+
+    private String getSelectedRevisionId() {
+        return selectedRevisions.get(selectedChange);
     }
 }

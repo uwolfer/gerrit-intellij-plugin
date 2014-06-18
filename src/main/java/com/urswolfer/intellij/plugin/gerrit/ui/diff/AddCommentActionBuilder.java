@@ -7,6 +7,7 @@ import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 
 import javax.swing.*;
 
@@ -18,6 +19,8 @@ public class AddCommentActionBuilder {
     private CommentBalloonBuilder commentBalloonBuilder;
     @Inject
     private ReviewCommentSink reviewCommentSink;
+    @Inject
+    private SelectedRevisions selectedRevisions;
 
     public Builder create(CommentsDiffTool commentsDiffTool,
                           ChangeInfo changeInfo,
@@ -82,7 +85,7 @@ public class AddCommentActionBuilder {
         }
 
         public AddCommentAction get() {
-            return new AddCommentAction(text, icon, commentsDiffTool, reviewCommentSink, editor, commentBalloonBuilder,
+            return new AddCommentAction(text, icon, commentsDiffTool, reviewCommentSink, editor, selectedRevisions, commentBalloonBuilder,
                     changeInfo, revisionId, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
         }
     }

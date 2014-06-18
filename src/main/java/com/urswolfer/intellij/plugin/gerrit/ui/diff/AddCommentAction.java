@@ -30,6 +30,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 
 import javax.swing.*;
 
@@ -45,6 +46,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
     private final Editor editor;
     private final CommentsDiffTool commentsDiffTool;
     private final ReviewCommentSink reviewCommentSink;
+    private final SelectedRevisions selectedRevisions;
     private final ChangeInfo changeInfo;
     private final String revisionId;
     private final String filePath;
@@ -60,6 +62,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
                             CommentsDiffTool commentsDiffTool,
                             ReviewCommentSink reviewCommentSink,
                             Editor editor,
+                            SelectedRevisions selectedRevisions,
                             CommentBalloonBuilder commentBalloonBuilder,
                             ChangeInfo changeInfo,
                             String revisionId,
@@ -73,6 +76,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
         this.commentsDiffTool = commentsDiffTool;
         this.reviewCommentSink = reviewCommentSink;
+        this.selectedRevisions = selectedRevisions;
         this.changeInfo = changeInfo;
         this.revisionId = revisionId;
         this.filePath = filePath;
@@ -112,7 +116,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
     private void handleComment(ReviewInput.CommentInput comment, Project project) {
         if (commentToEdit != null) {
-            reviewCommentSink.removeCommentForChange(changeInfo.id, changeInfo.currentRevision, commentToEdit);
+            reviewCommentSink.removeCommentForChange(changeInfo.id, selectedRevisions.get(changeInfo), commentToEdit);
             commentsDiffTool.removeComment(editor, lineHighlighter, rangeHighlighter);
         }
 

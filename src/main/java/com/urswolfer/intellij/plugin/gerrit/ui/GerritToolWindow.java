@@ -64,8 +64,10 @@ public class GerritToolWindow {
     private RepositoryChangesBrowserProvider repositoryChangesBrowserProvider;
 
     private GerritChangeDetailsPanel detailsPanel;
+    private Project project;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
+        this.project = project;
         changeListPanel.registerChangeListPanel(this);
         diffManager.registerDiffTool(commentsDiffTool);
 
@@ -104,6 +106,10 @@ public class GerritToolWindow {
         reloadChanges(project, false);
 
         return panel;
+    }
+
+    public Project getProject() {
+        return project;
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {

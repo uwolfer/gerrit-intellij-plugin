@@ -44,6 +44,7 @@ import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitMessageProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
@@ -191,13 +192,16 @@ public class RepositoryChangesBrowserProvider {
                         return null;
                     }
                     final List<Change> totalDiff;
+                    CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider(
+                            gerritGitUtil, project, selectedChange);
                     if (gitCommits.size() == 1) {
                         final GitCommit gitCommit = Iterables.getLast(gitCommits);
-                        totalDiff = gitCommit.getChanges();
+                        totalDiff = changesProvider.provide(gitCommit);
                     } else {
                         GitCommit base = gitCommits.get(0);
                         GitCommit current = gitCommits.get(1);
-                        totalDiff = new CommitDiffBuilder(base, current).getDiff();
+                        totalDiff = new CommitDiffBuilder(base, current)
+                                .withChangesProvider(changesProvider).getDiff();
                     }
 
                     ApplicationManager.getApplication().invokeLater(new Runnable() {

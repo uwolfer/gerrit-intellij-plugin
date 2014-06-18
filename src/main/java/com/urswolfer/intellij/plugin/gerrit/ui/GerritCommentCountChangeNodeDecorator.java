@@ -87,7 +87,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                                  ChangeInfo selectedChange,
                                  Map<String, List<CommentInfo>> commentsMap,
                                  String affectedFilePath) {
-        final String fileName = getRelativePath(project, affectedFilePath);
+        final String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
         List<CommentInfo> commentsForFile = commentsMap.get(fileName);
         Iterable<ReviewInput.CommentInput> drafts = getCommentsForFile(selectedChange, fileName);
         List<String> parts = Lists.newArrayList();
@@ -113,8 +113,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         );
     }
 
-    private String getRelativePath(Project project, String absoluteFilePath) {
-        return pathUtils.getRelativePath(project, absoluteFilePath, selectedChange.project);
+    private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
+        return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, selectedChange.project);
     }
 
     private Supplier<Map<String, List<CommentInfo>>> setupCommentsSupplier() {

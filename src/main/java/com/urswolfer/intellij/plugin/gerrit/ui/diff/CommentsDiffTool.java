@@ -107,7 +107,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void handleComments(final DiffPanelImpl diffPanel, final String filePathString) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
-        final String relativeFilePath = getRelativePath(project, filePath.getPath());
+        final String relativeFilePath = getRelativeOrAbsolutePath(project, filePath.getPath());
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
@@ -251,8 +251,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         }
     }
 
-    private String getRelativePath(Project project, String absoluteFilePath) {
-        return pathUtils.getRelativePath(project, absoluteFilePath, changeInfo.project);
+    private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
+        return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
     }
 
     public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {

@@ -42,4 +42,15 @@ public class PathUtils {
         VirtualFile root = repository.getRoot();
         return FileUtil.getRelativePath(new File(root.getPath()), new File(absoluteFilePath));
     }
+
+    /**
+     * @return a relative path for all files under the project root, or the absolute path for other files
+     */
+    public String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
+        String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
+        if (relativePath.contains("/..")) {
+            return absoluteFilePath;
+        }
+        return relativePath;
+    }
 }

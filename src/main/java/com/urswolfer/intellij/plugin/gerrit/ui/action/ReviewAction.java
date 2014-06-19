@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -32,6 +33,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
 import java.util.List;
@@ -49,6 +52,7 @@ public class ReviewAction extends AbstractChangeAction {
 
     private ReviewCommentSink reviewCommentSink;
     private SubmitAction submitAction;
+    private NotificationService notificationService;
 
     private String label;
     private int rating;
@@ -57,12 +61,14 @@ public class ReviewAction extends AbstractChangeAction {
     public ReviewAction(String label, int rating, Icon icon, boolean showDialog,
                         ReviewCommentSink reviewCommentSink,
                         GerritUtil gerritUtil,
-                        SubmitAction submitAction) {
+                        SubmitAction submitAction,
+                        NotificationService notificationService) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
         this.submitAction = submitAction;
+        this.notificationService = notificationService;
         this.gerritUtil = gerritUtil;
         this.reviewCommentSink = reviewCommentSink;
     }
@@ -114,6 +120,11 @@ public class ReviewAction extends AbstractChangeAction {
                             @Override
                             public void consume(Void result) {
                                 reviewCommentSink.removeCommentsForChange(changeDetails.id, changeDetails.currentRevision);
+                                NotificationBuilder notification = new NotificationBuilder(
+                                        project, "Review posted",
+                                        buildSuccessMessage(changeDetails, reviewInput))
+                                        .hideBalloon();
+                                notificationService.notifyInformation(notification);
                                 if (finalSubmitChange) {
                                     submitAction.actionPerformed(anActionEvent);
                                 }
@@ -138,6 +149,17 @@ public class ReviewAction extends AbstractChangeAction {
             comments.put(path, commentInputs);
         }
         commentInputs.add(comment);
+    }
+
+    private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {
+        StringBuilder stringBuilder = new StringBuilder(
+                String.format("Review for change '%s' posted", changeInfo.subject)
+        );
+        if (!reviewInput.labels.isEmpty()) {
+            stringBuilder.append(": ");
+            stringBuilder.append(Joiner.on(", ").withKeyValueSeparator(": ").join(reviewInput.labels));
+        }
+        return stringBuilder.toString();
     }
 
     public abstract static class Proxy extends AnAction implements DumbAware {

@@ -139,15 +139,18 @@ public class RepositoryChangesBrowserProvider {
         }
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
+            selectedChange = changeInfo;
             gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
-                    selectedChange = changeDetails;
-                    baseRevision = Optional.absent();
-                    updateChangesBrowser();
-                    selectBaseRevisionAction.setSelectedChange(selectedChange);
-                    for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
-                        decorator.onChangeSelected(project, selectedChange);
+                    if (selectedChange.changeId.equals(changeDetails.changeId)) {
+                        selectedChange = changeDetails;
+                        baseRevision = Optional.absent();
+                        selectBaseRevisionAction.setSelectedChange(selectedChange);
+                        for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
+                            decorator.onChangeSelected(project, selectedChange);
+                        }
+                        updateChangesBrowser();
                     }
                 }
             });

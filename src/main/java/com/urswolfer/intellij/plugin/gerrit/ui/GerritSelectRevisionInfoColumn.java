@@ -47,14 +47,6 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Inject
     private SelectedRevisions selectedRevisions;
 
-    private final Function<Pair<String, RevisionInfo>, String> REVISION_LABEL_FUNCTION = new Function<Pair<String, RevisionInfo>, String>() {
-        @Override
-        public String apply(Pair<String, RevisionInfo> revisionInfo) {
-            return String.format("%s: %s",
-                    revisionInfo.getSecond()._number,
-                    revisionInfo.getFirst().substring(0, 7));
-        }
-    };
     private final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
         @Override
         public Pair<String, RevisionInfo> apply(Map.Entry<String, RevisionInfo> entry) {
@@ -63,7 +55,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     };
 
     public GerritSelectRevisionInfoColumn() {
-        super("Revision");
+        super("Patch Set");
     }
 
     @Nullable
@@ -71,7 +63,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     public String valueOf(ChangeInfo changeInfo) {
         String activeRevision = selectedRevisions.get(changeInfo);
         RevisionInfo revisionInfo = changeInfo.revisions.get(activeRevision);
-        return REVISION_LABEL_FUNCTION.apply(Pair.create(activeRevision, revisionInfo));
+        return getRevisionLabelFunction(changeInfo).apply(Pair.create(activeRevision, revisionInfo));
     }
 
     @Override
@@ -88,7 +80,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
                 Set<Map.Entry<String, RevisionInfo>> revisions = changeInfo.revisions.entrySet();
                 return Lists.newArrayList(Iterables.transform(
                                 revisions,
-                                Functions.compose(REVISION_LABEL_FUNCTION, MAP_ENTRY_TO_PAIR)
+                                Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)
                         )
                 );
             }
@@ -99,7 +91,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
                 ComboBoxCellEditor cellEditor = (ComboBoxCellEditor) e.getSource();
                 String value = (String) cellEditor.getCellEditorValue();
                 Iterable<Pair<String, RevisionInfo>> pairs = Iterables.transform(changeInfo.revisions.entrySet(), MAP_ENTRY_TO_PAIR);
-                Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, REVISION_LABEL_FUNCTION);
+                Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, getRevisionLabelFunction(changeInfo));
                 Pair<String, RevisionInfo> pair = map.get(value);
                 selectedRevisions.put(changeInfo.changeId, pair.getFirst());
             }
@@ -115,6 +107,18 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Nullable
     @Override
     public String getMaxStringValue() {
-        return "100: eeeeeee";
+        return "100 / 100: eeeeeee";
+    }
+
+    private Function<Pair<String, RevisionInfo>, String> getRevisionLabelFunction(final ChangeInfo changeInfo) {
+        return new Function<Pair<String, RevisionInfo>, String>() {
+            @Override
+            public String apply(Pair<String, RevisionInfo> revisionInfo) {
+                return String.format("%s / %s: %s",
+                        revisionInfo.getSecond()._number,
+                        changeInfo.revisions.size(),
+                        revisionInfo.getFirst().substring(0, 7));
+            }
+        };
     }
 }

@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
+import com.intellij.openapi.ui.ComboBoxTableRenderer;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ComboBoxCellEditor;
@@ -33,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,12 +79,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         ComboBoxCellEditor editor = new ComboBoxCellEditor() {
             @Override
             protected List<String> getComboBoxItems() {
-                Set<Map.Entry<String, RevisionInfo>> revisions = changeInfo.revisions.entrySet();
-                return Lists.newArrayList(Iterables.transform(
-                                revisions,
-                                Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)
-                        )
-                );
+                return getRevisions(changeInfo);
             }
         };
         editor.addCellEditorListener(new CellEditorListener() {
@@ -97,9 +94,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
             }
 
             @Override
-            public void editingCanceled(ChangeEvent e) {
-
-            }
+            public void editingCanceled(ChangeEvent e) {}
         });
         return editor;
     }
@@ -108,6 +103,23 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Override
     public String getMaxStringValue() {
         return "100 / 100: eeeeeee";
+    }
+
+    @Nullable
+    @Override
+    public TableCellRenderer getRenderer(ChangeInfo changeInfo) {
+        List<String> revisions = getRevisions(changeInfo);
+        String[] array = new String[revisions.size()];
+        return new ComboBoxTableRenderer<String>(revisions.toArray(array));
+    }
+
+    private List<String> getRevisions(ChangeInfo changeInfo) {
+        Set<Map.Entry<String, RevisionInfo>> revisions = changeInfo.revisions.entrySet();
+        return Lists.newArrayList(Iterables.transform(
+                        revisions,
+                        Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)
+                )
+        );
     }
 
     private Function<Pair<String, RevisionInfo>, String> getRevisionLabelFunction(final ChangeInfo changeInfo) {

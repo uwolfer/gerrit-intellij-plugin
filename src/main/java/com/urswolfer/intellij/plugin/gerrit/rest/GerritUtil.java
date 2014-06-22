@@ -43,8 +43,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
-import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -245,7 +245,7 @@ public class GerritUtil {
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
                     return gerritClient.changes().query(query)
-                            .withOption(ListChangesOption.LABELS)
+                            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS))
                             .get();
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);

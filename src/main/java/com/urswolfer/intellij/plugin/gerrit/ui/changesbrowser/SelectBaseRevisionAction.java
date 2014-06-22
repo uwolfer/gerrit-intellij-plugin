@@ -29,10 +29,13 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import git4idea.history.wholeTree.BasePopupAction;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * @author Thomas Forrer
@@ -49,13 +52,29 @@ public class SelectBaseRevisionAction extends BasePopupAction {
                     revisionInfo.getFirst().substring(0, 7));
         }
     };
+    private final SelectedRevisions selectedRevisions;
 
     private Optional<ChangeInfo> selectedChange = Optional.absent();
     private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.absent();
     private List<Listener> listeners = Lists.newArrayList();
 
-    public SelectBaseRevisionAction(Project project) {
+    public SelectBaseRevisionAction(Project project, final SelectedRevisions selectedRevisions) {
         super(project, "Diff against:", "Select revision to compare to");
+        this.selectedRevisions = selectedRevisions;
+        selectedRevisions.addObserver(new Observer() {
+            @Override
+            public void update(Observable o, Object arg) {
+                if (arg != null && arg instanceof String) {
+                    if (selectedValue.isPresent()) {
+                        Optional<String> selectedRevision = selectedRevisions.get((String) arg);
+                        if (selectedRevision.isPresent() && selectedRevision.get().equals(selectedValue.get().getFirst())) {
+                            removeSelectedValue();
+                            updateLabel();
+                        }
+                    }
+                }
+            }
+        });
         updateLabel();
     }
 
@@ -98,7 +117,11 @@ public class SelectBaseRevisionAction extends BasePopupAction {
 
             @Override
             public void update(AnActionEvent e) {
-                e.getPresentation().setEnabled(!commitHash.equals(selectedChange.get().currentRevision));
+                e.getPresentation().setEnabled(!isSameRevisionAsSelected());
+            }
+
+            private boolean isSameRevisionAsSelected() {
+                return commitHash.equals(selectedRevisions.get(selectedChange.get()));
             }
         };
     }

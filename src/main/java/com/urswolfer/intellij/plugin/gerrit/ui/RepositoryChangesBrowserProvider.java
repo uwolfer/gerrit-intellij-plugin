@@ -41,6 +41,7 @@ import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -77,11 +78,13 @@ public class RepositoryChangesBrowserProvider {
     private Logger log;
     @Inject
     private Set<GerritChangeNodeDecorator> changeNodeDecorators;
+    @Inject
+    private SelectedRevisions selectedRevisions;
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
     public RepositoryChangesBrowser get(final Project project) {
-        selectBaseRevisionAction = new SelectBaseRevisionAction(project);
+        selectBaseRevisionAction = new SelectBaseRevisionAction(project, selectedRevisions);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();
 
@@ -119,6 +122,16 @@ public class RepositoryChangesBrowserProvider {
                 public void revisionSelected(Optional<Pair<String, RevisionInfo>> revisionInfo) {
                     baseRevision = revisionInfo;
                     updateChangesBrowser();
+                }
+            });
+            selectedRevisions.addObserver(new Observer() {
+                @Override
+                public void update(Observable o, Object arg) {
+                    if (arg != null && arg instanceof String) {
+                        if (selectedChange.changeId.equals(arg)) {
+                            updateChangesBrowser();
+                        }
+                    }
                 }
             });
         }
@@ -166,7 +179,8 @@ public class RepositoryChangesBrowserProvider {
             final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
             Map<String, RevisionInfo> revisions = selectedChange.revisions;
-            RevisionInfo currentRevision = revisions.get(selectedChange.currentRevision);
+            final String revisionId = selectedRevisions.get(selectedChange);
+            RevisionInfo currentRevision = revisions.get(revisionId);
             RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, notificationService, project, gitRepository)
                     .addRevision(currentRevision);
             if (baseRevision.isPresent()) {
@@ -181,7 +195,7 @@ public class RepositoryChangesBrowserProvider {
                         if (baseRevision.isPresent()) {
                             hashes.add(baseRevision.get().first);
                         }
-                        hashes.add(selectedChange.currentRevision);
+                        hashes.add(revisionId);
 
                         gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), hashes);
                     } catch (VcsException e) {

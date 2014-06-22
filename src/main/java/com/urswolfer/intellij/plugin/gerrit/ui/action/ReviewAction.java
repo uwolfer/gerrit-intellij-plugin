@@ -31,6 +31,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -51,6 +52,7 @@ public class ReviewAction extends AbstractChangeAction {
     public static final String VERIFIED = "Verified";
 
     private ReviewCommentSink reviewCommentSink;
+    private SelectedRevisions selectedRevisions;
     private SubmitAction submitAction;
     private NotificationService notificationService;
 
@@ -58,8 +60,12 @@ public class ReviewAction extends AbstractChangeAction {
     private int rating;
     private boolean showDialog;
 
-    public ReviewAction(String label, int rating, Icon icon, boolean showDialog,
+    public ReviewAction(String label,
+                        int rating,
+                        Icon icon,
+                        boolean showDialog,
                         ReviewCommentSink reviewCommentSink,
+                        SelectedRevisions selectedRevisions,
                         GerritUtil gerritUtil,
                         SubmitAction submitAction,
                         NotificationService notificationService) {
@@ -67,10 +73,11 @@ public class ReviewAction extends AbstractChangeAction {
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
-        this.submitAction = submitAction;
-        this.notificationService = notificationService;
         this.gerritUtil = gerritUtil;
         this.reviewCommentSink = reviewCommentSink;
+        this.selectedRevisions = selectedRevisions;
+        this.submitAction = submitAction;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -88,7 +95,7 @@ public class ReviewAction extends AbstractChangeAction {
                 reviewInput.label(label, rating);
 
                 Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink
-                        .getCommentsForChange(changeDetails.id, changeDetails.currentRevision);
+                        .getCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
                 for (ReviewInput.CommentInput commentInput : commentInputs) {
                     addComment(reviewInput, commentInput.path, commentInput);
                 }
@@ -113,13 +120,13 @@ public class ReviewAction extends AbstractChangeAction {
 
                 final boolean finalSubmitChange = submitChange;
                 gerritUtil.postReview(changeDetails.id,
-                        changeDetails.currentRevision,
+                        selectedRevisions.get(changeDetails),
                         reviewInput,
                         project,
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                reviewCommentSink.removeCommentsForChange(changeDetails.id, changeDetails.currentRevision);
+                                reviewCommentSink.removeCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
                                 NotificationBuilder notification = new NotificationBuilder(
                                         project, "Review posted",
                                         buildSuccessMessage(changeDetails, reviewInput))

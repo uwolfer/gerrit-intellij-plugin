@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -30,6 +31,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import git4idea.history.wholeTree.BasePopupAction;
 
 import java.util.List;
@@ -88,8 +90,10 @@ public class SelectBaseRevisionAction extends BasePopupAction {
             }
         });
         if (selectedChange.isPresent()) {
-            Map<String, RevisionInfo> revisions = selectedChange.get().revisions;
-            for (Map.Entry<String, RevisionInfo> entry : revisions.entrySet()) {
+            ImmutableSortedSet<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
+                    RevisionInfos.MAP_ENTRY_COMPARATOR,
+                    selectedChange.get().revisions.entrySet());
+            for (Map.Entry<String, RevisionInfo> entry : revisions) {
                 anActionConsumer.consume(getActionForRevision(entry.getKey(), entry.getValue()));
             }
         }

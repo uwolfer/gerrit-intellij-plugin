@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -29,6 +30,7 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ComboBoxCellEditor;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.event.CellEditorListener;
@@ -114,7 +116,9 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     }
 
     private List<String> getRevisions(ChangeInfo changeInfo) {
-        Set<Map.Entry<String, RevisionInfo>> revisions = changeInfo.revisions.entrySet();
+        Set<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
+                RevisionInfos.MAP_ENTRY_COMPARATOR,
+                changeInfo.revisions.entrySet());
         return Lists.newArrayList(Iterables.transform(
                         revisions,
                         Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)

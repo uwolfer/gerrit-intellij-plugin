@@ -28,15 +28,18 @@ import com.google.inject.Inject;
 import com.intellij.openapi.ui.ComboBoxTableRenderer;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
-import com.intellij.util.ui.ComboBoxCellEditor;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.border.Border;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
+import java.awt.event.MouseEvent;
+import java.util.EventObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,16 +81,11 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Nullable
     @Override
     public TableCellEditor getEditor(final ChangeInfo changeInfo) {
-        ComboBoxCellEditor editor = new ComboBoxCellEditor() {
-            @Override
-            protected List<String> getComboBoxItems() {
-                return getRevisions(changeInfo);
-            }
-        };
+        ComboBoxTableRenderer<String> editor = createComboBoxTableRenderer(changeInfo);
         editor.addCellEditorListener(new CellEditorListener() {
             @Override
             public void editingStopped(ChangeEvent e) {
-                ComboBoxCellEditor cellEditor = (ComboBoxCellEditor) e.getSource();
+                ComboBoxTableRenderer cellEditor = (ComboBoxTableRenderer) e.getSource();
                 String value = (String) cellEditor.getCellEditorValue();
                 Iterable<Pair<String, RevisionInfo>> pairs = Iterables.transform(changeInfo.revisions.entrySet(), MAP_ENTRY_TO_PAIR);
                 Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, getRevisionLabelFunction(changeInfo));
@@ -104,15 +102,39 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Nullable
     @Override
     public String getMaxStringValue() {
-        return "100 / 100: eeeeeee";
+        return "100/100: eeeeeee";
     }
 
     @Nullable
     @Override
     public TableCellRenderer getRenderer(ChangeInfo changeInfo) {
+        final ComboBoxTableRenderer<String> renderer = createComboBoxTableRenderer(changeInfo);
+        if (!isCellEditable(changeInfo)) {
+            return new DefaultTableCellRenderer() {
+                @Override
+                public void setBorder(Border border) {
+                    super.setBorder(renderer.getBorder());
+                }
+            };
+        }
+        return renderer;
+    }
+
+    private ComboBoxTableRenderer<String> createComboBoxTableRenderer(final ChangeInfo changeInfo) {
         List<String> revisions = getRevisions(changeInfo);
         String[] array = new String[revisions.size()];
-        return new ComboBoxTableRenderer<String>(revisions.toArray(array));
+        return new ComboBoxTableRenderer<String>(revisions.toArray(array)) {
+            @Override
+            public boolean isCellEditable(EventObject event) {
+                if (!GerritSelectRevisionInfoColumn.this.isCellEditable(changeInfo)) {
+                    return false;
+                }
+                if (event instanceof MouseEvent) {
+                    return ((MouseEvent) event).getClickCount() >= 1;
+                }
+                return false;
+            }
+        };
     }
 
     private List<String> getRevisions(ChangeInfo changeInfo) {
@@ -130,7 +152,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         return new Function<Pair<String, RevisionInfo>, String>() {
             @Override
             public String apply(Pair<String, RevisionInfo> revisionInfo) {
-                return String.format("%s / %s: %s",
+                return String.format("%s/%s: %s",
                         revisionInfo.getSecond()._number,
                         changeInfo.revisions.size(),
                         revisionInfo.getFirst().substring(0, 7));

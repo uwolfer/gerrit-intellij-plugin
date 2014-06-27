@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.8.1</version>
+  <version>0.9.0-SNAPSHOT</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,16 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.0</li>
+          <ul>
+            <li>add support to select patch sets in grid</li>
+            <li>show commit message as a file in changes browser</li>
+            <li>add support to select diff base in change browser (patch sets can be diffed against each other)</li>
+            <li>show comments and comment drafts count in changes browser</li>
+            <li>improve notification and error handling for review and submit action</li>
+            <li>find Git repository if Git remote name equals Gerrit project name</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.8.1</li>
           <ul>
             <li>improve usability for file comments (add, reply, edit)</li>

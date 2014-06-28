@@ -374,7 +374,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 if (labelInfo.disliked != null) {
                     return MoveDown;
                 }
-                if (labelInfo.recommended != null) {
+                if (labelInfo.rejected != null) {
                     return Cancel;
                 }
             }

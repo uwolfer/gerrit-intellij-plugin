@@ -152,10 +152,13 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         return new Function<Pair<String, RevisionInfo>, String>() {
             @Override
             public String apply(Pair<String, RevisionInfo> revisionInfo) {
-                return String.format("%s/%s: %s",
-                        revisionInfo.getSecond()._number,
-                        changeInfo.revisions.size(),
-                        revisionInfo.getFirst().substring(0, 7));
+                int size = changeInfo.revisions.size();
+                int number = revisionInfo.getSecond()._number;
+                String revision = revisionInfo.getFirst().substring(0, 7);
+                if (size < number) { // size not available in older Gerrit versions
+                    return String.format("%s: %s", number, revision);
+                }
+                return String.format("%s/%s: %s", number, size, revision);
             }
         };
     }

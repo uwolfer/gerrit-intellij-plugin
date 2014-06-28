@@ -64,10 +64,8 @@ public class GerritToolWindow {
     private RepositoryChangesBrowserProvider repositoryChangesBrowserProvider;
 
     private GerritChangeDetailsPanel detailsPanel;
-    private Project project;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
-        this.project = project;
         changeListPanel.registerChangeListPanel(this);
         diffManager.registerDiffTool(commentsDiffTool);
 
@@ -77,7 +75,7 @@ public class GerritToolWindow {
         toolbar.setTargetComponent(changeListPanel);
         panel.setToolbar(toolbar.getComponent());
 
-        RepositoryChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project);
+        RepositoryChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel);
 
         Splitter detailsSplitter = new Splitter(true, 0.6f);
         detailsSplitter.setShowDividerControls(true);
@@ -106,10 +104,6 @@ public class GerritToolWindow {
         reloadChanges(project, false);
 
         return panel;
-    }
-
-    public Project getProject() {
-        return project;
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {

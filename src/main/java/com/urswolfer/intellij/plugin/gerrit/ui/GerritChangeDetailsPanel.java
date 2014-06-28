@@ -44,13 +44,13 @@ public class GerritChangeDetailsPanel {
     private final static String NOTHING_SELECTED = "nothingSelected";
     private final static String LOADING = "loading";
     private final static String DATA = "data";
-    private static final String MULTIPLE_SELECTED = "multiple_selected";
+    private final static String MULTIPLE_SELECTED = "multiple_selected";
 
     private final JPanel panel;
 
     private final MyPresentationData presentationData;
 
-    private JEditorPane jEditorPane;
+    private final JEditorPane jEditorPane;
 
     public GerritChangeDetailsPanel(final Project project) {
         panel = new JPanel(new CardLayout());

@@ -65,8 +65,6 @@ import java.util.concurrent.Callable;
  */
 public class RepositoryChangesBrowserProvider {
     @Inject
-    private GerritChangeListPanel changeListPanel;
-    @Inject
     private ReviewCommentSink reviewCommentSink;
     @Inject
     private GerritGitUtil gerritGitUtil;
@@ -83,7 +81,7 @@ public class RepositoryChangesBrowserProvider {
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
-    public RepositoryChangesBrowser get(final Project project) {
+    public RepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
         selectBaseRevisionAction = new SelectBaseRevisionAction(project, selectedRevisions);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();

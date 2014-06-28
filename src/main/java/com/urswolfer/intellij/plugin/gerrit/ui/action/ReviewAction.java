@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -30,8 +31,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
 import java.util.List;
@@ -48,23 +52,32 @@ public class ReviewAction extends AbstractChangeAction {
     public static final String VERIFIED = "Verified";
 
     private ReviewCommentSink reviewCommentSink;
+    private SelectedRevisions selectedRevisions;
     private SubmitAction submitAction;
+    private NotificationService notificationService;
 
     private String label;
     private int rating;
     private boolean showDialog;
 
-    public ReviewAction(String label, int rating, Icon icon, boolean showDialog,
+    public ReviewAction(String label,
+                        int rating,
+                        Icon icon,
+                        boolean showDialog,
                         ReviewCommentSink reviewCommentSink,
+                        SelectedRevisions selectedRevisions,
                         GerritUtil gerritUtil,
-                        SubmitAction submitAction) {
+                        SubmitAction submitAction,
+                        NotificationService notificationService) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
-        this.submitAction = submitAction;
         this.gerritUtil = gerritUtil;
         this.reviewCommentSink = reviewCommentSink;
+        this.selectedRevisions = selectedRevisions;
+        this.submitAction = submitAction;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -81,7 +94,8 @@ public class ReviewAction extends AbstractChangeAction {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.label(label, rating);
 
-                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink.getCommentsForChange(changeDetails.id);
+                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink
+                        .getCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
                 for (ReviewInput.CommentInput commentInput : commentInputs) {
                     addComment(reviewInput, commentInput.path, commentInput);
                 }
@@ -106,13 +120,18 @@ public class ReviewAction extends AbstractChangeAction {
 
                 final boolean finalSubmitChange = submitChange;
                 gerritUtil.postReview(changeDetails.id,
-                        changeDetails.currentRevision,
+                        selectedRevisions.get(changeDetails),
                         reviewInput,
                         project,
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                reviewCommentSink.removeCommentsForChange(changeDetails.id);
+                                reviewCommentSink.removeCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
+                                NotificationBuilder notification = new NotificationBuilder(
+                                        project, "Review posted",
+                                        buildSuccessMessage(changeDetails, reviewInput))
+                                        .hideBalloon();
+                                notificationService.notifyInformation(notification);
                                 if (finalSubmitChange) {
                                     submitAction.actionPerformed(anActionEvent);
                                 }
@@ -137,6 +156,17 @@ public class ReviewAction extends AbstractChangeAction {
             comments.put(path, commentInputs);
         }
         commentInputs.add(comment);
+    }
+
+    private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {
+        StringBuilder stringBuilder = new StringBuilder(
+                String.format("Review for change '%s' posted", changeInfo.subject)
+        );
+        if (!reviewInput.labels.isEmpty()) {
+            stringBuilder.append(": ");
+            stringBuilder.append(Joiner.on(", ").withKeyValueSeparator(": ").join(reviewInput.labels));
+        }
+        return stringBuilder.toString();
     }
 
     public abstract static class Proxy extends AnAction implements DumbAware {

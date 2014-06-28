@@ -29,6 +29,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.util.text.DateFormatUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
@@ -44,24 +45,30 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
     private final ReviewCommentSink reviewCommentSink;
+    private final SelectedRevisions selectedRevisions;
     private final AddCommentActionBuilder addCommentActionBuilder;
     private final Comment fileComment;
     private final ChangeInfo changeInfo;
+    private final String revisionId;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
 
     public CommentGutterIconRenderer(CommentsDiffTool commentsDiffTool,
                                      Editor editor,
                                      ReviewCommentSink reviewCommentSink,
+                                     SelectedRevisions selectedRevisions,
                                      AddCommentActionBuilder addCommentActionBuilder,
                                      Comment fileComment,
                                      ChangeInfo changeInfo,
+                                     String revisionId,
                                      RangeHighlighter lineHighlighter,
                                      RangeHighlighter rangeHighlighter) {
         this.commentsDiffTool = commentsDiffTool;
+        this.selectedRevisions = selectedRevisions;
         this.fileComment = fileComment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
+        this.revisionId = revisionId;
         this.lineHighlighter = lineHighlighter;
         this.editor = editor;
         this.rangeHighlighter = rangeHighlighter;
@@ -133,7 +140,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         if (isNewCommentFromMyself()) {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
                     .withText("Edit")
                     .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                     .update((ReviewInput.CommentInput) fileComment, lineHighlighter, rangeHighlighter)
@@ -141,12 +148,12 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
             actionGroup.add(commentAction);
 
             RemoveCommentAction removeCommentAction = new RemoveCommentAction(
-                    commentsDiffTool, editor, reviewCommentSink, changeInfo, (ReviewInput.CommentInput) fileComment,
+                    commentsDiffTool, editor, reviewCommentSink, selectedRevisions, changeInfo, (ReviewInput.CommentInput) fileComment,
                     lineHighlighter, rangeHighlighter);
             actionGroup.add(removeCommentAction);
         } else {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, editor, fileComment.path, fileComment.side)
+                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
                     .withText("Reply")
                     .withIcon(AllIcons.Actions.Back)
                     .reply(fileComment)
@@ -154,7 +161,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
             actionGroup.add(commentAction);
 
             CommentDoneAction commentDoneAction = new CommentDoneAction(
-                    editor, commentsDiffTool, reviewCommentSink, fileComment, changeInfo);
+                    editor, commentsDiffTool, reviewCommentSink, fileComment, changeInfo, revisionId);
             actionGroup.add(commentDoneAction);
         }
         return actionGroup;

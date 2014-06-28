@@ -37,7 +37,6 @@ import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
@@ -84,8 +83,6 @@ public class GerritGitUtil {
     @Inject
     private VirtualFileManager virtualFileManager;
     @Inject
-    private GerritUtil gerritUtil;
-    @Inject
     private GerritSettings gerritSettings;
     @Inject
     private NotificationService notificationService;
@@ -99,6 +96,9 @@ public class GerritGitUtil {
         final Iterable<GitRepository> repositoriesFromRoots = getRepositories(project);
         for (GitRepository repository : repositoriesFromRoots) {
             for (GitRemote remote : repository.getRemotes()) {
+                if (remote.getName().equals(gerritProjectName)) {
+                    return Optional.of(repository);
+                }
                 for (String remoteUrl : remote.getUrls()) {
                     remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                     if (remoteUrl.endsWith(gerritProjectName)) {
@@ -150,7 +150,7 @@ public class GerritGitUtil {
         });
     }
 
-    public void cherryPickChange(final Project project, final ChangeInfo changeInfo) {
+    public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
         fileDocumentManager.saveAllDocuments();
         platformFacade.getChangeListManager(project).blockModalNotifications();
 
@@ -165,7 +165,7 @@ public class GerritGitUtil {
 
                     final String notLoaded = "Not loaded";
                     String ref = changeInfo.currentRevision;
-                    GitHeavyCommit gitCommit = new GitHeavyCommit(virtualFile, AbstractHash.create(ref), new SHAHash(ref), notLoaded, notLoaded, new Date(0), notLoaded,
+                    GitHeavyCommit gitCommit = new GitHeavyCommit(virtualFile, AbstractHash.create(revisionId), new SHAHash(revisionId), notLoaded, notLoaded, new Date(0), notLoaded,
                             notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
                             notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
                             Collections.<Change>emptyList(), 0);

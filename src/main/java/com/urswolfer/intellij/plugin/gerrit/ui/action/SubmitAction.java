@@ -19,17 +19,23 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 /**
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SubmitAction extends AbstractChangeAction {
+    @Inject
+    private NotificationService notificationService;
 
     public SubmitAction() {
         super("Submit", "Submit Change", AllIcons.Actions.Export);
@@ -39,12 +45,24 @@ public class SubmitAction extends AbstractChangeAction {
     public void actionPerformed(AnActionEvent anActionEvent) {
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
         SubmitInput submitInput = new SubmitInput();
-        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project);
+        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project, new Consumer<Void>() {
+            @Override
+            public void consume(Void aVoid) {
+                NotificationBuilder notification = new NotificationBuilder(
+                        project, "Change submitted", getSuccessMessage(selectedChange.get())
+                ).hideBalloon();
+                notificationService.notifyInformation(notification);
+            }
+        });
+    }
+
+    private String getSuccessMessage(ChangeInfo changeInfo) {
+        return String.format("Change '%s' submitted successfully.", changeInfo.subject);
     }
 
     public static class Proxy extends SubmitAction {

@@ -34,6 +34,7 @@ public final class NotificationBuilder {
     private NotificationType type = NotificationType.INFORMATION;
 
     private Optional<NotificationListener> listener = Optional.absent();
+    private boolean showBalloon;
 
     public NotificationBuilder(Project project, String title, String message) {
         this.project = project;
@@ -51,8 +52,22 @@ public final class NotificationBuilder {
         return this;
     }
 
+    public NotificationBuilder showBalloon() {
+        this.showBalloon = true;
+        return this;
+    }
+
+    public NotificationBuilder hideBalloon() {
+        this.showBalloon = false;
+        return this;
+    }
+
     protected Notification get() {
-        return new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type, listener.orNull());
+        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type, listener.orNull());
+        if (!showBalloon) {
+            notification.expire();
+        }
+        return notification;
     }
 
     protected Project getProject() {

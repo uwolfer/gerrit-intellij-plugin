@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.urswolfer.intellij.plugin.gerrit</groupId>
   <artifactId>gerrit-intellij-plugin</artifactId>
-  <version>0.8.1</version>
+  <version>0.9.0-SNAPSHOT</version>
 
   <name>gerrit-intellij-plugin</name>
   <description>Gerrit Code Review Tool for IntelliJ.
@@ -137,6 +137,10 @@
           <include>META-INF/plugin.xml</include>
           <include>icons/</include>
         </includes>
+        <filtering>true</filtering>
+      </resource>
+      <resource>
+        <directory>gerrit-rest-java-client/src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
     </resources>

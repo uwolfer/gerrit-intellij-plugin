@@ -27,6 +27,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 
 /**
  * @author Urs Wolfer
@@ -37,6 +38,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
     private final ReviewCommentSink reviewCommentSink;
+    private final SelectedRevisions selectedRevisions;
     private final ChangeInfo changeInfo;
     private final ReviewInput.CommentInput comment;
     private final RangeHighlighter lineHighlighter;
@@ -45,6 +47,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
     public RemoveCommentAction(CommentsDiffTool commentsDiffTool,
                                Editor editor,
                                ReviewCommentSink reviewCommentSink,
+                               SelectedRevisions selectedRevisions,
                                ChangeInfo changeInfo,
                                ReviewInput.CommentInput comment,
                                RangeHighlighter lineHighlighter,
@@ -52,6 +55,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
         super("Remove", "Remove selected comment", AllIcons.Actions.Delete);
 
         this.commentsDiffTool = commentsDiffTool;
+        this.selectedRevisions = selectedRevisions;
         this.comment = comment;
         this.reviewCommentSink = reviewCommentSink;
         this.changeInfo = changeInfo;
@@ -62,7 +66,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        reviewCommentSink.removeCommentForChange(changeInfo.id, comment);
+        reviewCommentSink.removeCommentForChange(changeInfo.id, selectedRevisions.get(changeInfo), comment);
         Project project = e.getData(PlatformDataKeys.PROJECT);
         commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
     }

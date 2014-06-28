@@ -43,8 +43,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
-import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -140,30 +140,31 @@ public class GerritUtil {
             public Void apply(Void aVoid) {
                 try {
                     gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
+                    return null;
                 } catch (RestApiException e) {
-                    notifyError(e, "Failed to post Gerrit review.", project);
+                    throw Throwables.propagate(e);
                 }
-                return null;
             }
         };
-        accessGerrit(function, consumer, project);
+        accessGerrit(function, consumer, project, "Failed to post Gerrit review.");
     }
 
     public void postSubmit(final String changeId,
                            final SubmitInput submitInput,
-                           final Project project) {
+                           final Project project,
+                           final Consumer<Void> consumer) {
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public Void apply(Void aVoid) {
                 try {
                     gerritClient.changes().id(changeId).current().submit(submitInput);
+                    return null;
                 } catch (RestApiException e) {
-                    notifyError(e, "Failed to submit Gerrit change.", project);
+                    throw Throwables.propagate(e);
                 }
-                return null;
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project);
+        accessGerrit(function, consumer, project, "Failed to submit Gerrit change.");
     }
 
     public void postAbandon(final String changeId,
@@ -174,13 +175,13 @@ public class GerritUtil {
             public Void apply(Void aVoid) {
                 try {
                     gerritClient.changes().id(changeId).abandon(abandonInput);
+                    return null;
                 } catch (RestApiException e) {
-                    notifyError(e, "Failed to abandon Gerrit change.", project);
+                    throw Throwables.propagate(e);
                 }
-                return null;
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project);
+        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
     }
 
     /**
@@ -198,14 +199,14 @@ public class GerritUtil {
                     } else {
                         gerritClient.accounts().self().unstarChange(id);
                     }
+                    return null;
                 } catch (RestApiException e) {
-                    notifyError(e, "Failed to star Gerrit change." +
-                            "<br/>Not supported for Gerrit instances older than version 2.8.", project);
+                    throw Throwables.propagate(e);
                 }
-                return null;
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project);
+        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change." +
+                "<br/>Not supported for Gerrit instances older than version 2.8.");
     }
 
     public void setReviewed(final String changeId,
@@ -218,13 +219,13 @@ public class GerritUtil {
             public Void apply(Void aVoid) {
                 try {
                     gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath);
+                    return null;
                 } catch (RestApiException e) {
-                    notifyError(e, "Failed set file review status for Gerrit change.", project);
+                    throw Throwables.propagate(e);
                 }
-                return null;
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project);
+        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
@@ -244,7 +245,7 @@ public class GerritUtil {
             public List<ChangeInfo> apply(Void aVoid) {
                 try {
                     return gerritClient.changes().query(query)
-                            .withOption(ListChangesOption.LABELS)
+                            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS))
                             .get();
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
@@ -333,7 +334,7 @@ public class GerritUtil {
             public ChangeInfo apply(Void aVoid) {
                 try {
                     EnumSet<ListChangesOption> options = EnumSet.of(
-                            ListChangesOption.CURRENT_REVISION,
+                            ListChangesOption.ALL_REVISIONS,
                             ListChangesOption.MESSAGES,
                             ListChangesOption.LABELS,
                             ListChangesOption.DETAILED_LABELS);
@@ -449,7 +450,11 @@ public class GerritUtil {
 
     public FetchInfo getFirstFetchInfo(ChangeInfo changeDetails) {
         RevisionInfo currentRevision = changeDetails.revisions.get(changeDetails.currentRevision);
-        return Iterables.getFirst(currentRevision.fetch.values(), null);
+        return getFirstFetchInfo(currentRevision);
+    }
+
+    public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {
+        return Iterables.getFirst(revisionInfo.fetch.values(), null);
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")
@@ -472,38 +477,58 @@ public class GerritUtil {
         return true;
     }
 
-    public String getErrorTextFromException(Exception e) {
-        String message = e.getMessage();
+    public String getErrorTextFromException(Throwable t) {
+        String message = t.getMessage();
         if (message == null) {
             message = "(No exception message available)";
-            log.error(message, e);
+            log.error(message, t);
         }
         return message;
     }
 
     private void accessGerrit(final Function<Void, Object> function, final Consumer consumer, final Project project) {
+        accessGerrit(function, consumer, project, null);
+    }
+
+    /**
+     * @param errorMessage if the provided function throws an exception, this error message is displayed (if it is not null)
+     *                     and the provided consumer will not be executed.
+     */
+    private void accessGerrit(final Function<Void, Object> function,
+                              final Consumer consumer,
+                              final Project project,
+                              final String errorMessage) {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
                 gerritSettings.preloadPassword();
-                (new Task.Backgroundable(project, "Accessing Gerrit", true) {
+                Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
                     public void run(@NotNull ProgressIndicator indicator) {
-                        final Object result = function.apply(null);
-                        ApplicationManager.getApplication().invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                //noinspection unchecked
-                                consumer.consume(result);
+                        try {
+                            final Object result = function.apply(null);
+                            ApplicationManager.getApplication().invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //noinspection unchecked
+                                    consumer.consume(result);
+                                }
+                            });
+                        } catch (RuntimeException e) {
+                            if (errorMessage != null) {
+                                notifyError(e, errorMessage, project);
+                            } else {
+                                throw e;
                             }
-                        });
+                        }
                     }
-                }).queue();
+                };
+                backgroundTask.queue();
             }
         });
     }
 
-    private void notifyError(Exception exception, String errorMessage, Project project) {
-        NotificationBuilder notification = new NotificationBuilder(project, errorMessage, getErrorTextFromException(exception));
+    private void notifyError(Throwable throwable, String errorMessage, Project project) {
+        NotificationBuilder notification = new NotificationBuilder(project, errorMessage, getErrorTextFromException(throwable));
         notificationService.notifyError(notification);
     }
 

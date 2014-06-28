@@ -35,6 +35,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
@@ -59,15 +60,21 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Urs Wolfer
  */
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
-
-    @Inject
-    private ReviewCommentSink reviewCommentSink;
+    private final ReviewCommentSink reviewCommentSink;
+    private final SelectedRevisions selectedRevisions;
+    private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
     private GerritToolWindow gerritToolWindow;
 
-    public GerritChangeListPanel() {
+    @Inject
+    public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
+                                 final SelectedRevisions selectedRevisions,
+                                 GerritSelectRevisionInfoColumn selectRevisionInfoColumn) {
+        this.reviewCommentSink = reviewCommentSink;
+        this.selectedRevisions = selectedRevisions;
+        this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>() {
@@ -78,8 +85,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component component = super.prepareRenderer(renderer, row, column);
                 if (!isRowSelected(row) ) {
+                    ChangeInfo changeInfo = this.getRow(row);
                     Iterable<ReviewInput.CommentInput> commentInputs = GerritChangeListPanel.this.reviewCommentSink
-                            .getCommentsForChange(this.getRow(row).id);
+                            .getCommentsForChange(changeInfo.id, selectedRevisions.get(changeInfo));
                     if (!Iterables.isEmpty(commentInputs)) {
                         component.setForeground(JBColor.BLUE);
                     } else {
@@ -163,6 +171,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         this.changes.addAll(changes);
         updateModel();
         table.repaint();
+        selectedRevisions.clear();
     }
 
     public void registerChangeListPanel(GerritToolWindow gerritToolWindow) {
@@ -196,6 +205,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                         return getHash(change);
                     }
                 },
+                selectRevisionInfoColumn,
                 new ColumnInfo<ChangeInfo, String>("Subject") {
                     @Override
                     public String valueOf(ChangeInfo change) {
@@ -424,5 +434,4 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             return Git4ideaIcons.Star.getIconWidth();
         }
     }
-
 }

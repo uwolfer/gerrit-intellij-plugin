@@ -17,7 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.inject.Inject;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -29,8 +28,6 @@ import javax.swing.*;
  */
 public class ReviewActionFactory {
     @Inject
-    private ReviewCommentSink reviewCommentSink;
-    @Inject
     private GerritUtil gerritUtil;
     @Inject
     private SubmitAction submitAction;
@@ -41,6 +38,6 @@ public class ReviewActionFactory {
 
     public ReviewAction get(String label, int rating, Icon icon, boolean showDialog) {
         return new ReviewAction(label, rating, icon, showDialog,
-                reviewCommentSink, selectedRevisions, gerritUtil, submitAction, notificationService);
+                selectedRevisions, gerritUtil, submitAction, notificationService);
     }
 }

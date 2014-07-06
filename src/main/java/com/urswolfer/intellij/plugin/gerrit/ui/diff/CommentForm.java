@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.common.Comment;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
@@ -46,17 +46,17 @@ public class CommentForm extends JPanel {
     private final Editor editor;
     private final String filePath;
     private final Comment.Side commentSide;
-    private final ReviewInput.CommentInput commentToEdit;
+    private final Comment commentToEdit;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
-    private ReviewInput.CommentInput commentInput;
+    private DraftInput commentInput;
 
     public CommentForm(Project project,
                        Editor editor,
                        String filePath,
                        Comment.Side commentSide,
-                       ReviewInput.CommentInput commentToEdit) {
+                       Comment commentToEdit) {
         super(new BorderLayout());
 
         this.filePath = filePath;
@@ -85,8 +85,8 @@ public class CommentForm extends JPanel {
         }
     }
 
-    private ReviewInput.CommentInput createComment() {
-        ReviewInput.CommentInput comment = new ReviewInput.CommentInput();
+    private DraftInput createComment() {
+        DraftInput comment = new DraftInput();
 
         comment.message = getText();
         comment.path = filePath;
@@ -122,7 +122,7 @@ public class CommentForm extends JPanel {
         this.balloon = balloon;
     }
 
-    public ReviewInput.CommentInput getComment() {
+    public DraftInput getComment() {
         return commentInput;
     }
 

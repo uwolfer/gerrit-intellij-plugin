@@ -21,7 +21,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
@@ -46,7 +45,6 @@ import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
@@ -77,8 +75,6 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private DataManager dataManager;
     @Inject
     private AddCommentActionBuilder addCommentActionBuilder;
-    @Inject
-    private ReviewCommentSink reviewCommentSink;
     @Inject
     private PathUtils pathUtils;
     @Inject
@@ -120,12 +116,10 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
-        addDraftComments(diffPanel, relativeFilePath);
-
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                gerritUtil.getComments(changeDetails.id, selectedRevisionId, project,
+                gerritUtil.getComments(changeDetails.id, selectedRevisionId, project, true, true,
                         new Consumer<Map<String, List<CommentInfo>>>() {
                             @Override
                             public void consume(Map<String, List<CommentInfo>> comments) {
@@ -151,7 +145,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                 );
 
                 if (baseRevision.isPresent()) {
-                    gerritUtil.getComments(changeDetails.id, baseRevision.get().getFirst(), project, new Consumer<Map<String, List<CommentInfo>>>() {
+                    gerritUtil.getComments(changeDetails.id, baseRevision.get().getFirst(), project, true, true,
+                            new Consumer<Map<String, List<CommentInfo>>>() {
                         @Override
                         public void consume(Map<String, List<CommentInfo>> comments) {
                             List<CommentInfo> fileComments = comments.get(relativeFilePath);
@@ -171,23 +166,6 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                         relativeFilePath, project);
             }
         });
-    }
-
-    private void addDraftComments(DiffPanelImpl diffPanel, String relativeFilePath) {
-        List<Comment> draftComments = Lists.newArrayList();
-        Iterable<ReviewInput.CommentInput> commentInputsFromSink = reviewCommentSink.getCommentsForChange(changeInfo.id, selectedRevisionId);
-        for (ReviewInput.CommentInput commentInput : commentInputsFromSink) {
-            if (commentInput.path.equals(relativeFilePath)) {
-                draftComments.add(commentInput);
-            }
-        }
-        addCommentsGutter(diffPanel.getEditor2(), relativeFilePath, selectedRevisionId, Iterables.filter(draftComments, REVISION_COMMENT));
-        if (!baseRevision.isPresent()) {
-            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, selectedRevisionId, Iterables.filter(draftComments, Predicates.not(REVISION_COMMENT)));
-        } else {
-            Iterable<ReviewInput.CommentInput> baseRevisionDrafts = reviewCommentSink.getCommentsForChange(changeInfo.id, baseRevision.get().getFirst());
-            addCommentsGutter(diffPanel.getEditor1(), relativeFilePath, baseRevision.get().getFirst(), Iterables.filter(baseRevisionDrafts, REVISION_COMMENT));
-        }
     }
 
     private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
@@ -216,9 +194,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private void addCommentsGutter(Editor editor,
                                    String filePath,
                                    String revisionId,
-                                   Iterable<? extends Comment> fileComments) {
+                                   Iterable<CommentInfo> fileComments) {
 
-        for (Comment fileComment : fileComments) {
+        for (CommentInfo fileComment : fileComments) {
             fileComment.path = filePath;
             addComment(editor, changeInfo, revisionId, project, fileComment);
         }
@@ -245,7 +223,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         if (line >= 0) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                    this, editor, reviewCommentSink, selectedRevisions, addCommentActionBuilder,
+                    this, editor, gerritUtil, selectedRevisions, addCommentActionBuilder,
                     comment, changeInfo, revisionId, highlighter, rangeHighlighter);
             highlighter.setGutterIconRenderer(iconRenderer);
         }

@@ -85,6 +85,7 @@
             <li>show commit message as a file in changes browser</li>
             <li>add support to select diff base in change browser (patch sets can be diffed against each other)</li>
             <li>show comments and comment drafts count in changes browser</li>
+            <li>save draft comments in Gerrit (available now after IntelliJ restart and in web UI)</li>
             <li>improve notification and error handling for review and submit action</li>
             <li>find Git repository if Git remote name equals Gerrit project name</li>
             <li>many minor fixes and improvements</li>

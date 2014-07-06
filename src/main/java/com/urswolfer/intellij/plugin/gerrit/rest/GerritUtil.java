@@ -23,10 +23,9 @@ import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.changes.AbandonInput;
-import com.google.gerrit.extensions.api.changes.ReviewInput;
-import com.google.gerrit.extensions.api.changes.SubmitInput;
+import com.google.gerrit.extensions.api.changes.*;
 import com.google.gerrit.extensions.common.*;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
@@ -218,7 +217,7 @@ public class GerritUtil {
             @Override
             public Void apply(Void aVoid) {
                 try {
-                    gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath);
+                    gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath, true);
                     return null;
                 } catch (RestApiException e) {
                     throw Throwables.propagate(e);
@@ -364,13 +363,38 @@ public class GerritUtil {
     public void getComments(final String changeId,
                             final String revision,
                             final Project project,
+                            final boolean includePublishedComments,
+                            final boolean includeDraftComments,
                             final Consumer<Map<String, List<CommentInfo>>> consumer) {
 
         Function<Void, Object> function = new Function<Void, Object>() {
             @Override
             public Map<String, List<CommentInfo>> apply(Void aVoid) {
                 try {
-                    return gerritClient.changes().id(changeId).revision(revision).getComments();
+                    Map<String, List<CommentInfo>> comments;
+                    if (includePublishedComments) {
+                        comments = gerritClient.changes().id(changeId).revision(revision).comments();
+                    } else {
+                        comments = Maps.newHashMap();
+                    }
+
+                    Map<String, List<CommentInfo>> drafts;
+                    if (includeDraftComments) {
+                        drafts = gerritClient.changes().id(changeId).revision(revision).drafts();
+                    } else {
+                        drafts = Maps.newHashMap();
+                    }
+
+                    HashMap<String, List<CommentInfo>> allComments = new HashMap<String, List<CommentInfo>>(drafts);
+                    for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
+                        List<CommentInfo> commentInfos = allComments.get(entry.getKey());
+                        if (commentInfos != null) {
+                            commentInfos.addAll(entry.getValue());
+                        } else {
+                            allComments.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    return allComments;
                 } catch (RestApiException e) {
                     // remove check once we drop Gerrit < 2.7 support and fail in any case
                     if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
@@ -381,6 +405,52 @@ public class GerritUtil {
             }
         };
         accessGerrit(function, consumer, project);
+    }
+
+    public void saveDraftComment(final int changeNr,
+                                 final String revision,
+                                 final DraftInput draftInput,
+                                 final Project project,
+                                 final Consumer<CommentInfo> consumer) {
+        Function<Void, Object> function = new Function<Void, Object>() {
+            @Override
+            public CommentInfo apply(Void aVoid) {
+                try {
+                    CommentInfo commentInfo;
+                    if (draftInput.id != null) {
+                        commentInfo = gerritClient.changes().id(changeNr).revision(revision)
+                                .draft(draftInput.id).update(draftInput);
+                    } else {
+                        DraftApi draftApi = gerritClient.changes().id(changeNr).revision(revision)
+                                .createDraft(draftInput);
+                        commentInfo = draftApi.get();
+                    }
+                    return commentInfo;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(function, consumer, project, "Failed to save draft comment.");
+    }
+
+    public void deleteDraftComment(final int changeNr,
+                                   final String revision,
+                                   final String draftCommentId,
+                                   final Project project,
+                                   final Consumer<Void> consumer) {
+        Function<Void, Object> function = new Function<Void, Object>() {
+            @Override
+            public Void apply(Void aVoid) {
+                try {
+                    gerritClient.changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(function, consumer, project, "Failed to delete draft comment.");
     }
 
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {

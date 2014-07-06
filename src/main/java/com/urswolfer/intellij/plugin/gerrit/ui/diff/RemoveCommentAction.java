@@ -16,16 +16,19 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.Comment;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
+import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
  * @author Urs Wolfer
@@ -35,19 +38,19 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
 
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
-    private final ReviewCommentSink reviewCommentSink;
+    private final GerritUtil gerritUtil;
     private final SelectedRevisions selectedRevisions;
     private final ChangeInfo changeInfo;
-    private final ReviewInput.CommentInput comment;
+    private final Comment comment;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
 
     public RemoveCommentAction(CommentsDiffTool commentsDiffTool,
                                Editor editor,
-                               ReviewCommentSink reviewCommentSink,
+                               GerritUtil gerritUtil,
                                SelectedRevisions selectedRevisions,
                                ChangeInfo changeInfo,
-                               ReviewInput.CommentInput comment,
+                               Comment comment,
                                RangeHighlighter lineHighlighter,
                                RangeHighlighter rangeHighlighter) {
         super("Remove", "Remove selected comment", AllIcons.Actions.Delete);
@@ -55,7 +58,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
         this.commentsDiffTool = commentsDiffTool;
         this.selectedRevisions = selectedRevisions;
         this.comment = comment;
-        this.reviewCommentSink = reviewCommentSink;
+        this.gerritUtil = gerritUtil;
         this.changeInfo = changeInfo;
         this.lineHighlighter = lineHighlighter;
         this.editor = editor;
@@ -64,7 +67,13 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        reviewCommentSink.removeCommentForChange(changeInfo.id, selectedRevisions.get(changeInfo), comment);
-        commentsDiffTool.removeComment(editor, lineHighlighter, rangeHighlighter);
+        Project project = e.getData(PlatformDataKeys.PROJECT);
+        gerritUtil.deleteDraftComment(changeInfo._number, selectedRevisions.get(changeInfo), comment.id, project,
+                new Consumer<Void>() {
+                    @Override
+                    public void consume(Void aVoid) {
+                        commentsDiffTool.removeComment(editor, lineHighlighter, rangeHighlighter);
+                    }
+                });
     }
 }

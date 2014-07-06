@@ -119,6 +119,9 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
         if (replyToComment != null) {
             comment.inReplyTo = replyToComment.id;
+            comment.side = replyToComment.side;
+            comment.line = replyToComment.line;
+            comment.range = replyToComment.range;
         }
 
         gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,

@@ -226,6 +226,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {
+        if (candidate == null) {
+            return current;
+        }
         int width = table.getFontMetrics(table.getFont()).stringWidth(candidate);
         if (width > current.width) {
             return new ItemAndWidth(candidate, width);

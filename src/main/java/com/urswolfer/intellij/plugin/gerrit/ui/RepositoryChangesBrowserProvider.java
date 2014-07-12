@@ -40,7 +40,6 @@ import com.intellij.ui.SideBorder;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
@@ -65,8 +64,6 @@ import java.util.concurrent.Callable;
  */
 public class RepositoryChangesBrowserProvider {
     @Inject
-    private ReviewCommentSink reviewCommentSink;
-    @Inject
     private GerritGitUtil gerritGitUtil;
     @Inject
     private GerritUtil gerritUtil;
@@ -90,13 +87,6 @@ public class RepositoryChangesBrowserProvider {
         changesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
         changesBrowser.getViewer().setScrollPaneBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
         changesBrowser.getViewer().setChangeDecorator(changesBrowser.getChangeNodeDecorator());
-
-        reviewCommentSink.addObserver(new Observer() {
-            @Override
-            public void update(Observable o, Object arg) {
-                changesBrowser.repaint();
-            }
-        });
 
         changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
             @Override
@@ -139,7 +129,6 @@ public class RepositoryChangesBrowserProvider {
             super.calcData(key, sink);
             sink.put(GerritDataKeys.CHANGE, selectedChange);
             sink.put(GerritDataKeys.BASE_REVISION, baseRevision);
-            sink.put(GerritDataKeys.REVIEW_COMMENT_SINK, reviewCommentSink);
         }
 
         @Override

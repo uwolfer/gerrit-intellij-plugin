@@ -17,10 +17,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.*;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
@@ -30,7 +28,6 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
@@ -46,8 +43,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
     @Inject
-    private ReviewCommentSink reviewCommentSink;
-    @Inject
     private GerritApi gerritApi;
     @Inject
     private PathUtils pathUtils;
@@ -56,6 +51,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private ChangeInfo selectedChange;
     private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
+    private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
 
     @Inject
     public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
@@ -66,6 +62,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                 if (arg != null && arg instanceof String) {
                     if (selectedChange.changeId.equals(arg)) {
                         comments = setupCommentsSupplier();
+                        drafts = setupDraftsSupplier();
                     }
                 }
             }
@@ -74,10 +71,9 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     @Override
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
-        Map<String, List<CommentInfo>> commentsMap = comments.get();
         String affectedFilePath = getAffectedFilePath(change);
         if (affectedFilePath != null) {
-            String text = getNodeSuffix(project, selectedChange, commentsMap, affectedFilePath);
+            String text = getNodeSuffix(project, affectedFilePath);
             if (!Strings.isNullOrEmpty(text)) {
                 component.append(String.format(" (%s)", text), SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
                 component.repaint();
@@ -89,6 +85,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     public void onChangeSelected(Project project, ChangeInfo selectedChange) {
         this.selectedChange = selectedChange;
         comments = setupCommentsSupplier();
+        drafts = setupDraftsSupplier();
     }
 
     private String getAffectedFilePath(Change change) {
@@ -103,34 +100,23 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return null;
     }
 
-    private String getNodeSuffix(Project project,
-                                 ChangeInfo selectedChange,
-                                 Map<String, List<CommentInfo>> commentsMap,
-                                 String affectedFilePath) {
-        final String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
-        List<CommentInfo> commentsForFile = commentsMap.get(fileName);
-        Iterable<ReviewInput.CommentInput> drafts = getCommentsForFile(selectedChange, fileName);
+    private String getNodeSuffix(Project project, String affectedFilePath) {
+        String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
         List<String> parts = Lists.newArrayList();
+
+        Map<String, List<CommentInfo>> commentsMap = comments.get();
+        List<CommentInfo> commentsForFile = commentsMap.get(fileName);
         if (commentsForFile != null) {
             parts.add(String.format("%s comment%s", commentsForFile.size(), commentsForFile.size() == 1 ? "" : "s"));
         }
-        if (!Iterables.isEmpty(drafts)) {
-            int numDrafts = Iterables.size(drafts);
-            parts.add(String.format("%s draft%s", numDrafts, numDrafts == 1 ? "" : "s"));
-        }
-        return SUFFIX_JOINER.join(parts);
-    }
 
-    private Iterable<ReviewInput.CommentInput> getCommentsForFile(ChangeInfo selectedChange, final String fileName) {
-        return Iterables.filter(
-                reviewCommentSink.getCommentsForChange(selectedChange.id, getSelectedRevisionId()),
-                new Predicate<ReviewInput.CommentInput>() {
-                    @Override
-                    public boolean apply(ReviewInput.CommentInput commentInput) {
-                        return commentInput.path.equals(fileName);
-                    }
-                }
-        );
+        Map<String, List<CommentInfo>> draftsMap = drafts.get();
+        List<CommentInfo> draftsForFile = draftsMap.get(fileName);
+        if (draftsForFile != null) {
+            parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
+        }
+
+        return SUFFIX_JOINER.join(parts);
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
@@ -145,7 +131,23 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     return gerritApi.changes()
                             .id(selectedChange.id)
                             .revision(getSelectedRevisionId())
-                            .getComments();
+                            .comments();
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        });
+    }
+
+    private Supplier<Map<String, List<CommentInfo>>> setupDraftsSupplier() {
+        return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
+            @Override
+            public Map<String, List<CommentInfo>> get() {
+                try {
+                    return gerritApi.changes()
+                            .id(selectedChange.id)
+                            .revision(getSelectedRevisionId())
+                            .drafts();
                 } catch (RestApiException e) {
                     throw Throwables.propagate(e);
                 }

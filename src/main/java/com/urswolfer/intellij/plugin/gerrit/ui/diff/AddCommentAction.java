@@ -16,9 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -29,8 +30,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
 
@@ -45,14 +46,13 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
     private final Editor editor;
     private final CommentsDiffTool commentsDiffTool;
-    private final ReviewCommentSink reviewCommentSink;
-    private final SelectedRevisions selectedRevisions;
+    private final GerritUtil gerritUtil;
     private final ChangeInfo changeInfo;
     private final String revisionId;
     private final String filePath;
     private final CommentBalloonBuilder commentBalloonBuilder;
     private final Comment.Side commentSide;
-    private final ReviewInput.CommentInput commentToEdit;
+    private final Comment commentToEdit;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
     private final Comment replyToComment;
@@ -60,23 +60,21 @@ public class AddCommentAction extends AnAction implements DumbAware {
     public AddCommentAction(String label,
                             Icon icon,
                             CommentsDiffTool commentsDiffTool,
-                            ReviewCommentSink reviewCommentSink,
+                            GerritUtil gerritUtil,
                             Editor editor,
-                            SelectedRevisions selectedRevisions,
                             CommentBalloonBuilder commentBalloonBuilder,
                             ChangeInfo changeInfo,
                             String revisionId,
                             String filePath,
                             Comment.Side commentSide,
-                            ReviewInput.CommentInput commentToEdit,
+                            Comment commentToEdit,
                             RangeHighlighter lineHighlighter,
                             RangeHighlighter rangeHighlighter,
                             Comment replyToComment) {
         super(label, null, icon);
 
         this.commentsDiffTool = commentsDiffTool;
-        this.reviewCommentSink = reviewCommentSink;
-        this.selectedRevisions = selectedRevisions;
+        this.gerritUtil = gerritUtil;
         this.changeInfo = changeInfo;
         this.revisionId = revisionId;
         this.filePath = filePath;
@@ -103,7 +101,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
         balloon.addListener(new JBPopupAdapter() {
             @Override
             public void onClosed(LightweightWindowEvent event) {
-                ReviewInput.CommentInput comment = commentForm.getComment();
+                DraftInput comment = commentForm.getComment();
                 if (comment != null) {
                     handleComment(comment, project);
                 }
@@ -114,17 +112,27 @@ public class AddCommentAction extends AnAction implements DumbAware {
         commentForm.requestFocus();
     }
 
-    private void handleComment(ReviewInput.CommentInput comment, Project project) {
+    private void handleComment(final DraftInput comment, final Project project) {
         if (commentToEdit != null) {
-            reviewCommentSink.removeCommentForChange(changeInfo.id, selectedRevisions.get(changeInfo), commentToEdit);
-            commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+            comment.id = commentToEdit.id;
         }
 
         if (replyToComment != null) {
             comment.inReplyTo = replyToComment.id;
+            comment.side = replyToComment.side;
+            comment.line = replyToComment.line;
+            comment.range = replyToComment.range;
         }
 
-        reviewCommentSink.addComment(changeInfo.id, revisionId, comment);
-        commentsDiffTool.addComment(editor, changeInfo, revisionId, project, comment);
+        gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,
+                new Consumer<CommentInfo>() {
+                    @Override
+                    public void consume(CommentInfo commentInfo) {
+                        if (commentToEdit != null) {
+                            commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+                        }
+                        commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo);
+                    }
+                });
     }
 }

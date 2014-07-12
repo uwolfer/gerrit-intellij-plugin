@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -30,7 +31,6 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
@@ -51,7 +51,6 @@ public class ReviewAction extends AbstractChangeAction {
     public static final String CODE_REVIEW = "Code-Review";
     public static final String VERIFIED = "Verified";
 
-    private ReviewCommentSink reviewCommentSink;
     private SelectedRevisions selectedRevisions;
     private SubmitAction submitAction;
     private NotificationService notificationService;
@@ -64,7 +63,6 @@ public class ReviewAction extends AbstractChangeAction {
                         int rating,
                         Icon icon,
                         boolean showDialog,
-                        ReviewCommentSink reviewCommentSink,
                         SelectedRevisions selectedRevisions,
                         GerritUtil gerritUtil,
                         SubmitAction submitAction,
@@ -74,7 +72,6 @@ public class ReviewAction extends AbstractChangeAction {
         this.rating = rating;
         this.showDialog = showDialog;
         this.gerritUtil = gerritUtil;
-        this.reviewCommentSink = reviewCommentSink;
         this.selectedRevisions = selectedRevisions;
         this.submitAction = submitAction;
         this.notificationService = notificationService;
@@ -88,16 +85,18 @@ public class ReviewAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
+        final ChangeInfo changeDetails = selectedChange.get();
+        gerritUtil.getComments(changeDetails.id, selectedRevisions.get(changeDetails), project, false, true,
+                new Consumer<Map<String, List<CommentInfo>>>() {
             @Override
-            public void consume(final ChangeInfo changeDetails) {
+            public void consume(Map<String, List<CommentInfo>> draftComments) {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.label(label, rating);
 
-                Iterable<ReviewInput.CommentInput> commentInputs = reviewCommentSink
-                        .getCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
-                for (ReviewInput.CommentInput commentInput : commentInputs) {
-                    addComment(reviewInput, commentInput.path, commentInput);
+                for (Map.Entry<String, List<CommentInfo>> entry : draftComments.entrySet()) {
+                    for (CommentInfo commentInfo : entry.getValue()) {
+                        addComment(reviewInput, entry.getKey(), commentInfo);
+                    }
                 }
 
                 boolean submitChange = false;
@@ -126,7 +125,6 @@ public class ReviewAction extends AbstractChangeAction {
                         new Consumer<Void>() {
                             @Override
                             public void consume(Void result) {
-                                reviewCommentSink.removeCommentsForChange(changeDetails.id, selectedRevisions.get(changeDetails));
                                 NotificationBuilder notification = new NotificationBuilder(
                                         project, "Review posted",
                                         buildSuccessMessage(changeDetails, reviewInput))
@@ -142,7 +140,7 @@ public class ReviewAction extends AbstractChangeAction {
         });
     }
 
-    private void addComment(ReviewInput reviewInput, String path, ReviewInput.CommentInput comment) {
+    private void addComment(ReviewInput reviewInput, String path, CommentInfo comment) {
         List<ReviewInput.CommentInput> commentInputs;
         Map<String, List<ReviewInput.CommentInput>> comments = reviewInput.comments;
         if (comments == null) {
@@ -155,7 +153,18 @@ public class ReviewAction extends AbstractChangeAction {
             commentInputs = Lists.newArrayList();
             comments.put(path, commentInputs);
         }
-        commentInputs.add(comment);
+
+        ReviewInput.CommentInput commentInput = new ReviewInput.CommentInput();
+        commentInput.id = comment.id;
+        commentInput.path = comment.path;
+        commentInput.side = comment.side;
+        commentInput.line = comment.line;
+        commentInput.range = comment.range;
+        commentInput.inReplyTo = comment.inReplyTo;
+        commentInput.updated = comment.updated;
+        commentInput.message = comment.message;
+
+        commentInputs.add(commentInput);
     }
 
     private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {

@@ -17,15 +17,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vcs.VcsDataKeys;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.table.TableView;
@@ -34,7 +31,6 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import icons.Git4ideaIcons;
@@ -60,7 +56,6 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Urs Wolfer
  */
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
-    private final ReviewCommentSink reviewCommentSink;
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
 
@@ -69,34 +64,13 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private GerritToolWindow gerritToolWindow;
 
     @Inject
-    public GerritChangeListPanel(ReviewCommentSink reviewCommentSink,
-                                 final SelectedRevisions selectedRevisions,
+    public GerritChangeListPanel(SelectedRevisions selectedRevisions,
                                  GerritSelectRevisionInfoColumn selectRevisionInfoColumn) {
-        this.reviewCommentSink = reviewCommentSink;
         this.selectedRevisions = selectedRevisions;
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.changes = Lists.newArrayList();
 
-        this.table = new TableView<ChangeInfo>() {
-            /**
-             * Renderer marks changes with reviews pending to submit with changed color.
-             */
-            @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component component = super.prepareRenderer(renderer, row, column);
-                if (!isRowSelected(row) ) {
-                    ChangeInfo changeInfo = this.getRow(row);
-                    Iterable<ReviewInput.CommentInput> commentInputs = GerritChangeListPanel.this.reviewCommentSink
-                            .getCommentsForChange(changeInfo.id, selectedRevisions.get(changeInfo));
-                    if (!Iterables.isEmpty(commentInputs)) {
-                        component.setForeground(JBColor.BLUE);
-                    } else {
-                        component.setForeground(JBColor.BLACK);
-                    }
-                }
-                return component;
-            }
-        };
+        this.table = new TableView<ChangeInfo>();
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
@@ -252,6 +226,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {
+        if (candidate == null) {
+            return current;
+        }
         int width = table.getFontMetrics(table.getFont()).stringWidth(candidate);
         if (width > current.width) {
             return new ItemAndWidth(candidate, width);

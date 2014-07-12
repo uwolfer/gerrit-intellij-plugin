@@ -1,13 +1,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
 
@@ -18,9 +16,7 @@ public class AddCommentActionBuilder {
     @Inject
     private CommentBalloonBuilder commentBalloonBuilder;
     @Inject
-    private ReviewCommentSink reviewCommentSink;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private GerritUtil gerritUtil;
 
     public Builder create(CommentsDiffTool commentsDiffTool,
                           ChangeInfo changeInfo,
@@ -40,7 +36,7 @@ public class AddCommentActionBuilder {
         private Editor editor;
         private String filePath;
         private Comment.Side commentSide;
-        private ReviewInput.CommentInput commentToEdit;
+        private Comment commentToEdit;
         private RangeHighlighter lineHighlighter;
         private RangeHighlighter rangeHighlighter;
         private Comment replyToComment;
@@ -70,7 +66,7 @@ public class AddCommentActionBuilder {
             return this;
         }
 
-        public Builder update(ReviewInput.CommentInput commentToEdit,
+        public Builder update(Comment commentToEdit,
                               RangeHighlighter lineHighlighter,
                               RangeHighlighter rangeHighlighter) {
             this.commentToEdit = commentToEdit;
@@ -85,7 +81,7 @@ public class AddCommentActionBuilder {
         }
 
         public AddCommentAction get() {
-            return new AddCommentAction(text, icon, commentsDiffTool, reviewCommentSink, editor, selectedRevisions, commentBalloonBuilder,
+            return new AddCommentAction(text, icon, commentsDiffTool, gerritUtil, editor, commentBalloonBuilder,
                     changeInfo, revisionId, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
         }
     }

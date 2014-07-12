@@ -62,7 +62,6 @@ public class GerritModule extends AbstractModule {
         setupSettingsProvider();
 
         bind(NotificationService.class);
-        bind(ReviewCommentSink.class).toInstance(new ReviewCommentSink()); // need this as a singleton in the system
         bind(SelectedRevisions.class).toInstance(new SelectedRevisions());
 
         bind(GerritGitUtil.class).asEagerSingleton();

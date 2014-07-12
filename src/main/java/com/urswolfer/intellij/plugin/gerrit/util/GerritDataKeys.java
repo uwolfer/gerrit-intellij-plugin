@@ -21,7 +21,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.util.Pair;
-import com.urswolfer.intellij.plugin.gerrit.ReviewCommentSink;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 
 /**
@@ -30,6 +29,5 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 public interface GerritDataKeys {
     DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
     DataKey<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = DataKey.create("gerrit.Change.BaseRevision");
-    DataKey<ReviewCommentSink> REVIEW_COMMENT_SINK = DataKey.create("gerrit.ReviewCommentSink");
     DataKey<GerritToolWindow> TOOL_WINDOW = DataKey.create("gerrit.ToolWindow");
 }

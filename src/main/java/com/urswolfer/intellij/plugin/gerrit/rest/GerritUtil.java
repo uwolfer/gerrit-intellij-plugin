@@ -17,10 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -134,9 +131,9 @@ public class GerritUtil {
                            final ReviewInput reviewInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
                     return null;
@@ -145,16 +142,16 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project, "Failed to post Gerrit review.");
+        accessGerrit(supplier, consumer, project, "Failed to post Gerrit review.");
     }
 
     public void postSubmit(final String changeId,
                            final SubmitInput submitInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     gerritClient.changes().id(changeId).current().submit(submitInput);
                     return null;
@@ -163,15 +160,15 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project, "Failed to submit Gerrit change.");
+        accessGerrit(supplier, consumer, project, "Failed to submit Gerrit change.");
     }
 
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
                             final Project project) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     gerritClient.changes().id(changeId).abandon(abandonInput);
                     return null;
@@ -180,7 +177,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
     }
 
     /**
@@ -189,9 +186,9 @@ public class GerritUtil {
     public void changeStarredStatus(final String id,
                                     final boolean starred,
                                     final Project project) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     if (starred) {
                         gerritClient.accounts().self().starChange(id);
@@ -204,7 +201,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change." +
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change." +
                 "<br/>Not supported for Gerrit instances older than version 2.8.");
     }
 
@@ -213,9 +210,9 @@ public class GerritUtil {
                             final String filePath,
                             final Project project) {
 
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath, true);
                     return null;
@@ -224,7 +221,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
@@ -239,9 +236,9 @@ public class GerritUtil {
     }
 
     public void getChanges(final String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<List<ChangeInfo>> supplier = new Supplier<List<ChangeInfo>>() {
             @Override
-            public List<ChangeInfo> apply(Void aVoid) {
+            public List<ChangeInfo> get() {
                 try {
                     return gerritClient.changes().query(query)
                             .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS))
@@ -252,7 +249,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project);
+        accessGerrit(supplier, consumer, project);
     }
 
     private String appendQueryStringForProject(Project project, String query) {
@@ -328,9 +325,9 @@ public class GerritUtil {
     }
 
     public void getChangeDetails(final int changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
             @Override
-            public ChangeInfo apply(Void aVoid) {
+            public ChangeInfo get() {
                 try {
                     EnumSet<ListChangesOption> options = EnumSet.of(
                             ListChangesOption.ALL_REVISIONS,
@@ -354,7 +351,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project);
+        accessGerrit(supplier, consumer, project);
     }
 
     /**
@@ -367,9 +364,9 @@ public class GerritUtil {
                             final boolean includeDraftComments,
                             final Consumer<Map<String, List<CommentInfo>>> consumer) {
 
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Map<String, List<CommentInfo>>> supplier = new Supplier<Map<String, List<CommentInfo>>>() {
             @Override
-            public Map<String, List<CommentInfo>> apply(Void aVoid) {
+            public Map<String, List<CommentInfo>> get() {
                 try {
                     Map<String, List<CommentInfo>> comments;
                     if (includePublishedComments) {
@@ -404,7 +401,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project);
+        accessGerrit(supplier, consumer, project);
     }
 
     public void saveDraftComment(final int changeNr,
@@ -412,9 +409,9 @@ public class GerritUtil {
                                  final DraftInput draftInput,
                                  final Project project,
                                  final Consumer<CommentInfo> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<CommentInfo> supplier = new Supplier<CommentInfo>() {
             @Override
-            public CommentInfo apply(Void aVoid) {
+            public CommentInfo get() {
                 try {
                     CommentInfo commentInfo;
                     if (draftInput.id != null) {
@@ -431,7 +428,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project, "Failed to save draft comment.");
+        accessGerrit(supplier, consumer, project, "Failed to save draft comment.");
     }
 
     public void deleteDraftComment(final int changeNr,
@@ -439,9 +436,9 @@ public class GerritUtil {
                                    final String draftCommentId,
                                    final Project project,
                                    final Consumer<Void> consumer) {
-        Function<Void, Object> function = new Function<Void, Object>() {
+        Supplier<Void> supplier = new Supplier<Void>() {
             @Override
-            public Void apply(Void aVoid) {
+            public Void get() {
                 try {
                     gerritClient.changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
                     return null;
@@ -450,7 +447,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(function, consumer, project, "Failed to delete draft comment.");
+        accessGerrit(supplier, consumer, project, "Failed to delete draft comment.");
     }
 
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
@@ -556,16 +553,16 @@ public class GerritUtil {
         return message;
     }
 
-    private void accessGerrit(final Function<Void, Object> function, final Consumer consumer, final Project project) {
-        accessGerrit(function, consumer, project, null);
+    private <T> void accessGerrit(final Supplier<T> supplier, final Consumer<T> consumer, final Project project) {
+        accessGerrit(supplier, consumer, project, null);
     }
 
     /**
-     * @param errorMessage if the provided function throws an exception, this error message is displayed (if it is not null)
+     * @param errorMessage if the provided supplier throws an exception, this error message is displayed (if it is not null)
      *                     and the provided consumer will not be executed.
      */
-    private void accessGerrit(final Function<Void, Object> function,
-                              final Consumer consumer,
+    private <T> void accessGerrit(final Supplier<T> supplier,
+                              final Consumer<T> consumer,
                               final Project project,
                               final String errorMessage) {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
@@ -575,7 +572,7 @@ public class GerritUtil {
                 Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {
-                            final Object result = function.apply(null);
+                            final T result = supplier.get();
                             ApplicationManager.getApplication().invokeLater(new Runnable() {
                                 @Override
                                 public void run() {

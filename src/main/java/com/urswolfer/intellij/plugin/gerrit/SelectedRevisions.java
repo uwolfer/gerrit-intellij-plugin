@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 
@@ -43,7 +44,14 @@ public class SelectedRevisions extends Observable {
      * @return the selected revision for the provided change info object
      */
     public String get(ChangeInfo changeInfo) {
-        return get(changeInfo.changeId).or(changeInfo.currentRevision);
+        String currentRevision = changeInfo.currentRevision;
+        if (currentRevision == null && changeInfo.revisions != null) {
+            // don't know why with some changes currentRevision is not set,
+            // the revisions map however is usually populated
+            currentRevision = Iterables.getLast(changeInfo.revisions.keySet());
+        }
+        assert currentRevision != null;
+        return get(changeInfo.changeId).or(currentRevision);
     }
 
     public void put(String changeId, String revisionHash) {

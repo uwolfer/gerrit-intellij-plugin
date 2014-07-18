@@ -21,6 +21,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import com.google.common.primitives.Longs;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
@@ -52,6 +54,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +69,14 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         @Override
         public boolean apply(Comment comment) {
             return comment.side == null || comment.side.equals(Comment.Side.REVISION);
+        }
+    };
+
+    private static final Ordering<Comment> COMMENT_ORDERING = new Ordering<Comment>() {
+        @Override
+        public int compare(Comment left, Comment right) {
+            // need to sort descending as icons are added to the left of existing icons
+            return -Longs.compare(left.updated.getTime(), right.updated.getTime());
         }
     };
 
@@ -150,6 +161,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                         @Override
                         public void consume(Map<String, List<CommentInfo>> comments) {
                             List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                            Collections.sort(fileComments, COMMENT_ORDERING);
                             if (fileComments != null) {
                                 addCommentsGutter(
                                         diffPanel.getEditor1(),
@@ -195,7 +207,6 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                                    String filePath,
                                    String revisionId,
                                    Iterable<CommentInfo> fileComments) {
-
         for (CommentInfo fileComment : fileComments) {
             fileComment.path = filePath;
             addComment(editor, changeInfo, revisionId, project, fileComment);

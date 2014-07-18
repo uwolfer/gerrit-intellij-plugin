@@ -32,6 +32,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +44,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.util.List;
 import java.util.Map;
 
@@ -55,13 +58,17 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<List<ChangeInfo>> {
+public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
     private GerritToolWindow gerritToolWindow;
+    private LoadChangesProxy loadChangesProxy = null;
+
+    private volatile boolean loadingMoreChanges = false;
+    private final JScrollPane scrollPane;
 
     @Inject
     public GerritChangeListPanel(SelectedRevisions selectedRevisions,
@@ -75,16 +82,44 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
 
-        updateModel();
+        updateModel(changes);
         table.setStriped(true);
 
         setLayout(new BorderLayout());
-        add(ScrollPaneFactory.createScrollPane(table));
+        scrollPane = ScrollPaneFactory.createScrollPane(table);
+        scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
+            @Override
+            public void adjustmentValueChanged(AdjustmentEvent e) {
+                if (!loadingMoreChanges && loadChangesProxy != null) {
+                    loadingMoreChanges = true;
+                    try {
+                        int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
+                        if (lowerEnd == e.getAdjustable().getMaximum()) {
+                            loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+                                @Override
+                                public void consume(List<ChangeInfo> changeInfos) {
+                                    addChanges(changeInfos);
+                                }
+                            });
+                        }
+                    } finally {
+                        loadingMoreChanges = false;
+                    }
+                }
+            }
+        });
+        add(scrollPane);
     }
 
     @Override
-    public void consume(List<ChangeInfo> commits) {
-        setChanges(commits);
+    public void consume(LoadChangesProxy proxy) {
+        loadChangesProxy = proxy;
+        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+            @Override
+            public void consume(List<ChangeInfo> changeInfos) {
+                setChanges(changeInfos);
+            }
+        });
     }
 
     /**
@@ -143,17 +178,27 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     public void setChanges(@NotNull List<ChangeInfo> changes) {
         this.changes.clear();
         this.changes.addAll(changes);
-        updateModel();
+        initModel();
         table.repaint();
         selectedRevisions.clear();
+    }
+
+    public void addChanges(@NotNull List<ChangeInfo> changes) {
+        this.changes.addAll(changes);
+        // did not find another way to update the scrollbar after adding more changes...
+        scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getValue() - 1);
     }
 
     public void registerChangeListPanel(GerritToolWindow gerritToolWindow) {
         this.gerritToolWindow = gerritToolWindow;
     }
 
-    private void updateModel() {
+    private void initModel() {
         table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
+    }
+
+    private void updateModel(List<ChangeInfo> changes) {
+        table.getListTableModel().addRows(changes);
     }
 
     @NotNull

@@ -224,25 +224,35 @@ public class GerritUtil {
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
     }
 
-    public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
+    public void getChangesToReview(Project project, Consumer<LoadChangesProxy> consumer) {
         getChanges("is:open+reviewer:self", project, consumer);
     }
 
-    public void getChangesForProject(String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
+    public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
         if (!gerritSettings.getListAllChanges()) {
             query = appendQueryStringForProject(project, query);
         }
         getChanges(query, project, consumer);
     }
 
-    public void getChanges(final String query, final Project project, final Consumer<List<ChangeInfo>> consumer) {
+    public void getChanges(final String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
+        Supplier<LoadChangesProxy> supplier = new Supplier<LoadChangesProxy>() {
+            @Override
+            public LoadChangesProxy get() {
+                    Changes.QueryRequest queryRequest = gerritClient.changes().query(query)
+                            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS));
+                    return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
+            }
+        };
+        accessGerrit(supplier, consumer, project);
+    }
+
+    public void getChanges(final Changes.QueryRequest queryRequest, final Project project, Consumer<List<ChangeInfo>> consumer) {
         Supplier<List<ChangeInfo>> supplier = new Supplier<List<ChangeInfo>>() {
             @Override
             public List<ChangeInfo> get() {
                 try {
-                    return gerritClient.changes().query(query)
-                            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS))
-                            .get();
+                    return queryRequest.get();
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();

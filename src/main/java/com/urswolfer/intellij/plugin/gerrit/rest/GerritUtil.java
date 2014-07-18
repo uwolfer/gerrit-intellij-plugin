@@ -17,7 +17,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -467,7 +470,7 @@ public class GerritUtil {
             AccountInfo user = tempClient.accounts().self().get();
             return user != null;
         } else {
-            tempClient.changes().query();
+            tempClient.changes().query().get();
             return true;
         }
     }

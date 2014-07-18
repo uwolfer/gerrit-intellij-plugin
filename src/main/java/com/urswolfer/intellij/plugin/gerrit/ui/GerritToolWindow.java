@@ -32,12 +32,12 @@ import com.intellij.ui.SideBorder;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 
 import javax.swing.*;
-import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -119,7 +119,7 @@ public class GerritToolWindow {
         getChanges(project, requestSettingsIfNonExistent, changeListPanel);
     }
 
-    private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<List<ChangeInfo>> consumer) {
+    private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
         String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {

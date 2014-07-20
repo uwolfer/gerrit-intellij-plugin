@@ -470,7 +470,7 @@ public class GerritUtil {
             AccountInfo user = tempClient.accounts().self().get();
             return user != null;
         } else {
-            tempClient.changes().query().get();
+            tempClient.changes().query().withLimit(1).get();
             return true;
         }
     }

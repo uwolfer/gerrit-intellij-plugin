@@ -212,7 +212,9 @@ public class GerritUtil {
                             final String revision,
                             final String filePath,
                             final Project project) {
-
+        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+            return;
+        }
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -389,7 +391,7 @@ public class GerritUtil {
                     }
 
                     Map<String, List<CommentInfo>> drafts;
-                    if (includeDraftComments) {
+                    if (includeDraftComments && gerritSettings.isLoginAndPasswordAvailable()) {
                         drafts = gerritClient.changes().id(changeId).revision(revision).drafts();
                     } else {
                         drafts = Maps.newHashMap();

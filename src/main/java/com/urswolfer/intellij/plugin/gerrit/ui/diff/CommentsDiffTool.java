@@ -198,7 +198,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                 .withText("Add Comment")
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
-        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getComponent());
+        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
         group.add(addCommentAction);
         PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
     }

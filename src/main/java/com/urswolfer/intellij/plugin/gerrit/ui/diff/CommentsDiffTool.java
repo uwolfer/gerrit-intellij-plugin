@@ -123,7 +123,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void handleComments(final DiffPanelImpl diffPanel, final String filePathString) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
-        final String relativeFilePath = getRelativeOrAbsolutePath(project, filePath.getPath());
+        final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath()));
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
@@ -208,7 +208,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                                    String revisionId,
                                    Iterable<CommentInfo> fileComments) {
         for (CommentInfo fileComment : fileComments) {
-            fileComment.path = filePath;
+            fileComment.path = PathUtils.ensureSlashSeparators(filePath);
             addComment(editor, changeInfo, revisionId, project, fileComment);
         }
     }

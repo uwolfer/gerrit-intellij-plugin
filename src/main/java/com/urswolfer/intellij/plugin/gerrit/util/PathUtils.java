@@ -48,9 +48,16 @@ public class PathUtils {
      */
     public String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
         String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
-        if (relativePath.contains("/..")) {
+        if (relativePath.contains(File.separator + "..")) {
             return absoluteFilePath;
         }
         return relativePath;
+    }
+
+    /**
+     * Gerrit handles paths always with a forward slash (/). Windows uses backslash (\), so we need to convert them.
+     */
+    public static String ensureSlashSeparators(String path) {
+        return path.replace('\\', '/');
     }
 }

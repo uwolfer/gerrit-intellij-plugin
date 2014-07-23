@@ -102,6 +102,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private String getNodeSuffix(Project project, String affectedFilePath) {
         String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
+        fileName = PathUtils.ensureSlashSeparators(fileName);
         List<String> parts = Lists.newArrayList();
 
         Map<String, List<CommentInfo>> commentsMap = comments.get();

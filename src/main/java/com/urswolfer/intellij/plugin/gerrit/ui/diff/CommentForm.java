@@ -25,6 +25,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.ui.EditorTextField;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
+import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -89,7 +90,7 @@ public class CommentForm extends JPanel {
         DraftInput comment = new DraftInput();
 
         comment.message = getText();
-        comment.path = filePath;
+        comment.path = PathUtils.ensureSlashSeparators(filePath);
         comment.side = commentSide;
 
         SelectionModel selectionModel = editor.getSelectionModel();

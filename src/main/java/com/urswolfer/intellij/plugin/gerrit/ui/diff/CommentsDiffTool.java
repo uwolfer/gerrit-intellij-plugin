@@ -21,6 +21,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Ordering;
+import com.google.common.primitives.Longs;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
@@ -65,6 +67,7 @@ import org.jetbrains.annotations.Nullable;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -81,7 +84,15 @@ public class CommentsDiffTool extends FrameDiffTool {
             return comment.side == null || comment.side.equals(Comment.Side.REVISION);
         }
     };
-    
+
+    private static final Ordering<Comment> COMMENT_ORDERING = new Ordering<Comment>() {
+        @Override
+        public int compare(Comment left, Comment right) {
+            // need to sort descending as icons are added to the left of existing icons
+            return -Longs.compare(left.updated.getTime(), right.updated.getTime());
+        }
+    };
+
     @Inject
     private GerritUtil gerritUtil;
     @Inject
@@ -131,7 +142,7 @@ public class CommentsDiffTool extends FrameDiffTool {
                                 final String selectedRevisionId,
                                 final Optional<Pair<String, RevisionInfo>> baseRevision) {
         final FilePath filePath = new FilePathImpl(new File(filePathString), false);
-        final String relativeFilePath = getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo);
+        final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo));
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
 
@@ -173,6 +184,7 @@ public class CommentsDiffTool extends FrameDiffTool {
                         @Override
                         public void consume(Map<String, List<CommentInfo>> comments) {
                             List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                            Collections.sort(fileComments, COMMENT_ORDERING);
                             if (fileComments != null) {
                                 addCommentsGutter(
                                         diffPanel.getEditor1(),
@@ -216,7 +228,7 @@ public class CommentsDiffTool extends FrameDiffTool {
                 .withText("Add Comment")
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
-        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getComponent());
+        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
         group.add(addCommentAction);
         PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group, ActionManager.getInstance());
     }
@@ -227,9 +239,8 @@ public class CommentsDiffTool extends FrameDiffTool {
                                    Iterable<CommentInfo> fileComments,
                                    ChangeInfo changeInfo,
                                    Project project) {
-
         for (CommentInfo fileComment : fileComments) {
-            fileComment.path = filePath;
+            fileComment.path = PathUtils.ensureSlashSeparators(filePath);
             addComment(editor, changeInfo, revisionId, project, fileComment);
         }
     }

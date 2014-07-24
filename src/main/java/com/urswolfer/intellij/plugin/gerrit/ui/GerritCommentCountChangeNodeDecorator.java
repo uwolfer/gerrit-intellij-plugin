@@ -28,13 +28,11 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
+import java.util.*;
 
 /**
  * @author Thomas Forrer
@@ -46,6 +44,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private GerritApi gerritApi;
     @Inject
     private PathUtils pathUtils;
+    @Inject
+    private GerritSettings gerritSettings;
 
     private final SelectedRevisions selectedRevisions;
 
@@ -102,6 +102,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private String getNodeSuffix(Project project, String affectedFilePath) {
         String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
+        fileName = PathUtils.ensureSlashSeparators(fileName);
         List<String> parts = Lists.newArrayList();
 
         Map<String, List<CommentInfo>> commentsMap = comments.get();
@@ -143,6 +144,9 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
             @Override
             public Map<String, List<CommentInfo>> get() {
+                if (!gerritSettings.isLoginAndPasswordAvailable()) {
+                    return Collections.emptyMap();
+                }
                 try {
                     return gerritApi.changes()
                             .id(selectedChange.id)

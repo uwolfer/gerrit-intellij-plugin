@@ -200,8 +200,16 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="130.826"/>
+  <idea-version since-build="130.826" until-build="136.1681"/>
   <!--
+    IntelliJ IDEA 14
+    ================
+    Package jgit got removed in 91c86c379955c0c41a88908e85b4afa3adfeee52 (idea/138.775)
+    GitHttpAuthDataProvider#forgetPassword got added in 85cad871d3678c02b22ce20398e16fecdbdba017 (idea/136.1681)
+    UntrackedFilesNotifier#notifyUntrackedFilesOverwrittenBy got changed in 752bbd86726fb43fae1a77892b296453b186f2e5 (idea/138.874)
+
+    IntelliJ IDEA 13
+    ================
     Class GitCommit got renamed to GitHeavyCommit in 05f0c7e7bc87af7bf8500eda9cc2308fd07ec4dd
     GitHeavyCommit got deprecated in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
     new GitCommit got introduced in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41

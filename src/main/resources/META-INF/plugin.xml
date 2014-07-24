@@ -200,7 +200,7 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="130.826" until-build="136.1681"/>
+  <idea-version since-build="136.1682"/>
   <!--
     IntelliJ IDEA 14
     ================

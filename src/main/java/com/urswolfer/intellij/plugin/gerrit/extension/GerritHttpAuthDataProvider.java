@@ -22,7 +22,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import git4idea.jgit.GitHttpAuthDataProvider;
+import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,6 +49,11 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
         return new AuthData(gerritSettings.getLogin(), gerritSettings.getPassword());
     }
 
+    @Override
+    public void forgetPassword(@NotNull String key) {
+        gerritSettings.forgetPassword(key);
+    }
+
     public static final class Proxy implements GitHttpAuthDataProvider {
         private final GitHttpAuthDataProvider delegate;
 
@@ -60,6 +65,11 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
         @Override
         public AuthData getAuthData(@NotNull String url) {
             return delegate.getAuthData(url);
+        }
+
+        @Override
+        public void forgetPassword(@NotNull String key) {
+            delegate.forgetPassword(key);
         }
     }
 }

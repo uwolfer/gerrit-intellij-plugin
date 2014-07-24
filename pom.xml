@@ -19,53 +19,53 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jdk.min.version>1.6</jdk.min.version>
     <ij.plugin>true</ij.plugin>
-    <idea.version>13</idea.version>
-    <idea.build>130.826</idea.build>
+    <!--<idea.version>13</idea.version>-->
+    <!--<idea.build>130.826</idea.build>-->
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>idea</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope> <!-- compile scope required for maven form plugin building; excluded in assembly -->
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>openapi</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>util</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>extensions</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>annotations</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>git4idea</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.intellij</groupId>
-      <artifactId>forms_rt</artifactId>
-      <version>${idea.version}</version>
-      <scope>provided</scope> <!-- compile scope required for form plugin building; excluded in assembly -->
-    </dependency>
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>idea</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope> &lt;!&ndash; compile scope required for maven form plugin building; excluded in assembly &ndash;&gt;-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>openapi</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>util</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>extensions</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>annotations</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>git4idea</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>com.intellij</groupId>-->
+      <!--<artifactId>forms_rt</artifactId>-->
+      <!--<version>${idea.version}</version>-->
+      <!--<scope>provided</scope> &lt;!&ndash; compile scope required for form plugin building; excluded in assembly &ndash;&gt;-->
+    <!--</dependency>-->
     <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
@@ -156,23 +156,23 @@
         </configuration>
       </plugin>
 
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>ideauidesigner-maven-plugin</artifactId>
-        <version>1.0-beta-2-${idea.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>javac2</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <fork>true</fork>
-          <debug>true</debug>
-          <failOnError>true</failOnError>
-        </configuration>
-      </plugin>
+      <!--<plugin>-->
+        <!--<groupId>org.codehaus.mojo</groupId>-->
+        <!--<artifactId>ideauidesigner-maven-plugin</artifactId>-->
+        <!--<version>1.0-beta-2-${idea.version}</version>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<goals>-->
+              <!--<goal>javac2</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
+        <!--<configuration>-->
+          <!--<fork>true</fork>-->
+          <!--<debug>true</debug>-->
+          <!--<failOnError>true</failOnError>-->
+        <!--</configuration>-->
+      <!--</plugin>-->
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

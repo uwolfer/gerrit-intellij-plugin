@@ -229,8 +229,9 @@ public class GerritUtil {
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
     }
 
-    public void getChangesToReview(Project project, Consumer<LoadChangesProxy> consumer) {
-        getChanges("is:open+reviewer:self", project, consumer);
+    public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
+        Changes.QueryRequest queryRequest = gerritClient.changes().query("is:open+reviewer:self");
+        getChanges(queryRequest, project, consumer);
     }
 
     public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {

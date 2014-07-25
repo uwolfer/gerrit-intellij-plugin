@@ -14,7 +14,7 @@ import icons.Git4ideaIcons;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class StarAction extends AbstractChangeAction {
+public class StarAction extends AbstractLoggedInChangeAction {
     @Inject
     private GerritGitUtil gerritGitUtil;
 
@@ -38,6 +38,11 @@ public class StarAction extends AbstractChangeAction {
 
         public Proxy() {
             delegate = GerritModule.getInstance(StarAction.class);
+        }
+
+        @Override
+        public void update(AnActionEvent e) {
+            delegate.update(e);
         }
 
         @Override

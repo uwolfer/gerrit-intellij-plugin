@@ -31,6 +31,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
@@ -47,13 +48,14 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // needs to be setup with correct parameters (ctor); see corresponding factory
-public class ReviewAction extends AbstractChangeAction {
+public class ReviewAction extends AbstractLoggedInChangeAction {
     public static final String CODE_REVIEW = "Code-Review";
     public static final String VERIFIED = "Verified";
 
-    private SelectedRevisions selectedRevisions;
-    private SubmitAction submitAction;
-    private NotificationService notificationService;
+    private final SelectedRevisions selectedRevisions;
+    private final SubmitAction submitAction;
+    private final NotificationService notificationService;
+    private final GerritSettings gerritSettings;
 
     private String label;
     private int rating;
@@ -66,15 +68,22 @@ public class ReviewAction extends AbstractChangeAction {
                         SelectedRevisions selectedRevisions,
                         GerritUtil gerritUtil,
                         SubmitAction submitAction,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        GerritSettings gerritSettings) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
+        this.gerritSettings = gerritSettings;
         this.gerritUtil = gerritUtil;
         this.selectedRevisions = selectedRevisions;
         this.submitAction = submitAction;
         this.notificationService = notificationService;
+    }
+
+    @Override
+    public void update(AnActionEvent e) {
+        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
     }
 
     @Override
@@ -187,6 +196,11 @@ public class ReviewAction extends AbstractChangeAction {
 
             reviewActionFactory = GerritModule.getInstance(ReviewActionFactory.class);
             delegate = reviewActionFactory.get(label, rating, icon, showDialog);
+        }
+
+        @Override
+        public void update(AnActionEvent e) {
+            delegate.update(e);
         }
 
         @Override

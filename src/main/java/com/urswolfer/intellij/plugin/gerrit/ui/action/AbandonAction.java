@@ -35,7 +35,7 @@ import javax.swing.*;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class AbandonAction extends AbstractChangeAction {
+public class AbandonAction extends AbstractLoggedInChangeAction {
 
     public AbandonAction() {
         super("Abandon", "Abandon Change", AllIcons.Actions.Delete);
@@ -94,6 +94,11 @@ public class AbandonAction extends AbstractChangeAction {
 
         public Proxy() {
             delegate = GerritModule.getInstance(AbandonAction.class);
+        }
+
+        @Override
+        public void update(AnActionEvent e) {
+            delegate.update(e);
         }
 
         @Override

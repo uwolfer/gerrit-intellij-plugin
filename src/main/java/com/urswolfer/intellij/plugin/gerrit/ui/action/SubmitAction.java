@@ -33,7 +33,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class SubmitAction extends AbstractChangeAction {
+public class SubmitAction extends AbstractLoggedInChangeAction {
     @Inject
     private NotificationService notificationService;
 
@@ -70,6 +70,11 @@ public class SubmitAction extends AbstractChangeAction {
 
         public Proxy() {
             delegate = GerritModule.getInstance(SubmitAction.class);
+        }
+
+        @Override
+        public void update(AnActionEvent e) {
+            delegate.update(e);
         }
 
         @Override

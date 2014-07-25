@@ -25,7 +25,6 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +35,7 @@ import java.util.*;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritUpdatesNotificationComponent implements ProjectComponent, Consumer<LoadChangesProxy> {
+public class GerritUpdatesNotificationComponent implements ProjectComponent, Consumer<List<ChangeInfo>> {
     @Inject
     private GerritUtil gerritUtil;
     @Inject
@@ -94,9 +93,8 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     }
 
     @Override
-    public void consume(LoadChangesProxy proxy) {
+    public void consume(List<ChangeInfo> changes) {
         boolean newChange = false;
-        List<ChangeInfo> changes = proxy.getChanges();
         for (ChangeInfo change : changes) {
             if (!notifiedChanges.contains(change.changeId)) {
                 newChange = true;

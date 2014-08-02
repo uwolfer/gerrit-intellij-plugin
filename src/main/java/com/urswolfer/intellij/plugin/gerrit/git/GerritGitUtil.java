@@ -283,7 +283,7 @@ public class GerritGitUtil {
                                         @Nullable String branch,
                                         Project project,
                                         ProgressIndicator progressIndicator) {
-        final GitLineHandlerPasswordRequestAware h = new GitLineHandlerPasswordRequestAware(project, root, GitCommand.FETCH);
+        final GitLineHandler h = new GitLineHandler(project, root, GitCommand.FETCH);
         h.setUrl(url);
         h.addProgressParameter();
 
@@ -314,11 +314,7 @@ public class GerritGitUtil {
             protected void onFailure() {
                 log.warn("Error fetching: " + h.errors());
                 Collection<Exception> errors = Lists.newArrayList();
-                if (!h.hadAuthRequest()) {
-                    errors.addAll(h.errors());
-                } else {
-                    errors.add(new VcsException("Authentication failed"));
-                }
+                errors.addAll(h.errors());
                 result.set(GitFetchResult.error(errors));
             }
         });

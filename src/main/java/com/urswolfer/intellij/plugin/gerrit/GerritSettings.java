@@ -17,22 +17,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.intellij.ide.passwordSafe.MasterPasswordUnavailableException;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
-import com.intellij.ide.passwordSafe.impl.PasswordSafeImpl;
-import com.intellij.ide.passwordSafe.impl.providers.masterKey.MasterKeyPasswordSafe;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
@@ -80,28 +73,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private Logger log;
 
-    private boolean passwordChanged = false;
-
-    // Once master password is refused, do not ask for it again
-    private boolean masterPasswordRefused = false;
-
-    private Optional<String> cachedPassword = Optional.absent();
-
     public Element getState() {
-        log.assertTrue(!ProgressManager.getInstance().hasProgressIndicator(), "Password should not be accessed under modal progress");
-
-        try {
-            if (passwordChanged && !masterPasswordRefused) {
-                PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, getPassword());
-            }
-        } catch (MasterPasswordUnavailableException e) {
-            log.info("Couldn't store password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-            masterPasswordRefused = true;
-        } catch (Exception e) {
-            Messages.showErrorDialog("Error happened while storing password for gerrit", "Error");
-            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-        }
-        passwordChanged = false;
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
@@ -168,44 +140,17 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return login;
     }
 
-    /**
-     * Password cannot be loaded from async tasks. In that case we need to request it before from the UI thread.
-     */
-    public void preloadPassword() {
-        cachedPassword = Optional.of(getPassword());
-    }
-
     @Override
     @NotNull
     public String getPassword() {
-        boolean hasProgressIndicator = ProgressManager.getInstance().hasProgressIndicator();
-        if (hasProgressIndicator) {
-            log.assertTrue(cachedPassword.isPresent(), "Password must be preloaded when accessed under modal progress");
-            return cachedPassword.get();
-        }
         String password;
-        final Project project = ProjectManager.getInstance().getDefaultProject();
-        final PasswordSafeImpl passwordSafe = (PasswordSafeImpl) PasswordSafe.getInstance();
         try {
-            password = passwordSafe.getMemoryProvider().getPassword(project, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
-            if (password != null) {
-                return password;
-            }
-            final MasterKeyPasswordSafe masterKeyProvider = passwordSafe.getMasterKeyProvider();
-            if (!masterKeyProvider.isEmpty()) {
-                // workaround for: don't ask for master password, if the requested password is not there.
-                // this should be fixed in PasswordSafe: don't ask master password to look for keys
-                // until then we assume that is PasswordSafe was used (there is anything there), then it makes sense to look there.
-                password = masterKeyProvider.getPassword(project, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
-            }
+            password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
         } catch (PasswordSafeException e) {
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-            masterPasswordRefused = true;
             password = "";
         }
-
-        passwordChanged = false;
-        return password != null ? password : "";
+        return StringUtil.notNullize(password);
     }
 
     @Override
@@ -243,11 +188,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void setPassword(final String password) {
-        passwordChanged = !getPassword().equals(password);
         try {
             PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, password != null ? password : "");
         } catch (PasswordSafeException e) {
-            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+            log.info("Couldn't set password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
     }
 

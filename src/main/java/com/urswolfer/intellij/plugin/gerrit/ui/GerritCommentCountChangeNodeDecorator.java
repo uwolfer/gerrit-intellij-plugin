@@ -16,13 +16,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.*;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
@@ -46,6 +50,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private PathUtils pathUtils;
     @Inject
     private GerritSettings gerritSettings;
+    @Inject
+    private Logger log;
 
     private final SelectedRevisions selectedRevisions;
 
@@ -134,7 +140,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                             .revision(getSelectedRevisionId())
                             .comments();
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    log.warn(e);
+                    return Collections.emptyMap();
                 }
             }
         });
@@ -153,7 +160,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                             .revision(getSelectedRevisionId())
                             .drafts();
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    log.warn(e);
+                    return Collections.emptyMap();
                 }
             }
         });

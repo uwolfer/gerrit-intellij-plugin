@@ -87,7 +87,6 @@ public class GerritUtil {
 
     public <T> T accessToGerritWithModalProgress(Project project,
                                                  ThrowableComputable<T, Exception> computable) {
-        gerritSettings.preloadPassword();
         return accessToGerritWithModalProgress(project, computable, gerritSettings);
     }
 
@@ -485,7 +484,6 @@ public class GerritUtil {
      */
     public boolean checkCredentials(final Project project) {
         try {
-            gerritSettings.preloadPassword();
             return checkCredentials(project, gerritSettings);
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
@@ -521,7 +519,6 @@ public class GerritUtil {
             }
         }
         // Otherwise our credentials are valid and they are successfully stored in settings
-        gerritSettings.preloadPassword();
         return accessToGerritWithModalProgress(project, new ThrowableComputable<List<ProjectInfo>, Exception>() {
             @Override
             public List<ProjectInfo> compute() throws Exception {
@@ -584,7 +581,6 @@ public class GerritUtil {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
-                gerritSettings.preloadPassword();
                 Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
                     public void run(@NotNull ProgressIndicator indicator) {
                         try {

@@ -184,8 +184,8 @@ public class CommentsDiffTool extends FrameDiffTool {
                         @Override
                         public void consume(Map<String, List<CommentInfo>> comments) {
                             List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                            Collections.sort(fileComments, COMMENT_ORDERING);
                             if (fileComments != null) {
+                                Collections.sort(fileComments, COMMENT_ORDERING);
                                 addCommentsGutter(
                                         diffPanel.getEditor1(),
                                         relativeFilePath,

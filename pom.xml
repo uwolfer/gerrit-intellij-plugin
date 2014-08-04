@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.urswolfer.intellij.plugin.gerrit</groupId>
   <artifactId>gerrit-intellij-plugin</artifactId>
-  <version>0.9.2-SNAPSHOT<</version>
+  <version>0.9.2-SNAPSHOT</version>
 
   <name>gerrit-intellij-plugin</name>
   <description>Gerrit Code Review Tool for IntelliJ.

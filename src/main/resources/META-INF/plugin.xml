@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.2-SNAPSHOT</version>
+  <version>0.9.2</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,13 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.2</li>
+          <ul>
+            <li>password settings / safe fixes</li>
+            <li>fix compatibility with latest IDEA 14 EAP</li>
+            <li>alternative branch push doesn't respect manual change</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.9.1</li>
           <ul>
             <li>lazily load changes list (25 changes initially; more will be loaded when you scroll down)</li>

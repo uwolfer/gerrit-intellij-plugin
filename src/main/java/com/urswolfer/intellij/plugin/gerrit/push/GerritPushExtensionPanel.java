@@ -50,6 +50,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JCheckBox pushToGerritCheckBox;
     private JCheckBox draftChangeCheckBox;
     private JCheckBox submitChangeCheckBox;
+    private JTextField branchTextField;
     private JTextField topicTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
@@ -79,7 +80,7 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel(new GridLayoutManager(5, 2));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(6, 2));
 
         draftChangeCheckBox = new JCheckBox("Draft-Change");
         draftChangeCheckBox.setToolTipText("Publish change as draft (reviewers cannot submit change).");
@@ -92,18 +93,25 @@ public class GerritPushExtensionPanel extends JPanel {
                 "has submit permission.");
         indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        indentedSettingPanel.add(new JLabel("Topic:"), new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        indentedSettingPanel.add(topicTextField = new JTextField(), new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        topicTextField.setToolTipText("A short tag associated with all of the changes in the same group, such as the " +
-                "local topic branch name.");
+        branchTextField = addTextField(
+                "Branch:",
+                "The push destination branch.",
+                2);
 
-        indentedSettingPanel.add(new JLabel("Reviewers (user names, comma separated):"), new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        indentedSettingPanel.add(reviewersTextField = new JTextField(), new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        reviewersTextField.setToolTipText("Users which will be addeds as reviewers.");
+        topicTextField = addTextField(
+                "Topic:",
+                "A short tag associated with all of the changes in the same group, such as the local topic branch name.",
+                3);
 
-        indentedSettingPanel.add(new JLabel("CC (user names, comma separated):"), new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        indentedSettingPanel.add(ccTextField = new JTextField(), new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
-        ccTextField.setToolTipText("Users which will receive carbon copies of the notification message.");
+        reviewersTextField = addTextField(
+                "Reviewers (user names, comma separated):",
+                "Users which will be added as reviewers.",
+                4);
+
+        ccTextField = addTextField(
+                "CC (user names, comma separated):",
+                "Users which will receive carbon copies of the notification message.",
+                5);
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -116,6 +124,31 @@ public class GerritPushExtensionPanel extends JPanel {
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         add(mainPanel);
         add(Box.createHorizontalGlue());
+    }
+
+    private JTextField addTextField(String label, String toolTipText, int row) {
+        indentedSettingPanel.add(
+                new JLabel(label),
+                new GridConstraints(row, 0, 1, 1,
+                        GridConstraints.ANCHOR_WEST,
+                        GridConstraints.FILL_NONE,
+                        GridConstraints.SIZEPOLICY_CAN_GROW,
+                        GridConstraints.SIZEPOLICY_FIXED,
+                        null, null, null)
+        );
+
+        JTextField textField = new JTextField();
+        textField.setToolTipText(toolTipText);
+        indentedSettingPanel.add(
+                textField,
+                new GridConstraints(row, 1, 1, 1,
+                        GridConstraints.ANCHOR_WEST,
+                        GridConstraints.FILL_HORIZONTAL,
+                        GridConstraints.SIZEPOLICY_WANT_GROW,
+                        GridConstraints.SIZEPOLICY_FIXED,
+                        null, null, null)
+        );
+        return textField;
     }
 
     private void addChangeListener() {
@@ -135,11 +168,12 @@ public class GerritPushExtensionPanel extends JPanel {
         if (pushToGerritCheckBox.isSelected()) {
             manualPush.setSelected(true);
             if (draftChangeCheckBox.isSelected()) {
-                ref = "refs/drafts/" + ref;
+                ref = "refs/drafts/";
             } else {
-                ref = "refs/for/" + ref;
+                ref = "refs/for/";
             }
-            java.util.List<String> gerritSpecs = Lists.newArrayList();
+            ref += branchTextField.getText();
+            List<String> gerritSpecs = Lists.newArrayList();
             if (submitChangeCheckBox.isSelected()) {
                 gerritSpecs.add("submit");
             }
@@ -171,6 +205,8 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private void setSettingsEnabled(boolean enabled) {
         UIUtil.setEnabled(indentedSettingPanel, enabled, true);
+        UIUtil.setEnabled(manualPush, !enabled, true);
+        UIUtil.setEnabled(destinationBranchTextField, false, true);
     }
 
     /**
@@ -239,6 +275,8 @@ public class GerritPushExtensionPanel extends JPanel {
         private void handleChange() {
             if (!originalDestinationBranch.isPresent()) {
                 originalDestinationBranch = Optional.of(destinationBranchTextField.getText());
+                branchTextField.setText(originalDestinationBranch.get());
+                branchTextField.getDocument().addDocumentListener(new ChangeTextActionListener());
 
                 pushToGerritCheckBox.setSelected(pushToGerritByDefault);
                 setSettingsEnabled(pushToGerritCheckBox.isSelected());

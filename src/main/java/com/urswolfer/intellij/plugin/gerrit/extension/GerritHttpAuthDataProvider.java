@@ -18,7 +18,6 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.inject.Inject;
-import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
@@ -40,7 +39,7 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
     @Nullable
     @Override
-    public AuthData getAuthData(@NotNull String url, @Nullable ModalityState modalityState) {
+    public AuthData getAuthData(@NotNull String url) {
         if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
             return null;
         }
@@ -64,8 +63,8 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
         @Nullable
         @Override
-        public AuthData getAuthData(@NotNull String url, @Nullable ModalityState modalityState) {
-            return delegate.getAuthData(url, modalityState);
+        public AuthData getAuthData(@NotNull String url) {
+            return delegate.getAuthData(url);
         }
 
         @Override

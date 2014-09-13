@@ -28,6 +28,7 @@ public class GerritActionsModule extends AbstractModule {
         bind(ReviewActionFactory.class);
 
         bind(FetchAction.class);
+        bind(CheckoutAction.class);
         bind(CherryPickAction.class);
         bind(CompareBranchAction.class);
         bind(OpenInBrowserAction.class);

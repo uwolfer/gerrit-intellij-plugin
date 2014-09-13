@@ -264,9 +264,13 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>
     </action>
+    <action id="Gerrit.CheckoutAction" text="Checkout"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
+    </action>
     <action id="Gerrit.CherryPick" text="Cherry-Pick (No Commit)"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction$Proxy">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
     </action>
     <action id="Gerrit.Star" text="Star"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.StarAction$Proxy">

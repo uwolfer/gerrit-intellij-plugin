@@ -46,6 +46,7 @@ import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -84,6 +85,8 @@ public class GerritUtil {
     private GerritRestApiFactory gerritRestApiFactory;
     @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
+    @Inject
+    private SelectedRevisions selectedRevisions;
 
     public <T> T accessToGerritWithModalProgress(Project project,
                                                  ThrowableComputable<T, Exception> computable) {
@@ -529,8 +532,8 @@ public class GerritUtil {
     }
 
     public FetchInfo getFirstFetchInfo(ChangeInfo changeDetails) {
-        RevisionInfo currentRevision = changeDetails.revisions.get(changeDetails.currentRevision);
-        return getFirstFetchInfo(currentRevision);
+        RevisionInfo revisionInfo = changeDetails.revisions.get(selectedRevisions.get(changeDetails));
+        return getFirstFetchInfo(revisionInfo);
     }
 
     public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {

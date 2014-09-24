@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.2</version>
+  <version>0.9.3</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.3</li>
+          <ul>
+            <li>add action to checkout selected change</li>
+            <li>show notification balloons again (review notification, errors)</li>
+            <li>fix keyboard navigation in change list</li>
+          </ul>
           <li>0.9.2</li>
           <ul>
             <li>password settings / safe fixes</li>
@@ -272,9 +278,13 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>
     </action>
+    <action id="Gerrit.CheckoutAction" text="Checkout"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
+    </action>
     <action id="Gerrit.CherryPick" text="Cherry-Pick (No Commit)"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction$Proxy">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
     </action>
     <action id="Gerrit.Star" text="Star"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.StarAction$Proxy">

@@ -130,7 +130,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
-                if (i >= 0 && e.getValueIsAdjusting()) {
+                if (i >= 0 && !e.getValueIsAdjusting()) {
                     listener.consume(changes.get(i));
                 }
             }

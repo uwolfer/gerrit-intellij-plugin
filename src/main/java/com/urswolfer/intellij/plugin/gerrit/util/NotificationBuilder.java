@@ -34,7 +34,7 @@ public final class NotificationBuilder {
     private NotificationType type = NotificationType.INFORMATION;
 
     private Optional<NotificationListener> listener = Optional.absent();
-    private boolean showBalloon;
+    private boolean showBalloon = true;
 
     public NotificationBuilder(Project project, String title, String message) {
         this.project = project;

@@ -21,7 +21,6 @@ import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import git4idea.push.GitPusher;
 import javassist.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,6 +45,7 @@ public class GerritPushExtension implements ApplicationComponent {
     public void initComponent() {
         ClassPool classPool = ClassPool.getDefault();
 
+        /*
         ClassLoader gitIdeaPluginClassLoader = GitPusher.class.getClassLoader();
         ClassLoader gerritPluginClassLoader = GerritPushExtensionPanel.class.getClassLoader();
         classPool.appendClassPath(new LoaderClassPath(gitIdeaPluginClassLoader));
@@ -99,6 +99,7 @@ public class GerritPushExtension implements ApplicationComponent {
         } catch (NotFoundException e) {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
         }
+        */
     }
 
     public void disposeComponent() {}

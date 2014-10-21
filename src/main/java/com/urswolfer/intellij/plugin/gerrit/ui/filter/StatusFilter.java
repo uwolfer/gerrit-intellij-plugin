@@ -23,7 +23,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import git4idea.history.wholeTree.BasePopupAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 
 /**

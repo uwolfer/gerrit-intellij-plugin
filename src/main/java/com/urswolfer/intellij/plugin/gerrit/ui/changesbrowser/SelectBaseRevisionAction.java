@@ -31,8 +31,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
-import git4idea.history.wholeTree.BasePopupAction;
 
 import java.util.List;
 import java.util.Map;

@@ -32,9 +32,9 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitRemoteBranch;
-import git4idea.history.wholeTree.BasePopupAction;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
 

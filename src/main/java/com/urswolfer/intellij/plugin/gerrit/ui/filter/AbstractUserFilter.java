@@ -27,7 +27,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import git4idea.history.wholeTree.BasePopupAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 
 /**

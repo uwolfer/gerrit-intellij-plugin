@@ -203,12 +203,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     @NotNull
     private ColumnInfo[] generateColumnsInfo(@NotNull List<ChangeInfo> changes) {
+        ItemAndWidth number = new ItemAndWidth("", 0);
         ItemAndWidth hash = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
         ItemAndWidth project = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
         for (ChangeInfo change : changes) {
+            number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
             author = getMax(author, getOwner(change));
             project = getMax(project, getProject(change));
@@ -218,6 +220,12 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         return new ColumnInfo[]{
                 new GerritChangeColumnStarredInfo(),
+                new GerritChangeColumnInfo("#", number.item) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getNumber(change);
+                    }
+                },
                 new GerritChangeColumnInfo("ID", hash.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
@@ -289,6 +297,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             this.item = item;
             this.width = width;
         }
+    }
+
+    private static String getNumber(ChangeInfo change) {
+        return "" + change._number;
     }
 
     private static String getHash(ChangeInfo change) {

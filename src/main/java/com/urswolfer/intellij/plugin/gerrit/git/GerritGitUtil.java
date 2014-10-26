@@ -349,4 +349,9 @@ public class GerritGitUtil {
         }
         return compareInfo;
     }
+
+    public void deleteBranchIfExists(GitRepository repository, String branch) {
+        git.branchDelete(repository, branch, true, new GitLineHandlerAdapter());
+    }
+
 }

@@ -55,7 +55,7 @@ public class CopyChangeIdAction extends AbstractChangeAction {
             return;
         }
         ChangeInfo changeDetails = selectedChange.get();
-        String stringToCopy = changeDetails.changeId.substring(0, 9);
+        String stringToCopy = changeDetails.changeId;
         CopyPasteManager.getInstance().setContents(new StringSelection(stringToCopy));
         Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
         NotificationBuilder builder = new NotificationBuilder(project, "Copy", "Copied ID to clipboard.");

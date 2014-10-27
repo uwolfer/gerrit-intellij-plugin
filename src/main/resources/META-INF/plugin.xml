@@ -274,13 +274,9 @@
       <separator/>
     </group>
 
-    <action id="Gerrit.Copy" text="Copy ID"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeIdAction$Proxy">
-        <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>
-    </action>
     <action id="Gerrit.CompareBranch" text="Compare with Branch"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction$Proxy">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Copy" />
+      <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>
     </action>
     <action id="Gerrit.CheckoutAction" text="Checkout"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction$Proxy">
@@ -301,6 +297,10 @@
     <action id="Gerrit.Abandon" text="Abandon"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AbandonAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Submit"/>
+    </action>
+    <action id="Gerrit.Copy" text="Copy ID"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeIdAction$Proxy">
+       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Abandon"/>
     </action>
     <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction$Proxy">

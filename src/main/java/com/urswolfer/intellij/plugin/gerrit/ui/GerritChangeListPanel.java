@@ -220,7 +220,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
         return new ColumnInfo[]{
                 new GerritChangeColumnStarredInfo(),
-                new GerritChangeColumnInfo("Review", review.item) {
+                new GerritChangeColumnInfo("Review #", review.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getReview(change);

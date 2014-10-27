@@ -28,7 +28,9 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
@@ -60,6 +62,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -348,5 +351,50 @@ public class GerritGitUtil {
 //            compareInfo.put(repository, loadTotalDiff(repository, branchName));
         }
         return compareInfo;
+    }
+
+    public boolean checkoutNewBranch(GitRepository repository, String branch) throws VcsException {
+        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
+        GitCommandResult gitCommandResult = git.checkout(repository, "FETCH_HEAD", branch, false, listener);
+        if (gitCommandResult.success()) {
+            return true;
+        } else if (gitCommandResult.getErrorOutputAsJoinedString().contains("already exists")){
+            return false;
+        } else {
+            throw new VcsException(listener.getHtmlMessage());
+        }
+
+    }
+
+    public boolean resetHard(GitRepository repository, String s) {
+        GitCommandResult gitCommandResult = git.resetHard(repository, s);
+        return gitCommandResult.success();
+    }
+
+    private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {
+
+        private List<String> messages = new ArrayList<String>();
+
+        @Override
+        public void onLineAvailable(String s, Key key) {
+            if ( s.startsWith("\t") ) {
+                s = "<b>" + s.substring(1) + "</b>";
+            }
+            messages.add(s);
+        }
+
+        @Override
+        public void processTerminated(int i) {
+
+        }
+
+        @Override
+        public void startFailed(Throwable throwable) {
+
+        }
+
+        public String getHtmlMessage() {
+            return StringUtil.join(messages, "<br/>");
+        }
     }
 }

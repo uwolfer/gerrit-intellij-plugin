@@ -18,19 +18,25 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.branch.GitBrancher;
 import git4idea.repo.GitRepository;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
@@ -42,6 +48,10 @@ public class CheckoutAction extends AbstractChangeAction {
     private GerritGitUtil gerritGitUtil;
     @Inject
     private FetchAction fetchAction;
+    @Inject
+    private SelectedRevisions selectedRevisions;
+    @Inject
+    private NotificationService notificationService;
 
     public CheckoutAction() {
         super("Checkout", "Checkout change", AllIcons.Actions.CheckOut);
@@ -64,13 +74,43 @@ public class CheckoutAction extends AbstractChangeAction {
                         GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
                         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
                                 getRepositoryForGerritProject(project, changeDetails.project);
-                        brancher.checkout("FETCH_HEAD", Collections.singletonList(gitRepositoryOptional.get()), null);
+                        String branchName = buildBranchName(changeDetails);
+                        final GitRepository repository = gitRepositoryOptional.get();
+                        List<GitRepository> gitRepositories = Collections.singletonList(repository);
+                        try {
+                            if ( gerritGitUtil.checkoutNewBranch(repository, branchName) ) {
+                                brancher.checkout(branchName, gitRepositories, null);
+                            } else {
+                                brancher.checkout(branchName, gitRepositories, new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        gerritGitUtil.resetHard(repository, "FETCH_HEAD");
+                                    }
+                                });
+                            }
+                        } catch (VcsException e) {
+                            NotificationBuilder builder = new NotificationBuilder(project, "Error", e.getMessage());
+                            notificationService.notifyError(builder);
+                        }
                         return null;
                     }
                 };
                 fetchAction.fetchChange(selectedChange.get(), project, successCallable);
             }
         });
+    }
+
+    private String buildBranchName(ChangeInfo changeDetails) {
+        RevisionInfo revisionInfo = changeDetails.revisions.get(selectedRevisions.get(changeDetails));
+        String topic = changeDetails.topic;
+        if (topic == null) {
+            topic = "" + changeDetails._number;
+        }
+        String branchName = "review/" + changeDetails.owner.name.toLowerCase().replaceAll(" ","_") + "/" + topic;
+        if ( revisionInfo._number != changeDetails.revisions.size() ) {
+            branchName += "-patch" + revisionInfo._number;
+        }
+        return branchName;
     }
 
     public static class Proxy extends CheckoutAction {

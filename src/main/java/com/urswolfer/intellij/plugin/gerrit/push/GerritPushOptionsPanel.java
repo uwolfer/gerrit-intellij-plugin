@@ -40,6 +40,7 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
 
     @SuppressWarnings("UnusedDeclaration") // javassist call
     public void initPanel(@Nullable GitPushTagMode defaultMode, boolean followTagsSupported) {
+        removeAll();
         gitPushTagPanel = new GitPushTagPanel(defaultMode, followTagsSupported);
 
         JPanel mainContainer = new JPanel();

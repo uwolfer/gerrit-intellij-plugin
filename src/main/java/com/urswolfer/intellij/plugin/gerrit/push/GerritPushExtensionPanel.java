@@ -17,11 +17,9 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -41,10 +39,6 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
-    private final boolean pushToGerritByDefault;
-    private final JTextField destinationBranchTextField;
-    private final JCheckBox manualPush;
-
     private JPanel indentedSettingPanel;
 
     private JCheckBox pushToGerritCheckBox;
@@ -54,22 +48,31 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField topicTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
+    private GerritPushTargetPanel gerritPushTargetPanel;
+    private String originalDestinationBranch;
 
-    private Optional<String> originalDestinationBranch = Optional.absent();
-
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault,
-                                    JTextField destinationBranchTextField,
-                                    JCheckBox manualPush) {
-        this.pushToGerritByDefault = pushToGerritByDefault;
-        this.destinationBranchTextField = destinationBranchTextField;
-        this.manualPush = manualPush;
-
-        destinationBranchTextField.getDocument().addDocumentListener(new LoadDestinationBranchListener());
-
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
         createLayout();
 
+        pushToGerritCheckBox.setSelected(pushToGerritByDefault);
         pushToGerritCheckBox.addActionListener(new SettingsStateActionListener());
+        setSettingsEnabled(pushToGerritCheckBox.isSelected());
+
         addChangeListener();
+    }
+
+    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
+        if (branch != null) {
+            branch = branch.replaceAll("^refs/(for|drafts)/", "");
+            branch = branch.replaceAll("%.*$", "");
+        }
+        this.gerritPushTargetPanel = gerritPushTargetPanel;
+        this.originalDestinationBranch = branch;
+
+        branchTextField.setText(branch);
+        branchTextField.getDocument().addDocumentListener(new ChangeTextActionListener());
+
+        updateDestinationBranch();
     }
 
     private void createLayout() {
@@ -146,7 +149,7 @@ public class GerritPushExtensionPanel extends JPanel {
                         GridConstraints.FILL_HORIZONTAL,
                         GridConstraints.SIZEPOLICY_WANT_GROW,
                         GridConstraints.SIZEPOLICY_FIXED,
-                        null, null, null)
+                        new Dimension(250, 0), null, null)
         );
         return textField;
     }
@@ -163,10 +166,9 @@ public class GerritPushExtensionPanel extends JPanel {
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
 
-    private String getRef() {
+    public String getRef() {
         String ref = "%s";
         if (pushToGerritCheckBox.isSelected()) {
-            manualPush.setSelected(true);
             if (draftChangeCheckBox.isSelected()) {
                 ref = "refs/drafts/";
             } else {
@@ -186,8 +188,6 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!Strings.isNullOrEmpty(gerritSpec)) {
                 ref += "%%" + gerritSpec;
             }
-        } else {
-            manualPush.setSelected(false);
         }
         return ref;
     }
@@ -200,13 +200,11 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private void updateDestinationBranch() {
-        destinationBranchTextField.setText(String.format(getRef(), originalDestinationBranch.get()));
+        gerritPushTargetPanel.updateBranch(String.format(getRef(), originalDestinationBranch));
     }
 
     private void setSettingsEnabled(boolean enabled) {
         UIUtil.setEnabled(indentedSettingPanel, enabled, true);
-        UIUtil.setEnabled(manualPush, !enabled, true);
-        UIUtil.setEnabled(destinationBranchTextField, false, true);
     }
 
     /**
@@ -250,49 +248,6 @@ public class GerritPushExtensionPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             setSettingsEnabled(pushToGerritCheckBox.isSelected());
-        }
-    }
-
-    /**
-     * Get initial destination branch (loaded async).
-     */
-    private class LoadDestinationBranchListener implements DocumentListener {
-        @Override
-        public void insertUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        @Override
-        public void removeUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        @Override
-        public void changedUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        private void handleChange() {
-            if (!originalDestinationBranch.isPresent()) {
-                originalDestinationBranch = Optional.of(destinationBranchTextField.getText());
-                branchTextField.setText(originalDestinationBranch.get());
-                branchTextField.getDocument().addDocumentListener(new ChangeTextActionListener());
-
-                pushToGerritCheckBox.setSelected(pushToGerritByDefault);
-                setSettingsEnabled(pushToGerritCheckBox.isSelected());
-
-                ApplicationManager.getApplication().invokeLater(new UpdateDestinationBranchRunnable());
-            }
-        }
-    }
-
-    /**
-     * Text field content cannot be updated in event handler.
-     */
-    private class UpdateDestinationBranchRunnable implements Runnable {
-        @Override
-        public void run() {
-            updateDestinationBranch();
         }
     }
 }

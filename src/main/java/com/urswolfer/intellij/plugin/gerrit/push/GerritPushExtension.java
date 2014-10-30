@@ -21,6 +21,7 @@ import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import git4idea.push.GitPushOperation;
 import javassist.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,8 +30,8 @@ import org.jetbrains.annotations.NotNull;
  * to the Git push setting panel (where you can set an alternative remote branch) are done with byte-code modification
  * with javassist:
  *
- * * The method GitManualPushToBranch#layoutComponents is extended by one component at the end which provides all the UI.
- * * GerritPushExtensionPanel (and some inner-classes) get copied to the Git plugin class loader.
+ * * Some methods of GitPushSupport are overwritten in order to inject Gerrit push support.
+ * * GerritPushExtensionPanel, GerritPushOptionsPanel and GerritPushTargetPanel get copied to the Git plugin class loader.
  *
  * @author Urs Wolfer
  */
@@ -43,36 +44,51 @@ public class GerritPushExtension implements ApplicationComponent {
     private Logger log;
 
     public void initComponent() {
-        ClassPool classPool = ClassPool.getDefault();
+        try {
+            ClassPool classPool = ClassPool.getDefault();
 
-        /*
-        ClassLoader gitIdeaPluginClassLoader = GitPusher.class.getClassLoader();
-        ClassLoader gerritPluginClassLoader = GerritPushExtensionPanel.class.getClassLoader();
-        classPool.appendClassPath(new LoaderClassPath(gitIdeaPluginClassLoader));
-        classPool.appendClassPath(new LoaderClassPath(gerritPluginClassLoader));
+            ClassLoader gitIdeaPluginClassLoader = GitPushOperation.class.getClassLoader(); // it must be a class which is not modified (loaded) by javassist later on
+            ClassLoader gerritPluginClassLoader = GerritPushExtensionPanel.class.getClassLoader();
+            classPool.appendClassPath(new LoaderClassPath(gitIdeaPluginClassLoader));
+            classPool.appendClassPath(new LoaderClassPath(gerritPluginClassLoader));
 
-        copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
+            copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
 
-        modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
+            modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
+        } catch (Exception e) {
+            log.error("Failed to inject Gerrit push UI.", e);
+        } catch (Error e) {
+            log.error("Failed to inject Gerrit push UI.", e);
+        }
     }
 
     private void modifyGitBranchPanel(ClassPool classPool, ClassLoader classLoader) {
         try {
             boolean pushToGerrit = gerritSettings.getPushToGerrit();
 
-            CtClass gitManualPushToBranchClass = classPool.get("git4idea.push.GitManualPushToBranch");
+            CtClass gitPushSupportClass = classPool.get("git4idea.push.GitPushSupport");
+            CtClass gerritPushOptionsPanelClass = classPool.get("com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
 
-            CtMethod loadComponentsMethod = gitManualPushToBranchClass.getDeclaredMethod("layoutComponents");
-            loadComponentsMethod.insertAfter(
-                "add(" +
-                    "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel(" +
-                    pushToGerrit + ", myDestBranchTextField, myManualPush)," +
-                    "java.awt.BorderLayout.SOUTH" +
-                ");"
+            gitPushSupportClass.addField(new CtField(gerritPushOptionsPanelClass, "gerritPushOptionsPanel", gitPushSupportClass),
+                    "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ");");
+
+            CtMethod createOptionsPanelMethod = gitPushSupportClass.getDeclaredMethod("createOptionsPanel");
+            createOptionsPanelMethod.setBody(
+                "{" +
+                    "gerritPushOptionsPanel.initPanel(mySettings.getPushTagMode(), git4idea.config.GitVersionSpecialty.SUPPORTS_FOLLOW_TAGS.existsIn(myVcs.getVersion()));" +
+                    "return gerritPushOptionsPanel;" +
+                "}"
             );
 
-            gitManualPushToBranchClass.toClass(classLoader, GitPusher.class.getProtectionDomain());
-            gitManualPushToBranchClass.detach();
+            CtMethod createTargetPanelMethod = gitPushSupportClass.getDeclaredMethod("createTargetPanel");
+            createTargetPanelMethod.setBody(
+                "{" +
+                    "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel($1, $2, gerritPushOptionsPanel);" +
+                "}"
+            );
+
+            gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
+            gitPushSupportClass.detach();
         } catch (CannotCompileException e) {
             log.error("Failed to inject Gerrit push UI.", e);
         } catch (NotFoundException e) {
@@ -81,25 +97,24 @@ public class GerritPushExtension implements ApplicationComponent {
     }
 
     private void copyGerritPluginClassesToGitPlugin(ClassPool classPool, ClassLoader targetClassLoader) {
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeTextActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$SettingsStateActionListener");
-        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$LoadDestinationBranchListener");
-        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$UpdateDestinationBranchRunnable");
     }
 
     private void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {
         try {
             CtClass loadedClass = classPool.get(className);
-            loadedClass.toClass(targetClassLoader, GitPusher.class.getProtectionDomain());
+            loadedClass.toClass(targetClassLoader, GitPushOperation.class.getProtectionDomain());
             loadedClass.detach();
         } catch (CannotCompileException e) {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
         } catch (NotFoundException e) {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
         }
-        */
     }
 
     public void disposeComponent() {}

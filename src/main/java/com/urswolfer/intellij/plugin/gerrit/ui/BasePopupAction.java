@@ -44,7 +44,6 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
   protected final JPanel myPanel;
   protected final Project myProject;
   protected DefaultActionGroup myAsTextAction;
-  private boolean myGreyed;
 
   public BasePopupAction(final Project project, final String labeltext, final String asTextLabel) {
     myProject = project;
@@ -126,7 +125,7 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
   protected abstract void createActions(final Consumer<AnAction> actionConsumer);
 
   @Override
-  public void actionPerformed(AnActionEvent e) {
+  public void actionPerformed(@NotNull AnActionEvent e) {
   }
 
   @Override
@@ -134,23 +133,7 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
     return myPanel;
   }
 
-  public AnAction asTextAction() {
-    myAsTextAction.removeAll();
-    createActions(new Consumer<AnAction>() {
-      @Override
-      public void consume(AnAction anAction) {
-        myAsTextAction.add(anAction);
-      }
-    });
-    return myAsTextAction;
-  }
-
-  public void greyPanelFg(boolean value) {
-    myGreyed = value;
-    setLabelFg();
-  }
-
   private void setLabelFg() {
-    myLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : myGreyed ? UIUtil.getInactiveTextColor() : DARKER);
+    myLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : DARKER);
   }
 }

@@ -18,8 +18,6 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.intellij.dvcs.push.ui.PushTargetTextField;
 import com.intellij.openapi.diagnostic.Logger;
-import git4idea.GitRemoteBranch;
-import git4idea.GitStandardRemoteBranch;
 import git4idea.push.GitPushTarget;
 import git4idea.push.GitPushTargetPanel;
 import git4idea.repo.GitRepository;
@@ -43,22 +41,19 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     }
 
     public void updateBranch(String branch) {
-        if (branch.isEmpty() || branch.endsWith("/")) {
+        if (branch == null || branch.isEmpty() || branch.endsWith("/")) {
             return;
         }
 
         try {
             Field myTargetTextFieldField = getField("myTargetTextField");
             PushTargetTextField myTargetTextField = (PushTargetTextField) myTargetTextFieldField.get(this);
+            myTargetTextField.setText(branch);
 
-            Field myCurrentTargetField = getField("myCurrentTarget");
+            fireOnChange();
 
             Field myFireOnChangeActionField = getField("myFireOnChangeAction");
             Runnable myFireOnChangeAction = (Runnable) myFireOnChangeActionField.get(this);
-
-            myTargetTextField.setText(branch);
-            GitRemoteBranch rb = new GitStandardRemoteBranch(getValue().getBranch().getRemote(), branch, git4idea.GitBranch.DUMMY_HASH);
-            myCurrentTargetField.set(this, new GitPushTarget(rb, true));
             if (myFireOnChangeAction != null) {
                 myFireOnChangeAction.run();
             }
@@ -70,8 +65,8 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     }
 
     private Field getField(String fieldName) throws NoSuchFieldException {
-        Field myFireOnChangeActionField = GitPushTargetPanel.class.getDeclaredField(fieldName);
-        myFireOnChangeActionField.setAccessible(true);
-        return myFireOnChangeActionField;
+        Field field = GitPushTargetPanel.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field;
     }
 }

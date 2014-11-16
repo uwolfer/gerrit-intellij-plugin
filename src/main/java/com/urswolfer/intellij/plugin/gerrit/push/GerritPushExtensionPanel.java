@@ -70,9 +70,6 @@ public class GerritPushExtensionPanel extends JPanel {
         this.originalDestinationBranch = branch;
 
         branchTextField.setText(branch);
-        branchTextField.getDocument().addDocumentListener(new ChangeTextActionListener());
-
-        updateDestinationBranch();
     }
 
     private void createLayout() {
@@ -161,6 +158,7 @@ public class GerritPushExtensionPanel extends JPanel {
         submitChangeCheckBox.addActionListener(gerritPushChangeListener);
 
         ChangeTextActionListener gerritPushTextChangeListener = new ChangeTextActionListener();
+        branchTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);

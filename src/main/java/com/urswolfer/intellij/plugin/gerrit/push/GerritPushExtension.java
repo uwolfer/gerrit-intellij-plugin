@@ -80,6 +80,19 @@ public class GerritPushExtension implements ApplicationComponent {
                 "}"
             );
 
+            if (pushToGerrit) {
+                // this is the only *smaller* method which gets called in very early in initialization phase
+                CtMethod getPersistedTargetMethod = gitPushSupportClass.getDeclaredMethod("getPersistedTarget");
+                getPersistedTargetMethod.setBody(
+                    "{" +
+                        "git4idea.GitRemoteBranch target = mySettings.getPushTarget($1, $2.getName());" +
+                        "String remoteBranch = \"refs/for/\" + $2.getName();" +
+                        "if (target != null) target = new git4idea.GitStandardRemoteBranch(target.getRemote(), remoteBranch, git4idea.GitBranch.DUMMY_HASH);" +
+                        "return (target != null) ? new git4idea.push.GitPushTarget(target, true) : null;"+
+                    "}"
+                );
+            }
+
             CtMethod createTargetPanelMethod = gitPushSupportClass.getDeclaredMethod("createTargetPanel");
             createTargetPanelMethod.setBody(
                 "{" +

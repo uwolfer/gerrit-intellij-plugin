@@ -44,6 +44,7 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         if (branch == null || branch.isEmpty() || branch.endsWith("/")) {
             return;
         }
+        branch = branch.trim();
 
         try {
             Field myTargetTextFieldField = getField("myTargetTextField");

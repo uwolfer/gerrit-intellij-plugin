@@ -70,6 +70,13 @@ public class GerritPushExtensionPanel extends JPanel {
         this.originalDestinationBranch = branch;
 
         branchTextField.setText(branch);
+
+        // force a deferred update (changes are monitored only after full construction of dialog)
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                updateDestinationBranch();
+            }
+        });
     }
 
     private void createLayout() {

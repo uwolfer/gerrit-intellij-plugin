@@ -50,8 +50,10 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
     }
 
     @Override
-    public void forgetPassword(@NotNull String key) {
-        gerritSettings.forgetPassword(key);
+    public void forgetPassword(@NotNull String url) {
+        if (gerritSettings.getHost().equalsIgnoreCase(url)) {
+            gerritSettings.forgetPassword();
+        }
     }
 
     public static final class Proxy implements GitHttpAuthDataProvider {
@@ -68,8 +70,8 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
         }
 
         @Override
-        public void forgetPassword(@NotNull String key) {
-            delegate.forgetPassword(key);
+        public void forgetPassword(@NotNull String url) {
+            delegate.forgetPassword(url);
         }
     }
 }

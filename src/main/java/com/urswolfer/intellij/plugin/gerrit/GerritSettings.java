@@ -195,11 +195,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         }
     }
 
-    public void forgetPassword(final String key) {
+    public void forgetPassword() {
         try {
-            PasswordSafe.getInstance().removePassword(null, GerritSettings.class, key);
+            PasswordSafe.getInstance().removePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
         } catch (PasswordSafeException e) {
-            log.info("Couldn't forget password for key [" + key + "]", e);
+            log.info("Couldn't forget password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
     }
 

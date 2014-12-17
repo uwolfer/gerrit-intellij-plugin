@@ -14,6 +14,8 @@ Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports
 * PyCharm CE
 * AppCode
 * Android Studio
+* 0xDBE
+* CLion
 
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 

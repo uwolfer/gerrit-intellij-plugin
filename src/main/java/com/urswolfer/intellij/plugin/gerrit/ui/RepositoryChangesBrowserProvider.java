@@ -79,7 +79,7 @@ public class RepositoryChangesBrowserProvider {
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
     public RepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
-        selectBaseRevisionAction = new SelectBaseRevisionAction(project, selectedRevisions);
+        selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();
 

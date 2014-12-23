@@ -46,7 +46,7 @@ public class StatusFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(final Project project) {
-        return new StatusPopupAction(project, "Status:", "Status");
+        return new StatusPopupAction(project, "Status");
     }
 
     @Override
@@ -72,10 +72,10 @@ public class StatusFilter extends AbstractChangesFilter {
     public final class StatusPopupAction extends BasePopupAction {
         private final Project project;
 
-        public StatusPopupAction(Project project, String labelText, String asTextLabel) {
-            super(project, labelText, asTextLabel);
+        public StatusPopupAction(Project project, String labelText) {
+            super(labelText);
             this.project = project;
-            myLabel.setText(value.get().label);
+            updateFilterValueLabel(value.get().label);
         }
 
         @Override
@@ -85,7 +85,7 @@ public class StatusFilter extends AbstractChangesFilter {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
                         value = Optional.of(status);
-                        myLabel.setText(status.label);
+                        updateFilterValueLabel(status.label);
                         setChanged();
                         notifyObservers(project);
                     }

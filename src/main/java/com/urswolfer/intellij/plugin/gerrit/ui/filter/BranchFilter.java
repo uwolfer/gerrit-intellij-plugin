@@ -49,7 +49,7 @@ public class BranchFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(Project project) {
-        return new BranchPopupAction(project, "Branch:", "Branch");
+        return new BranchPopupAction(project, "Branch");
     }
 
     @Override
@@ -67,10 +67,10 @@ public class BranchFilter extends AbstractChangesFilter {
     public final class BranchPopupAction extends BasePopupAction {
         private final Project project;
 
-        public BranchPopupAction(Project project, String labeltext, String asTextLabel) {
-            super(project, labeltext, asTextLabel);
+        public BranchPopupAction(Project project, String filterName) {
+            super(filterName);
             this.project = project;
-            myLabel.setText("All");
+            updateFilterValueLabel("All");
         }
 
         @Override
@@ -79,7 +79,7 @@ public class BranchFilter extends AbstractChangesFilter {
                 @Override
                 public void actionPerformed(AnActionEvent e) {
                     value = Optional.absent();
-                    myLabel.setText("All");
+                    updateFilterValueLabel("All");
                     setChanged();
                     notifyObservers(project);
                 }
@@ -102,7 +102,7 @@ public class BranchFilter extends AbstractChangesFilter {
                             @Override
                             public void actionPerformed(AnActionEvent e) {
                                 value = Optional.of(new BranchDescriptor(repository, branch));
-                                myLabel.setText(branch.getNameForRemoteOperations());
+                                updateFilterValueLabel(branch.getNameForRemoteOperations());
                                 setChanged();
                                 notifyObservers(project);
                             }

@@ -246,7 +246,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             );
         }
-        columnList.add(selectRevisionInfoColumn);
         columnList.add(
             new ColumnInfo<ChangeInfo, String>("Subject") {
                 @Override
@@ -303,6 +302,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
         );
+        columnList.add(selectRevisionInfoColumn);
 
         return columnList.toArray(new ColumnInfo[columnList.size()]);
     }

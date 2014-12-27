@@ -31,6 +31,7 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
@@ -61,6 +62,7 @@ import static com.intellij.icons.AllIcons.Actions.*;
 public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
+    private final GerritSettings gerritSettings;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
@@ -72,9 +74,11 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     @Inject
     public GerritChangeListPanel(SelectedRevisions selectedRevisions,
-                                 GerritSelectRevisionInfoColumn selectRevisionInfoColumn) {
+                                 GerritSelectRevisionInfoColumn selectRevisionInfoColumn,
+                                 GerritSettings gerritSettings) {
         this.selectedRevisions = selectedRevisions;
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
+        this.gerritSettings = gerritSettings;
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>();
@@ -218,64 +222,89 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             time = getMax(time, getTime(change));
         }
 
-        return new ColumnInfo[]{
-                new GerritChangeColumnStarredInfo(),
+        List<ColumnInfo> columnList = Lists.newArrayList();
+        columnList.add(new GerritChangeColumnStarredInfo());
+        boolean showChangeNumberColumn = gerritSettings.getShowChangeNumberColumn();
+        if (showChangeNumberColumn) {
+            columnList.add(
                 new GerritChangeColumnInfo("#", number.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getNumber(change);
                     }
-                },
+                }
+            );
+        }
+        boolean showChangeIdColumn = gerritSettings.getShowChangeIdColumn();
+        if (showChangeIdColumn) {
+            columnList.add(
                 new GerritChangeColumnInfo("ID", hash.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getHash(change);
                     }
-                },
-                selectRevisionInfoColumn,
-                new ColumnInfo<ChangeInfo, String>("Subject") {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return change.subject;
-                    }
-                },
-                new GerritChangeColumnInfo("Owner", author.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getOwner(change);
-                    }
-                },
-                new GerritChangeColumnInfo("Project", project.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getProject(change);
-                    }
-                },
-                new GerritChangeColumnInfo("Branch", branch.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getBranch(change);
-                    }
-                },
-                new GerritChangeColumnInfo("Updated", time.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getTime(change);
-                    }
-                },
-                new GerritChangeColumnIconLabelInfo("CR") {
-                    @Override
-                    public LabelInfo getLabelInfo(ChangeInfo change) {
-                        return getCodeReview(change);
-                    }
-                },
-                new GerritChangeColumnIconLabelInfo("V") {
-                    @Override
-                    public LabelInfo getLabelInfo(ChangeInfo change) {
-                        return getVerified(change);
-                    }
                 }
-        };
+            );
+        }
+        columnList.add(selectRevisionInfoColumn);
+        columnList.add(
+            new ColumnInfo<ChangeInfo, String>("Subject") {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return change.subject;
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnInfo("Owner", author.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getOwner(change);
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnInfo("Project", project.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getProject(change);
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnInfo("Branch", branch.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getBranch(change);
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnInfo("Updated", time.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getTime(change);
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnIconLabelInfo("CR") {
+                @Override
+                public LabelInfo getLabelInfo(ChangeInfo change) {
+                    return getCodeReview(change);
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnIconLabelInfo("V") {
+                @Override
+                public LabelInfo getLabelInfo(ChangeInfo change) {
+                    return getVerified(change);
+                }
+            }
+        );
+
+        return columnList.toArray(new ColumnInfo[columnList.size()]);
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {

@@ -73,7 +73,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
                 !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()) ||
-                !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()));
+                !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
+                !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
+                !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()));
     }
 
     private boolean isPasswordModified() {
@@ -93,6 +95,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
             gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
             gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
+            gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
+            gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
 
             gerritUpdatesNotificationComponent.handleConfigurationChange();
         }
@@ -110,6 +114,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             settingsPane.setRefreshTimeout(gerritSettings.getRefreshTimeout());
             settingsPane.setReviewNotifications(gerritSettings.getReviewNotifications());
             settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
+            settingsPane.setShowChangeNumberColumn(gerritSettings.getShowChangeNumberColumn());
+            settingsPane.setShowChangeIdColumn(gerritSettings.getShowChangeIdColumn());
         }
     }
 

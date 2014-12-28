@@ -102,7 +102,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Nullable
     @Override
     public String getMaxStringValue() {
-        return "100/100: eeeeeee";
+        return "99/99: abcedf1";
     }
 
     @Nullable

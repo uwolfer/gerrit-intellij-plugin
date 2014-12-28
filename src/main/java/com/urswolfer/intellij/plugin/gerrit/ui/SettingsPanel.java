@@ -55,6 +55,8 @@ public class SettingsPanel {
     private JCheckBox automaticRefreshCheckbox;
     private JCheckBox listAllChangesCheckbox;
     private JCheckBox pushToGerritCheckbox;
+    private JCheckBox showChangeNumberColumnCheckBox;
+    private JCheckBox showChangeIdColumnCheckBox;
 
     private boolean passwordModified;
 
@@ -197,6 +199,22 @@ public class SettingsPanel {
 
     public boolean getPushToGerrit() {
         return pushToGerritCheckbox.isSelected();
+    }
+
+    public boolean getShowChangeNumberColumn() {
+        return showChangeNumberColumnCheckBox.isSelected();
+    }
+
+    public void setShowChangeNumberColumn(final boolean showChangeNumberColumn) {
+        showChangeNumberColumnCheckBox.setSelected(showChangeNumberColumn);
+    }
+
+    public boolean getShowChangeIdColumn() {
+        return showChangeIdColumnCheckBox.isSelected();
+    }
+
+    public void setShowChangeIdColumn(final boolean showChangeIdColumn) {
+        showChangeIdColumnCheckBox.setSelected(showChangeIdColumn);
     }
 
     public boolean isPasswordModified() {

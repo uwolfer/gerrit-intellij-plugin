@@ -248,7 +248,11 @@ public class GerritUtil {
             @Override
             public LoadChangesProxy get() {
                     Changes.QueryRequest queryRequest = gerritClient.changes().query(query)
-                            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.LABELS));
+                            .withOptions(EnumSet.of(
+                                ListChangesOption.ALL_REVISIONS,
+                                ListChangesOption.DETAILED_ACCOUNTS,
+                                ListChangesOption.LABELS
+                            ));
                     return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
             }
         };
@@ -350,6 +354,7 @@ public class GerritUtil {
                     EnumSet<ListChangesOption> options = EnumSet.of(
                             ListChangesOption.ALL_REVISIONS,
                             ListChangesOption.MESSAGES,
+                            ListChangesOption.DETAILED_ACCOUNTS,
                             ListChangesOption.LABELS,
                             ListChangesOption.DETAILED_LABELS);
                     try {

@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.3.4</version>
+  <version>0.9.4</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,18 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.4</li>
+          <ul>
+            <li>change-number-column is available in list (hidden by default)</li>
+            <li>change-id and change-number columns are hidden by default (can be enabled in plugin settings)</li>
+            <li>change-number is displayed in change detail panel</li>
+            <li>new action to copy change-id in list</li>
+            <li>"git review" like checkout (check-out action automatically creates a named branch)</li>
+            <li>improved focus handling of comment dialog
+            (comments are not loosed anymore in some cases when focus is loosed; text field is focused when opened)</li>
+            <li>fix for Gerrit >= 2.10: fix display of account information (list, change details)</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.9.3</li>
           <ul>
             <li>add action to checkout selected change</li>

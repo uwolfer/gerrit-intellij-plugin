@@ -57,6 +57,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String REFRESH_TIMEOUT = "RefreshTimeout";
     private static final String REVIEW_NOTIFICATIONS = "ReviewNotifications";
     private static final String PUSH_TO_GERRIT = "PushToGerrit";
+    private static final String SHOW_CHANGE_NUMBER_COLUMN = "ShowChangeNumberColumn";
+    private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
     private static final String TRUSTED_HOST = "HOST";
@@ -69,6 +71,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private int refreshTimeout;
     private boolean refreshNotifications;
     private boolean pushToGerrit;
+    private boolean showChangeNumberColumn;
+    private boolean showChangeIdColumn;
     private Collection<String> trustedHosts = new ArrayList<String>();
 
     private Logger log;
@@ -82,6 +86,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
         element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
         element.setAttribute(PUSH_TO_GERRIT, "" + getPushToGerrit());
+        element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, "" + getShowChangeNumberColumn());
+        element.setAttribute(SHOW_CHANGE_ID_COLUMN, "" + getShowChangeIdColumn());
         Element trustedHosts = new Element(TRUSTED_HOSTS);
         for (String host : this.trustedHosts) {
             Element hostEl = new Element(TRUSTED_HOST);
@@ -103,6 +109,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
             setReviewNotifications(getBooleanValue(element, REVIEW_NOTIFICATIONS));
             setPushToGerrit(getBooleanValue(element, PUSH_TO_GERRIT));
+            setShowChangeNumberColumn(getBooleanValue(element, SHOW_CHANGE_NUMBER_COLUMN));
+            setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
 
             for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
                 Element trustedHosts = (Element) trustedHostsObj;
@@ -225,6 +233,22 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public boolean getPushToGerrit() {
         return pushToGerrit;
+    }
+
+    public boolean getShowChangeNumberColumn() {
+        return showChangeNumberColumn;
+    }
+
+    public void setShowChangeNumberColumn(boolean showChangeNumberColumn) {
+        this.showChangeNumberColumn = showChangeNumberColumn;
+    }
+
+    public boolean getShowChangeIdColumn() {
+        return showChangeIdColumn;
+    }
+
+    public void setShowChangeIdColumn(boolean showChangeIdColumn) {
+        this.showChangeIdColumn = showChangeIdColumn;
     }
 
     @NotNull

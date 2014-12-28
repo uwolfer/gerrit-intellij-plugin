@@ -40,6 +40,8 @@ public class CommentBalloonBuilder {
         builder.setTitle(title);
         builder.setResizable(true);
         builder.setMovable(true);
+        builder.setRequestFocus(true);
+        builder.setCancelOnClickOutside(false);
         builder.setCancelOnWindowDeactivation(false);
         return builder.createPopup();
     }

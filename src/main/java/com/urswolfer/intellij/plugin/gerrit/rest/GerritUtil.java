@@ -17,10 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -291,22 +288,32 @@ public class GerritUtil {
         for (GitRepository repository : repositories) {
             remotes.addAll(repository.getRemotes());
         }
+        List<String> projectNames = getProjectNames(remotes);
+        Iterable<String> projectNamesWithQueryPrefix = Iterables.transform(projectNames, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return "project:" + input;
+            }
+        });
 
+        if (Iterables.isEmpty(projectNamesWithQueryPrefix)) {
+            return "";
+        }
+        return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
+    }
+
+    public List<String> getProjectNames(Collection<GitRemote> remotes) {
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
                 remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                 String projectName = getProjectName(gerritSettings.getHost(), remoteUrl);
                 if (!Strings.isNullOrEmpty(projectName) && remoteUrl.endsWith(projectName)) {
-                    projectNames.add("project:" + projectName);
+                    projectNames.add(projectName);
                 }
             }
         }
-
-        if (projectNames.isEmpty()) {
-            return "";
-        }
-        return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
+        return projectNames;
     }
 
     private String getProjectName(String repositoryUrl, String url) {

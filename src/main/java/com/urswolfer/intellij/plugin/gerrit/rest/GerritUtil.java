@@ -182,6 +182,23 @@ public class GerritUtil {
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
     }
 
+    public void addReviewer(final String changeId,
+                            final String reviewerName,
+                            final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).addReviewer(reviewerName);
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer.");
+    }
+
     /**
      * Star-endpoint added in Gerrit 2.8.
      */

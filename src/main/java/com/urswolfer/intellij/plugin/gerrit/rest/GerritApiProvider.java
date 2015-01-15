@@ -34,10 +34,16 @@ public class GerritApiProvider implements Provider<GerritApi> {
     @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
     @Inject
+    private UserAgentClientBuilderExtension userAgentClientBuilderExtension;
+    @Inject
     private GerritRestApiFactory gerritRestApiFactory;
 
     @Override
     public GerritApi get() {
-        return gerritRestApiFactory.create(gerritSettings, sslSupport, proxyHttpClientBuilderExtension);
+        return gerritRestApiFactory.create(
+            gerritSettings,
+            sslSupport,
+            proxyHttpClientBuilderExtension,
+            userAgentClientBuilderExtension);
     }
 }

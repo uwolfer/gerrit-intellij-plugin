@@ -28,6 +28,7 @@ public class GerritRestModule extends AbstractModule {
     protected void configure() {
         bind(SslSupport.class);
         bind(ProxyHttpClientBuilderExtension.class);
+        bind(UserAgentClientBuilderExtension.class);
         bind(GerritRestApiFactory.class);
         bind(GerritApi.class).toProvider(new GerritApiProvider());
     }

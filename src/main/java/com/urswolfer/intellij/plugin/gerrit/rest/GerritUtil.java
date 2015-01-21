@@ -316,7 +316,7 @@ public class GerritUtil {
         if (Iterables.isEmpty(projectNamesWithQueryPrefix)) {
             return "";
         }
-        return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
+        return String.format("(%s)", Joiner.on("+OR+").join(projectNamesWithQueryPrefix));
     }
 
     public List<String> getProjectNames(Collection<GitRemote> remotes) {

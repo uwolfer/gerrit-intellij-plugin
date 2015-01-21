@@ -93,8 +93,14 @@
     <dependency>
       <groupId>com.urswolfer.gerrit.client.rest</groupId>
       <artifactId>gerrit-rest-java-client</artifactId>
-      <version>0.8.0</version>
+      <version>0.8.1</version>
       <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

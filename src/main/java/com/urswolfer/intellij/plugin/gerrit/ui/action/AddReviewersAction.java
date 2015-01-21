@@ -42,6 +42,7 @@ import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.containers.ContainerUtil;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,7 +58,7 @@ import java.util.Set;
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class AddReviewersAction extends AbstractLoggedInChangeAction {
     @Inject
-    private GerritApi gerritApi;
+    private GerritRestApi gerritApi;
 
     public AddReviewersAction() {
         super("Add Reviewers", "Add Reviewers to Change", AllIcons.Toolwindows.ToolWindowTodo);
@@ -125,7 +126,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                     }
                     try {
                         List<SuggestedReviewerInfo> suggestedReviewers = gerritApi.changes()
-                            .id(changeInfo._number).suggestReviewers(prefix, 20);
+                            .id(changeInfo._number).suggestReviewers(prefix).withLimit(20).get();
                         if (result.isStopped()) {
                             return;
                         }

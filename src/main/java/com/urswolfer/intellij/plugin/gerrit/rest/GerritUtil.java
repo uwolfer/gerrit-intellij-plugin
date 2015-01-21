@@ -40,6 +40,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -77,7 +78,7 @@ public class GerritUtil {
     @Inject
     private NotificationService notificationService;
     @Inject
-    private GerritApi gerritClient;
+    private GerritRestApi gerritClient;
     @Inject
     private GerritRestApiFactory gerritRestApiFactory;
     @Inject

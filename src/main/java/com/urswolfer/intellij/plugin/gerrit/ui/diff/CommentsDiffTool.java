@@ -23,10 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
-import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.Comment;
-import com.google.gerrit.extensions.common.CommentInfo;
-import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gerrit.extensions.common.*;
 import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.icons.AllIcons;
@@ -68,7 +65,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
         @Override
         public boolean apply(Comment comment) {
-            return comment.side == null || comment.side.equals(Comment.Side.REVISION);
+            return comment.side == null || comment.side.equals(Side.REVISION);
         }
     };
 
@@ -182,14 +179,14 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
     private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
         if (baseRevision.isPresent()) {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Comment.Side.REVISION);
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
         } else {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, selectedRevisionId, Comment.Side.PARENT);
+            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, selectedRevisionId, Side.PARENT);
         }
-        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, selectedRevisionId, Comment.Side.REVISION);
+        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, selectedRevisionId, Side.REVISION);
     }
 
-    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, String revisionId, Comment.Side commentSide) {
+    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, String revisionId, Side commentSide) {
         if (editor == null) return;
 
         DefaultActionGroup group = new DefaultActionGroup();

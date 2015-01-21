@@ -20,6 +20,7 @@ import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
+import com.google.gerrit.extensions.common.Side;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -51,7 +52,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
     private final String revisionId;
     private final String filePath;
     private final CommentBalloonBuilder commentBalloonBuilder;
-    private final Comment.Side commentSide;
+    private final Side commentSide;
     private final Comment commentToEdit;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
@@ -66,7 +67,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
                             ChangeInfo changeInfo,
                             String revisionId,
                             String filePath,
-                            Comment.Side commentSide,
+                            Side commentSide,
                             Comment commentToEdit,
                             RangeHighlighter lineHighlighter,
                             RangeHighlighter rangeHighlighter,

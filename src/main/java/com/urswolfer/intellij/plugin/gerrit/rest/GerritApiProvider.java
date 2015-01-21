@@ -16,16 +16,16 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.gerrit.extensions.api.GerritApi;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 
 /**
  * @author Urs Wolfer
  */
-public class GerritApiProvider implements Provider<GerritApi> {
+public class GerritApiProvider implements Provider<GerritRestApi> {
 
     @Inject
     private GerritSettings gerritSettings;
@@ -34,10 +34,16 @@ public class GerritApiProvider implements Provider<GerritApi> {
     @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
     @Inject
+    private UserAgentClientBuilderExtension userAgentClientBuilderExtension;
+    @Inject
     private GerritRestApiFactory gerritRestApiFactory;
 
     @Override
-    public GerritApi get() {
-        return gerritRestApiFactory.create(gerritSettings, sslSupport, proxyHttpClientBuilderExtension);
+    public GerritRestApi get() {
+        return gerritRestApiFactory.create(
+            gerritSettings,
+            sslSupport,
+            proxyHttpClientBuilderExtension,
+            userAgentClientBuilderExtension);
     }
 }

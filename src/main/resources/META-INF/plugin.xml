@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.4</version>
+  <version>0.9.5</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,14 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.5</li>
+          <ul>
+            <li>new action to add reviewers to a change</li>
+            <li>support for LDAP authentication (when logging in happens with a HTML form)</li>
+            <li>fix authentication when HTTP digest method is used</li>
+            <li>fix branch filter for some project setups</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.9.4</li>
           <ul>
             <li>change-number-column is available in list (hidden by default)</li>
@@ -301,6 +309,10 @@
     <action id="Gerrit.Star" text="Star"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.StarAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPick"/>
+    </action>
+    <action id="Gerrit.AddReviewers" text="Add Reviewers"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.AddReviewersAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Star"/>
     </action>
     <action id="Gerrit.Submit" text="Submit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy">

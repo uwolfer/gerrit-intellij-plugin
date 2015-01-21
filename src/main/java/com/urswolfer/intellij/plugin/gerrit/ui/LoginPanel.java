@@ -34,6 +34,10 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class LoginPanel {
+    public static final String LOGIN_CREDENTIALS_INFO =
+        "* If logging in with your normal Gerrit login credentials fails, you need to set a HTTP access password" +
+        " for your account in the Gerrit Web Application (Settings > HTTP Password).";
+
     private JPanel pane;
     private JTextField hostTextField;
     private JTextField loginTextField;
@@ -58,9 +62,7 @@ public class LoginPanel {
         };
         loginTextField.getDocument().addDocumentListener(listener);
         passwordField.getDocument().addDocumentListener(listener);
-        gerritLoginInfoTestField.setText("* You need to set a HTTP access password for your account in Gerrit " +
-                "(Settings > HTTP Password). <strong>If</strong> you have <strong>login issues</strong>, please try your " +
-                "HTTP or LDAP Gerrit login data (when available).");
+        gerritLoginInfoTestField.setText(LOGIN_CREDENTIALS_INFO);
         gerritLoginInfoTestField.setMargin(new Insets(5, 0, 0, 0));
         gerritLoginInfoTestField.setBackground(UIUtil.TRANSPARENT_COLOR);
     }

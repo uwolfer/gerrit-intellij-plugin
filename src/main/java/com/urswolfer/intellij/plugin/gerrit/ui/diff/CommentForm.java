@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.Side;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
@@ -46,7 +47,7 @@ public class CommentForm extends JPanel {
 
     private final Editor editor;
     private final String filePath;
-    private final Comment.Side commentSide;
+    private final Side commentSide;
     private final Comment commentToEdit;
 
     private final EditorTextField reviewTextField;
@@ -56,7 +57,7 @@ public class CommentForm extends JPanel {
     public CommentForm(Project project,
                        Editor editor,
                        String filePath,
-                       Comment.Side commentSide,
+                       Side commentSide,
                        Comment commentToEdit) {
         super(new BorderLayout());
 

@@ -16,11 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.inject.Inject;
@@ -33,10 +31,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
-import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import git4idea.GitRemoteBranch;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Thomas Forrer
@@ -44,6 +45,8 @@ import org.jetbrains.annotations.Nullable;
 public class BranchFilter extends AbstractChangesFilter {
     @Inject
     private GerritGitUtil gerritGitUtil;
+    @Inject
+    private GerritUtil gerritUtil;
 
     private Optional<BranchDescriptor> value = Optional.absent();
 
@@ -56,7 +59,7 @@ public class BranchFilter extends AbstractChangesFilter {
     @Nullable
     public String getSearchQueryPart() {
         if (value.isPresent()) {
-            return String.format("project:%s+branch:%s",
+            return String.format("(project:%s+branch:%s)",
                     getNameForRepository(value.get().getRepository()),
                     value.get().getBranch().getNameForRemoteOperations());
         } else {
@@ -115,7 +118,7 @@ public class BranchFilter extends AbstractChangesFilter {
     }
 
     private String getNameForRepository(GitRepository repository) {
-        return UrlUtils.stripGitExtension(repository.getRoot().getName());
+        return Iterables.getFirst(gerritUtil.getProjectNames(repository.getRemotes()), "");
     }
 
     private static final class BranchDescriptor {

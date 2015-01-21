@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.urswolfer.intellij.plugin.gerrit</groupId>
   <artifactId>gerrit-intellij-plugin</artifactId>
-  <version>0.9.4</version>
+  <version>0.9.5</version>
 
   <name>gerrit-intellij-plugin</name>
   <description>Gerrit Code Review Tool for IntelliJ.
@@ -88,13 +88,19 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
-      <scope>compile</scope>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.2.4</version>
-      <scope>provided</scope>
+      <groupId>com.urswolfer.gerrit.client.rest</groupId>
+      <artifactId>gerrit-rest-java-client</artifactId>
+      <version>0.8.1</version>
+      <scope>compile</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -137,10 +143,6 @@
           <include>META-INF/plugin.xml</include>
           <include>icons/</include>
         </includes>
-        <filtering>true</filtering>
-      </resource>
-      <resource>
-        <directory>gerrit-rest-java-client/src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
     </resources>

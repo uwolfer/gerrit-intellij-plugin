@@ -2,6 +2,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.common.Side;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -23,7 +24,7 @@ public class AddCommentActionBuilder {
                           String revisionId,
                           Editor editor,
                           String filePath,
-                          Comment.Side commentSide) {
+                          Side commentSide) {
         return new Builder().init(commentsDiffTool, changeInfo, revisionId, editor, filePath, commentSide);
     }
 
@@ -35,7 +36,7 @@ public class AddCommentActionBuilder {
         private String revisionId;
         private Editor editor;
         private String filePath;
-        private Comment.Side commentSide;
+        private Side commentSide;
         private Comment commentToEdit;
         private RangeHighlighter lineHighlighter;
         private RangeHighlighter rangeHighlighter;
@@ -46,7 +47,7 @@ public class AddCommentActionBuilder {
                              String revisionId,
                              Editor editor,
                              String filePath,
-                             Comment.Side commentSide) {
+                             Side commentSide) {
             this.commentsDiffTool = commentsDiffTool;
             this.changeInfo = changeInfo;
             this.revisionId = revisionId;

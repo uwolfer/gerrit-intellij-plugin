@@ -6,11 +6,8 @@
     <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
-      <sourceFolder url="file://$MODULE_DIR$/src/test/resources" type="java-test-resource" />
-      <sourceFolder url="file://$MODULE_DIR$/gerrit-rest-java-client/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/gerrit-rest-java-client/src/main/resources" type="java-resource" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
@@ -18,12 +15,12 @@
     <orderEntry type="library" name="Maven: com.google.inject:guice:4.0-beta4" level="project" />
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
     <orderEntry type="library" name="Maven: aopalliance:aopalliance:1.0" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.inject.extensions:guice-multibindings:4.0-beta4" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.3.3" level="project" />
-    <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.3.2" level="project" />
-    <orderEntry type="library" name="Maven: commons-codec:commons-codec:1.6" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.code.gson:gson:2.2.4" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.httpcomponents:httpclient:4.3.3" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.httpcomponents:httpcore:4.3.2" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: commons-codec:commons-codec:1.6" level="project" />
+    <orderEntry type="library" name="Maven: com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.1" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.jdom:jdom:1.1.3" level="project" />
     <orderEntry type="library" name="Maven: org.javassist:javassist:3.18.1-GA" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.testng:testng:6.8.7" level="project" />
@@ -38,4 +35,3 @@
     <orderEntry type="library" scope="PROVIDED" name="git4idea" level="project" />
   </component>
 </module>
-

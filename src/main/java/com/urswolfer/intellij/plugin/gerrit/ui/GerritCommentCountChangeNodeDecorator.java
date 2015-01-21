@@ -21,7 +21,6 @@ import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
-import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
@@ -32,6 +31,7 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
@@ -45,7 +45,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
     @Inject
-    private GerritApi gerritApi;
+    private GerritRestApi gerritApi;
     @Inject
     private PathUtils pathUtils;
     @Inject

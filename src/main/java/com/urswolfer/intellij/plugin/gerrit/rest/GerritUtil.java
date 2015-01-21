@@ -17,10 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
+import com.google.common.base.*;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -43,6 +40,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -80,7 +78,7 @@ public class GerritUtil {
     @Inject
     private NotificationService notificationService;
     @Inject
-    private GerritApi gerritClient;
+    private GerritRestApi gerritClient;
     @Inject
     private GerritRestApiFactory gerritRestApiFactory;
     @Inject
@@ -183,6 +181,23 @@ public class GerritUtil {
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
+    }
+
+    public void addReviewer(final String changeId,
+                            final String reviewerName,
+                            final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).addReviewer(reviewerName);
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer.");
     }
 
     /**
@@ -291,22 +306,32 @@ public class GerritUtil {
         for (GitRepository repository : repositories) {
             remotes.addAll(repository.getRemotes());
         }
+        List<String> projectNames = getProjectNames(remotes);
+        Iterable<String> projectNamesWithQueryPrefix = Iterables.transform(projectNames, new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return "project:" + input;
+            }
+        });
 
+        if (Iterables.isEmpty(projectNamesWithQueryPrefix)) {
+            return "";
+        }
+        return String.format("(%s)", Joiner.on("+OR+").join(projectNamesWithQueryPrefix));
+    }
+
+    public List<String> getProjectNames(Collection<GitRemote> remotes) {
         List<String> projectNames = Lists.newArrayList();
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
                 remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                 String projectName = getProjectName(gerritSettings.getHost(), remoteUrl);
                 if (!Strings.isNullOrEmpty(projectName) && remoteUrl.endsWith(projectName)) {
-                    projectNames.add("project:" + projectName);
+                    projectNames.add(projectName);
                 }
             }
         }
-
-        if (projectNames.isEmpty()) {
-            return "";
-        }
-        return String.format("(%s)", Joiner.on("+OR+").join(projectNames));
+        return projectNames;
     }
 
     private String getProjectName(String repositoryUrl, String url) {

@@ -18,7 +18,6 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.io.ByteStreams;
-import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
@@ -29,6 +28,7 @@ import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -68,7 +68,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     @Inject
     private NotificationService notificationService;
     @Inject
-    private GerritApi gerritApi;
+    private GerritRestApi gerritApi;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {

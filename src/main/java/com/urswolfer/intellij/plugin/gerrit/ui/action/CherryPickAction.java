@@ -26,7 +26,7 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import icons.Git4ideaIcons;
+import icons.GerritIcons;
 
 import java.util.concurrent.Callable;
 
@@ -43,7 +43,7 @@ public class CherryPickAction extends AbstractChangeAction {
     private SelectedRevisions selectedRevisions;
 
     public CherryPickAction() {
-        super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", Git4ideaIcons.CherryPick);
+        super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", GerritIcons.CherryPick);
     }
 
     @Override

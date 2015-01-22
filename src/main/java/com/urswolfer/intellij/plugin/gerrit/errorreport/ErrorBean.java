@@ -22,6 +22,7 @@ package com.urswolfer.intellij.plugin.gerrit.errorreport;
 @SuppressWarnings("UnusedDeclaration")
 public class ErrorBean {
     private String pluginVersion;
+    private String intellijVersion;
     private String additionInfo;
     private String exceptionMessage;
     private String exception;
@@ -32,6 +33,14 @@ public class ErrorBean {
 
     public void setPluginVersion(String pluginVersion) {
         this.pluginVersion = pluginVersion;
+    }
+
+    public String getIntellijVersion() {
+        return intellijVersion;
+    }
+
+    public void setIntellijVersion(String intellijVersion) {
+        this.intellijVersion = intellijVersion;
     }
 
     public String getAdditionInfo() {

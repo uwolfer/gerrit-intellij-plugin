@@ -22,7 +22,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.vcs.VcsDataKeys;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.table.TableView;
@@ -152,18 +151,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     @Override
     public void calcData(DataKey key, DataSink sink) {
         sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
-
-        if (VcsDataKeys.CHANGES.equals(key)) {
-            int[] rows = table.getSelectedRows();
-            if (rows.length != 1) return;
-            int row = rows[0];
-
-            // TODO impl ?
-//            ChangeInfo change = changes.get(row);
-            // suppressing: inherited API
-            //noinspection unchecked
-//            sink.put(key, ArrayUtil.toObjectArray(change.getChanges(), Change.class));
-        }
     }
 
     @NotNull

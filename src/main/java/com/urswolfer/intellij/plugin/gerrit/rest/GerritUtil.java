@@ -166,6 +166,7 @@ public class GerritUtil {
         accessGerrit(supplier, consumer, project, "Failed to submit Gerrit change.");
     }
 
+    @SuppressWarnings("unchecked")
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
                             final Project project) {
@@ -183,6 +184,7 @@ public class GerritUtil {
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
     }
 
+    @SuppressWarnings("unchecked")
     public void addReviewer(final String changeId,
                             final String reviewerName,
                             final Project project) {
@@ -203,6 +205,7 @@ public class GerritUtil {
     /**
      * Star-endpoint added in Gerrit 2.8.
      */
+    @SuppressWarnings("unchecked")
     public void changeStarredStatus(final String id,
                                     final boolean starred,
                                     final Project project) {
@@ -225,6 +228,7 @@ public class GerritUtil {
                 "<br/>Not supported for Gerrit instances older than version 2.8.");
     }
 
+    @SuppressWarnings("unchecked")
     public void setReviewed(final String changeId,
                             final String revision,
                             final String filePath,

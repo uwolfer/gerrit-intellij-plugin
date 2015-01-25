@@ -27,7 +27,6 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.util.text.DateFormatUtil;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
@@ -44,7 +43,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
     private final GerritUtil gerritUtil;
-    private final SelectedRevisions selectedRevisions;
     private final AddCommentActionBuilder addCommentActionBuilder;
     private final Comment fileComment;
     private final ChangeInfo changeInfo;
@@ -55,7 +53,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public CommentGutterIconRenderer(CommentsDiffTool commentsDiffTool,
                                      Editor editor,
                                      GerritUtil gerritUtil,
-                                     SelectedRevisions selectedRevisions,
                                      AddCommentActionBuilder addCommentActionBuilder,
                                      Comment fileComment,
                                      ChangeInfo changeInfo,
@@ -63,7 +60,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
                                      RangeHighlighter lineHighlighter,
                                      RangeHighlighter rangeHighlighter) {
         this.commentsDiffTool = commentsDiffTool;
-        this.selectedRevisions = selectedRevisions;
         this.fileComment = fileComment;
         this.gerritUtil = gerritUtil;
         this.changeInfo = changeInfo;
@@ -147,7 +143,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
             actionGroup.add(commentAction);
 
             RemoveCommentAction removeCommentAction = new RemoveCommentAction(
-                    commentsDiffTool, editor, gerritUtil, selectedRevisions, changeInfo, fileComment,
+                    commentsDiffTool, editor, gerritUtil, changeInfo, fileComment, revisionId,
                     lineHighlighter, rangeHighlighter);
             actionGroup.add(removeCommentAction);
         } else {

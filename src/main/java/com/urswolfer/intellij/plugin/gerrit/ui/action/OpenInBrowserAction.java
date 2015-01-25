@@ -44,7 +44,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
             return;
         }
         String urlToOpen = getUrl(selectedChange.get());
-        BrowserUtil.launchBrowser(urlToOpen);
+        BrowserUtil.browse(urlToOpen);
     }
 
     private String getUrl(ChangeInfo change) {

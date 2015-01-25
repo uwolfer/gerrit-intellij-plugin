@@ -18,11 +18,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
-import git4idea.history.browser.GitHeavyCommit;
+import com.intellij.vcs.log.Hash;
+import git4idea.GitCommit;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Set;
+import java.util.List;
 import java.util.TimeZone;
 
 /**
@@ -59,33 +60,34 @@ public class CommitMessageFormatter {
         DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    private final GitHeavyCommit gitCommit;
+    private final GitCommit gitCommit;
 
-    public CommitMessageFormatter(GitHeavyCommit gitCommit) {
+    public CommitMessageFormatter(GitCommit gitCommit) {
         this.gitCommit = gitCommit;
     }
 
     public String getLongCommitMessage() {
         return String.format(PATTERN,
                 getParentLine(),
-                gitCommit.getAuthor(), gitCommit.getAuthorEmail(),
+                gitCommit.getAuthor().getName(), gitCommit.getAuthor().getEmail(),
                 DATE_FORMAT.format(new Date(gitCommit.getAuthorTime())),
-                gitCommit.getCommitter(), gitCommit.getCommitterEmail(),
-                DATE_FORMAT.format(gitCommit.getDate()),
-                gitCommit.getDescription()
+                gitCommit.getCommitter().getName(), gitCommit.getCommitter().getEmail(),
+                DATE_FORMAT.format(gitCommit.getCommitTime()),
+                gitCommit.getFullMessage()
         );
     }
 
     private String getParentLine() {
-        Set<String> parents = gitCommit.getParentsHashes();
+        List<Hash> parents = gitCommit.getParents();
         if (parents.size() == 1) {
-            String parent = Iterables.getFirst(parents, null);
-            return String.format(PARENT_PATTERN, parent);
+            Hash parent = Iterables.getOnlyElement(parents);
+            return String.format(PARENT_PATTERN, parent.asString());
         } else if (parents.size() > 1) {
             String allParents = Joiner.on(MERGE_PATTERN_DELIMITER).join(parents);
             return String.format(MERGE_PATTERN, allParents);
         } else {
-            throw new IllegalArgumentException("Cannot handle commit here: '" + gitCommit.getShortHash().getString() + "'.");
+            throw new IllegalArgumentException(String.format("Cannot handle commit here: '%s'; got %s parents.",
+                gitCommit.getId().asString(), parents.size()));
         }
     }
 }

@@ -27,14 +27,15 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
-import git4idea.history.browser.GitHeavyCommit;
+import git4idea.GitCommit;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
  * This class helps to get a list of {@link com.intellij.openapi.vcs.changes.Change}s between two
- * {@link git4idea.history.browser.GitHeavyCommit}s.
+ * {@link git4idea.GitCommit}s.
  *
  * @author Thomas Forrer
  */
@@ -75,18 +76,18 @@ public class CommitDiffBuilder {
 
     private final String baseHash;
     private final String hash;
-    private final GitHeavyCommit base;
-    private final GitHeavyCommit commit;
+    private final GitCommit base;
+    private final GitCommit commit;
     private Map<String, Change> baseChanges;
     private Map<String, Change> changes;
     private final List<Change> diff = Lists.newArrayList();
     private ChangesProvider changesProvider = new SimpleChangesProvider();
 
-    public CommitDiffBuilder(GitHeavyCommit base, GitHeavyCommit commit) {
+    public CommitDiffBuilder(GitCommit base, GitCommit commit) {
         this.base = base;
         this.commit = commit;
-        baseHash = base.getHash().getValue();
-        hash = commit.getHash().getValue();
+        baseHash = base.getId().asString();
+        hash = commit.getId().asString();
     }
 
     public CommitDiffBuilder withChangesProvider(ChangesProvider changesProvider) {
@@ -153,12 +154,12 @@ public class CommitDiffBuilder {
     }
 
     public static interface ChangesProvider {
-        List<Change> provide(GitHeavyCommit gitCommit);
+        Collection<Change> provide(GitCommit gitCommit);
     }
 
     private static final class SimpleChangesProvider implements ChangesProvider {
         @Override
-        public List<Change> provide(GitHeavyCommit gitCommit) {
+        public Collection<Change> provide(GitCommit gitCommit) {
             return gitCommit.getChanges();
         }
     }

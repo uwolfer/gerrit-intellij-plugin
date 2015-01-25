@@ -25,10 +25,10 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import git4idea.history.browser.GitHeavyCommit;
+import git4idea.GitCommit;
 import git4idea.repo.GitRepository;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
  * @author Thomas Forrer
@@ -47,12 +47,12 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
     }
 
     @Override
-    public List<Change> provide(GitHeavyCommit gitCommit) {
+    public Collection<Change> provide(GitCommit gitCommit) {
         return getChangesWithCommitMessage(gitCommit);
     }
 
-    private List<Change> getChangesWithCommitMessage(GitHeavyCommit gitCommit) {
-        List<Change> changes = gitCommit.getChanges();
+    private Collection<Change> getChangesWithCommitMessage(GitCommit gitCommit) {
+        Collection<Change> changes = gitCommit.getChanges();
 
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         GitRepository repository = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project).get();
@@ -67,7 +67,7 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         changes.add(new Change(null, new SimpleContentRevision(
                 content,
                 commitMsg,
-                gitCommit.getHash().getValue()
+                gitCommit.getId().asString()
         )));
         return changes;
     }

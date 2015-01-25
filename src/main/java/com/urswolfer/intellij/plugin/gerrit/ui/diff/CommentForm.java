@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 
@@ -70,6 +71,8 @@ public class CommentForm extends JPanel {
         reviewTextField = safeHtmlTextEditor.getMessageField();
         add(safeHtmlTextEditor);
 
+        addButtons();
+
         reviewTextField.setPreferredSize(new Dimension(BALLOON_WIDTH, BALLOON_HEIGHT));
 
         reviewTextField.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).
@@ -77,14 +80,45 @@ public class CommentForm extends JPanel {
         reviewTextField.getActionMap().put("postComment", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                commentInput = createComment();
-                balloon.dispose();
+                createCommentAndClose();
             }
         });
 
         if (commentToEdit != null) {
             reviewTextField.setText(commentToEdit.message);
         }
+    }
+
+    private void addButtons() {
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+
+        JButton saveButton = new JButton("Save");
+        buttonPanel.add(saveButton);
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                createCommentAndClose();
+            }
+        });
+
+        buttonPanel.add(Box.createHorizontalGlue());
+
+        JButton cancelButton = new JButton("Cancel");
+        buttonPanel.add(cancelButton);
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                balloon.cancel();
+            }
+        });
+
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void createCommentAndClose() {
+        commentInput = createComment();
+        balloon.dispose();
     }
 
     private DraftInput createComment() {

@@ -134,7 +134,7 @@ public class GerritChangeDetailsPanel {
                     .append("</head><body><table>")
                     .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
                     .append("<tr valign=\"top\"><td><i>Change #:</i></td><td><b>").append(changeInfo._number).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner.name).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? changeInfo.owner.name : "").append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")

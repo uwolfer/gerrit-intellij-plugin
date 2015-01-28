@@ -27,7 +27,6 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -39,27 +38,27 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;
     private final GerritUtil gerritUtil;
-    private final SelectedRevisions selectedRevisions;
     private final ChangeInfo changeInfo;
     private final Comment comment;
+    private final String revisionId;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
 
     public RemoveCommentAction(CommentsDiffTool commentsDiffTool,
                                Editor editor,
                                GerritUtil gerritUtil,
-                               SelectedRevisions selectedRevisions,
                                ChangeInfo changeInfo,
                                Comment comment,
+                               String revisionId,
                                RangeHighlighter lineHighlighter,
                                RangeHighlighter rangeHighlighter) {
         super("Remove", "Remove selected comment", AllIcons.Actions.Delete);
 
         this.commentsDiffTool = commentsDiffTool;
-        this.selectedRevisions = selectedRevisions;
         this.comment = comment;
         this.gerritUtil = gerritUtil;
         this.changeInfo = changeInfo;
+        this.revisionId = revisionId;
         this.lineHighlighter = lineHighlighter;
         this.editor = editor;
         this.rangeHighlighter = rangeHighlighter;
@@ -68,7 +67,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
     @Override
     public void actionPerformed(AnActionEvent e) {
         final Project project = e.getData(PlatformDataKeys.PROJECT);
-        gerritUtil.deleteDraftComment(changeInfo._number, selectedRevisions.get(changeInfo), comment.id, project,
+        gerritUtil.deleteDraftComment(changeInfo._number, revisionId, comment.id, project,
                 new Consumer<Void>() {
                     @Override
                     public void consume(Void aVoid) {

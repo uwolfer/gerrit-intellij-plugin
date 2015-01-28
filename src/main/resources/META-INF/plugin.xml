@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.5</version>
+  <version>0.9.5.1</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.5.1</li>
+          <ul>
+            <li>add save and cancel buttons to comment popup</li>
+            <li>minor fixes and improvements for exception reports - please make sure that you add an email address when
+            you send an exception report from your IDE (in some case I need to ask you for more information)</li>
+          </ul>
           <li>0.9.5</li>
           <ul>
             <li>new action to add reviewers to a change</li>

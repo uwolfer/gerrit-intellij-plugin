@@ -263,7 +263,7 @@ public class CommentsDiffTool extends FrameDiffTool {
         if (line >= 0) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                    this, editor, gerritUtil, selectedRevisions, addCommentActionBuilder,
+                    this, editor, gerritUtil, addCommentActionBuilder,
                     comment, changeInfo, revisionId, highlighter, rangeHighlighter);
             highlighter.setGutterIconRenderer(iconRenderer);
         }

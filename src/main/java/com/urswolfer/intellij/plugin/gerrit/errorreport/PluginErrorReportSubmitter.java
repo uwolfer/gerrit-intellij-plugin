@@ -18,11 +18,12 @@ package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
 import com.google.common.base.Throwables;
 import com.google.gson.Gson;
+import com.intellij.openapi.application.ex.ApplicationInfoEx;
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter;
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent;
 import com.intellij.openapi.diagnostic.SubmittedReportInfo;
 import com.intellij.util.Consumer;
-import com.urswolfer.gerrit.client.rest.Version;
+import com.urswolfer.intellij.plugin.gerrit.Version;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -62,6 +63,10 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         ErrorBean errorBean = new ErrorBean();
         errorBean.setAdditionInfo(additionalInfo);
         errorBean.setPluginVersion(Version.get());
+        ApplicationInfoEx appInfo = ApplicationInfoEx.getInstanceEx();
+        String intellijVersion = String.format("%s %s.%s",
+            appInfo.getVersionName(), appInfo.getMajorVersion(), appInfo.getMinorVersion());
+        errorBean.setIntellijVersion(intellijVersion);
         errorBean.setException(loggingEvent.getThrowableText());
         errorBean.setExceptionMessage(loggingEvent.getMessage());
         return errorBean;

@@ -72,8 +72,8 @@ public class GerritTestModule extends GerritModule {
         bindMock(JBPopupFactory.class);
     }
 
+    @SuppressWarnings("unchecked")
     protected void bindMock(Class toMock) {
-        //noinspection unchecked
         bind(toMock).toInstance(EasyMock.createNiceMock(toMock));
     }
 

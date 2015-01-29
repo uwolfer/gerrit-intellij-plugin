@@ -221,7 +221,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         int lineCount = markup.getDocument().getLineCount();
 
-        int line = comment.line - 1;
+        int line = (comment.line != null ? comment.line : 0) - 1;
         if (line < 0) {
             line = 0;
         }

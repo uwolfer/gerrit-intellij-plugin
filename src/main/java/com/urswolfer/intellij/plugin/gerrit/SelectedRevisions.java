@@ -23,6 +23,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 
 import java.util.Map;
 import java.util.Observable;
+import java.util.Set;
 
 /**
  * Class keeping record of all selected revisions by change.
@@ -48,7 +49,10 @@ public class SelectedRevisions extends Observable {
         if (currentRevision == null && changeInfo.revisions != null) {
             // don't know why with some changes currentRevision is not set,
             // the revisions map however is usually populated
-            currentRevision = Iterables.getLast(changeInfo.revisions.keySet());
+            Set<String> revisionKeys = changeInfo.revisions.keySet();
+            if (!revisionKeys.isEmpty()) {
+                currentRevision = Iterables.getLast(revisionKeys);
+            }
         }
         assert currentRevision != null;
         return get(changeInfo.changeId).or(currentRevision);

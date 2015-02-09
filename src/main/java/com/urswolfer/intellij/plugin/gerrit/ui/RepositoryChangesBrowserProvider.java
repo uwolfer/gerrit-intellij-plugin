@@ -29,6 +29,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.changes.actions.diff.ShowDiffContext;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.openapi.vcs.changes.ui.ChangeNodeDecorator;
 import com.intellij.openapi.vcs.changes.ui.ChangesBrowserNodeRenderer;
@@ -47,6 +48,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitM
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitCommit;
@@ -127,6 +129,12 @@ public class RepositoryChangesBrowserProvider {
             super.calcData(key, sink);
             sink.put(GerritDataKeys.CHANGE, selectedChange);
             sink.put(GerritDataKeys.BASE_REVISION, baseRevision);
+        }
+
+        @Override
+        protected void updateDiffContext(ShowDiffContext context) {
+            context.putChainContext(GerritUserDataKeys.CHANGE, selectedChange);
+            context.putChainContext(GerritUserDataKeys.BASE_REVISION, baseRevision);
         }
 
         @Override

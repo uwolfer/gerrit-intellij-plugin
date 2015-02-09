@@ -291,6 +291,7 @@
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+    <diff.DiffTool implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>

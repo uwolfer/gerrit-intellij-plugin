@@ -251,7 +251,8 @@ public class GerritUtil {
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
-        Changes.QueryRequest queryRequest = gerritClient.changes().query("is:open+reviewer:self");
+        Changes.QueryRequest queryRequest = gerritClient.changes().query("is:open+reviewer:self")
+            .withOption(ListChangesOption.DETAILED_ACCOUNTS);
         getChanges(queryRequest, project, consumer);
     }
 

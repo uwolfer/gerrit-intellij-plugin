@@ -345,7 +345,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getTime(ChangeInfo change) {
-        return DateFormatUtil.formatPrettyDateTime(change.updated);
+        return change.updated != null ? DateFormatUtil.formatPrettyDateTime(change.updated) : "";
     }
 
     private static LabelInfo getCodeReview(ChangeInfo change) {

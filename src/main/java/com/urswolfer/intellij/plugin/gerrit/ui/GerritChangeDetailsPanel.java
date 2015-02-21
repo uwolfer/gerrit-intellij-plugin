@@ -139,10 +139,10 @@ public class GerritChangeDetailsPanel {
                     .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Uploaded:</i></td><td>")
-                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.created))
+                    .append(changeInfo.created != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.created) : "")
                     .append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Updated:</i></td><td>")
-                    .append(DateFormatUtil.formatPrettyDateTime(changeInfo.updated))
+                    .append(changeInfo.updated != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.updated) : "")
                     .append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.status).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");

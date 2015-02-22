@@ -16,18 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
-import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.util.Pair;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 
 /**
  * @author Urs Wolfer
  */
 public interface GerritDataKeys {
-    DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
-    DataKey<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = DataKey.create("gerrit.Change.BaseRevision");
     DataKey<GerritToolWindow> TOOL_WINDOW = DataKey.create("gerrit.ToolWindow");
 }

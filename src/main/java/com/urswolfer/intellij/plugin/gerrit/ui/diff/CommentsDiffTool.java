@@ -52,6 +52,7 @@ import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
@@ -118,10 +119,10 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     @NotNull
     @Override
     public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
-        return new MySimpleDiffViewer(context, request);
+        return new CommentsDiffViewer(context, request);
     }
 
-    private void handleComments(final MySimpleDiffViewer diffPanel,
+    private void handleComments(final CommentsDiffViewer diffPanel,
                                 final FilePath filePath,
                                 final Project project,
                                 final ChangeInfo changeInfo,
@@ -190,7 +191,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         });
     }
 
-    private void addCommentAction(MySimpleDiffViewer diffPanel, String filePath, ChangeInfo changeInfo,
+    private void addCommentAction(CommentsDiffViewer diffPanel, String filePath, ChangeInfo changeInfo,
                                   String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision) {
         if (baseRevision.isPresent()) {
             addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
@@ -267,22 +268,22 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         }
     }
 
-    private class MySimpleDiffViewer extends SimpleDiffViewer {
-        private final ChangeInfo myChangeInfo;
-        private final Optional<Pair<String, RevisionInfo>> myBaseRevision;
-        private final String mySelectedRevisionId;
+    private class CommentsDiffViewer extends SimpleDiffViewer {
+        private final ChangeInfo changeInfo;
+        private final String selectedRevisionId;
+        private final Optional<Pair<String, RevisionInfo>> baseRevision;
 
-        public MySimpleDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
+        public CommentsDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
             super(context, request);
-            myChangeInfo = request.getUserData(GerritUserDataKeys.CHANGE);
-            myBaseRevision = request.getUserData(GerritUserDataKeys.BASE_REVISION);
-            mySelectedRevisionId = myChangeInfo != null ? selectedRevisions.get(myChangeInfo) : null;
+            changeInfo = context.getUserData(GerritUserDataKeys.CHANGE);
+            baseRevision = context.getUserData(GerritUserDataKeys.BASE_REVISION);
+            selectedRevisionId = changeInfo != null ? selectedRevisions.get(changeInfo) : null;
         }
 
         @Override
         protected void onInit() {
             FilePath filePath = ChangesUtil.getFilePath(myRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY));
-            handleComments(this, filePath, myContext.getProject(), myChangeInfo, mySelectedRevisionId, myBaseRevision);
+            handleComments(this, filePath, myContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
         }
 
         public EditorEx getEditor1() {
@@ -309,5 +310,45 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         HighlightManager highlightManager = HighlightManager.getInstance(project);
         highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
         return highlighters.get(0);
+    }
+
+    public static class Proxy extends CommentsDiffTool {
+        private CommentsDiffTool delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(CommentsDiffTool.class);
+        }
+
+        @NotNull
+        @Override
+        public String getName() {
+            return delegate.getName();
+        }
+
+        @Override
+        public List<Class<? extends DiffTool>> getSuppressedTools() {
+            return delegate.getSuppressedTools();
+        }
+
+        @Override
+        public boolean canShow(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            return delegate.canShow(context, request);
+        }
+
+        @NotNull
+        @Override
+        public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            return delegate.createComponent(context, request);
+        }
+
+        @Override
+        public void addComment(Editor editor, ChangeInfo changeInfo, String revisionId, Project project, Comment comment) {
+            delegate.addComment(editor, changeInfo, revisionId, project, comment);
+        }
+
+        @Override
+        public void removeComment(Project project, Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
+            delegate.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+        }
     }
 }

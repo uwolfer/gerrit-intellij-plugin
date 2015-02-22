@@ -54,6 +54,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitCommit;
 import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -125,14 +126,7 @@ public class RepositoryChangesBrowserProvider {
         }
 
         @Override
-        public void calcData(DataKey key, DataSink sink) {
-            super.calcData(key, sink);
-            sink.put(GerritDataKeys.CHANGE, selectedChange);
-            sink.put(GerritDataKeys.BASE_REVISION, baseRevision);
-        }
-
-        @Override
-        protected void updateDiffContext(ShowDiffContext context) {
+        protected void updateDiffContext(@NotNull ShowDiffContext context) {
             context.putChainContext(GerritUserDataKeys.CHANGE, selectedChange);
             context.putChainContext(GerritUserDataKeys.BASE_REVISION, baseRevision);
         }

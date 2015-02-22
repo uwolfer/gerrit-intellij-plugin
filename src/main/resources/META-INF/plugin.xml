@@ -245,8 +245,12 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="136.1682"/>
+  <idea-version since-build="136.1682" until-build="140.2284"/>
   <!--
+    IntelliJ IDEA 14.1
+    ================
+    Diff-viewer refactoring: idea/140.2285
+
     IntelliJ IDEA 14
     ================
     Package jgit got removed in 91c86c379955c0c41a88908e85b4afa3adfeee52 (idea/138.775)

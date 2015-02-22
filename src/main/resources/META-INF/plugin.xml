@@ -245,7 +245,7 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="136.1682" until-build="140.2284"/>
+  <idea-version since-build="140.2285"/>
   <!--
     IntelliJ IDEA 14.1
     ================

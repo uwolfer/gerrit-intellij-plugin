@@ -58,7 +58,7 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel implements DataProvider, Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -147,10 +147,13 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         diffAction.registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
     }
 
-    // Make changes available for diff action
+    @Nullable
     @Override
-    public void calcData(DataKey key, DataSink sink) {
-        sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
+    public Object getData(String dataId) {
+        if (GerritDataKeys.TOOL_WINDOW.is(dataId)) {
+            return gerritToolWindow;
+        }
+        return null;
     }
 
     @NotNull

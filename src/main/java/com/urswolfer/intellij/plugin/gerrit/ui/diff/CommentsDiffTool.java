@@ -282,6 +282,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
         @Override
         protected void onInit() {
+            super.onInit();
             FilePath filePath = ChangesUtil.getFilePath(myRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY));
             handleComments(this, filePath, myContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
         }

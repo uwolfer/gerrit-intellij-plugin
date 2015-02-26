@@ -41,13 +41,13 @@ import java.util.TimeZone;
  */
 public class CommitMessageFormatter {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
-    private static final String PARENT_PATTERN = "Parent:     %s";
+    private static final String PARENT_PATTERN = "Parent:     %s\n";
     private static final String MERGE_PATTERN =
-            "Merge Of:   %s";
+            "Merge Of:   %s\n";
     private static final String MERGE_PATTERN_DELIMITER =
             "\n            ";
     private static final String PATTERN =
-            "%s\n" +
+            "%s" +
             "Author:     %s <%s>\n" +
             "AuthorDate: %s\n" +
             "Commit:     %s <%s>\n" +
@@ -85,7 +85,7 @@ public class CommitMessageFormatter {
             String allParents = Joiner.on(MERGE_PATTERN_DELIMITER).join(parents);
             return String.format(MERGE_PATTERN, allParents);
         } else {
-            throw new IllegalArgumentException("Cannot handle commit here: '" + gitCommit.getShortHash().getString() + "'.");
+            return "";
         }
     }
 }

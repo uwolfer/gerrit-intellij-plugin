@@ -30,6 +30,8 @@ public class GerritApiProvider implements Provider<GerritRestApi> {
     @Inject
     private GerritSettings gerritSettings;
     @Inject
+    private CertificateManagerClientBuilderExtension certificateManagerClientBuilderExtension;
+    @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
     @Inject
     private UserAgentClientBuilderExtension userAgentClientBuilderExtension;
@@ -40,6 +42,7 @@ public class GerritApiProvider implements Provider<GerritRestApi> {
     public GerritRestApi get() {
         return gerritRestApiFactory.create(
             gerritSettings,
+            certificateManagerClientBuilderExtension,
             proxyHttpClientBuilderExtension,
             userAgentClientBuilderExtension);
     }

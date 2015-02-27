@@ -20,6 +20,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -31,6 +32,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Urs Wolfer
@@ -48,8 +50,8 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField topicTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
-    private GerritPushTargetPanel gerritPushTargetPanel;
-    private String originalDestinationBranch;
+    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private boolean initialized = false;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
         createLayout();
@@ -62,14 +64,25 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
+        if (initialized) { // a new dialog gets initialized; start again
+            initialized = false;
+            gerritPushTargetPanels.clear();
+        }
+
         if (branch != null) {
             branch = branch.replaceAll("^refs/(for|drafts)/", "");
             branch = branch.replaceAll("%.*$", "");
         }
-        this.gerritPushTargetPanel = gerritPushTargetPanel;
-        this.originalDestinationBranch = branch;
 
-        branchTextField.setText(branch);
+        gerritPushTargetPanels.put(gerritPushTargetPanel, branch);
+    }
+
+    public void initialized() {
+        initialized = true;
+
+        if (gerritPushTargetPanels.size() == 1) {
+            branchTextField.setText(gerritPushTargetPanels.values().iterator().next());
+        }
 
         // force a deferred update (changes are monitored only after full construction of dialog)
         SwingUtilities.invokeLater(new Runnable() {
@@ -179,7 +192,11 @@ public class GerritPushExtensionPanel extends JPanel {
             } else {
                 ref = "refs/for/";
             }
-            ref += branchTextField.getText();
+            if (!branchTextField.getText().isEmpty()) {
+                ref += branchTextField.getText();
+            } else {
+                ref += "%s";
+            }
             List<String> gerritSpecs = Lists.newArrayList();
             if (submitChangeCheckBox.isSelected()) {
                 gerritSpecs.add("submit");
@@ -205,7 +222,9 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private void updateDestinationBranch() {
-        gerritPushTargetPanel.updateBranch(String.format(getRef(), originalDestinationBranch));
+        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
+            entry.getKey().updateBranch(String.format(getRef(), entry.getValue()));
+        }
     }
 
     private void setSettingsEnabled(boolean enabled) {

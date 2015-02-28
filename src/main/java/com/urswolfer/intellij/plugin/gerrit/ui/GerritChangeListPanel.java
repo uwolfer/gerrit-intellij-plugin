@@ -21,17 +21,22 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DataSink;
 import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
+import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
+import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
+import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -47,6 +52,8 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.util.List;
@@ -65,6 +72,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
+    private final ShowSettingsUtil showSettingsUtil;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
@@ -77,10 +85,12 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     @Inject
     public GerritChangeListPanel(SelectedRevisions selectedRevisions,
                                  GerritSelectRevisionInfoColumn selectRevisionInfoColumn,
-                                 GerritSettings gerritSettings) {
+                                 GerritSettings gerritSettings,
+                                 ShowSettingsUtil showSettingsUtil) {
         this.selectedRevisions = selectedRevisions;
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.gerritSettings = gerritSettings;
+        this.showSettingsUtil = showSettingsUtil;
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>();
@@ -124,8 +134,40 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             @Override
             public void consume(List<ChangeInfo> changeInfos) {
                 setChanges(changeInfos);
+                setupEmptyTableHint();
             }
         });
+    }
+
+    private void setupEmptyTableHint() {
+        StatusText emptyText = table.getEmptyText();
+        emptyText.clear();
+        emptyText.appendText(
+            "No changes to display. " +
+            "If you expect changes, there might be a configuration issue. " +
+            "Click "
+        );
+        emptyText.appendText("here", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty");
+            }
+        });
+        emptyText.appendText(" for hints.");
+    }
+
+    public void showSetupHintWhenRequired(final Project project) {
+        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+            StatusText emptyText = table.getEmptyText();
+            emptyText.appendText("Open ");
+            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
+                }
+            });
+            emptyText.appendText(" to configure this plugin and press the refresh button afterwards.");
+        }
     }
 
     /**

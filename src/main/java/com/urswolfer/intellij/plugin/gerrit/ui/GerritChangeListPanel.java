@@ -17,7 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
@@ -58,6 +60,7 @@ import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.intellij.icons.AllIcons.Actions.*;
 
@@ -230,6 +233,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         ItemAndWidth project = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
+        Set<String> availableLabels = Sets.newTreeSet();
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
@@ -238,6 +242,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             project = getMax(project, getProject(change));
             branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
+            for (String label : change.labels.keySet()) {
+                availableLabels.add(label);
+            }
         }
 
         List<ColumnInfo> columnList = Lists.newArrayList();
@@ -304,25 +311,32 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
         );
-        columnList.add(
-            new GerritChangeColumnIconLabelInfo("CR") {
-                @Override
-                public LabelInfo getLabelInfo(ChangeInfo change) {
-                    return getCodeReview(change);
+        for (final String label : availableLabels) {
+            columnList.add(
+                new GerritChangeColumnIconLabelInfo(getShortLabelDisplay(label)) {
+                    @Override
+                    public LabelInfo getLabelInfo(ChangeInfo change) {
+                        return getLabel(change, label);
+                    }
                 }
-            }
-        );
-        columnList.add(
-            new GerritChangeColumnIconLabelInfo("V") {
-                @Override
-                public LabelInfo getLabelInfo(ChangeInfo change) {
-                    return getVerified(change);
-                }
-            }
-        );
+            );
+        }
         columnList.add(selectRevisionInfoColumn);
 
         return columnList.toArray(new ColumnInfo[columnList.size()]);
+    }
+
+    /**
+     * Builds "Gerrit-like" short display of label:
+     * Code-Review -> CR: collect first letter of every word part.
+     */
+    private String getShortLabelDisplay(String label) {
+        String result = "";
+        Iterable<String> parts = Splitter.on('-').omitEmptyStrings().split(label);
+        for (String part : parts) {
+            result += part.substring(0, 1);
+        }
+        return result;
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {
@@ -375,14 +389,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private static String getTime(ChangeInfo change) {
         return change.updated != null ? DateFormatUtil.formatPrettyDateTime(change.updated) : "";
-    }
-
-    private static LabelInfo getCodeReview(ChangeInfo change) {
-        return getLabel(change, "Code-Review");
-    }
-
-    private static LabelInfo getVerified(ChangeInfo change) {
-        return getLabel(change, "Verified");
     }
 
     private static LabelInfo getLabel(ChangeInfo change, String labelName) {

@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,10 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.DataKey;
+import com.intellij.openapi.actionSystem.DataSink;
+import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.table.TableView;
@@ -140,30 +143,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         });
     }
 
-    /**
-     * Registers the diff action which will be called when the diff shortcut is pressed in the table.
-     */
-    public void registerDiffAction(@NotNull AnAction diffAction) {
-        diffAction.registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
-    }
-
     // Make changes available for diff action
     @Override
     public void calcData(DataKey key, DataSink sink) {
         sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
     }
 
-    @NotNull
-    public JComponent getPreferredFocusComponent() {
-        return table;
-    }
-
     public TableView<ChangeInfo> getTable() {
         return table;
-    }
-
-    public void clearSelection() {
-        table.clearSelection();
     }
 
     public void setChanges(@NotNull List<ChangeInfo> changes) {

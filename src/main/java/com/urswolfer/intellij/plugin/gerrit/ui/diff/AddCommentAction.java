@@ -32,6 +32,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
@@ -48,6 +49,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
     private final Editor editor;
     private final CommentsDiffTool commentsDiffTool;
     private final GerritUtil gerritUtil;
+    private final GerritSettings gerritSettings;
     private final ChangeInfo changeInfo;
     private final String revisionId;
     private final String filePath;
@@ -62,6 +64,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
                             Icon icon,
                             CommentsDiffTool commentsDiffTool,
                             GerritUtil gerritUtil,
+                            GerritSettings gerritSettings,
                             Editor editor,
                             CommentBalloonBuilder commentBalloonBuilder,
                             ChangeInfo changeInfo,
@@ -76,6 +79,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
         this.commentsDiffTool = commentsDiffTool;
         this.gerritUtil = gerritUtil;
+        this.gerritSettings = gerritSettings;
         this.changeInfo = changeInfo;
         this.revisionId = revisionId;
         this.filePath = filePath;
@@ -92,6 +96,11 @@ public class AddCommentAction extends AnAction implements DumbAware {
         final Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
         addVersionedComment(project);
+    }
+
+    @Override
+    public void update(AnActionEvent e) {
+        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
     }
 
     private void addVersionedComment(final Project project) {

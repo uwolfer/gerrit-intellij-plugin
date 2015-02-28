@@ -28,6 +28,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -38,6 +39,7 @@ public class CommentDoneAction extends AnAction implements DumbAware {
     private final Editor editor;
     private final CommentsDiffTool commentsDiffTool;
     private final GerritUtil gerritUtil;
+    private final GerritSettings gerritSettings;
     private final Comment fileComment;
     private final ChangeInfo changeInfo;
     private final String revisionId;
@@ -45,6 +47,7 @@ public class CommentDoneAction extends AnAction implements DumbAware {
     public CommentDoneAction(Editor editor,
                              CommentsDiffTool commentsDiffTool,
                              GerritUtil gerritUtil,
+                             GerritSettings gerritSettings,
                              Comment fileComment,
                              ChangeInfo changeInfo,
                              String revisionId) {
@@ -53,6 +56,7 @@ public class CommentDoneAction extends AnAction implements DumbAware {
         this.editor = editor;
         this.commentsDiffTool = commentsDiffTool;
         this.gerritUtil = gerritUtil;
+        this.gerritSettings = gerritSettings;
         this.fileComment = fileComment;
         this.changeInfo = changeInfo;
         this.revisionId = revisionId;
@@ -76,5 +80,10 @@ public class CommentDoneAction extends AnAction implements DumbAware {
                         commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo);
                     }
                 });
+    }
+
+    @Override
+    public void update(AnActionEvent e) {
+        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
     }
 }

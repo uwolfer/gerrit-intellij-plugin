@@ -6,6 +6,7 @@ import com.google.gerrit.extensions.common.Side;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
@@ -18,6 +19,8 @@ public class AddCommentActionBuilder {
     private CommentBalloonBuilder commentBalloonBuilder;
     @Inject
     private GerritUtil gerritUtil;
+    @Inject
+    private GerritSettings gerritSettings;
 
     public Builder create(CommentsDiffTool commentsDiffTool,
                           ChangeInfo changeInfo,
@@ -82,7 +85,7 @@ public class AddCommentActionBuilder {
         }
 
         public AddCommentAction get() {
-            return new AddCommentAction(text, icon, commentsDiffTool, gerritUtil, editor, commentBalloonBuilder,
+            return new AddCommentAction(text, icon, commentsDiffTool, gerritUtil, gerritSettings, editor, commentBalloonBuilder,
                     changeInfo, revisionId, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
         }
     }

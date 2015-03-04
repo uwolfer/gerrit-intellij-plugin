@@ -41,6 +41,8 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
+    private final boolean pushToGerritByDefault;
+
     private JPanel indentedSettingPanel;
 
     private JCheckBox pushToGerritCheckBox;
@@ -54,6 +56,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private boolean initialized = false;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
+        this.pushToGerritByDefault = pushToGerritByDefault;
         createLayout();
 
         pushToGerritCheckBox.setSelected(pushToGerritByDefault);
@@ -87,7 +90,7 @@ public class GerritPushExtensionPanel extends JPanel {
         // force a deferred update (changes are monitored only after full construction of dialog)
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                updateDestinationBranch();
+                initDestinationBranch();
             }
         });
     }
@@ -218,6 +221,12 @@ public class GerritPushExtensionPanel extends JPanel {
         Iterable<String> items = COMMA_SPLITTER.split(textField.getText());
         for (String item : items) {
             gerritSpecs.add(option + '=' + item);
+        }
+    }
+
+    private void initDestinationBranch() {
+        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
+            entry.getKey().initBranch(String.format(getRef(), entry.getValue()), pushToGerritByDefault);
         }
     }
 

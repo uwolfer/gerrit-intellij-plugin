@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.urswolfer.intellij.plugin.gerrit</groupId>
   <artifactId>gerrit-intellij-plugin</artifactId>
-  <version>0.9.5.2</version>
+  <version>0.9.6</version>
 
   <name>gerrit-intellij-plugin</name>
   <description>Gerrit Code Review Tool for IntelliJ.
@@ -69,19 +69,19 @@
     <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
-      <version>4.0-beta4</version>
+      <version>4.0-beta5</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.google.inject.extensions</groupId>
       <artifactId>guice-multibindings</artifactId>
-      <version>4.0-beta4</version>
+      <version>4.0-beta5</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.3.3</version>
+      <version>4.4</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -93,7 +93,7 @@
     <dependency>
       <groupId>com.urswolfer.gerrit.client.rest</groupId>
       <artifactId>gerrit-rest-java-client</artifactId>
-      <version>0.8.2</version>
+      <version>0.8.3</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>

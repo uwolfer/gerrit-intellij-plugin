@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,28 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.ide.BrowserUtil;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.DataKey;
+import com.intellij.openapi.actionSystem.DataSink;
+import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
+import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
+import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
+import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -44,10 +54,13 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.intellij.icons.AllIcons.Actions.*;
 
@@ -62,6 +75,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
+    private final ShowSettingsUtil showSettingsUtil;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
@@ -74,10 +88,12 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     @Inject
     public GerritChangeListPanel(SelectedRevisions selectedRevisions,
                                  GerritSelectRevisionInfoColumn selectRevisionInfoColumn,
-                                 GerritSettings gerritSettings) {
+                                 GerritSettings gerritSettings,
+                                 ShowSettingsUtil showSettingsUtil) {
         this.selectedRevisions = selectedRevisions;
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.gerritSettings = gerritSettings;
+        this.showSettingsUtil = showSettingsUtil;
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>();
@@ -121,8 +137,40 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             @Override
             public void consume(List<ChangeInfo> changeInfos) {
                 setChanges(changeInfos);
+                setupEmptyTableHint();
             }
         });
+    }
+
+    private void setupEmptyTableHint() {
+        StatusText emptyText = table.getEmptyText();
+        emptyText.clear();
+        emptyText.appendText(
+            "No changes to display. " +
+            "If you expect changes, there might be a configuration issue. " +
+            "Click "
+        );
+        emptyText.appendText("here", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty");
+            }
+        });
+        emptyText.appendText(" for hints.");
+    }
+
+    public void showSetupHintWhenRequired(final Project project) {
+        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+            StatusText emptyText = table.getEmptyText();
+            emptyText.appendText("Open ");
+            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
+                }
+            });
+            emptyText.appendText(" to configure this plugin and press the refresh button afterwards.");
+        }
     }
 
     /**
@@ -140,30 +188,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         });
     }
 
-    /**
-     * Registers the diff action which will be called when the diff shortcut is pressed in the table.
-     */
-    public void registerDiffAction(@NotNull AnAction diffAction) {
-        diffAction.registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
-    }
-
     // Make changes available for diff action
     @Override
     public void calcData(DataKey key, DataSink sink) {
         sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
     }
 
-    @NotNull
-    public JComponent getPreferredFocusComponent() {
-        return table;
-    }
-
     public TableView<ChangeInfo> getTable() {
         return table;
-    }
-
-    public void clearSelection() {
-        table.clearSelection();
     }
 
     public void setChanges(@NotNull List<ChangeInfo> changes) {
@@ -201,6 +233,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         ItemAndWidth project = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
+        Set<String> availableLabels = Sets.newTreeSet();
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
@@ -209,6 +242,9 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             project = getMax(project, getProject(change));
             branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
+            for (String label : change.labels.keySet()) {
+                availableLabels.add(label);
+            }
         }
 
         List<ColumnInfo> columnList = Lists.newArrayList();
@@ -275,25 +311,32 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
         );
-        columnList.add(
-            new GerritChangeColumnIconLabelInfo("CR") {
-                @Override
-                public LabelInfo getLabelInfo(ChangeInfo change) {
-                    return getCodeReview(change);
+        for (final String label : availableLabels) {
+            columnList.add(
+                new GerritChangeColumnIconLabelInfo(getShortLabelDisplay(label)) {
+                    @Override
+                    public LabelInfo getLabelInfo(ChangeInfo change) {
+                        return getLabel(change, label);
+                    }
                 }
-            }
-        );
-        columnList.add(
-            new GerritChangeColumnIconLabelInfo("V") {
-                @Override
-                public LabelInfo getLabelInfo(ChangeInfo change) {
-                    return getVerified(change);
-                }
-            }
-        );
+            );
+        }
         columnList.add(selectRevisionInfoColumn);
 
         return columnList.toArray(new ColumnInfo[columnList.size()]);
+    }
+
+    /**
+     * Builds "Gerrit-like" short display of label:
+     * Code-Review -> CR: collect first letter of every word part.
+     */
+    private String getShortLabelDisplay(String label) {
+        String result = "";
+        Iterable<String> parts = Splitter.on('-').omitEmptyStrings().split(label);
+        for (String part : parts) {
+            result += part.substring(0, 1);
+        }
+        return result;
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {
@@ -345,15 +388,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getTime(ChangeInfo change) {
-        return DateFormatUtil.formatPrettyDateTime(change.updated);
-    }
-
-    private static LabelInfo getCodeReview(ChangeInfo change) {
-        return getLabel(change, "Code-Review");
-    }
-
-    private static LabelInfo getVerified(ChangeInfo change) {
-        return getLabel(change, "Verified");
+        return change.updated != null ? DateFormatUtil.formatPrettyDateTime(change.updated) : "";
     }
 
     private static LabelInfo getLabel(ChangeInfo change, String labelName) {

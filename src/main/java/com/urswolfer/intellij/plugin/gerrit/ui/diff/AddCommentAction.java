@@ -17,10 +17,10 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.DraftInput;
+import com.google.gerrit.extensions.client.Comment;
+import com.google.gerrit.extensions.client.Side;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
-import com.google.gerrit.extensions.common.Side;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;

@@ -1,8 +1,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.gerrit.extensions.client.Comment;
+import com.google.gerrit.extensions.client.Side;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.Comment;
-import com.google.gerrit.extensions.common.Side;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;

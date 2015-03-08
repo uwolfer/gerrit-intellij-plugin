@@ -16,9 +16,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
+import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.Comment;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;

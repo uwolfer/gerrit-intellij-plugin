@@ -60,9 +60,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_CHANGE_NUMBER_COLUMN = "ShowChangeNumberColumn";
     private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
-    private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
-    private static final String TRUSTED_HOST = "HOST";
-    private static final String TRUSTED_URL = "URL";
 
     private String login;
     private String host;
@@ -73,7 +70,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean pushToGerrit;
     private boolean showChangeNumberColumn;
     private boolean showChangeIdColumn;
-    private Collection<String> trustedHosts = new ArrayList<String>();
 
     private Logger log;
 
@@ -88,13 +84,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(PUSH_TO_GERRIT, "" + getPushToGerrit());
         element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, "" + getShowChangeNumberColumn());
         element.setAttribute(SHOW_CHANGE_ID_COLUMN, "" + getShowChangeIdColumn());
-        Element trustedHosts = new Element(TRUSTED_HOSTS);
-        for (String host : this.trustedHosts) {
-            Element hostEl = new Element(TRUSTED_HOST);
-            hostEl.setAttribute(TRUSTED_URL, host);
-            trustedHosts.addContent(hostEl);
-        }
-        element.addContent(trustedHosts);
         return element;
     }
 
@@ -111,14 +100,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setPushToGerrit(getBooleanValue(element, PUSH_TO_GERRIT));
             setShowChangeNumberColumn(getBooleanValue(element, SHOW_CHANGE_NUMBER_COLUMN));
             setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
-
-            for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
-                Element trustedHosts = (Element) trustedHostsObj;
-                for (Object trustedHostObj : trustedHosts.getChildren()) {
-                    Element trustedHost = (Element) trustedHostObj;
-                    addTrustedHost(trustedHost.getAttributeValue(TRUSTED_URL));
-                }
-            }
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
         }
@@ -249,17 +230,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public void setShowChangeIdColumn(boolean showChangeIdColumn) {
         this.showChangeIdColumn = showChangeIdColumn;
-    }
-
-    @NotNull
-    public Collection<String> getTrustedHosts() {
-        return trustedHosts;
-    }
-
-    public void addTrustedHost(String host) {
-        if (!trustedHosts.contains(host)) {
-            trustedHosts.add(host);
-        }
     }
 
     public void setLog(Logger log) {

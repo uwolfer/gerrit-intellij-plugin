@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.client.Comment;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 

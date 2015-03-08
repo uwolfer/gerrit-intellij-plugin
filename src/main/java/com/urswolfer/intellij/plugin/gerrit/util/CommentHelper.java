@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.client.Comment;
 
 /**
  * CommentInfo and ReviewInput.CommentInput do not provide equals and hashCode as required for map handling.

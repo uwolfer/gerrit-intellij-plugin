@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.*;
+import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.*;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
@@ -72,8 +73,6 @@ public class GerritUtil {
     @Inject
     private GerritSettings gerritSettings;
     @Inject
-    private SslSupport sslSupport;
-    @Inject
     private Logger log;
     @Inject
     private NotificationService notificationService;
@@ -87,30 +86,7 @@ public class GerritUtil {
     private SelectedRevisions selectedRevisions;
 
     public <T> T accessToGerritWithModalProgress(Project project,
-                                                 ThrowableComputable<T, Exception> computable) {
-        return accessToGerritWithModalProgress(project, computable, gerritSettings);
-    }
-
-    public <T> T accessToGerritWithModalProgress(Project project,
-                                                 ThrowableComputable<T, Exception> computable,
-                                                 GerritAuthData gerritAuthData) {
-        try {
-            return doAccessToGerritWithModalProgress(project, computable);
-        } catch (Exception e) {
-            if (sslSupport.isCertificateException(e)) {
-                if (sslSupport.askIfShouldProceed(gerritAuthData.getHost())) {
-                    // retry with the host being already trusted
-                    return doAccessToGerritWithModalProgress(project, computable);
-                } else {
-                    return null;
-                }
-            }
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private <T> T doAccessToGerritWithModalProgress(final Project project,
-                                                    final ThrowableComputable<T, Exception> computable) {
+                                                 final ThrowableComputable<T, Exception> computable) {
         final AtomicReference<T> result = new AtomicReference<T>();
         final AtomicReference<Exception> exception = new AtomicReference<Exception>();
         ProgressManager.getInstance().run(new Task.Modal(project, "Access to Gerrit", true) {
@@ -251,7 +227,8 @@ public class GerritUtil {
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
-        Changes.QueryRequest queryRequest = gerritClient.changes().query("is:open+reviewer:self");
+        Changes.QueryRequest queryRequest = gerritClient.changes().query("is:open+reviewer:self")
+            .withOption(ListChangesOption.DETAILED_ACCOUNTS);
         getChanges(queryRequest, project, consumer);
     }
 
@@ -540,7 +517,7 @@ public class GerritUtil {
                 ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
                 return testConnection(gerritAuthData);
             }
-        }, gerritAuthData);
+        });
         return result == null ? false : result;
     }
 
@@ -649,6 +626,6 @@ public class GerritUtil {
     }
 
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
-        return gerritRestApiFactory.create(gerritAuthData, sslSupport, proxyHttpClientBuilderExtension);
+        return gerritRestApiFactory.create(gerritAuthData, proxyHttpClientBuilderExtension);
     }
 }

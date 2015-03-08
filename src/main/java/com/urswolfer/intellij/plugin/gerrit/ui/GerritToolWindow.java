@@ -102,6 +102,8 @@ public class GerritToolWindow {
 
         reloadChanges(project, false);
 
+        changeListPanel.showSetupHintWhenRequired(project);
+
         return panel;
     }
 

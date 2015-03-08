@@ -23,6 +23,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
+import com.google.gerrit.extensions.client.Comment;
+import com.google.gerrit.extensions.client.Side;
 import com.google.gerrit.extensions.common.*;
 import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
@@ -53,6 +55,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
@@ -88,6 +91,8 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
     @Inject
     private GerritUtil gerritUtil;
+    @Inject
+    private GerritSettings gerritSettings;
     @Inject
     private DataManager dataManager;
     @Inject
@@ -252,7 +257,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         if (line >= 0) {
             final RangeHighlighter highlighter = markup.addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
             CommentGutterIconRenderer iconRenderer = new CommentGutterIconRenderer(
-                    this, editor, gerritUtil, addCommentActionBuilder,
+                    this, editor, gerritUtil, gerritSettings, addCommentActionBuilder,
                     comment, changeInfo, revisionId, highlighter, rangeHighlighter);
             highlighter.setGutterIconRenderer(iconRenderer);
         }

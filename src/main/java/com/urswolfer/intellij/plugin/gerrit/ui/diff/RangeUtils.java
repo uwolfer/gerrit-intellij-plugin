@@ -17,7 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.common.base.Throwables;
-import com.google.gerrit.extensions.common.Comment;
+import com.google.gerrit.extensions.client.Comment;
 import com.intellij.util.text.CharSequenceReader;
 
 import java.io.BufferedReader;

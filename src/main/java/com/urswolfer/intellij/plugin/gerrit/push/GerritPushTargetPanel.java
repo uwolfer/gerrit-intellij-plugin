@@ -22,6 +22,7 @@ import com.intellij.dvcs.push.ui.PushTargetTextField;
 import com.intellij.dvcs.push.ui.RepositoryNode;
 import com.intellij.dvcs.push.ui.RepositoryWithBranchPanel;
 import com.intellij.openapi.diagnostic.Logger;
+import git4idea.push.GitPushSupport;
 import git4idea.push.GitPushTarget;
 import git4idea.push.GitPushTargetPanel;
 import git4idea.repo.GitRepository;
@@ -35,8 +36,8 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     private static final Logger LOG = Logger.getInstance(GerritPushTargetPanel.class);
     private String branch;
 
-    public GerritPushTargetPanel(@NotNull GitRepository repository, @Nullable GitPushTarget defaultTarget, GerritPushOptionsPanel gerritPushOptionsPanel) {
-        super(repository, defaultTarget);
+    public GerritPushTargetPanel(@NotNull GitPushSupport support, @NotNull GitRepository repository, @Nullable GitPushTarget defaultTarget, GerritPushOptionsPanel gerritPushOptionsPanel) {
+        super(support, repository, defaultTarget);
 
         String initialBranch = null;
         if (defaultTarget != null) {
@@ -65,6 +66,9 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
                             updateBranchTextField(myFireOnChangeAction);
                         }
                     }
+
+                    @Override
+                    public void onTargetInEditMode(@NotNull String s) {}
                 });
 
                 if (pushToGerritByDefault) {
@@ -101,9 +105,9 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
 
     private void updateBranchTextField(Runnable myFireOnChangeAction) {
         try {
-            Field myTargetTextFieldField = getField("myTargetTextField");
-            PushTargetTextField myTargetTextField = (PushTargetTextField) myTargetTextFieldField.get(this);
-            myTargetTextField.setText(branch);
+            Field myTargetEditorField = getField("myTargetEditor");
+            PushTargetTextField myTargetEditor = (PushTargetTextField) myTargetEditorField.get(this);
+            myTargetEditor.setText(branch);
 
             fireOnChange();
 

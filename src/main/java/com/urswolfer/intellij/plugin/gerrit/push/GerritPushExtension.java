@@ -83,7 +83,7 @@ public class GerritPushExtension implements ApplicationComponent {
             CtMethod createTargetPanelMethod = gitPushSupportClass.getDeclaredMethod("createTargetPanel");
             createTargetPanelMethod.setBody(
                 "{" +
-                    "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel($1, $2, gerritPushOptionsPanel);" +
+                    "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $2, gerritPushOptionsPanel);" +
                 "}"
             );
 

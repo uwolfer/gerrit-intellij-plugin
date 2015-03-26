@@ -53,8 +53,6 @@ public class GerritToolWindow {
     @Inject
     private GerritSettings gerritSettings;
     @Inject
-    private CommentsDiffTool commentsDiffTool;
-    @Inject
     private GerritChangeListPanel changeListPanel;
     @Inject
     private Logger log;

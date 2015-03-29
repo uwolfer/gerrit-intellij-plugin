@@ -54,7 +54,6 @@ public class SelectedRevisions extends Observable {
                 currentRevision = Iterables.getLast(revisionKeys);
             }
         }
-        assert currentRevision != null;
         return get(changeInfo.changeId).or(currentRevision);
     }
 

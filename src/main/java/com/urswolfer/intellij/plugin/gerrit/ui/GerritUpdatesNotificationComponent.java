@@ -96,7 +96,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     public void consume(List<ChangeInfo> changes) {
         boolean newChange = false;
         for (ChangeInfo change : changes) {
-            if (!notifiedChanges.contains(change.changeId)) {
+            if (!notifiedChanges.contains(change.id)) {
                 newChange = true;
                 break;
             }
@@ -114,7 +114,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
                         .append(" (Owner: ").append(change.owner.name).append(')')
                         .append("</li>");
 
-                notifiedChanges.add(change.changeId);
+                notifiedChanges.add(change.id);
             }
             stringBuilder.append("</ul>");
             NotificationBuilder notification = new NotificationBuilder(

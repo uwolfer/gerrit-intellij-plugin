@@ -33,6 +33,7 @@ import git4idea.ui.branch.GitCompareBranchesDialog;
 import git4idea.util.GitCommitCompareInfo;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 
 /**
@@ -84,7 +85,7 @@ public class CompareBranchAction extends AbstractChangeAction {
         }
         assert currentBranch != null : "Current branch is neither a named branch nor a revision";
 
-        final GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
+        final GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(Collections.singletonList(gitRepository), branchName, project);
         new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
     }
 

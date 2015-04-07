@@ -628,4 +628,41 @@ public class GerritUtil {
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
         return gerritRestApiFactory.create(gerritAuthData, proxyHttpClientBuilderExtension);
     }
+
+    private double serverVersion = 0.0; // cache for server version which should not change once set over the life of this object, so only look it up once
+
+    private static double parseVersion(String version) {
+        if (version == null || version.length() == 0) {
+            return 0.0;
+        }
+
+        try {
+            final int fd = version.indexOf('.');
+            final int sd = version.indexOf('.', fd + 1);
+            if (0 < sd) {
+                version = version.substring(0, sd);
+            }
+            return Double.parseDouble(version);
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+
+    public void getServerVersion(final Project project,
+                                        final Consumer<Double> consumer) {
+        Supplier<Double> supplier = new Supplier<Double>() {
+            @Override
+            public Double get() {
+                try {
+                    if (serverVersion == 0.0) {
+                        serverVersion = parseVersion(gerritClient.config().server().getVersion()); // idempotent, so do not worry about threading issues
+                    }
+                    return serverVersion;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to get gerrit server version.");
+    }
 }

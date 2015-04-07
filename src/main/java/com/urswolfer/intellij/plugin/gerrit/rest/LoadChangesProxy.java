@@ -27,6 +27,8 @@ import com.intellij.util.Consumer;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Thomas Forrer
@@ -61,24 +63,54 @@ public class LoadChangesProxy {
         }
     }
 
+    private static final Pattern OLD_SORTKEY_PATTERN = Pattern.compile("^(.*?)(?:\\+AND\\+)?\\(resume_sortkey:[^\\)]+\\)(.*)$");
+
     /**
      * Load the next page of changes into the provided consumer
      */
     public void getNextPage(final Consumer<List<ChangeInfo>> consumer) {
         lock.lock();
         if (hasMore) {
-            Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(start);
-            Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
+            gerritUtil.getServerVersion(project, new Consumer<Double>() {
                 @Override
-                public void consume(List<ChangeInfo> changeInfos) {
-                    hasMore = changeInfos.size() == PAGE_SIZE;
-                    changes.addAll(changeInfos);
-                    start += PAGE_SIZE;
-                    consumer.consume(changeInfos);
-                    lock.unlock();
+                public void consume(Double version) {
+                    // gerrit servers prior to 2.9 do not support the S/start parameter on changes endpoint
+                    // they use resume_sortkey instead
+                    Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE);;
+                    if (version >= 2.9) {
+                        myRequest = myRequest.withStart(start);
+                    } else {
+                        int changeCount = changes.size();
+                        if (changeCount != 0) {
+                            ChangeInfo lastChange = changes.get(changeCount - 1);
+                            StringBuilder query = new StringBuilder();
+                            String currentQuery = myRequest.getQuery();
+                            if (currentQuery != null) {
+                                // strip off old resume sortkey if present
+                                Matcher oldSortKeyMatcher = OLD_SORTKEY_PATTERN.matcher(currentQuery);
+                                if (oldSortKeyMatcher.matches()) {
+                                    currentQuery = new StringBuilder(oldSortKeyMatcher.group(1)).append(oldSortKeyMatcher.group(2)).toString();
+                                }
+                                query.append(currentQuery).append("+AND+");
+                            }
+                            query.append("(resume_sortkey:").append(lastChange._sortkey).append(')');
+                            myRequest = myRequest.withQuery(query.toString());
+                        }
+                    }
+
+                    Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
+                        @Override
+                        public void consume(List<ChangeInfo> changeInfos) {
+                            hasMore = changeInfos.size() == PAGE_SIZE;
+                            changes.addAll(changeInfos);
+                            start += PAGE_SIZE;
+                            consumer.consume(changeInfos);
+                            lock.unlock();
+                        }
+                    };
+                    gerritUtil.getChanges(myRequest, project, myConsumer);
                 }
-            };
-            gerritUtil.getChanges(myRequest, project, myConsumer);
+            });
         }
     }
 }

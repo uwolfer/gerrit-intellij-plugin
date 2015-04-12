@@ -26,7 +26,7 @@
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpclient:4.4" level="project" />
     <orderEntry type="library" name="Maven: org.apache.httpcomponents:httpcore:4.4" level="project" />
     <orderEntry type="library" name="Maven: commons-codec:commons-codec:1.9" level="project" />
-    <orderEntry type="library" name="Maven: com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.3" level="project" />
+    <orderEntry type="library" name="Maven: com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.4" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: com.google.guava:guava:14.0.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.jdom:jdom:1.1.3" level="project" />
     <orderEntry type="library" name="Maven: org.javassist:javassist:3.18.1-GA" level="project" />

@@ -114,7 +114,7 @@ public class RepositoryChangesBrowserProvider {
                 @Override
                 public void update(Observable o, Object arg) {
                     if (arg != null && arg instanceof String && selectedChange != null) {
-                        if (selectedChange.changeId.equals(arg)) {
+                        if (selectedChange.id.equals(arg)) {
                             updateChangesBrowser();
                         }
                     }
@@ -141,7 +141,7 @@ public class RepositoryChangesBrowserProvider {
             gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
-                    if (selectedChange.changeId.equals(changeDetails.changeId)) {
+                    if (selectedChange.id.equals(changeDetails.id)) {
                         selectedChange = changeDetails;
                         baseRevision = Optional.absent();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);

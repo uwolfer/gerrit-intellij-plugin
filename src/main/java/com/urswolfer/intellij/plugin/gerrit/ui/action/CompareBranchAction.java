@@ -26,13 +26,11 @@ import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import git4idea.GitLocalBranch;
-import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
-import git4idea.repo.GitRepositoryManager;
 import git4idea.ui.branch.GitCompareBranchesDialog;
 import git4idea.util.GitCommitCompareInfo;
 
-import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.Callable;
 
 /**
@@ -67,9 +65,6 @@ public class CompareBranchAction extends AbstractChangeAction {
     }
 
     private void diffChange(Project project, ChangeInfo changeInfo) {
-        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
-        final Collection<GitRepository> repositoriesFromRoots = repositoryManager.getRepositories();
-
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) return;
         GitRepository gitRepository = gitRepositoryOptional.get();
@@ -84,7 +79,8 @@ public class CompareBranchAction extends AbstractChangeAction {
         }
         assert currentBranch != null : "Current branch is neither a named branch nor a revision";
 
-        final GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(repositoriesFromRoots, branchName, project);
+        GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(
+            Collections.singletonList(gitRepository), branchName, project);
         new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
     }
 

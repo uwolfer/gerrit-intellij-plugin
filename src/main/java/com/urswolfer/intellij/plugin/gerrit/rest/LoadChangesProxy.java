@@ -16,11 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 
@@ -37,7 +36,7 @@ public class LoadChangesProxy {
     private final Changes.QueryRequest queryRequest;
     private final GerritUtil gerritUtil;
     private final Project project;
-    private int start = 0;
+    private String sortkey;
     private boolean hasMore = true;
     private final List<ChangeInfo> changes = Lists.newArrayList();
     private final Lock lock = new ReentrantLock();
@@ -51,30 +50,28 @@ public class LoadChangesProxy {
     }
 
     /**
-     * @return all changes satisfying the provided query
-     */
-    public List<ChangeInfo> getChanges() {
-        try {
-            return queryRequest.withLimit(-1).get();
-        } catch (RestApiException e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    /**
      * Load the next page of changes into the provided consumer
      */
     public void getNextPage(final Consumer<List<ChangeInfo>> consumer) {
-        lock.lock();
         if (hasMore) {
-            Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(start);
+            lock.lock();
+            Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(changes.size());
+            // remove sortkey handling once we drop Gerrit < 2.9 support
+            if (sortkey != null) {
+                myRequest.withSortkey(sortkey);
+            }
             Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
                 @Override
                 public void consume(List<ChangeInfo> changeInfos) {
-                    hasMore = changeInfos.size() == PAGE_SIZE;
-                    changes.addAll(changeInfos);
-                    start += PAGE_SIZE;
-                    consumer.consume(changeInfos);
+                    if (changeInfos != null && !changeInfos.isEmpty()) {
+                        ChangeInfo lastChangeInfo = Iterables.getLast(changeInfos);
+                        hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
+                        sortkey = lastChangeInfo._sortkey;
+                        changes.addAll(changeInfos);
+                        consumer.consume(changeInfos);
+                    } else {
+                        hasMore = false;
+                    }
                     lock.unlock();
                 }
             };

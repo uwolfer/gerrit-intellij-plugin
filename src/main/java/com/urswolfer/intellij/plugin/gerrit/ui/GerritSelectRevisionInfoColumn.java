@@ -90,7 +90,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
                 Iterable<Pair<String, RevisionInfo>> pairs = Iterables.transform(changeInfo.revisions.entrySet(), MAP_ENTRY_TO_PAIR);
                 Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, getRevisionLabelFunction(changeInfo));
                 Pair<String, RevisionInfo> pair = map.get(value);
-                selectedRevisions.put(changeInfo.changeId, pair.getFirst());
+                selectedRevisions.put(changeInfo.id, pair.getFirst());
             }
 
             @Override

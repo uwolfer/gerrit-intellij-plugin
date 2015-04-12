@@ -81,7 +81,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
         String content = dialog.reviewTextField.getText();
         Iterable<String> reviewerNames = Splitter.on(',').omitEmptyStrings().trimResults().split(content);
         for (String reviewerName : reviewerNames) {
-            gerritUtil.addReviewer(selectedChange.get().changeId, reviewerName, project);
+            gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project);
         }
     }
 

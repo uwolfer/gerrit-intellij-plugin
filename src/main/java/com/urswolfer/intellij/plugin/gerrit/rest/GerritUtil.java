@@ -287,6 +287,20 @@ public class GerritUtil {
                 try {
                     return queryRequest.get();
                 } catch (RestApiException e) {
+                    // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
+                    if (e instanceof HttpStatusException) {
+                        HttpStatusException httpStatusException = (HttpStatusException) e;
+                        if (httpStatusException.getStatusCode() == 400
+                            && httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
+                            try {
+                                queryRequest.withStart(0); // remove start, trust that sortkey is set
+                                return queryRequest.get();
+                            } catch (RestApiException ex) {
+                                notifyError(ex, "Failed to get Gerrit changes.", project);
+                                return Collections.emptyList();
+                            }
+                        }
+                    }
                     notifyError(e, "Failed to get Gerrit changes.", project);
                     return Collections.emptyList();
                 }

@@ -52,6 +52,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
+    private static final String CLONE_URL = "CloneUrl";
     private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
     private static final String LIST_ALL_CHANGES = "ListAllChanges";
     private static final String REFRESH_TIMEOUT = "RefreshTimeout";
@@ -63,6 +64,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private String login;
     private String host;
+    private String cloneUrl;
     private boolean listAllChanges;
     private boolean automaticRefresh;
     private int refreshTimeout;
@@ -77,6 +79,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
+        element.setAttribute(CLONE_URL, (getCloneUrl() != null ? getCloneUrl() : ""));
         element.setAttribute(LIST_ALL_CHANGES, "" + getListAllChanges());
         element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
@@ -92,7 +95,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         try {
             setLogin(element.getAttributeValue(LOGIN));
             setHost(element.getAttributeValue(HOST));
-
+            setCloneUrl(element.getAttributeValue(CLONE_URL));
             setListAllChanges(getBooleanValue(element, LIST_ALL_CHANGES));
             setAutomaticRefresh(getBooleanValue(element, AUTOMATIC_REFRESH));
             setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
@@ -145,6 +148,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     public String getHost() {
         return host;
+    }
+
+    public String getCloneUrl() {
+        return cloneUrl;
     }
 
     @Override
@@ -234,5 +241,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public void setLog(Logger log) {
         this.log = log;
+    }
+
+    public void setCloneUrl(String cloneUrl) {
+        this.cloneUrl = cloneUrl;
     }
 }

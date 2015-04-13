@@ -45,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -78,7 +79,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         BasicAction.saveAll();
         List<ProjectInfo> availableProjects = null;
         try {
-            availableProjects = gerritUtil.getAvailableProjects(project);
+            availableProjects = new ArrayList<ProjectInfo>(gerritUtil.getAvailableProjects(project));
         } catch (Exception e) {
             log.info(e);
             NotificationBuilder notification = new NotificationBuilder(
@@ -99,8 +100,9 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
         // Add predefined repositories to history
+        String host = gerritSettings.getCloneUrl()!=null ? gerritSettings.getCloneUrl() : gerritSettings.getHost();
         for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(availableProjects.get(i).id));
+            dialog.prependToHistory(host + '/' + Url.decode(availableProjects.get(i).id));
         }
         dialog.show();
         if (!dialog.isOK()) {

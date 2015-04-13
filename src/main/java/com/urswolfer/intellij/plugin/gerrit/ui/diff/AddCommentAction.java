@@ -139,7 +139,7 @@ public class AddCommentAction extends AnAction implements DumbAware {
                     @Override
                     public void consume(CommentInfo commentInfo) {
                         if (commentToEdit != null) {
-                            commentsDiffTool.removeComment(editor, lineHighlighter, rangeHighlighter);
+                            commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
                         }
                         commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo);
                     }

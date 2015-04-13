@@ -31,8 +31,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
-import git4idea.history.wholeTree.BasePopupAction;
 
 import java.util.List;
 import java.util.Map;
@@ -60,8 +60,8 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.absent();
     private List<Listener> listeners = Lists.newArrayList();
 
-    public SelectBaseRevisionAction(Project project, final SelectedRevisions selectedRevisions) {
-        super(project, "Diff against:", "Select revision to compare to");
+    public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions) {
+        super("Diff against");
         this.selectedRevisions = selectedRevisions;
         selectedRevisions.addObserver(new Observer() {
             @Override
@@ -147,7 +147,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     }
 
     private void updateLabel() {
-        myLabel.setText(selectedValue.transform(REVISION_LABEL_FUNCTION).or(BASE));
+        updateFilterValueLabel(selectedValue.transform(REVISION_LABEL_FUNCTION).or(BASE));
     }
 
     public static interface Listener {

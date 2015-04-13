@@ -46,13 +46,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
     }
 
     @Override
-    public SubmittedReportInfo submit(IdeaLoggingEvent[] events, Component parentComponent) {
-        // obsolete API -> see com.intellij.diagnostic.ITNReporter
-        return new SubmittedReportInfo(null, "0", SubmittedReportInfo.SubmissionStatus.FAILED);
-    }
-
-    @Override
-    public boolean trySubmitAsync(IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<SubmittedReportInfo> consumer) {
+    public boolean submit(IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<SubmittedReportInfo> consumer) {
         ErrorBean errorBean = createErrorBean(events[0], additionalInfo);
         String json = new Gson().toJson(errorBean);
         postError(json);
@@ -64,8 +58,8 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         errorBean.setAdditionInfo(additionalInfo);
         errorBean.setPluginVersion(Version.get());
         ApplicationInfoEx appInfo = ApplicationInfoEx.getInstanceEx();
-        String intellijVersion = String.format("%s %s.%s",
-            appInfo.getVersionName(), appInfo.getMajorVersion(), appInfo.getMinorVersion());
+        String intellijVersion = String.format("%s %s.%s %s",
+            appInfo.getVersionName(), appInfo.getMajorVersion(), appInfo.getMinorVersion(), appInfo.getApiVersion());
         errorBean.setIntellijVersion(intellijVersion);
         errorBean.setException(loggingEvent.getThrowableText());
         errorBean.setExceptionMessage(loggingEvent.getMessage());

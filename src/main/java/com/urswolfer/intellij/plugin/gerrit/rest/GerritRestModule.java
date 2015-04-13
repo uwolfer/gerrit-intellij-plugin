@@ -26,7 +26,7 @@ import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 public class GerritRestModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(SslSupport.class);
+        bind(CertificateManagerClientBuilderExtension.class);
         bind(ProxyHttpClientBuilderExtension.class);
         bind(UserAgentClientBuilderExtension.class);
         bind(GerritRestApiFactory.class);

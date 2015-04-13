@@ -27,14 +27,15 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
-import git4idea.history.browser.GitCommit;
+import git4idea.GitCommit;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
  * This class helps to get a list of {@link com.intellij.openapi.vcs.changes.Change}s between two
- * {@link git4idea.history.browser.GitCommit}s.
+ * {@link git4idea.GitCommit}s.
  *
  * @author Thomas Forrer
  */
@@ -85,8 +86,8 @@ public class CommitDiffBuilder {
     public CommitDiffBuilder(GitCommit base, GitCommit commit) {
         this.base = base;
         this.commit = commit;
-        baseHash = base.getHash().getValue();
-        hash = commit.getHash().getValue();
+        baseHash = base.getId().asString();
+        hash = commit.getId().asString();
     }
 
     public CommitDiffBuilder withChangesProvider(ChangesProvider changesProvider) {
@@ -153,12 +154,12 @@ public class CommitDiffBuilder {
     }
 
     public static interface ChangesProvider {
-        List<Change> provide(GitCommit gitCommit);
+        Collection<Change> provide(GitCommit gitCommit);
     }
 
     private static final class SimpleChangesProvider implements ChangesProvider {
         @Override
-        public List<Change> provide(GitCommit gitCommit) {
+        public Collection<Change> provide(GitCommit gitCommit) {
             return gitCommit.getChanges();
         }
     }

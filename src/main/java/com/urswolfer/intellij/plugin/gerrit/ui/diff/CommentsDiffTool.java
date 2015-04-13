@@ -25,36 +25,44 @@ import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
 import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.client.Side;
-import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.CommentInfo;
-import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gerrit.extensions.common.*;
 import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
+import com.intellij.diff.DiffContext;
+import com.intellij.diff.DiffTool;
+import com.intellij.diff.FrameDiffTool;
+import com.intellij.diff.SuppressiveDiffTool;
+import com.intellij.diff.requests.DiffRequest;
+import com.intellij.diff.tools.fragmented.OnesideDiffTool;
+import com.intellij.diff.tools.simple.SimpleDiffTool;
+import com.intellij.diff.tools.simple.SimpleDiffViewer;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
-import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.diff.DiffRequest;
-import com.intellij.openapi.diff.impl.DiffPanelImpl;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.CustomShortcutSet;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.AsyncResult;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
-import com.intellij.openapi.vcs.FilePathImpl;
+import com.intellij.openapi.vcs.changes.ChangesUtil;
+import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -66,7 +74,7 @@ import java.util.Map;
  * Some parts based on code from:
  * https://github.com/ktisha/Crucible4IDEA
  */
-public class CommentsDiffTool extends CustomizableFrameDiffTool {
+public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
         @Override
         public boolean apply(Comment comment) {
@@ -95,41 +103,44 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     @Inject
     private SelectedRevisions selectedRevisions;
 
-    private ChangeInfo changeInfo;
-    private String selectedRevisionId;
-    private Optional<Pair<String, RevisionInfo>> baseRevision;
-    private Project project;
-
+    @NotNull
     @Override
-    public boolean canShow(DiffRequest request) {
-        final boolean superCanShow = super.canShow(request);
+    public String getName() {
+        return SimpleDiffTool.INSTANCE.getName();
+    }
 
-        final AsyncResult<DataContext> dataContextFromFocus = dataManager.getDataContextFromFocus();
-        final DataContext context = dataContextFromFocus.getResult();
-        if (context == null) return false;
-
-        changeInfo = GerritDataKeys.CHANGE.getData(context);
-        if (changeInfo != null) {
-            selectedRevisionId = selectedRevisions.get(changeInfo);
-        } else {
-            selectedRevisionId = null;
-        }
-        baseRevision = GerritDataKeys.BASE_REVISION.getData(context);
-        project = PlatformDataKeys.PROJECT.getData(context);
-
-        return superCanShow && changeInfo != null;
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Class<? extends DiffTool>> getSuppressedTools() {
+        return Lists.<Class<? extends DiffTool>>newArrayList(
+            OnesideDiffTool.INSTANCE.getClass(),
+            SimpleDiffTool.INSTANCE.getClass()
+        );
     }
 
     @Override
-    public void diffRequestChange(DiffRequest diffRequest, DiffPanelImpl diffPanel) {
-        handleComments(diffPanel, diffRequest.getWindowTitle());
+    public boolean canShow(@NotNull DiffContext context, @NotNull DiffRequest request) {
+        if (context.getUserData(GerritUserDataKeys.CHANGE) == null) return false;
+        if (context.getUserData(GerritUserDataKeys.BASE_REVISION) == null) return false;
+        if (request.getUserData(ChangeDiffRequestProducer.CHANGE_KEY) == null) return false;
+        return SimpleDiffViewer.canShowRequest(context, request);
     }
 
-    private void handleComments(final DiffPanelImpl diffPanel, final String filePathString) {
-        final FilePath filePath = new FilePathImpl(new File(filePathString), false);
-        final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath()));
+    @NotNull
+    @Override
+    public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
+        return new CommentsDiffViewer(context, request);
+    }
 
-        addCommentAction(diffPanel, relativeFilePath, changeInfo);
+    private void handleComments(final CommentsDiffViewer diffPanel,
+                                final FilePath filePath,
+                                final Project project,
+                                final ChangeInfo changeInfo,
+                                final String selectedRevisionId,
+                                final Optional<Pair<String, RevisionInfo>> baseRevision) {
+        final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo));
+
+        addCommentAction(diffPanel, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
 
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
@@ -144,14 +155,18 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                                             diffPanel.getEditor2(),
                                             relativeFilePath,
                                             selectedRevisionId,
-                                            Iterables.filter(fileComments, REVISION_COMMENT)
+                                            Iterables.filter(fileComments, REVISION_COMMENT),
+                                            changeInfo,
+                                            project
                                     );
                                     if (!baseRevision.isPresent()) {
                                         addCommentsGutter(
                                                 diffPanel.getEditor1(),
                                                 relativeFilePath,
                                                 selectedRevisionId,
-                                                Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
+                                                Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT)),
+                                                changeInfo,
+                                                project
                                         );
                                     }
                                 }
@@ -171,7 +186,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
                                         diffPanel.getEditor1(),
                                         relativeFilePath,
                                         baseRevision.get().getFirst(),
-                                        Iterables.filter(fileComments, REVISION_COMMENT)
+                                        Iterables.filter(fileComments, REVISION_COMMENT),
+                                        changeInfo,
+                                        project
                                 );
                             }
                         }
@@ -184,7 +201,8 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         });
     }
 
-    private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {
+    private void addCommentAction(CommentsDiffViewer diffPanel, String filePath, ChangeInfo changeInfo,
+                                  String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision) {
         if (baseRevision.isPresent()) {
             addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
         } else {
@@ -193,7 +211,11 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, selectedRevisionId, Side.REVISION);
     }
 
-    private void addCommentActionToEditor(Editor editor, String filePath, ChangeInfo changeInfo, String revisionId, Side commentSide) {
+    private void addCommentActionToEditor(Editor editor,
+                                          String filePath,
+                                          ChangeInfo changeInfo,
+                                          String revisionId,
+                                          Side commentSide) {
         if (editor == null) return;
 
         DefaultActionGroup group = new DefaultActionGroup();
@@ -210,7 +232,9 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
     private void addCommentsGutter(Editor editor,
                                    String filePath,
                                    String revisionId,
-                                   Iterable<CommentInfo> fileComments) {
+                                   Iterable<CommentInfo> fileComments,
+                                   ChangeInfo changeInfo,
+                                   Project project) {
         for (CommentInfo fileComment : fileComments) {
             fileComment.path = PathUtils.ensureSlashSeparators(filePath);
             addComment(editor, changeInfo, revisionId, project, fileComment);
@@ -244,7 +268,7 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         }
     }
 
-    public void removeComment(Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
+    public void removeComment(Project project, Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
         editor.getMarkupModel().removeHighlighter(lineHighlighter);
         lineHighlighter.dispose();
 
@@ -254,7 +278,35 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         }
     }
 
-    private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
+    private class CommentsDiffViewer extends SimpleDiffViewer {
+        private final ChangeInfo changeInfo;
+        private final String selectedRevisionId;
+        private final Optional<Pair<String, RevisionInfo>> baseRevision;
+
+        public CommentsDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            super(context, request);
+            changeInfo = context.getUserData(GerritUserDataKeys.CHANGE);
+            baseRevision = context.getUserData(GerritUserDataKeys.BASE_REVISION);
+            selectedRevisionId = changeInfo != null ? selectedRevisions.get(changeInfo) : null;
+        }
+
+        @Override
+        protected void onInit() {
+            super.onInit();
+            FilePath filePath = ChangesUtil.getFilePath(myRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY));
+            handleComments(this, filePath, myContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
+        }
+
+        public EditorEx getEditor1() {
+            return myEditor1;
+        }
+
+        public EditorEx getEditor2() {
+            return myEditor2;
+        }
+    }
+
+    private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo changeInfo) {
         return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
     }
 
@@ -269,5 +321,45 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
         HighlightManager highlightManager = HighlightManager.getInstance(project);
         highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
         return highlighters.get(0);
+    }
+
+    public static class Proxy extends CommentsDiffTool {
+        private CommentsDiffTool delegate;
+
+        public Proxy() {
+            delegate = GerritModule.getInstance(CommentsDiffTool.class);
+        }
+
+        @NotNull
+        @Override
+        public String getName() {
+            return delegate.getName();
+        }
+
+        @Override
+        public List<Class<? extends DiffTool>> getSuppressedTools() {
+            return delegate.getSuppressedTools();
+        }
+
+        @Override
+        public boolean canShow(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            return delegate.canShow(context, request);
+        }
+
+        @NotNull
+        @Override
+        public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            return delegate.createComponent(context, request);
+        }
+
+        @Override
+        public void addComment(Editor editor, ChangeInfo changeInfo, String revisionId, Project project, Comment comment) {
+            delegate.addComment(editor, changeInfo, revisionId, project, comment);
+        }
+
+        @Override
+        public void removeComment(Project project, Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
+            delegate.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+        }
     }
 }

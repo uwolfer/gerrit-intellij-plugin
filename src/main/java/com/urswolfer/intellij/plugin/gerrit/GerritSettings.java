@@ -52,6 +52,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
+    private static final String CLONE_URL = "CloneUrl";
     private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
     private static final String LIST_ALL_CHANGES = "ListAllChanges";
     private static final String REFRESH_TIMEOUT = "RefreshTimeout";
@@ -60,12 +61,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_CHANGE_NUMBER_COLUMN = "ShowChangeNumberColumn";
     private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
-    private static final String TRUSTED_HOSTS = "GERRIT_TRUSTED_HOSTS";
-    private static final String TRUSTED_HOST = "HOST";
-    private static final String TRUSTED_URL = "URL";
 
     private String login;
     private String host;
+    private String cloneUrl;
     private boolean listAllChanges;
     private boolean automaticRefresh;
     private int refreshTimeout;
@@ -73,7 +72,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean pushToGerrit;
     private boolean showChangeNumberColumn;
     private boolean showChangeIdColumn;
-    private Collection<String> trustedHosts = new ArrayList<String>();
 
     private Logger log;
 
@@ -81,6 +79,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
+        element.setAttribute(CLONE_URL, (getCloneUrl() != null ? getCloneUrl() : ""));
         element.setAttribute(LIST_ALL_CHANGES, "" + getListAllChanges());
         element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
@@ -88,13 +87,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(PUSH_TO_GERRIT, "" + getPushToGerrit());
         element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, "" + getShowChangeNumberColumn());
         element.setAttribute(SHOW_CHANGE_ID_COLUMN, "" + getShowChangeIdColumn());
-        Element trustedHosts = new Element(TRUSTED_HOSTS);
-        for (String host : this.trustedHosts) {
-            Element hostEl = new Element(TRUSTED_HOST);
-            hostEl.setAttribute(TRUSTED_URL, host);
-            trustedHosts.addContent(hostEl);
-        }
-        element.addContent(trustedHosts);
         return element;
     }
 
@@ -103,7 +95,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         try {
             setLogin(element.getAttributeValue(LOGIN));
             setHost(element.getAttributeValue(HOST));
-
+            setCloneUrl(element.getAttributeValue(CLONE_URL));
             setListAllChanges(getBooleanValue(element, LIST_ALL_CHANGES));
             setAutomaticRefresh(getBooleanValue(element, AUTOMATIC_REFRESH));
             setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
@@ -111,14 +103,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setPushToGerrit(getBooleanValue(element, PUSH_TO_GERRIT));
             setShowChangeNumberColumn(getBooleanValue(element, SHOW_CHANGE_NUMBER_COLUMN));
             setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
-
-            for (Object trustedHostsObj : element.getChildren(TRUSTED_HOSTS)) {
-                Element trustedHosts = (Element) trustedHostsObj;
-                for (Object trustedHostObj : trustedHosts.getChildren()) {
-                    Element trustedHost = (Element) trustedHostObj;
-                    addTrustedHost(trustedHost.getAttributeValue(TRUSTED_URL));
-                }
-            }
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
         }
@@ -166,6 +150,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return host;
     }
 
+    public String getCloneUrl() {
+        return cloneUrl;
+    }
+
     @Override
     public boolean isLoginAndPasswordAvailable() {
         return !Strings.isNullOrEmpty(getLogin()) && !Strings.isNullOrEmpty(getPassword());
@@ -200,6 +188,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, password != null ? password : "");
         } catch (PasswordSafeException e) {
             log.info("Couldn't set password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
+        }
+    }
+
+    public void forgetPassword() {
+        try {
+            PasswordSafe.getInstance().removePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
+        } catch (PasswordSafeException e) {
+            log.info("Couldn't forget password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
     }
 
@@ -243,18 +239,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         this.showChangeIdColumn = showChangeIdColumn;
     }
 
-    @NotNull
-    public Collection<String> getTrustedHosts() {
-        return trustedHosts;
-    }
-
-    public void addTrustedHost(String host) {
-        if (!trustedHosts.contains(host)) {
-            trustedHosts.add(host);
-        }
-    }
-
     public void setLog(Logger log) {
         this.log = log;
+    }
+
+    public void setCloneUrl(String cloneUrl) {
+        this.cloneUrl = cloneUrl;
     }
 }

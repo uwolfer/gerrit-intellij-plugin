@@ -31,30 +31,29 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.vcs.log.Hash;
+import com.intellij.vcs.log.VcsShortCommitDetails;
+import com.intellij.vcs.log.VcsUser;
+import com.intellij.vcs.log.impl.HashImpl;
+import com.intellij.vcs.log.impl.VcsShortCommitDetailsImpl;
+import com.intellij.vcs.log.impl.VcsUserImpl;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
-import git4idea.GitExecutionException;
-import git4idea.GitPlatformFacade;
-import git4idea.GitUtil;
-import git4idea.GitVcs;
+import git4idea.*;
 import git4idea.commands.*;
 import git4idea.history.GitHistoryUtils;
-import git4idea.history.browser.GitCommit;
-import git4idea.history.browser.SHAHash;
-import git4idea.history.wholeTree.AbstractHash;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
+import git4idea.reset.GitResetMode;
 import git4idea.update.GitFetchResult;
 import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.UntrackedFilesNotifier;
@@ -63,7 +62,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
@@ -170,10 +168,9 @@ public class GerritGitUtil {
                     final VirtualFile virtualFile = gitRepository.getGitDir();
 
                     final String notLoaded = "Not loaded";
-                    GitCommit gitCommit = new GitCommit(virtualFile, AbstractHash.create(revisionId), new SHAHash(revisionId), notLoaded, notLoaded, new Date(0), notLoaded,
-                            notLoaded, Collections.<String>emptySet(), Collections.<FilePath>emptyList(), notLoaded,
-                            notLoaded, Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
-                            Collections.<Change>emptyList(), 0);
+                    VcsUser notLoadedUser = new VcsUserImpl(notLoaded, notLoaded);
+                    VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
+                        HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
 
                     cherryPick(gitRepository, gitCommit, git, platformFacade, project);
                 } finally {
@@ -191,25 +188,26 @@ public class GerritGitUtil {
     /**
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
-    private boolean cherryPick(@NotNull GitRepository repository, @NotNull GitCommit commit,
-                                      @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
+    private boolean cherryPick(@NotNull GitRepository repository, @NotNull VcsShortCommitDetails commit,
+                               @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = git.cherryPick(repository, commit.getHash().getValue(), false,
+        GitCommandResult result = git.cherryPick(repository, commit.getId().asString(), false,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
             return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
-                    commit.getShortHash().getString(), commit.getAuthor(),
+                    commit.getId().toShortString(), commit.getAuthor().getName(),
                     commit.getSubject()).merge();
         } else if (untrackedFilesDetector.wasMessageDetected()) {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
                     "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
 
-            UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, platformFacade, untrackedFilesDetector.getFiles(),
+            UntrackedFilesNotifier.notifyUntrackedFilesOverwrittenBy(project, repository.getRoot(),
+                    untrackedFilesDetector.getRelativeFilePaths(),
                     "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {
@@ -287,7 +285,7 @@ public class GerritGitUtil {
                                         @Nullable String branch,
                                         Project project,
                                         ProgressIndicator progressIndicator) {
-        final GitLineHandlerPasswordRequestAware h = new GitLineHandlerPasswordRequestAware(project, root, GitCommand.FETCH);
+        final GitLineHandler h = new GitLineHandler(project, root, GitCommand.FETCH);
         h.setUrl(url);
         h.addProgressParameter();
 
@@ -318,11 +316,7 @@ public class GerritGitUtil {
             protected void onFailure() {
                 log.warn("Error fetching: " + h.errors());
                 Collection<Exception> errors = Lists.newArrayList();
-                if (!h.hadAuthRequest()) {
-                    errors.addAll(h.errors());
-                } else {
-                    errors.add(new VcsException("Authentication failed"));
-                }
+                errors.addAll(h.errors());
                 result.set(GitFetchResult.error(errors));
             }
         });
@@ -368,8 +362,8 @@ public class GerritGitUtil {
 
     }
 
-    public boolean resetHard(GitRepository repository, String s) {
-        GitCommandResult gitCommandResult = git.resetHard(repository, s);
+    public boolean resetHard(GitRepository repository, String target) {
+        GitCommandResult gitCommandResult = git.reset(repository, GitResetMode.HARD, target);
         return gitCommandResult.success();
     }
 

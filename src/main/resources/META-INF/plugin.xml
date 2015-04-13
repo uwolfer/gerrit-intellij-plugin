@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.6</version>
+  <version>0.9.6.2</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,14 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.6.2</li>
+          <ul>
+            <li>IntelliJ 14.1 only: disable unsupported oneside-diff-viewer for displaying Gerrit changes</li>
+          </ul>
+          <li>0.9.6.1</li>
+          <ul>
+            <li>IntelliJ 14.1 only: fix push dialog</li>
+          </ul>
           <li>0.9.6</li>
           <ul>
             <li>dynamically show label columns according to server support ("Verify", "Core-Review", ...)</li>
@@ -254,13 +262,25 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="117.0" until-build="130.825"/>
-    <!--
-      Class GitCommit got renamed to GitHeavyCommit in 05f0c7e7bc87af7bf8500eda9cc2308fd07ec4dd
-      GitHeavyCommit got deprecated in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
-      new GitCommit got introduced in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
-      Follows: appcode/130.826, idea/130.827, idea/130.828, phpstorm/130.830, pycharm/130.829, rubymine/130.832, webstorm/130.831
-    -->
+  <idea-version since-build="140.2285"/>
+  <!--
+    IntelliJ IDEA 14.1
+    ================
+    Diff-viewer refactoring: idea/140.2285
+
+    IntelliJ IDEA 14
+    ================
+    Package jgit got removed in 91c86c379955c0c41a88908e85b4afa3adfeee52 (idea/138.775)
+    GitHttpAuthDataProvider#forgetPassword got added in 85cad871d3678c02b22ce20398e16fecdbdba017 (idea/136.1681)
+    UntrackedFilesNotifier#notifyUntrackedFilesOverwrittenBy got changed in 752bbd86726fb43fae1a77892b296453b186f2e5 (idea/138.874)
+
+    IntelliJ IDEA 13
+    ================
+    Class GitCommit got renamed to GitHeavyCommit in 05f0c7e7bc87af7bf8500eda9cc2308fd07ec4dd
+    GitHeavyCommit got deprecated in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
+    new GitCommit got introduced in d9476d7ef1d1a1f331f77795c0e3c5d9e1a22f41
+    Follows: appcode/130.826, idea/130.827, idea/130.828, phpstorm/130.830, pycharm/130.829, rubymine/130.832, webstorm/130.831
+  -->
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
        on how to target different products -->
@@ -288,6 +308,7 @@
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+    <diff.DiffTool implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool$Proxy"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>

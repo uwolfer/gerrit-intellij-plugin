@@ -17,11 +17,10 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.intellij.openapi.application.ApplicationManager;
+import com.google.common.collect.Maps;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -33,6 +32,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Urs Wolfer
@@ -42,8 +42,6 @@ public class GerritPushExtensionPanel extends JPanel {
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
 
     private final boolean pushToGerritByDefault;
-    private final JTextField destinationBranchTextField;
-    private final JCheckBox manualPush;
 
     private JPanel indentedSettingPanel;
 
@@ -54,22 +52,47 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField topicTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
+    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private boolean initialized = false;
 
-    private Optional<String> originalDestinationBranch = Optional.absent();
-
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault,
-                                    JTextField destinationBranchTextField,
-                                    JCheckBox manualPush) {
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
         this.pushToGerritByDefault = pushToGerritByDefault;
-        this.destinationBranchTextField = destinationBranchTextField;
-        this.manualPush = manualPush;
-
-        destinationBranchTextField.getDocument().addDocumentListener(new LoadDestinationBranchListener());
-
         createLayout();
 
+        pushToGerritCheckBox.setSelected(pushToGerritByDefault);
         pushToGerritCheckBox.addActionListener(new SettingsStateActionListener());
+        setSettingsEnabled(pushToGerritCheckBox.isSelected());
+
         addChangeListener();
+    }
+
+    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
+        if (initialized) { // a new dialog gets initialized; start again
+            initialized = false;
+            gerritPushTargetPanels.clear();
+        }
+
+        if (branch != null) {
+            branch = branch.replaceAll("^refs/(for|drafts)/", "");
+            branch = branch.replaceAll("%.*$", "");
+        }
+
+        gerritPushTargetPanels.put(gerritPushTargetPanel, branch);
+    }
+
+    public void initialized() {
+        initialized = true;
+
+        if (gerritPushTargetPanels.size() == 1) {
+            branchTextField.setText(gerritPushTargetPanels.values().iterator().next());
+        }
+
+        // force a deferred update (changes are monitored only after full construction of dialog)
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                initDestinationBranch();
+            }
+        });
     }
 
     private void createLayout() {
@@ -146,7 +169,7 @@ public class GerritPushExtensionPanel extends JPanel {
                         GridConstraints.FILL_HORIZONTAL,
                         GridConstraints.SIZEPOLICY_WANT_GROW,
                         GridConstraints.SIZEPOLICY_FIXED,
-                        null, null, null)
+                        new Dimension(250, 0), null, null)
         );
         return textField;
     }
@@ -158,21 +181,25 @@ public class GerritPushExtensionPanel extends JPanel {
         submitChangeCheckBox.addActionListener(gerritPushChangeListener);
 
         ChangeTextActionListener gerritPushTextChangeListener = new ChangeTextActionListener();
+        branchTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
 
-    private String getRef() {
+    public String getRef() {
         String ref = "%s";
         if (pushToGerritCheckBox.isSelected()) {
-            manualPush.setSelected(true);
             if (draftChangeCheckBox.isSelected()) {
                 ref = "refs/drafts/";
             } else {
                 ref = "refs/for/";
             }
-            ref += branchTextField.getText();
+            if (!branchTextField.getText().isEmpty()) {
+                ref += branchTextField.getText();
+            } else {
+                ref += "%s";
+            }
             List<String> gerritSpecs = Lists.newArrayList();
             if (submitChangeCheckBox.isSelected()) {
                 gerritSpecs.add("submit");
@@ -186,8 +213,6 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!Strings.isNullOrEmpty(gerritSpec)) {
                 ref += "%%" + gerritSpec;
             }
-        } else {
-            manualPush.setSelected(false);
         }
         return ref;
     }
@@ -199,14 +224,20 @@ public class GerritPushExtensionPanel extends JPanel {
         }
     }
 
+    private void initDestinationBranch() {
+        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
+            entry.getKey().initBranch(String.format(getRef(), entry.getValue()), pushToGerritByDefault);
+        }
+    }
+
     private void updateDestinationBranch() {
-        destinationBranchTextField.setText(String.format(getRef(), originalDestinationBranch.get()));
+        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
+            entry.getKey().updateBranch(String.format(getRef(), entry.getValue()));
+        }
     }
 
     private void setSettingsEnabled(boolean enabled) {
         UIUtil.setEnabled(indentedSettingPanel, enabled, true);
-        UIUtil.setEnabled(manualPush, !enabled, true);
-        UIUtil.setEnabled(destinationBranchTextField, false, true);
     }
 
     /**
@@ -250,49 +281,6 @@ public class GerritPushExtensionPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             setSettingsEnabled(pushToGerritCheckBox.isSelected());
-        }
-    }
-
-    /**
-     * Get initial destination branch (loaded async).
-     */
-    private class LoadDestinationBranchListener implements DocumentListener {
-        @Override
-        public void insertUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        @Override
-        public void removeUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        @Override
-        public void changedUpdate(DocumentEvent e) {
-            handleChange();
-        }
-
-        private void handleChange() {
-            if (!originalDestinationBranch.isPresent()) {
-                originalDestinationBranch = Optional.of(destinationBranchTextField.getText());
-                branchTextField.setText(originalDestinationBranch.get());
-                branchTextField.getDocument().addDocumentListener(new ChangeTextActionListener());
-
-                pushToGerritCheckBox.setSelected(pushToGerritByDefault);
-                setSettingsEnabled(pushToGerritCheckBox.isSelected());
-
-                ApplicationManager.getApplication().invokeLater(new UpdateDestinationBranchRunnable());
-            }
-        }
-    }
-
-    /**
-     * Text field content cannot be updated in event handler.
-     */
-    private class UpdateDestinationBranchRunnable implements Runnable {
-        @Override
-        public void run() {
-            updateDestinationBranch();
         }
     }
 }

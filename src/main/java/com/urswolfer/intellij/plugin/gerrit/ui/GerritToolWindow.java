@@ -53,8 +53,6 @@ public class GerritToolWindow {
     @Inject
     private GerritSettings gerritSettings;
     @Inject
-    private CommentsDiffTool commentsDiffTool;
-    @Inject
     private GerritChangeListPanel changeListPanel;
     @Inject
     private Logger log;
@@ -67,7 +65,6 @@ public class GerritToolWindow {
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel.registerChangeListPanel(this);
-        diffManager.registerDiffTool(commentsDiffTool);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);
 

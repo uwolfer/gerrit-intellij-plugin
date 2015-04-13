@@ -27,9 +27,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.vcs.FilePathImpl;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.changes.actions.diff.ShowDiffContext;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.openapi.vcs.changes.ui.ChangeNodeDecorator;
 import com.intellij.openapi.vcs.changes.ui.ChangesBrowserNodeRenderer;
@@ -47,13 +47,13 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitMessageProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
-import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import git4idea.GitCommit;
 import git4idea.history.GitHistoryUtils;
-import git4idea.history.browser.GitCommit;
-import git4idea.history.browser.SymbolicRefs;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -79,7 +79,7 @@ public class RepositoryChangesBrowserProvider {
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
     public RepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
-        selectBaseRevisionAction = new SelectBaseRevisionAction(project, selectedRevisions);
+        selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();
 
@@ -125,10 +125,9 @@ public class RepositoryChangesBrowserProvider {
         }
 
         @Override
-        public void calcData(DataKey key, DataSink sink) {
-            super.calcData(key, sink);
-            sink.put(GerritDataKeys.CHANGE, selectedChange);
-            sink.put(GerritDataKeys.BASE_REVISION, baseRevision);
+        protected void updateDiffContext(@NotNull ShowDiffContext context) {
+            context.putChainContext(GerritUserDataKeys.CHANGE, selectedChange);
+            context.putChainContext(GerritUserDataKeys.BASE_REVISION, baseRevision);
         }
 
         @Override
@@ -162,8 +161,6 @@ public class RepositoryChangesBrowserProvider {
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project);
             if (!gitRepositoryOptional.isPresent()) return;
             final GitRepository gitRepository = gitRepositoryOptional.get();
-            final VirtualFile virtualFile = gitRepository.getGitDir();
-            final FilePathImpl filePath = new FilePathImpl(virtualFile);
 
             Map<String, RevisionInfo> revisions = selectedChange.revisions;
             final String revisionId = selectedRevisions.get(selectedChange);
@@ -176,15 +173,19 @@ public class RepositoryChangesBrowserProvider {
             revisionFetcher.fetch(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
-                    final List<GitCommit> gitCommits;
+                    final Collection<Change> totalDiff;
                     try {
-                        List<String> hashes = Lists.newArrayList();
+                        VirtualFile gitRepositoryRoot = gitRepository.getRoot();
+                        CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider(
+                            gerritGitUtil, project, selectedChange);
+                        GitCommit currentCommit = getCommit(gitRepositoryRoot, revisionId);
                         if (baseRevision.isPresent()) {
-                            hashes.add(baseRevision.get().first);
+                            GitCommit baseCommit = getCommit(gitRepositoryRoot, baseRevision.get().first);
+                            totalDiff = new CommitDiffBuilder(baseCommit, currentCommit)
+                                .withChangesProvider(changesProvider).getDiff();
+                        } else {
+                            totalDiff = changesProvider.provide(currentCommit);
                         }
-                        hashes.add(revisionId);
-
-                        gitCommits = GitHistoryUtils.commitsDetails(project, filePath, new SymbolicRefs(), hashes);
                     } catch (VcsException e) {
                         log.warn("Error getting Git commit details.", e);
                         NotificationBuilder notification = new NotificationBuilder(
@@ -195,29 +196,24 @@ public class RepositoryChangesBrowserProvider {
                         notificationService.notifyError(notification);
                         return null;
                     }
-                    final List<Change> totalDiff;
-                    CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider(
-                            gerritGitUtil, project, selectedChange);
-                    if (gitCommits.size() == 1) {
-                        final GitCommit gitCommit = Iterables.getLast(gitCommits);
-                        totalDiff = changesProvider.provide(gitCommit);
-                    } else {
-                        GitCommit base = gitCommits.get(0);
-                        GitCommit current = gitCommits.get(1);
-                        totalDiff = new CommitDiffBuilder(base, current)
-                                .withChangesProvider(changesProvider).getDiff();
-                    }
 
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         @Override
                         public void run() {
                             getViewer().setEmptyText("No changes");
-                            setChangesToDisplay(totalDiff);
+                            setChangesToDisplay(Lists.newArrayList(totalDiff));
                         }
                     });
                     return null;
                 }
             });
+        }
+
+        private GitCommit getCommit(VirtualFile gitRepositoryRoot, String revisionId) throws VcsException {
+            // -1: limit; log exactly this commit; git show would do this job also, but there is no api in GitHistoryUtils
+            // ("git show hash" <-> "git log hash -1")
+            List<GitCommit> history = GitHistoryUtils.history(project, gitRepositoryRoot, revisionId, "-1");
+            return Iterables.getOnlyElement(history);
         }
 
         private ChangeNodeDecorator getChangeNodeDecorator() {

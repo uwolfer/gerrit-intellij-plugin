@@ -27,7 +27,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import git4idea.history.wholeTree.BasePopupAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -58,7 +58,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                 new User("Me", "self")
         );
         value = Optional.of(users.get(0));
-        return new UserPopupAction(project, getActionLabel() + ":", getActionLabel());
+        return new UserPopupAction(project, getActionLabel());
     }
 
     @Override
@@ -84,10 +84,10 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     public final class UserPopupAction extends BasePopupAction {
         private final Project project;
 
-        public UserPopupAction(Project project, String labelText, String asTextLabel) {
-            super(project, labelText, asTextLabel);
+        public UserPopupAction(Project project, String labelText) {
+            super(labelText);
             this.project = project;
-            myLabel.setText(value.get().label);
+            updateFilterValueLabel(value.get().label);
         }
 
         @Override
@@ -97,7 +97,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
                         value = Optional.of(user);
-                        myLabel.setText(user.label);
+                        updateFilterValueLabel(user.label);
                         setChanged();
                         notifyObservers(project);
                     }

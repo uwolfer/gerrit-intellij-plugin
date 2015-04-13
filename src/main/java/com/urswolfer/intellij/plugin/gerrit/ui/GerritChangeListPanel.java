@@ -24,10 +24,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.actionSystem.DataSink;
-import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
@@ -71,7 +68,7 @@ import static com.intellij.icons.AllIcons.Actions.*;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel implements DataProvider, Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -188,10 +185,13 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         });
     }
 
-    // Make changes available for diff action
+    @Nullable
     @Override
-    public void calcData(DataKey key, DataSink sink) {
-        sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
+    public Object getData(String dataId) {
+        if (GerritDataKeys.TOOL_WINDOW.is(dataId)) {
+            return gerritToolWindow;
+        }
+        return null;
     }
 
     public TableView<ChangeInfo> getTable() {

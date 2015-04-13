@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,16 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.intellij.openapi.actionSystem.DataKey;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.google.common.base.Optional;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
+import com.intellij.openapi.util.Key;
+import com.intellij.openapi.util.Pair;
 
 /**
  * @author Urs Wolfer
  */
-public interface GerritDataKeys {
-    DataKey<GerritToolWindow> TOOL_WINDOW = DataKey.create("gerrit.ToolWindow");
+public interface GerritUserDataKeys {
+    Key<ChangeInfo> CHANGE = Key.create("gerrit.Change");
+    Key<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = Key.create("gerrit.Change.BaseRevision");
 }

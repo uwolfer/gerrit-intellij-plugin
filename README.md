@@ -107,15 +107,18 @@ you are unsure.
 
 1. Activate Plugin DevKit in IntelliJ
 2. <code>git clone https://github.com/uwolfer/gerrit-intellij-plugin</code> (probably switch to intellij13 branch)
-3. <code>cd gerrit-intellij-plugin</code>
-4. <code>git submodule init</code>
-5. <code>git submodule update</code>
-6. Open checked out project in IntelliJ (File -> Open...)
-7. Open project settings, Project -> Project SDK -> New -> IntelliJ Platform SDK -> Choose your IntelliJ installation folder
-8. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set Scope to "provided"
-9. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines and the module directories around line 10) (strange, but IntelliJ breaks things here...), reload project. You might have to repeat this step if you change project settings...
-10. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin -> (Name: "Gerrit" or whatever you like)
-11. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories that are set up in current workspace).
+3. Make sure all the non ```com.intellij``` dependencies in ```pom.xml``` are present in your local mvn repository (e.g. by
+   commenting out all the ```com.intellij``` dependencies and running ```mvn dependency:copy-dependencies```).
+4. Open checked out project in IntelliJ (File -> Open... -> select ```gerrit-intellij-plugin.iml``` file)
+5. Open project settings, Project -> Project SDK -> New -> IntelliJ Platform SDK -> Choose your IntelliJ installation folder
+6. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib
+   (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set Scope to "provided"
+7. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines and the module directories around line 10)
+   (strange, but IntelliJ breaks things here...), reload project. You might have to repeat this step if you change project settings...
+8. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin ->
+   (Name: "Gerrit" or whatever you like)
+9. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
+   project to see changes (it shows only changes for Git repositories that are set up in current workspace).
 
 ### Maven (not officially supported)
 

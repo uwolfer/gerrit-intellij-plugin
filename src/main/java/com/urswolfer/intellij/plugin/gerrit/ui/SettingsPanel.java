@@ -93,10 +93,7 @@ public class SettingsPanel {
         hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                String text = hostTextField.getText();
-                if (text.endsWith("/")) {
-                    hostTextField.setText(text.substring(0, text.length() - 1));
-                }
+                fixUrl(hostTextField);
             }
         });
 
@@ -122,6 +119,16 @@ public class SettingsPanel {
                 updateAutomaticRefresh();
             }
         });
+    }
+
+    private void fixUrl(JTextField textField) {
+        String text = textField.getText();
+        if (text.endsWith("/")) {
+            textField.setText(text.substring(0, text.length() - 1));
+        }
+        if (!text.isEmpty() && !text.contains("://")) {
+            textField.setText("http://" + text);
+        }
     }
 
     private void updateAutomaticRefresh() {

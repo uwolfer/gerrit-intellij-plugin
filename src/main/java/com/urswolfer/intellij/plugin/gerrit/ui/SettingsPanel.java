@@ -121,14 +121,15 @@ public class SettingsPanel {
         });
     }
 
-    private void fixUrl(JTextField textField) {
+    public static void fixUrl(JTextField textField) {
         String text = textField.getText();
         if (text.endsWith("/")) {
-            textField.setText(text.substring(0, text.length() - 1));
+            text = text.substring(0, text.length() - 1);
         }
         if (!text.isEmpty() && !text.contains("://")) {
-            textField.setText("http://" + text);
+            text = "http://" + text;
         }
+        textField.setText(text);
     }
 
     private void updateAutomaticRefresh() {

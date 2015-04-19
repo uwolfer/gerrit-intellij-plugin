@@ -17,6 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Ordering;
 import com.google.common.io.ByteStreams;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.Url;
@@ -45,8 +48,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -56,6 +57,13 @@ import java.util.List;
  * @author Urs Wolfer
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
+
+    private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
+        public String apply(ProjectInfo from) {
+            return from.id;
+        }
+    };
+    private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION).reverse();
 
     @Inject
     private LocalFileSystem localFileSystem;
@@ -90,17 +98,12 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         if (availableProjects == null) {
             return;
         }
-        Collections.sort(availableProjects, new Comparator<ProjectInfo>() {
-            @Override
-            public int compare(final ProjectInfo p1, final ProjectInfo p2) {
-                return p1.id.compareTo(p2.id);
-            }
-        });
+        ImmutableSortedSet<ProjectInfo> orderedProjects =
+            ImmutableSortedSet.orderedBy(ID_REVERSE_ORDERING).addAll(availableProjects).build();
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
-        // Add predefined repositories to history
-        for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(availableProjects.get(i).id));
+        for (ProjectInfo projectInfo : orderedProjects) {
+            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(projectInfo.id));
         }
         dialog.show();
         if (!dialog.isOK()) {

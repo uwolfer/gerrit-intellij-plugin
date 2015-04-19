@@ -1,0 +1,73 @@
+apply plugin: 'java'
+apply plugin: 'idea'
+
+targetCompatibility = 1.6
+sourceCompatibility = 1.6
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile ('com.google.inject:guice:4.0-beta5') {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
+    compile ('com.google.inject.extensions:guice-multibindings:4.0-beta5') {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
+    compile ('org.apache.httpcomponents:httpclient:4.4') {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.4') {
+        exclude group: 'com.google.code.gson', module: 'gson'
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
+    compile 'org.javassist:javassist:3.18.1-GA'
+
+    testCompile 'org.testng:testng:6.8.7'
+    testCompile 'org.easymock:easymock:3.2'
+}
+
+idea {
+    project.ipr.beforeMerged { project ->
+        project.modulePaths.clear()
+    }
+
+    workspace.iws.withXml {
+        def runManagerComponent = it.node.component.find {
+            it.@name == 'RunManager'
+        }
+        runManagerComponent.@selected = 'Plugin.run-gerrit-plugin'
+        def configuration = runManagerComponent.appendNode("configuration", [
+                default: "false",
+                name: "run-gerrit-plugin",
+                type: "#org.jetbrains.idea.devkit.run.PluginConfigurationType",
+                factoryName: "Plugin",
+                singleton: "true"
+        ])
+        configuration.appendNode("module", [name: 'gerrit-intellij-plugin'])
+        configuration.appendNode("option", [
+            name: "VM_PARAMETERS",
+            value: "-Xms128m -Xmx750m -XX:MaxPermSize=350m -XX:ReservedCodeCacheSize=96m -ea -Dawt.useSystemAAFontSettings=on"
+        ])
+        configuration.appendNode("option", [name: "PROGRAM_PARAMETERS", value: ""])
+        configuration.appendNode("method")
+    }
+
+    module.iml.withXml {
+        it.node.@type = 'PLUGIN_MODULE'
+        it.node.appendNode('component', [
+            name: 'DevKit.ModuleBuildProperties',
+            url: 'file://$MODULE_DIR$/src/main/resources/META-INF/plugin.xml'
+        ])
+    }
+
+    // this is a workaround:
+    // build into resources folder; otherwise resources are not available at runtime and in deployment build
+    module {
+        inheritOutputDirs = false
+        outputDir = file('build/resources/main')
+        testOutputDir = file('build/resources/main')
+    }
+}

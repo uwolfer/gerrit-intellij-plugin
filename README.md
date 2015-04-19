@@ -100,51 +100,24 @@ Build (and develop!) the Plugin
 ------------------
 
 To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
-It's very easy to set it up as a plain IntelliJ project (without Maven integration). Just ignore the Maven paragraph if
-you are unsure.
+It's very easy to set it up as an IntelliJ project. Gradle is required.
 
-### IntelliJ Project
+1. Activate plugin ```Plugin DevKit``` in IntelliJ.
+2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij13``` branch, but keep in mind that pull-requests should be against ```master```)
+3. Run ```gradle idea``` from a command line in cloned folder.
+4. Open checked out project in IntelliJ ("File" -> "Open..." -> select ```gerrit-intellij-plugin``` folder and press "OK")
+5. A notification will appear: "Unlinked Gradle project?". Press "Import Gradle project". You can press "OK" in the window which shows up.
+6. Open project settings, "Modules" -> "Dependencies" -> "Module SDK" -> "New" -> IntelliJ Platform Plugin SDK -> Choose your IntelliJ installation folder
+7. Open project settings, "Modules" -> "Dependencies" -> Click "+" -> "Jar or directory" -> Choose git4idea/lib
+   (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set scope to "Provided"
+8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
+   project to see changes (it shows only changes for Git repositories that are set up in current workspace).
 
-1. Activate Plugin DevKit in IntelliJ
-2. <code>git clone https://github.com/uwolfer/gerrit-intellij-plugin</code> (probably switch to intellij13 branch)
-3. <code>cd gerrit-intellij-plugin</code>
-4. <code>git submodule init</code>
-5. <code>git submodule update</code>
-6. Open checked out project in IntelliJ (File -> Open...)
-7. Open project settings, Project -> Project SDK -> New -> IntelliJ Platform SDK -> Choose your IntelliJ installation folder
-8. Open project settings, Modules -> Dependencies -> Click + -> Jar or directory -> Choose idea4git/lib (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set Scope to "provided"
-9. Open the gerrit-intellij-plugin.iml file and revert changes at the top (first lines and the module directories around line 10) (strange, but IntelliJ breaks things here...), reload project. You might have to repeat this step if you change project settings...
-10. Open Run Configuration dialog -> New -> Plugin -> Use classpath of module -> choose gerrit-intellij-plugin -> (Name: "Gerrit" or whatever you like)
-11. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a project to see changes (it shows only changes for Git repositories that are set up in current workspace).
-
-### Maven (not officially supported)
-
-The plugin depends on multiple jars of IntelliJ IDEA but as these are not available via Maven Central, you'll have to
-install the various Intellij jars located in the lib folder of your IntelliJ install into your local Maven repository.
-
-For your convienience there is a bash script that will do exactly this for you
-```
-    $ cd gerrit-intellij-plugin/
-    $ ./install-intellij-libs.sh <IntelliJ Version> <Path to IntelliJ>
-```
-
-To run the maven build you'll also need to install an updated version of [ideauidesigner-maven-plugin].
-See that readme for installation instructions.
-[ideauidesigner-maven-plugin]: https://github.com/gshakhn/ideauidesigner-maven-plugin/tree/12.x
-
-Current issue: You need to change the scope of idea and forms_rt in pom.xml from provided to compile in order to
-successfully build it with maven.
-
-After you install all jars that this plugin needs into your local repo, just run
-
-    mvn package
-
-The resulting zip file will be located in the target folder.
+Once ```build.grade``` gets updated, you need to start again with step 3 (including all following steps).
 
 
 Credits
 ------
-* https://github.com/gshakhn/sonar-intellij-plugin/ for code examples (e.g. Maven integration, IntelliJ Plugin setup)
 * IntelliJ Github plugin (some code of this plugin is based on its code)
 
 

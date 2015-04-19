@@ -68,10 +68,10 @@ public class LoadChangesProxy {
                         hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
                         sortkey = lastChangeInfo._sortkey;
                         changes.addAll(changeInfos);
-                        consumer.consume(changeInfos);
                     } else {
                         hasMore = false;
                     }
+                    consumer.consume(changeInfos);
                     lock.unlock();
                 }
             };

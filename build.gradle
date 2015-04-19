@@ -24,6 +24,7 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
     }
     compile 'org.javassist:javassist:3.18.1-GA'
+    compile 'com.google.code.gson:gson:2.3.1'
 
     testCompile 'org.testng:testng:6.8.7'
     testCompile 'org.easymock:easymock:3.2'

@@ -48,10 +48,7 @@ public class LoginPanel {
         hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
-                String text = hostTextField.getText();
-                if (text.endsWith("/")) {
-                    hostTextField.setText(text.substring(0, text.length() - 1));
-                }
+                SettingsPanel.fixUrl(hostTextField);
             }
         });
         DocumentListener listener = new DocumentAdapter() {

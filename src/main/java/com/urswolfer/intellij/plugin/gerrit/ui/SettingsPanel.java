@@ -48,6 +48,7 @@ public class SettingsPanel {
     private JPanel loginPane;
     private JButton testButton;
     private JTextField hostTextField;
+    private JTextField cloneUrlTextField;
     private JSpinner refreshTimeoutSpinner;
     private JPanel settingsPane;
     private JPanel pane;
@@ -84,7 +85,7 @@ public class SettingsPanel {
                 } catch (Exception ex) {
                     log.info(ex);
                     Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", getHost(), gerritUtil.getErrorTextFromException(ex)),
-                            "Login Failure");
+                        "Login Failure");
                 }
                 setPassword(password);
             }
@@ -96,6 +97,17 @@ public class SettingsPanel {
                 fixUrl(hostTextField);
             }
         });
+
+        cloneUrlTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                String text = cloneUrlTextField.getText();
+                if (text.endsWith("/")) {
+                    cloneUrlTextField.setText(text.substring(0, text.length() - 1));
+                }
+            }
+        });
+
 
         passwordField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -163,6 +175,14 @@ public class SettingsPanel {
 
     public String getHost() {
         return hostTextField.getText().trim();
+    }
+
+    public void setCloneUrl(final String cloneUrl){
+        cloneUrlTextField.setText(cloneUrl);
+    }
+
+    public String getCloneUrl() {
+        return cloneUrlTextField.getText().trim();
     }
 
     public boolean getListAllChanges() {

@@ -5,23 +5,24 @@ targetCompatibility = 1.6
 sourceCompatibility = 1.6
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    compile ('com.google.inject:guice:4.0-beta5') {
+    compile ('com.google.inject:guice:4.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.google.inject.extensions:guice-multibindings:4.0-beta5') {
+    compile ('com.google.inject.extensions:guice-multibindings:4.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.4') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.5') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    compile 'org.javassist:javassist:3.18.1-GA'
+    compile 'org.javassist:javassist:3.19.0-GA'
 
     testCompile 'org.testng:testng:6.8.7'
     testCompile 'org.easymock:easymock:3.2'

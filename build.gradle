@@ -5,6 +5,7 @@ targetCompatibility = 1.6
 sourceCompatibility = 1.6
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -15,7 +16,7 @@ dependencies {
     compile ('com.google.inject.extensions:guice-multibindings:4.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.4') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.5') {
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
     }

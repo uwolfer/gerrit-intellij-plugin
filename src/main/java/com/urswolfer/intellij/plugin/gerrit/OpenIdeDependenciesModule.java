@@ -22,7 +22,6 @@ import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.diff.DiffManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -47,7 +46,6 @@ public class OpenIdeDependenciesModule extends AbstractModule {
         bind(Logger.class).toInstance(LOG);
         bind(Application.class).toInstance(ApplicationManager.getApplication());
 
-        bind(DiffManager.class).toInstance(DiffManager.getInstance());
         bind(LocalFileSystem.class).toInstance(LocalFileSystem.getInstance());
 
         bind(Git.class).toInstance(ServiceManager.getService(Git.class));

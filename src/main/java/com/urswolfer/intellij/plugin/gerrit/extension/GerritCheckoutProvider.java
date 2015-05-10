@@ -19,9 +19,14 @@ package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.google.common.io.ByteStreams;
+import com.google.gerrit.extensions.client.ListChangesOption;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
@@ -101,9 +106,11 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         ImmutableSortedSet<ProjectInfo> orderedProjects =
             ImmutableSortedSet.orderedBy(ID_REVERSE_ORDERING).addAll(availableProjects).build();
 
+        String url = getCloneBaseUrl();
+
         final GitCloneDialog dialog = new GitCloneDialog(project);
         for (ProjectInfo projectInfo : orderedProjects) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(projectInfo.id));
+            dialog.prependToHistory(url + '/' + Url.decode(projectInfo.id));
         }
         dialog.show();
         if (!dialog.isOK()) {
@@ -128,6 +135,33 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     @Override
     public String getVcsName() {
         return "Gerrit";
+    }
+
+    /**
+     * Try to determinate Git clone url by fetching a random change and processing its fetch url. If it fails, falling
+     * back to Gerrit host url config.
+     *
+     * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
+     */
+    private String getCloneBaseUrl() {
+        String url = gerritSettings.getHost();
+        try {
+            List<ChangeInfo> changeInfos = gerritApi.changes().query()
+                .withLimit(1)
+                .withOption(ListChangesOption.CURRENT_REVISION)
+                .get();
+            if (changeInfos.isEmpty()) {
+                log.info("ChangeInfo list is empty.");
+                return url;
+            }
+            ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
+            FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(changeInfo);
+            String projectName = changeInfo.project;
+            url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
+        } catch (RestApiException e) {
+            log.info(e);
+        }
+        return url;
     }
 
     /*

@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.6</version>
+  <version>0.9.7</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,14 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.7</li>
+          <ul>
+            <li>add capability to filter for project</li>
+            <li>add support for loading more change while scrolling in list with Gerrit < 2.9</li>
+            <li>fix handling of expired sessions</li>
+            <li>checkout dialog: get fetch information dynamically (instead of hardcoded HTTP-URL)</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>0.9.6</li>
           <ul>
             <li>dynamically show label columns according to server support ("Verify", "Core-Review", ...)</li>

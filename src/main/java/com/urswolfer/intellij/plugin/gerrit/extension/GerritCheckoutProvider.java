@@ -17,8 +17,16 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Ordering;
 import com.google.common.io.ByteStreams;
+import com.google.gerrit.extensions.client.ListChangesOption;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
@@ -45,8 +53,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -56,6 +62,13 @@ import java.util.List;
  * @author Urs Wolfer
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
+
+    private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
+        public String apply(ProjectInfo from) {
+            return from.id;
+        }
+    };
+    private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION).reverse();
 
     @Inject
     private LocalFileSystem localFileSystem;
@@ -90,17 +103,14 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         if (availableProjects == null) {
             return;
         }
-        Collections.sort(availableProjects, new Comparator<ProjectInfo>() {
-            @Override
-            public int compare(final ProjectInfo p1, final ProjectInfo p2) {
-                return p1.id.compareTo(p2.id);
-            }
-        });
+        ImmutableSortedSet<ProjectInfo> orderedProjects =
+            ImmutableSortedSet.orderedBy(ID_REVERSE_ORDERING).addAll(availableProjects).build();
+
+        String url = getCloneBaseUrl();
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
-        // Add predefined repositories to history
-        for (int i = availableProjects.size() - 1; i >= 0; i--) {
-            dialog.prependToHistory(gerritSettings.getHost() + '/' + Url.decode(availableProjects.get(i).id));
+        for (ProjectInfo projectInfo : orderedProjects) {
+            dialog.prependToHistory(url + '/' + Url.decode(projectInfo.id));
         }
         dialog.show();
         if (!dialog.isOK()) {
@@ -125,6 +135,33 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     @Override
     public String getVcsName() {
         return "Gerrit";
+    }
+
+    /**
+     * Try to determinate Git clone url by fetching a random change and processing its fetch url. If it fails, falling
+     * back to Gerrit host url config.
+     *
+     * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
+     */
+    private String getCloneBaseUrl() {
+        String url = gerritSettings.getHost();
+        try {
+            List<ChangeInfo> changeInfos = gerritApi.changes().query()
+                .withLimit(1)
+                .withOption(ListChangesOption.CURRENT_REVISION)
+                .get();
+            if (changeInfos.isEmpty()) {
+                log.info("ChangeInfo list is empty.");
+                return url;
+            }
+            ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
+            FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(changeInfo);
+            String projectName = changeInfo.project;
+            url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
+        } catch (RestApiException e) {
+            log.info(e);
+        }
+        return url;
     }
 
     /*

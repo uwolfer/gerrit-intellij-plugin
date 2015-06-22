@@ -298,11 +298,11 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         }
 
         public EditorEx getEditor1() {
-            return myEditor1;
+            return super.getEditor1();
         }
 
         public EditorEx getEditor2() {
-            return myEditor2;
+            return super.getEditor2();
         }
     }
 

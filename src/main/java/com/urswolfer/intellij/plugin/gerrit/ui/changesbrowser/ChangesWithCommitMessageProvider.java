@@ -20,7 +20,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.FilePathImpl;
+import com.intellij.openapi.vcs.LocalFilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -57,7 +57,7 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         GitRepository repository = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project).get();
         VirtualFile root = getRootDirectory(repository.getRoot());
-        FilePathImpl commitMsg = new FilePathImpl(root, "COMMIT_MSG", false) {
+        LocalFilePath commitMsg = new LocalFilePath(root.getPath() + "/COMMIT_MSG", false) {
             @Override
             public FileType getFileType() {
                 return PlainTextFileType.INSTANCE;

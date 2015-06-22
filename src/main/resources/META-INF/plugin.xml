@@ -270,8 +270,12 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="140.2285"/>
+  <idea-version since-build="140.2285" until-build="142.2086"/>
   <!--
+    IntelliJ IDEA 15
+    ================
+    Rename FilePathImpl to LocalFilePath idea/142.2092 (appcode/142.2087), 413e49df6e531e322257af412d10dd242ce88a24
+
     IntelliJ IDEA 14.1
     ================
     Diff-viewer refactoring: idea/140.2285

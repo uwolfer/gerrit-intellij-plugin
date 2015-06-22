@@ -351,7 +351,7 @@ public class GerritGitUtil {
 
     public boolean checkoutNewBranch(GitRepository repository, String branch) throws VcsException {
         FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
-        GitCommandResult gitCommandResult = git.checkout(repository, "FETCH_HEAD", branch, false, listener);
+        GitCommandResult gitCommandResult = git.checkout(repository, "FETCH_HEAD", branch, false, false, listener);
         if (gitCommandResult.success()) {
             return true;
         } else if (gitCommandResult.getErrorOutputAsJoinedString().contains("already exists")){

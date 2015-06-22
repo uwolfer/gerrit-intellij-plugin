@@ -79,9 +79,9 @@ public class CheckoutAction extends AbstractChangeAction {
                         List<GitRepository> gitRepositories = Collections.singletonList(repository);
                         try {
                             if (gerritGitUtil.checkoutNewBranch(repository, branchName)) {
-                                brancher.checkout(branchName, gitRepositories, null);
+                                brancher.checkout(branchName, false, gitRepositories, null);
                             } else {
-                                brancher.checkout(branchName, gitRepositories, new Runnable() {
+                                brancher.checkout(branchName, false, gitRepositories, new Runnable() {
                                     @Override
                                     public void run() {
                                         gerritGitUtil.resetHard(repository, "FETCH_HEAD");

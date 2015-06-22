@@ -275,6 +275,7 @@
     IntelliJ IDEA 15
     ================
     Rename FilePathImpl to LocalFilePath idea/142.2092 (appcode/142.2087), 413e49df6e531e322257af412d10dd242ce88a24
+    Git#checkout: "detach" argument added: 412c994231e73b5aca3709d8283f07add63532eb
 
     IntelliJ IDEA 14.1
     ================

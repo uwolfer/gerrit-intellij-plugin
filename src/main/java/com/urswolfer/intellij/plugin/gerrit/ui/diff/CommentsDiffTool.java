@@ -33,7 +33,7 @@ import com.intellij.diff.DiffTool;
 import com.intellij.diff.FrameDiffTool;
 import com.intellij.diff.SuppressiveDiffTool;
 import com.intellij.diff.requests.DiffRequest;
-import com.intellij.diff.tools.fragmented.OnesideDiffTool;
+import com.intellij.diff.tools.fragmented.UnifiedDiffTool;
 import com.intellij.diff.tools.simple.SimpleDiffTool;
 import com.intellij.diff.tools.simple.SimpleDiffViewer;
 import com.intellij.icons.AllIcons;
@@ -113,7 +113,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     @Override
     public List<Class<? extends DiffTool>> getSuppressedTools() {
         return Lists.<Class<? extends DiffTool>>newArrayList(
-            OnesideDiffTool.INSTANCE.getClass(),
+            UnifiedDiffTool.INSTANCE.getClass(),
             SimpleDiffTool.INSTANCE.getClass()
         );
     }

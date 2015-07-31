@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.7.1.1-142</version>
+  <version>0.9.7.1.2-142</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -276,6 +276,7 @@
     ================
     Rename FilePathImpl to LocalFilePath idea/142.2092 (appcode/142.2087), 413e49df6e531e322257af412d10dd242ce88a24
     Git#checkout: "detach" argument added: 412c994231e73b5aca3709d8283f07add63532eb
+    OnesideDiffTool -> UnifiedDiffTool: 47fe99b0758fd75db03a4a23bd7dcb8e2f497ffd
 
     IntelliJ IDEA 14.1
     ================

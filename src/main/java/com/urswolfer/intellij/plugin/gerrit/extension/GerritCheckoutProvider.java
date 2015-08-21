@@ -156,8 +156,10 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             }
             ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
             FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(changeInfo);
-            String projectName = changeInfo.project;
-            url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
+            if (fetchInfo != null) {
+                String projectName = changeInfo.project;
+                url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
+            }
         } catch (RestApiException e) {
             log.info(e);
         }

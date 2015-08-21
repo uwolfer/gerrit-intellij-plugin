@@ -18,75 +18,52 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
-import com.google.common.base.*;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
-import com.intellij.openapi.vcs.changes.SimpleContentRevision;
+import com.intellij.openapi.vfs.VirtualFile;
+import git4idea.changes.GitChangeUtils;
 import git4idea.history.browser.GitHeavyCommit;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Collection;
 
 /**
- * This class helps to get a list of {@link com.intellij.openapi.vcs.changes.Change}s between two
- * {@link git4idea.history.browser.GitHeavyCommit}s.
+ * This class diffs commits based in IntelliJ git4idea code and adds support for diffing commit msg.
  *
  * @author Thomas Forrer
  */
 public class CommitDiffBuilder {
-    private static final Function<Change, String> GET_CHANGED_FILE_PATH = new Function<Change, String>() {
+
+    private static final Predicate<Change> COMMIT_MSG_CHANGE_PREDICATE = new Predicate<Change>() {
         @Override
-        public String apply(Change change) {
+        public boolean apply(Change change) {
+            String commitMsgFile = "/COMMIT_MSG";
             ContentRevision afterRevision = change.getAfterRevision();
             if (afterRevision != null) {
-                return afterRevision.getFile().getPath();
+                return commitMsgFile.equals(afterRevision.getFile().getPath());
             }
             ContentRevision beforeRevision = change.getBeforeRevision();
             if (beforeRevision != null) {
-                return beforeRevision.getFile().getPath();
+                return commitMsgFile.equals(beforeRevision.getFile().getPath());
             }
             throw new IllegalStateException("Change should have at least one ContentRevision set.");
         }
     };
 
-    private static final Predicate<Change> CONTAINS_NO_CHANGE = new Predicate<Change>() {
-        @Override
-        public boolean apply(Change change) {
-            ContentRevision base = change.getBeforeRevision();
-            ContentRevision contentRevision = change.getAfterRevision();
-            if (base == null && contentRevision == null) {
-                return true;
-            }
-            if (base == null) return false;
-            if (contentRevision == null) return false;
-            try {
-                String baseContent = Strings.nullToEmpty(base.getContent());
-                return baseContent.equals(Strings.nullToEmpty(contentRevision.getContent()));
-            } catch (VcsException e) {
-                throw Throwables.propagate(e);
-            }
-        }
-    };
-
-    private final String baseHash;
-    private final String hash;
+    private final Project project;
+    private final VirtualFile gitRepositoryRoot;
     private final GitHeavyCommit base;
     private final GitHeavyCommit commit;
-    private Map<String, Change> baseChanges;
-    private Map<String, Change> changes;
-    private final List<Change> diff = Lists.newArrayList();
     private ChangesProvider changesProvider = new SimpleChangesProvider();
 
-    public CommitDiffBuilder(GitHeavyCommit base, GitHeavyCommit commit) {
+    public CommitDiffBuilder(Project project, VirtualFile gitRepositoryRoot, GitHeavyCommit base, GitHeavyCommit commit) {
+        this.project = project;
+        this.gitRepositoryRoot = gitRepositoryRoot;
         this.base = base;
         this.commit = commit;
-        baseHash = base.getHash().getValue();
-        hash = commit.getHash().getValue();
     }
 
     public CommitDiffBuilder withChangesProvider(ChangesProvider changesProvider) {
@@ -94,71 +71,29 @@ public class CommitDiffBuilder {
         return this;
     }
 
-    public List<Change> getDiff() throws VcsException {
-        baseChanges = Maps.uniqueIndex(changesProvider.provide(base), GET_CHANGED_FILE_PATH);
-        changes = Maps.uniqueIndex(changesProvider.provide(commit), GET_CHANGED_FILE_PATH);
-
-        addedFiles();
-        changedFiles();
-        removedFiles();
-        return Lists.newArrayList(Iterables.filter(diff, Predicates.not(CONTAINS_NO_CHANGE)));
+    public Collection<Change> getDiff() throws VcsException {
+        String baseHash = base.getHash().getValue();
+        String hash = commit.getHash().getValue();
+        Collection<Change> result = GitChangeUtils.getDiff(project, gitRepositoryRoot, baseHash, hash, null);
+        result.add(buildCommitMsgChange());
+        return result;
     }
 
-    private void addedFiles() throws VcsException {
-        Sets.SetView<String> addedFiles = Sets.difference(changes.keySet(), baseChanges.keySet());
-        for (String addedFile : addedFiles) {
-            Change change = changes.get(addedFile);
-            ContentRevision beforeRevision = null;
-            if (change.getType().equals(Change.Type.MODIFICATION)) {
-                ContentRevision changeBeforeRevision = change.getBeforeRevision();
-                assert changeBeforeRevision != null;
-                beforeRevision = new SimpleContentRevision(
-                        changeBeforeRevision.getContent(),
-                        changeBeforeRevision.getFile(),
-                        baseHash);
-            }
-            diff.add(new Change(beforeRevision, change.getAfterRevision()));
-        }
-    }
-
-    private void changedFiles() {
-        Sets.SetView<String> changedFiles = Sets.intersection(baseChanges.keySet(), changes.keySet());
-        for (String changedFile : changedFiles) {
-            Change baseChange = baseChanges.get(changedFile);
-            ContentRevision baseRevision = baseChange.getAfterRevision();
-            Change change = changes.get(changedFile);
-            ContentRevision revision = change.getAfterRevision();
-            if (baseRevision != null || revision != null) {
-                diff.add(new Change(baseRevision, revision));
-            }
-        }
-    }
-
-    private void removedFiles() throws VcsException {
-        Sets.SetView<String> removedFiles = Sets.difference(baseChanges.keySet(), changes.keySet());
-        for (String removedFile : removedFiles) {
-            Change baseChange = baseChanges.get(removedFile);
-            ContentRevision afterRevision = null;
-            if (baseChange.getType().equals(Change.Type.MODIFICATION)) {
-                ContentRevision baseChangeBeforeRevision = baseChange.getBeforeRevision();
-                assert baseChangeBeforeRevision != null;
-                afterRevision = new SimpleContentRevision(
-                        baseChangeBeforeRevision.getContent(),
-                        baseChangeBeforeRevision.getFile(),
-                        hash
-                );
-            }
-            diff.add(new Change(baseChange.getAfterRevision(), afterRevision));
-        }
+    private Change buildCommitMsgChange() {
+        Change baseChange = Iterables.find(changesProvider.provide(base), COMMIT_MSG_CHANGE_PREDICATE);
+        ContentRevision baseRevision = baseChange.getAfterRevision();
+        Change change = Iterables.find(changesProvider.provide(commit), COMMIT_MSG_CHANGE_PREDICATE);
+        ContentRevision revision = change.getAfterRevision();
+        return new Change(baseRevision, revision);
     }
 
     public static interface ChangesProvider {
-        List<Change> provide(GitHeavyCommit gitCommit);
+        Collection<Change> provide(GitHeavyCommit gitCommit);
     }
 
     private static final class SimpleChangesProvider implements ChangesProvider {
         @Override
-        public List<Change> provide(GitHeavyCommit gitCommit) {
+        public Collection<Change> provide(GitHeavyCommit gitCommit) {
             return gitCommit.getChanges();
         }
     }

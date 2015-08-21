@@ -195,7 +195,7 @@ public class RepositoryChangesBrowserProvider {
                         notificationService.notifyError(notification);
                         return null;
                     }
-                    final List<Change> totalDiff;
+                    final Collection<Change> totalDiff;
                     CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider(
                             gerritGitUtil, project, selectedChange);
                     if (gitCommits.size() == 1) {
@@ -204,7 +204,8 @@ public class RepositoryChangesBrowserProvider {
                     } else {
                         GitHeavyCommit base = gitCommits.get(0);
                         GitHeavyCommit current = gitCommits.get(1);
-                        totalDiff = new CommitDiffBuilder(base, current)
+                        VirtualFile gitRepositoryRoot = gitRepository.getRoot();
+                        totalDiff = new CommitDiffBuilder(project, gitRepositoryRoot, base, current)
                                 .withChangesProvider(changesProvider).getDiff();
                     }
 
@@ -212,7 +213,7 @@ public class RepositoryChangesBrowserProvider {
                         @Override
                         public void run() {
                             getViewer().setEmptyText("No changes");
-                            setChangesToDisplay(totalDiff);
+                            setChangesToDisplay(Lists.newArrayList(totalDiff));
                         }
                     });
                     return null;

@@ -181,7 +181,7 @@ public class RepositoryChangesBrowserProvider {
                         GitCommit currentCommit = getCommit(gitRepositoryRoot, revisionId);
                         if (baseRevision.isPresent()) {
                             GitCommit baseCommit = getCommit(gitRepositoryRoot, baseRevision.get().first);
-                            totalDiff = new CommitDiffBuilder(baseCommit, currentCommit)
+                            totalDiff = new CommitDiffBuilder(project, gitRepositoryRoot, baseCommit, currentCommit)
                                 .withChangesProvider(changesProvider).getDiff();
                         } else {
                             totalDiff = changesProvider.provide(currentCommit);

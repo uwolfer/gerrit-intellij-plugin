@@ -16,7 +16,7 @@
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.7</version>
+  <version>0.9.7.2-140</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -79,6 +79,14 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.7.2</li>
+          <ul>
+            <li>minor fixes and improvements</li>
+          </ul>
+          <li>0.9.7.1</li>
+          <ul>
+            <li>build with target-level 1.6 again</li>
+          </ul>
           <li>0.9.7</li>
           <ul>
             <li>add capability to filter for project</li>

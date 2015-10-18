@@ -34,22 +34,30 @@
         Features:
         <ul>
           <li>Do reviews directly from your IDE (voting and commenting)</li>
-          <li>List open changes</li>
+          <li>List and query changes</li>
           <li>Optimized push dialog for Gerrit operations (refs/for, add reviewers, ...)</li>
           <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
           <li>Submit changes</li>
           <li>Notifications for new changes which are waiting for your review</li>
-          <li>Cherry-Pick changes into your local clone</li>
+          <li>Cherry-Pick and checkout changes into your local clone</li>
+          <li>Star (and unstar) changes</li>
           <li>File and line based comments (<strong>Gerrit 2.7 or newer only</strong>)<br />
           Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
            click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
           </li>
-          <li>Clone and set up (add commit message hook) Gerrit projects directly</li>
+          <li>Clone and set up Gerrit projects directly in IDE (commit-message-hook is automatically added)</li>
+          <li>Abandon changes</li>
         </ul>
       </p>
 
       <p>
         If you find any issues, please report them (please use the GitHub issue tracker instead of review comments).
+      </p>
+
+      <p>
+        This plugin uses <a href="https://github.com/uwolfer/gerrit-rest-java-client">gerrit-rest-java-client</a> for
+        communication with Gerrit REST API. If you need to build a Java application which needs to communicate with
+        Gerrit, this library probably supports you quite a lot.
       </p>
 
       <p>

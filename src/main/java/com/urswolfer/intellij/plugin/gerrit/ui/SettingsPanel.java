@@ -17,6 +17,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
@@ -74,16 +75,21 @@ public class SettingsPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
+                String host = getHost();
+                if (Strings.isNullOrEmpty(host)) {
+                    Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
+                    return;
+                }
                 try {
-                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(getHost(), getLogin(), password);
+                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password);
                     if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
                         Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {
-                        Messages.showErrorDialog(pane, "Can't login to " + getHost() + " using given credentials", "Login Failure");
+                        Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
                     }
                 } catch (Exception ex) {
                     log.info(ex);
-                    Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", getHost(), gerritUtil.getErrorTextFromException(ex)),
+                    Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }
                 setPassword(password);

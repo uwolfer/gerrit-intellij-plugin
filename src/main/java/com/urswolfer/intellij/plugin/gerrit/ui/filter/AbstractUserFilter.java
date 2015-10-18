@@ -18,15 +18,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import git4idea.history.wholeTree.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,16 +33,6 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     private ImmutableList<User> users;
 
     private Optional<User> value = Optional.absent();
-
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
-
-    public AbstractUserFilter() {
-    }
 
     public abstract String getActionLabel();
     public abstract String getQueryField();

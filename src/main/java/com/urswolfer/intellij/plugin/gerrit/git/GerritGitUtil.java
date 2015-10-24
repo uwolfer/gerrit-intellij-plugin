@@ -61,11 +61,7 @@ import git4idea.util.UntrackedFilesNotifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -107,7 +103,7 @@ public class GerritGitUtil {
                 }
                 for (String remoteUrl : remote.getUrls()) {
                     remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
-                    if (remoteUrl.endsWith(gerritProjectName)) {
+                    if (remoteUrl != null && remoteUrl.endsWith(gerritProjectName)) {
                         return Optional.of(repository);
                     }
                 }

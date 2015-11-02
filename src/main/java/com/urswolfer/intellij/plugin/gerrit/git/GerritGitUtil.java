@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  * Copyright 2000-2010 JetBrains s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,10 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.application.Application;
-import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -36,6 +35,7 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.util.ArrayUtil;
 import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcs.log.VcsUser;
@@ -55,6 +55,7 @@ import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
 import git4idea.reset.GitResetMode;
 import git4idea.update.GitFetchResult;
+import git4idea.update.GitFetcher;
 import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.GitUntrackedFilesHelper;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +66,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
 import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
@@ -74,8 +74,6 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
  * @author Urs Wolfer
  */
 public class GerritGitUtil {
-    @Inject
-    private Logger log;
     @Inject
     private Git git;
     @Inject
@@ -141,7 +139,10 @@ public class GerritGitUtil {
                     for (String repositoryUrl : remote.getUrls()) {
                         if (UrlUtils.urlHasSameHost(repositoryUrl, url)
                                 || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
-                            fetchNatively(gitRepository.getGitDir(), remote, repositoryUrl, branch, project, indicator);
+                            GitFetchResult result = fetchNatively(gitRepository, remote, branch);
+                            if (!result.isSuccess()) {
+                                GitFetcher.displayFetchResult(project, result, null, result.getErrors());
+                            }
                             return;
                         }
                     }
@@ -278,52 +279,28 @@ public class GerritGitUtil {
         }
     }
 
+    /**
+     * Almost a copy of git4idea.update.GitFetcher#fetchNatively().
+     * Modifications:
+     * * removal of GitFetchPruneDetector
+     * * do not prepend "refs/heads/..." (with getFetchSpecForBranch).
+     */
     @NotNull
-    public GitFetchResult fetchNatively(@NotNull VirtualFile root,
-                                        @NotNull GitRemote remote,
-                                        @NotNull String url,
-                                        @Nullable String branch,
-                                        Project project,
-                                        ProgressIndicator progressIndicator) {
-        final GitLineHandler h = new GitLineHandler(project, root, GitCommand.FETCH);
-        h.setUrl(url);
-        h.addProgressParameter();
+    private static GitFetchResult fetchNatively(@NotNull GitRepository repository, @NotNull GitRemote remote, @Nullable String branch) {
+        Git git = ServiceManager.getService(Git.class);
+        GitCommandResult result = git.fetch(repository, remote,
+            Collections.<GitLineHandlerListener>emptyList(), new String[]{branch});
 
-        String remoteName = remote.getName();
-        h.addParameters(remoteName);
-        if (branch != null) {
-            h.addParameters(branch);
+        GitFetchResult fetchResult;
+        if (result.success()) {
+            fetchResult = GitFetchResult.success();
+        } else if (result.cancelled()) {
+            fetchResult = GitFetchResult.cancel();
+        } else {
+            fetchResult = GitFetchResult.error(result.getErrorOutputAsJoinedString());
         }
-
-        final GitTask fetchTask = new GitTask(project, h, "Fetching " + remote.getFirstUrl());
-        fetchTask.setProgressIndicator(progressIndicator);
-        fetchTask.setProgressAnalyzer(new GitStandardProgressAnalyzer());
-
-        final AtomicReference<GitFetchResult> result = new AtomicReference<GitFetchResult>();
-        fetchTask.execute(true, false, new GitTaskResultHandlerAdapter() {
-            @Override
-            protected void onSuccess() {
-                result.set(GitFetchResult.success());
-            }
-
-            @Override
-            protected void onCancel() {
-                log.info("Cancelled fetch.");
-                result.set(GitFetchResult.cancel());
-            }
-
-            @Override
-            protected void onFailure() {
-                log.warn("Error fetching: " + h.errors());
-                Collection<Exception> errors = Lists.newArrayList();
-                errors.addAll(h.errors());
-                result.set(GitFetchResult.error(errors));
-            }
-        });
-
-        return result.get();
+        return fetchResult;
     }
-
 
     @NotNull
     public Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {

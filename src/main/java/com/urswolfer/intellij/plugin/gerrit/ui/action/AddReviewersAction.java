@@ -32,6 +32,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -99,7 +100,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             EditorTextFieldProvider service = ServiceManager.getService(project, EditorTextFieldProvider.class);
             Set<EditorCustomization> editorFeatures = ContainerUtil.newHashSet();
             editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
-            editorFeatures.add(SpellCheckingEditorCustomization.DISABLED);
+            editorFeatures.add(SpellCheckingEditorCustomizationProvider.getInstance().getDisabledCustomization());
             reviewTextField = service.getEditorField(FileTypes.PLAIN_TEXT.getLanguage(), project, editorFeatures);
             reviewTextField.setMinimumSize(new Dimension(500, 100));
             buildTextFieldCompletion(gerritApi, changeInfo);

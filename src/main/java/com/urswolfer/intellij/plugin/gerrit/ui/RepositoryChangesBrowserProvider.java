@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,8 +175,7 @@ public class RepositoryChangesBrowserProvider {
                     final Collection<Change> totalDiff;
                     try {
                         VirtualFile gitRepositoryRoot = gitRepository.getRoot();
-                        CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider(
-                            gerritGitUtil, project, selectedChange);
+                        CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider();
                         GitCommit currentCommit = getCommit(gitRepositoryRoot, revisionId);
                         if (baseRevision.isPresent()) {
                             GitCommit baseCommit = getCommit(gitRepositoryRoot, baseRevision.get().first);

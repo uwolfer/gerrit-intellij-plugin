@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +46,12 @@ public class GerritChangeDetailsPanel {
     private final static String LOADING = "loading";
     private final static String DATA = "data";
     private final static String MULTIPLE_SELECTED = "multiple_selected";
+    private final static ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
+        @Override
+        protected DecimalFormat initialValue() {
+            return new DecimalFormat("+#;-#");
+        }
+    };
 
     private final JPanel panel;
 
@@ -165,7 +172,7 @@ public class GerritChangeDetailsPanel {
                         for (ApprovalInfo approvalInfo : all) {
                             if (approvalInfo.value != null && approvalInfo.value != 0) {
                                 sb.append("<b>").append(approvalInfo.name).append("</b>").append(": ");
-                                sb.append(approvalInfo.value).append("<br/>");
+                                sb.append(APPROVAL_VALUE_FORMAT.get().format(approvalInfo.value)).append("<br/>");
                                 ccAccounts.remove(approvalInfo); // remove accounts from CC which are already listed in a review section
                             }
                         }

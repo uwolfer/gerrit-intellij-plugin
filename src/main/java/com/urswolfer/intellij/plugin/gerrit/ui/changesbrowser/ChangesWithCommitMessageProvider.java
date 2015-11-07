@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.LocalFilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import git4idea.GitCommit;
-import git4idea.repo.GitRepository;
 
 import java.util.Collection;
 
@@ -34,17 +31,6 @@ import java.util.Collection;
  * @author Thomas Forrer
  */
 public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.ChangesProvider {
-
-    private final GerritGitUtil gerritGitUtil;
-
-    private final Project project;
-    private final ChangeInfo selectedChange;
-
-    public ChangesWithCommitMessageProvider(GerritGitUtil gerritGitUtil, Project project, ChangeInfo changeInfo) {
-        this.gerritGitUtil = gerritGitUtil;
-        this.project = project;
-        selectedChange = changeInfo;
-    }
 
     @Override
     public Collection<Change> provide(GitCommit gitCommit) {
@@ -55,8 +41,8 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         Collection<Change> changes = gitCommit.getChanges();
 
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
-        GitRepository repository = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project).get();
-        VirtualFile root = getRootDirectory(repository.getRoot());
+        VirtualFile root = VirtualFileManager.getInstance().findFileByUrl("file:///");
+        assert root != null;
         LocalFilePath commitMsg = new LocalFilePath(root.getPath() + "/COMMIT_MSG", false) {
             @Override
             public FileType getFileType() {
@@ -70,14 +56,5 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
                 gitCommit.getId().asString()
         )));
         return changes;
-    }
-
-    private VirtualFile getRootDirectory(VirtualFile file) {
-        VirtualFile parent = file.getParent();
-        while (parent != null) {
-            file = parent;
-            parent = file.getParent();
-        }
-        return file;
     }
 }

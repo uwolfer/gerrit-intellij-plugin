@@ -103,7 +103,7 @@ public class GerritGitUtil {
                 }
                 for (String remoteUrl : remote.getUrls()) {
                     remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
-                    if (remoteUrl.endsWith(gerritProjectName)) {
+                    if (remoteUrl != null && remoteUrl.endsWith(gerritProjectName)) {
                         return Optional.of(repository);
                     }
                 }

@@ -32,10 +32,12 @@ import com.intellij.diff.DiffContext;
 import com.intellij.diff.DiffTool;
 import com.intellij.diff.FrameDiffTool;
 import com.intellij.diff.SuppressiveDiffTool;
+import com.intellij.diff.requests.ContentDiffRequest;
 import com.intellij.diff.requests.DiffRequest;
 import com.intellij.diff.tools.fragmented.UnifiedDiffTool;
 import com.intellij.diff.tools.simple.SimpleDiffTool;
 import com.intellij.diff.tools.simple.SimpleDiffViewer;
+import com.intellij.diff.tools.simple.SimpleOnesideDiffViewer;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -50,6 +52,7 @@ import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.JBColor;
@@ -62,6 +65,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -123,24 +127,31 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         if (context.getUserData(GerritUserDataKeys.CHANGE) == null) return false;
         if (context.getUserData(GerritUserDataKeys.BASE_REVISION) == null) return false;
         if (request.getUserData(ChangeDiffRequestProducer.CHANGE_KEY) == null) return false;
-        return SimpleDiffViewer.canShowRequest(context, request);
+        return SimpleDiffViewer.canShowRequest(context, request)
+            || SimpleOnesideDiffViewer.canShowRequest(context, request);
     }
 
     @NotNull
     @Override
     public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
-        return new CommentsDiffViewer(context, request);
+        if (SimpleDiffViewer.canShowRequest(context, request)) {
+            return new SimpleCommentsDiffViewer(context, request);
+        } else {
+            return new SimpleOnesideCommentsDiffViewer(context, request);
+        }
     }
 
-    private void handleComments(final CommentsDiffViewer diffPanel,
-                                final FilePath filePath,
+    private void handleComments(@Nullable final EditorEx editor1,
+                                final EditorEx editor2,
+                                Change change,
                                 final Project project,
                                 final ChangeInfo changeInfo,
                                 final String selectedRevisionId,
                                 final Optional<Pair<String, RevisionInfo>> baseRevision) {
+        FilePath filePath = ChangesUtil.getFilePath(change);
         final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo));
 
-        addCommentAction(diffPanel, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
+        addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
 
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
@@ -152,7 +163,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                 List<CommentInfo> fileComments = comments.get(relativeFilePath);
                                 if (fileComments != null) {
                                     addCommentsGutter(
-                                            diffPanel.getEditor2(),
+                                            editor2,
                                             relativeFilePath,
                                             selectedRevisionId,
                                             Iterables.filter(fileComments, REVISION_COMMENT),
@@ -161,7 +172,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                     );
                                     if (!baseRevision.isPresent()) {
                                         addCommentsGutter(
-                                                diffPanel.getEditor1(),
+                                                editor1,
                                                 relativeFilePath,
                                                 selectedRevisionId,
                                                 Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT)),
@@ -183,7 +194,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                             if (fileComments != null) {
                                 Collections.sort(fileComments, COMMENT_ORDERING);
                                 addCommentsGutter(
-                                        diffPanel.getEditor1(),
+                                        editor1,
                                         relativeFilePath,
                                         baseRevision.get().getFirst(),
                                         Iterables.filter(fileComments, REVISION_COMMENT),
@@ -201,14 +212,14 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         });
     }
 
-    private void addCommentAction(CommentsDiffViewer diffPanel, String filePath, ChangeInfo changeInfo,
+    private void addCommentAction(EditorEx editor1, EditorEx editor2, String filePath, ChangeInfo changeInfo,
                                   String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision) {
         if (baseRevision.isPresent()) {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
+            addCommentActionToEditor(editor1, filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
         } else {
-            addCommentActionToEditor(diffPanel.getEditor1(), filePath, changeInfo, selectedRevisionId, Side.PARENT);
+            addCommentActionToEditor(editor1, filePath, changeInfo, selectedRevisionId, Side.PARENT);
         }
-        addCommentActionToEditor(diffPanel.getEditor2(), filePath, changeInfo, selectedRevisionId, Side.REVISION);
+        addCommentActionToEditor(editor2, filePath, changeInfo, selectedRevisionId, Side.REVISION);
     }
 
     private void addCommentActionToEditor(Editor editor,
@@ -278,31 +289,36 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         }
     }
 
-    private class CommentsDiffViewer extends SimpleDiffViewer {
-        private final ChangeInfo changeInfo;
-        private final String selectedRevisionId;
-        private final Optional<Pair<String, RevisionInfo>> baseRevision;
+    private void handleDiffViewer(DiffContext diffContext, ContentDiffRequest diffRequest,
+                                  @Nullable EditorEx editor1, EditorEx editor2) {
+        ChangeInfo changeInfo = diffContext.getUserData(GerritUserDataKeys.CHANGE);
+        Optional<Pair<String, RevisionInfo>> baseRevision = diffContext.getUserData(GerritUserDataKeys.BASE_REVISION);
+        String selectedRevisionId = changeInfo != null ? selectedRevisions.get(changeInfo) : null;
+        Change change = diffRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY);
+        handleComments(editor1, editor2, change, diffContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
+    }
 
-        public CommentsDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
+    private class SimpleCommentsDiffViewer extends SimpleDiffViewer {
+        public SimpleCommentsDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
             super(context, request);
-            changeInfo = context.getUserData(GerritUserDataKeys.CHANGE);
-            baseRevision = context.getUserData(GerritUserDataKeys.BASE_REVISION);
-            selectedRevisionId = changeInfo != null ? selectedRevisions.get(changeInfo) : null;
         }
 
         @Override
         protected void onInit() {
             super.onInit();
-            FilePath filePath = ChangesUtil.getFilePath(myRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY));
-            handleComments(this, filePath, myContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
+            handleDiffViewer(myContext, myRequest, getEditor1(), getEditor2());
+        }
+    }
+
+    private class SimpleOnesideCommentsDiffViewer extends SimpleOnesideDiffViewer {
+        public SimpleOnesideCommentsDiffViewer(@NotNull DiffContext context, @NotNull DiffRequest request) {
+            super(context, request);
         }
 
-        public EditorEx getEditor1() {
-            return super.getEditor1();
-        }
-
-        public EditorEx getEditor2() {
-            return super.getEditor2();
+        @Override
+        protected void onInit() {
+            super.onInit();
+            handleDiffViewer(myContext, myRequest, null, getEditor());
         }
     }
 

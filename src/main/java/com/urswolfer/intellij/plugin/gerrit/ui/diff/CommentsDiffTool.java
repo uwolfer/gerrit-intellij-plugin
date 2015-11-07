@@ -39,7 +39,6 @@ import com.intellij.diff.tools.simple.SimpleDiffTool;
 import com.intellij.diff.tools.simple.SimpleDiffViewer;
 import com.intellij.diff.tools.simple.SimpleOnesideDiffViewer;
 import com.intellij.icons.AllIcons;
-import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -98,8 +97,6 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private DataManager dataManager;
     @Inject
     private AddCommentActionBuilder addCommentActionBuilder;
     @Inject

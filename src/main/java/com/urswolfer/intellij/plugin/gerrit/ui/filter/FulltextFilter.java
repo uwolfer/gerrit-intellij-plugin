@@ -16,23 +16,16 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ui.SearchFieldAction;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Thomas Forrer
  */
 public class FulltextFilter extends AbstractChangesFilter {
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings settings;
 
     private String value = "";
 

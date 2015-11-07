@@ -2,12 +2,10 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import icons.Git4ideaIcons;
 
 /**
@@ -15,8 +13,6 @@ import icons.Git4ideaIcons;
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class StarAction extends AbstractLoggedInChangeAction {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
 
     public StarAction() {
         super("Star", "Switch star status of change", Git4ideaIcons.Star);

@@ -42,7 +42,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     @Override
     public String getReportActionText() {
-        return "Report to Gerrit Plugin Author (Thanks for your Help to improve the Plugin!)";
+        return "Report to Plugin Developer (Please include your email address)";
     }
 
     @Override

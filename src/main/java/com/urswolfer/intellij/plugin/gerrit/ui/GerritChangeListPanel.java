@@ -242,8 +242,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
             project = getMax(project, getProject(change));
             branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
-            for (String label : change.labels.keySet()) {
-                availableLabels.add(label);
+            if (change.labels != null) {
+                for (String label : change.labels.keySet()) {
+                    availableLabels.add(label);
+                }
             }
         }
 

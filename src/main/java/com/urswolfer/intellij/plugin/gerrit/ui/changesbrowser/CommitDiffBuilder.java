@@ -25,6 +25,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import git4idea.changes.GitChangeUtils;
 import git4idea.history.browser.GitCommit;
 
@@ -43,11 +44,11 @@ public class CommitDiffBuilder {
             String commitMsgFile = "/COMMIT_MSG";
             ContentRevision afterRevision = change.getAfterRevision();
             if (afterRevision != null) {
-                return commitMsgFile.equals(afterRevision.getFile().getPath());
+                return commitMsgFile.equals(PathUtils.ensureSlashSeparators(afterRevision.getFile().getPath()));
             }
             ContentRevision beforeRevision = change.getBeforeRevision();
             if (beforeRevision != null) {
-                return commitMsgFile.equals(beforeRevision.getFile().getPath());
+                return commitMsgFile.equals(PathUtils.ensureSlashSeparators(beforeRevision.getFile().getPath()));
             }
             throw new IllegalStateException("Change should have at least one ContentRevision set.");
         }

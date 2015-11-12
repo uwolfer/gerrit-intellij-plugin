@@ -67,6 +67,8 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         String intellijVersion = String.format("%s %s.%s",
             appInfo.getVersionName(), appInfo.getMajorVersion(), appInfo.getMinorVersion());
         errorBean.setIntellijVersion(intellijVersion);
+        errorBean.setOs(String.format("%s %s", System.getProperty("os.name"), System.getProperty("os.version")));
+        errorBean.setJava(String.format("%s %s", System.getProperty("java.vendor"), System.getProperty("java.version")));
         errorBean.setException(loggingEvent.getThrowableText());
         errorBean.setExceptionMessage(loggingEvent.getMessage());
         return errorBean;

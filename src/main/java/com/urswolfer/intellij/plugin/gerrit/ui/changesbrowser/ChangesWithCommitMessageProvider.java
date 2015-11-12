@@ -25,6 +25,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import git4idea.GitCommit;
 
+import java.io.File;
 import java.util.Collection;
 
 /**
@@ -43,17 +44,22 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         VirtualFile root = VirtualFileManager.getInstance().findFileByUrl("file:///");
         assert root != null;
-        FilePathImpl commitMsg = new FilePathImpl(root, "COMMIT_MSG", false) {
+        FilePathImpl commitMsg = new FilePathImpl(new File("/COMMIT_MSG"), false) {
             @Override
             public FileType getFileType() {
                 return PlainTextFileType.INSTANCE;
+            }
+
+            @Override
+            public boolean isNonLocal() {
+                return true;
             }
         };
 
         changes.add(new Change(null, new SimpleContentRevision(
                 content,
                 commitMsg,
-                gitCommit.getId().asString()
+            gitCommit.getId().asString()
         )));
         return changes;
     }

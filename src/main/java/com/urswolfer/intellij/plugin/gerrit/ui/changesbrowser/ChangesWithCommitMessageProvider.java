@@ -18,12 +18,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
-import com.intellij.openapi.vcs.LocalFilePath;
+import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.RemoteFilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import git4idea.GitCommit;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
@@ -41,9 +41,8 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         Collection<Change> changes = gitCommit.getChanges();
 
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
-        VirtualFile root = VirtualFileManager.getInstance().findFileByUrl("file:///");
-        assert root != null;
-        LocalFilePath commitMsg = new LocalFilePath(root.getPath() + "/COMMIT_MSG", false) {
+        FilePath commitMsg = new RemoteFilePath("/COMMIT_MSG", false) {
+            @NotNull
             @Override
             public FileType getFileType() {
                 return PlainTextFileType.INSTANCE;
@@ -51,9 +50,9 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         };
 
         changes.add(new Change(null, new SimpleContentRevision(
-                content,
-                commitMsg,
-                gitCommit.getId().asString()
+            content,
+            commitMsg,
+            gitCommit.getId().asString()
         )));
         return changes;
     }

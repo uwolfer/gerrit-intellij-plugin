@@ -48,7 +48,7 @@ public class PathUtils {
      */
     public String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
         String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
-        if (relativePath.contains(File.separator + "..")) {
+        if (relativePath == null || relativePath.contains(File.separator + "..")) {
             return absoluteFilePath;
         }
         return relativePath;

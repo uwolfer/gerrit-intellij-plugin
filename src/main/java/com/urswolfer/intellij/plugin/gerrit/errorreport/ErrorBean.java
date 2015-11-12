@@ -23,6 +23,8 @@ package com.urswolfer.intellij.plugin.gerrit.errorreport;
 public class ErrorBean {
     private String pluginVersion;
     private String intellijVersion;
+    private String os;
+    private String java;
     private String additionInfo;
     private String exceptionMessage;
     private String exception;
@@ -41,6 +43,22 @@ public class ErrorBean {
 
     public void setIntellijVersion(String intellijVersion) {
         this.intellijVersion = intellijVersion;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    public String getJava() {
+        return java;
+    }
+
+    public void setJava(String java) {
+        this.java = java;
     }
 
     public String getAdditionInfo() {

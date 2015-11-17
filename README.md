@@ -102,8 +102,8 @@ Build (and develop!) the Plugin
 To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
 It's very easy to set it up as an IntelliJ project. Gradle is required.
 
-1. Activate plugin ```Plugin DevKit``` in IntelliJ.
-2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij13``` branch, but keep in mind that pull-requests should be against ```master```)
+1. Activate plugins ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
+2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against ```master```)
 3. Run ```gradle idea``` from a command line in cloned folder.
 4. Open checked out project in IntelliJ ("File" -> "Open..." -> select ```gerrit-intellij-plugin``` folder and press "OK")
 5. A notification will appear: "Unlinked Gradle project?". Press "Import Gradle project". You can press "OK" in the window which shows up.

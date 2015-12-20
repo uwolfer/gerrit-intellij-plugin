@@ -1,5 +1,5 @@
 <!--
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2013-2015 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
+<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.7.4-141</version>
+  <version>0.9.7.5-141</version>
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -87,6 +88,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.7.5</li>
+          <ul>
+            <li>update gerrit-rest-java-client to v0.8.6 (which contains many improvements and a fix for upcoming Gerrit 2.12 release)</li>
+            <li>minor fixes</li>
+          </ul>
           <li>0.9.7.4</li>
           <ul>
             <li>fixes (including special fixes for users on Win)</li>

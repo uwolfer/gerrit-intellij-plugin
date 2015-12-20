@@ -22,6 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import com.intellij.openapi.components.ServiceManager;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider;
@@ -64,8 +65,8 @@ public class GerritModule extends AbstractModule {
         bind(NotificationService.class);
         bind(SelectedRevisions.class).toInstance(new SelectedRevisions());
 
-        bind(GerritGitUtil.class).asEagerSingleton();
-        bind(GerritUtil.class).asEagerSingleton();
+        bind(GerritGitUtil.class);
+        bind(GerritUtil.class);
 
         bind(GerritToolWindow.class);
         bind(GerritCheckoutProvider.class);
@@ -89,8 +90,8 @@ public class GerritModule extends AbstractModule {
                 return gerritSettings;
             }
         };
-        bind(GerritSettings.class).toProvider(settingsProvider).asEagerSingleton();
-        bind(GerritAuthData.class).toProvider(settingsProvider).asEagerSingleton();
+        bind(GerritSettings.class).toProvider(settingsProvider).in(Singleton.class);
+        bind(GerritAuthData.class).toProvider(settingsProvider).in(Singleton.class);
     }
 
     protected void installOpenIdeDependenciesModule() {

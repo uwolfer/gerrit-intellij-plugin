@@ -27,6 +27,6 @@ public class UtilsModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(PathUtils.class).asEagerSingleton();
+        bind(PathUtils.class);
     }
 }

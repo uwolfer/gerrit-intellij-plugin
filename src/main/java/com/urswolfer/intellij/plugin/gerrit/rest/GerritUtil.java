@@ -17,14 +17,28 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.*;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.base.Supplier;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.changes.*;
+import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.Changes;
+import com.google.gerrit.extensions.api.changes.DraftApi;
+import com.google.gerrit.extensions.api.changes.DraftInput;
+import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.client.ListChangesOption;
-import com.google.gerrit.extensions.common.*;
+import com.google.gerrit.extensions.common.AccountInfo;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.CommentInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
+import com.google.gerrit.extensions.common.ProjectInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
@@ -59,7 +73,13 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -230,7 +250,7 @@ public class GerritUtil {
     }
 
     @SuppressWarnings("unchecked")
-    public void setReviewed(final String changeId,
+    public void setReviewed(final int changeNr,
                             final String revision,
                             final String filePath,
                             final Project project) {
@@ -241,7 +261,7 @@ public class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritClient.changes().id(changeId).revision(revision).setReviewed(filePath, true);
+                    gerritClient.changes().id(changeNr).revision(revision).setReviewed(filePath, true);
                     return null;
                 } catch (RestApiException e) {
                     throw Throwables.propagate(e);
@@ -425,7 +445,7 @@ public class GerritUtil {
     /**
      * Support starting from Gerrit 2.7.
      */
-    public void getComments(final String changeId,
+    public void getComments(final int changeNr,
                             final String revision,
                             final Project project,
                             final boolean includePublishedComments,
@@ -438,14 +458,14 @@ public class GerritUtil {
                 try {
                     Map<String, List<CommentInfo>> comments;
                     if (includePublishedComments) {
-                        comments = gerritClient.changes().id(changeId).revision(revision).comments();
+                        comments = gerritClient.changes().id(changeNr).revision(revision).comments();
                     } else {
                         comments = Maps.newHashMap();
                     }
 
                     Map<String, List<CommentInfo>> drafts;
                     if (includeDraftComments && gerritSettings.isLoginAndPasswordAvailable()) {
-                        drafts = gerritClient.changes().id(changeId).revision(revision).drafts();
+                        drafts = gerritClient.changes().id(changeNr).revision(revision).drafts();
                     } else {
                         drafts = Maps.newHashMap();
                     }

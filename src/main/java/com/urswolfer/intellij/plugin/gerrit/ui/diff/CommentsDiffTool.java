@@ -32,7 +32,11 @@ import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.CustomShortcutSet;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.diff.DiffRequest;
 import com.intellij.openapi.diff.impl.DiffPanelImpl;
 import com.intellij.openapi.editor.Editor;
@@ -131,57 +135,52 @@ public class CommentsDiffTool extends CustomizableFrameDiffTool {
 
         addCommentAction(diffPanel, relativeFilePath, changeInfo);
 
-        gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeDetails) {
-                gerritUtil.getComments(changeDetails.id, selectedRevisionId, project, true, true,
-                        new Consumer<Map<String, List<CommentInfo>>>() {
-                            @Override
-                            public void consume(Map<String, List<CommentInfo>> comments) {
-                                List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                                if (fileComments != null) {
-                                    addCommentsGutter(
-                                            diffPanel.getEditor2(),
-                                            relativeFilePath,
-                                            selectedRevisionId,
-                                            Iterables.filter(fileComments, REVISION_COMMENT)
-                                    );
-                                    if (!baseRevision.isPresent()) {
-                                        addCommentsGutter(
-                                                diffPanel.getEditor1(),
-                                                relativeFilePath,
-                                                selectedRevisionId,
-                                                Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
-                                        );
-                                    }
-                                }
-                            }
+        gerritUtil.getComments(changeInfo._number, selectedRevisionId, project, true, true,
+            new Consumer<Map<String, List<CommentInfo>>>() {
+                @Override
+                public void consume(Map<String, List<CommentInfo>> comments) {
+                    List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                    if (fileComments != null) {
+                        addCommentsGutter(
+                                diffPanel.getEditor2(),
+                                relativeFilePath,
+                                selectedRevisionId,
+                                Iterables.filter(fileComments, REVISION_COMMENT)
+                        );
+                        if (!baseRevision.isPresent()) {
+                            addCommentsGutter(
+                                    diffPanel.getEditor1(),
+                                    relativeFilePath,
+                                    selectedRevisionId,
+                                    Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT))
+                            );
                         }
-                );
-
-                if (baseRevision.isPresent()) {
-                    gerritUtil.getComments(changeDetails.id, baseRevision.get().getFirst(), project, true, true,
-                            new Consumer<Map<String, List<CommentInfo>>>() {
-                        @Override
-                        public void consume(Map<String, List<CommentInfo>> comments) {
-                            List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                            if (fileComments != null) {
-                                Collections.sort(fileComments, COMMENT_ORDERING);
-                                addCommentsGutter(
-                                        diffPanel.getEditor1(),
-                                        relativeFilePath,
-                                        baseRevision.get().getFirst(),
-                                        Iterables.filter(fileComments, REVISION_COMMENT)
-                                );
-                            }
-                        }
-                    });
+                    }
                 }
-
-                gerritUtil.setReviewed(changeDetails.id, selectedRevisionId,
-                        relativeFilePath, project);
             }
-        });
+        );
+
+        if (baseRevision.isPresent()) {
+            gerritUtil.getComments(changeInfo._number, baseRevision.get().getFirst(), project, true, true,
+                    new Consumer<Map<String, List<CommentInfo>>>() {
+                @Override
+                public void consume(Map<String, List<CommentInfo>> comments) {
+                    List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                    if (fileComments != null) {
+                        Collections.sort(fileComments, COMMENT_ORDERING);
+                        addCommentsGutter(
+                                diffPanel.getEditor1(),
+                                relativeFilePath,
+                                baseRevision.get().getFirst(),
+                                Iterables.filter(fileComments, REVISION_COMMENT)
+                        );
+                    }
+                }
+            });
+        }
+
+        gerritUtil.setReviewed(changeInfo._number, selectedRevisionId,
+                relativeFilePath, project);
     }
 
     private void addCommentAction(DiffPanelImpl diffPanel, String filePath, ChangeInfo changeInfo) {

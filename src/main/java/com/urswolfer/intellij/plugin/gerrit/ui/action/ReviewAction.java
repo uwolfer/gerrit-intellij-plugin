@@ -16,6 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import static com.intellij.icons.AllIcons.Actions.Cancel;
+import static com.intellij.icons.AllIcons.Actions.Checked;
+import static com.intellij.icons.AllIcons.Actions.Forward;
+import static com.intellij.icons.AllIcons.Actions.MoveDown;
+import static com.intellij.icons.AllIcons.Actions.MoveUp;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
@@ -41,8 +47,6 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import javax.swing.*;
 import java.util.List;
 import java.util.Map;
-
-import static com.intellij.icons.AllIcons.Actions.*;
 
 /**
  * @author Urs Wolfer
@@ -95,7 +99,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
             return;
         }
         final ChangeInfo changeDetails = selectedChange.get();
-        gerritUtil.getComments(changeDetails.id, selectedRevisions.get(changeDetails), project, false, true,
+        gerritUtil.getComments(changeDetails._number, selectedRevisions.get(changeDetails), project, false, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
             @Override
             public void consume(Map<String, List<CommentInfo>> draftComments) {

@@ -48,7 +48,7 @@ public class SafeHtmlTextEditor extends JPanel {
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);
         JLabel markdownLinkLabel = new JLabel(
-            "<html>Write your comment here." +
+            "<html>Write your comment here. " +
             "You can use a <a href=\"\"> simple markdown-like syntax</a>.</html>");
         markdownLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         markdownLinkLabel.addMouseListener(new MouseAdapter() {

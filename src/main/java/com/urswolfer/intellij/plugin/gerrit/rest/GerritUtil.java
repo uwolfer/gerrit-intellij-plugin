@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -292,6 +292,7 @@ public class GerritUtil {
                             .withOptions(EnumSet.of(
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
+                                ListChangesOption.DETAILED_LABELS,
                                 ListChangesOption.LABELS
                             ));
                     return new LoadChangesProxy(queryRequest, GerritUtil.this, project);

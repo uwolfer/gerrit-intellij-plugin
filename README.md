@@ -58,7 +58,7 @@ When installing Gerrit 2.8 (or newer) from scratch (rather than using the update
 
 ### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
 There are two workarounds for this issue:
-* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should by the default in any case.
+* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
 * use a recent Java setup (> 1.6)
 
 ### Checking out from VCS with Gerrit plugin does not work
@@ -132,7 +132,7 @@ Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verif
 Copyright and license
 --------------------
 
-Copyright 2013 - 2014 Urs Wolfer
+Copyright 2013 - 2016 Urs Wolfer
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.

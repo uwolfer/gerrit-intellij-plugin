@@ -292,6 +292,7 @@ public class GerritUtil {
                             .withOptions(EnumSet.of(
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
+                                ListChangesOption.CHANGE_ACTIONS,
                                 ListChangesOption.DETAILED_LABELS,
                                 ListChangesOption.LABELS
                             ));
@@ -311,14 +312,25 @@ public class GerritUtil {
                     // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
                     if (e instanceof HttpStatusException) {
                         HttpStatusException httpStatusException = (HttpStatusException) e;
-                        if (httpStatusException.getStatusCode() == 400
-                            && httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
-                            try {
+                        if (httpStatusException.getStatusCode() == 400) {
+                            boolean tryFallback = false;
+                            if (httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
+                                tryFallback = true;
                                 queryRequest.withStart(0); // remove start, trust that sortkey is set
-                                return queryRequest.get();
-                            } catch (RestApiException ex) {
-                                notifyError(ex, "Failed to get Gerrit changes.", project);
-                                return Collections.emptyList();
+                            }
+                            if (httpStatusException.getMessage().contains("\"CHANGE_ACTIONS\" is not a valid value for \"-o\".")) {
+                                tryFallback = true;
+                                EnumSet<ListChangesOption> options = queryRequest.getOptions();
+                                options.remove(ListChangesOption.CHANGE_ACTIONS);
+                                queryRequest.withOptions(options);
+                            }
+                            if (tryFallback) {
+                                try {
+                                    return queryRequest.get();
+                                } catch (RestApiException ex) {
+                                    notifyError(ex, "Failed to get Gerrit changes.", project);
+                                    return Collections.emptyList();
+                                }
                             }
                         }
                     }

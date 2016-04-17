@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -39,6 +40,28 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
 
     public AbandonAction() {
         super("Abandon", "Abandon Change", AllIcons.Actions.Delete);
+    }
+
+    @Override
+    public void update(AnActionEvent e) {
+        super.update(e);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(e);
+        if (selectedChange.isPresent()) {
+            if (!canAbandon(selectedChange.get())) {
+                e.getPresentation().setEnabled(false);
+            }
+        }
+    }
+
+    private boolean canAbandon(ChangeInfo selectedChange) {
+        if (selectedChange.actions == null) {
+            // if there are absolutely no actions, assume an older Gerrit instance
+            // which does not support receiving actions
+            // return false once we drop Gerrit < 2.9 support
+            return true;
+        }
+        ActionInfo abandonAction = selectedChange.actions.get("abandon");
+        return abandonAction != null && Boolean.TRUE.equals(abandonAction.enabled);
     }
 
     @Override

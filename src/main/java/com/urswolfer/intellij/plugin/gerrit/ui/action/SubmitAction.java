@@ -42,6 +42,21 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     }
 
     @Override
+    public void update(AnActionEvent e) {
+        super.update(e);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(e);
+        if (selectedChange.isPresent()) {
+            if (isSubmittable(selectedChange.get())) {
+                e.getPresentation().setEnabled(false);
+            }
+        }
+    }
+
+    private boolean isSubmittable(ChangeInfo selectedChange) {
+        return Boolean.FALSE.equals(selectedChange.submittable);
+    }
+
+    @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 

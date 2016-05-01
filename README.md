@@ -4,7 +4,7 @@ gerrit-intellij-plugin
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports any product based on the IntelliJ platform:
+Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supports any product based on the IntelliJ platform:
 * IntelliJ IDEA
 * IntelliJ IDEA CE
 * RubyMine
@@ -20,7 +20,7 @@ Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
 [IntelliJ Platform]: http://www.jetbrains.com/idea/
-[Gerrit Code Review Tool]: http://code.google.com/p/gerrit/
+[Gerrit Code Review]: https://www.gerritcodereview.com/
 
 You can install this plugin from the [IntelliJ Plugin Manager].
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.

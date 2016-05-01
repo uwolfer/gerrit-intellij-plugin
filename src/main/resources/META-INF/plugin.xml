@@ -367,9 +367,17 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AddReviewersAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Star"/>
     </action>
+    <action id="Gerrit.Publish" text="Publish Draft"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.PublishAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
+    </action>
+    <action id="Gerrit.Delete" text="Delete Draft"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.DeleteAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Publish"/>
+    </action>
     <group id="Gerrit.Review" text="Review"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewActionGroup$Proxy">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Delete"/>
     </group>
     <action id="Gerrit.Submit" text="Submit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy">

@@ -188,6 +188,40 @@ public class GerritUtil {
     }
 
     @SuppressWarnings("unchecked")
+    public void postPublish(final String changeId,
+                            final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).publish();
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change.");
+    }
+
+    @SuppressWarnings("unchecked")
+    public void delete(final String changeId,
+                       final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).delete();
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change.");
+    }
+
+    @SuppressWarnings("unchecked")
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
                             final Project project) {
@@ -293,6 +327,7 @@ public class GerritUtil {
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
                                 ListChangesOption.CHANGE_ACTIONS,
+                                ListChangesOption.CURRENT_ACTIONS,
                                 ListChangesOption.DETAILED_LABELS,
                                 ListChangesOption.LABELS
                             ));
@@ -318,10 +353,12 @@ public class GerritUtil {
                                 tryFallback = true;
                                 queryRequest.withStart(0); // remove start, trust that sortkey is set
                             }
-                            if (httpStatusException.getMessage().contains("\"CHANGE_ACTIONS\" is not a valid value for \"-o\".")) {
+                            if (httpStatusException.getMessage().contains("\"CHANGE_ACTIONS\" is not a valid value for \"-o\".") ||
+                                    httpStatusException.getMessage().contains("\"CURRENT_ACTIONS\" is not a valid value for \"-o\".")) {
                                 tryFallback = true;
                                 EnumSet<ListChangesOption> options = queryRequest.getOptions();
                                 options.remove(ListChangesOption.CHANGE_ACTIONS);
+                                options.remove(ListChangesOption.CURRENT_ACTIONS);
                                 queryRequest.withOptions(options);
                             }
                             if (tryFallback) {

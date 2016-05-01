@@ -25,6 +25,7 @@ import static com.intellij.icons.AllIcons.Actions.MoveUp;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
@@ -232,6 +233,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         ItemAndWidth number = new ItemAndWidth("", 0);
         ItemAndWidth hash = new ItemAndWidth("", 0);
         ItemAndWidth subject = new ItemAndWidth("", 0);
+        ItemAndWidth status = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
         ItemAndWidth project = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
@@ -241,6 +243,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
             subject = getMax(subject, getShortenedSubject(change));
+            status = getMax(status, getStatus(change));
             author = getMax(author, getOwner(change));
             project = getMax(project, getProject(change));
             branch = getMax(branch, getBranch(change));
@@ -281,6 +284,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return change.subject;
+                }
+            }
+        );
+        columnList.add(
+            new GerritChangeColumnInfo("Status", status.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getStatus(change);
                 }
             }
         );
@@ -378,6 +389,22 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             return change.subject.substring(0, 80);
         }
         return change.subject;
+    }
+
+    private static String getStatus(ChangeInfo change) {
+        if (ChangeStatus.MERGED.equals(change.status)) {
+            return "Merged";
+        }
+        if (ChangeStatus.ABANDONED.equals(change.status)) {
+            return "Abandoned";
+        }
+        if (change.mergeable != null && !change.mergeable) {
+            return "Merge Conflict";
+        }
+        if (ChangeStatus.DRAFT.equals(change.status)) {
+            return "Draft";
+        }
+        return "";
     }
 
     private static String getOwner(ChangeInfo change) {

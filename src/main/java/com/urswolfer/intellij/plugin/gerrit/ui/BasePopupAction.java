@@ -98,6 +98,10 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
         myFilterValueLabel.setText(text);
     }
 
+    protected JLabel getFilterValueLabel() {
+        return myFilterValueLabel;
+    }
+
     private void indicateFocusing() {
         myPanel.addFocusListener(new FocusAdapter() {
             @Override

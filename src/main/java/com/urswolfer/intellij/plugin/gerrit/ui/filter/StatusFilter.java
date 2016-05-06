@@ -16,8 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
@@ -25,6 +28,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
 
 /**
  * @author Thomas Forrer
@@ -37,6 +42,19 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("Abandoned", "abandoned"),
             new Status("Drafts", "draft")
     );
+
+    private static final Supplier<String> queryForAll = new Supplier<String>() {
+        @Override
+        public String get() {
+            Set<String> queryForAll = Sets.newHashSet();
+            for (Status status : statuses) {
+                if (status.forQuery.isPresent()) {
+                    queryForAll.add(String.format("is:%s", status.forQuery.get()));
+                }
+            }
+            return String.format("(%s)", Joiner.on("+OR+").join(queryForAll));
+        }
+    };
 
     private Optional<Status> value = Optional.absent();
 
@@ -52,16 +70,20 @@ public class StatusFilter extends AbstractChangesFilter {
     @Override
     @Nullable
     public String getSearchQueryPart() {
-        if (value.isPresent() && value.get().forQuery.isPresent()) {
-            return String.format("is:%s", value.get().forQuery.get());
+        if (value.isPresent()) {
+            if (value.get().forQuery.isPresent()) {
+                return String.format("is:%s", value.get().forQuery.get());
+            } else {
+                return queryForAll.get();
+            }
         } else {
             return null;
         }
     }
 
     private static final class Status {
-        String label;
-        Optional<String> forQuery;
+        final String label;
+        final Optional<String> forQuery;
 
         private Status(String label, String forQuery) {
             this.label = label;

@@ -18,20 +18,34 @@ package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.util.Comparing;
 import com.intellij.util.Consumer;
 import git4idea.history.wholeTree.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.awt.*;
 
 /**
  * @author Thomas Forrer
  */
 public abstract class AbstractUserFilter extends AbstractChangesFilter {
-    private ImmutableList<User> users;
+    @Inject
+    private JBPopupFactory jbPopupFactory;
 
+    private ImmutableList<User> users;
+    private JBPopup popup;
+    private AnAction selectOkAction;
+    private JTextArea selectUserTextArea;
     private Optional<User> value = Optional.absent();
 
     public abstract String getActionLabel();
@@ -82,13 +96,59 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                 actionConsumer.consume(new DumbAwareAction(user.label) {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
-                        value = Optional.of(user);
-                        myLabel.setText(user.label);
-                        setChanged();
-                        notifyObservers(project);
+                        change(user);
                     }
                 });
             }
+            selectUserTextArea = new JTextArea();
+            selectOkAction = buildOkAction();
+            actionConsumer.consume(new DumbAwareAction("Select...") {
+                @Override
+                public void actionPerformed(AnActionEvent e) {
+                    if (popup != null) {
+                        selectOkAction.unregisterCustomShortcutSet(popup.getContent());
+                    }
+                    popup = buildBalloon(selectUserTextArea);
+                    Point point = new Point(0, 0);
+                    SwingUtilities.convertPointToScreen(point, myLabel);
+                    popup.showInScreenCoordinates(myLabel, point);
+                    JComponent content = popup.getContent();
+                    selectOkAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, content);
+                }
+            });
+        }
+
+        private void change(User user) {
+            value = Optional.of(user);
+            myLabel.setText(user.label);
+            setChanged();
+            notifyObservers(project);
+        }
+
+        private AnAction buildOkAction() {
+            return new AnAction() {
+                public void actionPerformed(AnActionEvent e) {
+                    popup.closeOk(e.getInputEvent());
+                    String newText = selectUserTextArea.getText().trim();
+                    if (newText.isEmpty()) {
+                        return;
+                    }
+                    if (!Comparing.equal(newText, myLabel.getText())) {
+                        User user = new User(newText, newText);
+                        change(user);
+                    }
+                }
+            };
+        }
+
+        private JBPopup buildBalloon(JTextArea textArea) {
+            ComponentPopupBuilder builder = jbPopupFactory.
+                createComponentPopupBuilder(textArea, textArea);
+            builder.setAdText("Ctrl+Enter to search");
+            builder.setResizable(true);
+            builder.setMovable(true);
+            builder.setRequestFocus(true);
+            return builder.createPopup();
         }
     }
 }

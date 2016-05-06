@@ -4,7 +4,7 @@ gerrit-intellij-plugin
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports any product based on the IntelliJ platform:
+Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supports any product based on the IntelliJ platform:
 * IntelliJ IDEA
 * IntelliJ IDEA CE
 * RubyMine
@@ -20,7 +20,7 @@ Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
 [IntelliJ Platform]: http://www.jetbrains.com/idea/
-[Gerrit Code Review Tool]: http://code.google.com/p/gerrit/
+[Gerrit Code Review]: https://www.gerritcodereview.com/
 
 You can install this plugin from the [IntelliJ Plugin Manager].
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
@@ -58,7 +58,7 @@ When installing Gerrit 2.8 (or newer) from scratch (rather than using the update
 
 ### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
 There are two workarounds for this issue:
-* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should by the default in any case.
+* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
 * use a recent Java setup (> 1.6)
 
 ### Checking out from VCS with Gerrit plugin does not work
@@ -132,7 +132,7 @@ Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verif
 Copyright and license
 --------------------
 
-Copyright 2013 - 2014 Urs Wolfer
+Copyright 2013 - 2016 Urs Wolfer
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.

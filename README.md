@@ -103,17 +103,13 @@ To build the plugin on your machine you need to have at least a downloaded copy 
 It's very easy to set it up as an IntelliJ project. Gradle is required.
 
 1. Activate plugins ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
-2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against ```master```)
-3. Run ```gradle idea``` from a command line in cloned folder.
-4. Open checked out project in IntelliJ ("File" -> "Open..." -> select ```gerrit-intellij-plugin``` folder and press "OK")
-5. A notification will appear: "Unlinked Gradle project?". Press "Import Gradle project". You can press "OK" in the window which shows up.
-6. Open project settings, "Modules" -> "Dependencies" -> "Module SDK" -> "New" -> IntelliJ Platform Plugin SDK -> Choose your IntelliJ installation folder
-7. Open project settings, "Modules" -> "Dependencies" -> Click "+" -> "Jar or directory" -> Choose git4idea/lib
-   (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set scope to "Provided"
-8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
-   project to see changes (it shows only changes for Git repositories that are set up in current workspace).
+2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
+3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select ```gerrit-intellij-plugin``` folder and press "OK")
+4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIdea"
+5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
+   project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).
 
-Once ```build.grade``` gets updated, you need to start again with step 3 (including all following steps).
+Once ```build.gradle``` gets updated, you need to "Refresh all Gradle projects" in the Gradle panel.
 
 
 Credits

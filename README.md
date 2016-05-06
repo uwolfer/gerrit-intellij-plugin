@@ -1,6 +1,8 @@
 gerrit-intellij-plugin
 ======================
 
+[![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg?branch=intellij14)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
+
 Introduction
 -----------
 

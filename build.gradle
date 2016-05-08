@@ -1,8 +1,39 @@
-apply plugin: 'java'
-apply plugin: 'idea'
+/*
+ * Copyright 2013-2016 Urs Wolfer
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-targetCompatibility = 1.6
-sourceCompatibility = 1.6
+plugins {
+    id 'org.jetbrains.intellij' version '0.0.43'
+}
+
+apply plugin: 'java'
+
+targetCompatibility = javaVersion
+sourceCompatibility = javaVersion
+
+tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
+
+sourceSets {
+    main {
+        java.srcDir 'src/main/java'
+        resources.srcDir 'src/main/resources'
+    }
+    test {
+        java.srcDir 'src/test/java'
+    }
+}
 
 repositories {
     mavenLocal()
@@ -16,7 +47,7 @@ dependencies {
     compile ('com.google.inject.extensions:guice-multibindings:4.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.7') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.8') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
@@ -28,45 +59,22 @@ dependencies {
     testCompile 'org.easymock:easymock:3.2'
 }
 
-idea {
-    project.ipr.beforeMerged { project ->
-        project.modulePaths.clear()
-    }
+intellij {
+    version ideaVersion
+    pluginName 'gerrit-intellij-plugin'
+    updateSinceUntilBuild false
+    downloadSources Boolean.valueOf(downloadIdeaSources)
+    plugins 'git4idea'
 
-    workspace.iws.withXml {
-        def runManagerComponent = it.node.component.find {
-            it.@name == 'RunManager'
-        }
-        runManagerComponent.@selected = 'Plugin.run-gerrit-plugin'
-        def configuration = runManagerComponent.appendNode("configuration", [
-            default: "false",
-            name: "run-gerrit-plugin",
-            type: "#org.jetbrains.idea.devkit.run.PluginConfigurationType",
-            factoryName: "Plugin",
-            singleton: "true"
-        ])
-        configuration.appendNode("module", [name: 'gerrit-intellij-plugin'])
-        configuration.appendNode("option", [
-            name: "VM_PARAMETERS",
-            value: "-Xms128m -Xmx750m -XX:MaxPermSize=350m -XX:ReservedCodeCacheSize=96m -ea -Dawt.useSystemAAFontSettings=on"
-        ])
-        configuration.appendNode("option", [name: "PROGRAM_PARAMETERS", value: ""])
-        configuration.appendNode("method")
+    publish {
+        pluginId '7272'
+        channel ijPluginRepoChannel
+        username System.getenv('IJ_REPO_USERNAME')
+        password System.getenv('IJ_REPO_PASSWORD')
     }
+}
 
-    module.iml.withXml {
-        it.node.@type = 'PLUGIN_MODULE'
-        it.node.appendNode('component', [
-            name: 'DevKit.ModuleBuildProperties',
-            url: 'file://$MODULE_DIR$/src/main/resources/META-INF/plugin.xml'
-        ])
-    }
-
-    // this is a workaround:
-    // build into resources folder; otherwise resources are not available at runtime and in deployment build
-    module {
-        inheritOutputDirs = false
-        outputDir = file('build/resources/main')
-        testOutputDir = file('build/resources/main')
-    }
+test {
+    useTestNG()
+    exclude 'com/urswolfer/intellij/plugin/gerrit/rest/GerritUtilTest.*' // fails with java.lang.VerifyError at GerritUtilTest.java:34
 }

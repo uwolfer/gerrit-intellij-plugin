@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,42 +16,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Throwables;
-import com.google.common.io.Resources;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.intellij.ide.plugins.PluginManager;
+import com.intellij.openapi.extensions.PluginId;
 
 /**
  * @author Urs Wolfer
  */
 public class Version {
 
-    private static final String PLUGIN_VERSION;
-
-    static {
-        try {
-            URL url = Version.class.getClassLoader().getResource("META-INF/plugin.xml");
-            PLUGIN_VERSION = parseVersionFromFile(url);
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
-        }
-    }
-
-    private static String parseVersionFromFile(URL url) throws IOException {
-        String text = Resources.toString(url, Charsets.UTF_8);
-
-        Pattern versionTagPattern = Pattern.compile(".*?<version>(.+?)</version>");
-        Matcher matcher = versionTagPattern.matcher(text);
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            return "<unknown>";
-        }
-    }
+    private static final String PLUGIN_VERSION = PluginManager.getPlugin(PluginId.getId("com.urswolfer.intellij.plugin.gerrit")).getVersion();
 
     public static String get() {
         return PLUGIN_VERSION;

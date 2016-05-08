@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ui.CommitMessage;
 import com.intellij.ui.EditorTextField;
@@ -28,6 +29,8 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
  * @author Urs Wolfer
@@ -44,7 +47,17 @@ public class SafeHtmlTextEditor extends JPanel {
         messageField.setBorder(BorderFactory.createEmptyBorder());
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);
-        messagePanel.add(new JLabel("Write your comment here. You can use a simple markdown-like syntax."), BorderLayout.SOUTH);
+        JLabel markdownLinkLabel = new JLabel(
+            "<html>Write your comment here. " +
+            "You can use a <a href=\"\"> simple markdown-like syntax</a>.</html>");
+        markdownLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        markdownLinkLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                BrowserUtil.browse("https://gerrit-review.googlesource.com/Documentation/user-review-ui.html#summary-comment");
+            }
+        });
+        messagePanel.add(markdownLinkLabel, BorderLayout.SOUTH);
         tabbedPane.addTab("Write", AllIcons.Actions.Edit, messagePanel);
 
         final JEditorPane previewEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");

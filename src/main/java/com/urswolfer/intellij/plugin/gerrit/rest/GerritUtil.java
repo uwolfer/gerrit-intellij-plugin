@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +163,40 @@ public class GerritUtil {
     }
 
     @SuppressWarnings("unchecked")
+    public void postPublish(final String changeId,
+                            final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).publish();
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change.");
+    }
+
+    @SuppressWarnings("unchecked")
+    public void delete(final String changeId,
+                       final Project project) {
+        Supplier<Void> supplier = new Supplier<Void>() {
+            @Override
+            public Void get() {
+                try {
+                    gerritClient.changes().id(changeId).delete();
+                    return null;
+                } catch (RestApiException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        };
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change.");
+    }
+
+    @SuppressWarnings("unchecked")
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
                             final Project project) {
@@ -267,6 +301,9 @@ public class GerritUtil {
                             .withOptions(EnumSet.of(
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
+                                ListChangesOption.CHANGE_ACTIONS,
+                                ListChangesOption.CURRENT_ACTIONS,
+                                ListChangesOption.DETAILED_LABELS,
                                 ListChangesOption.LABELS
                             ));
                     return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
@@ -285,14 +322,27 @@ public class GerritUtil {
                     // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
                     if (e instanceof HttpStatusException) {
                         HttpStatusException httpStatusException = (HttpStatusException) e;
-                        if (httpStatusException.getStatusCode() == 400
-                            && httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
-                            try {
+                        if (httpStatusException.getStatusCode() == 400) {
+                            boolean tryFallback = false;
+                            if (httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
+                                tryFallback = true;
                                 queryRequest.withStart(0); // remove start, trust that sortkey is set
-                                return queryRequest.get();
-                            } catch (RestApiException ex) {
-                                notifyError(ex, "Failed to get Gerrit changes.", project);
-                                return Collections.emptyList();
+                            }
+                            if (httpStatusException.getMessage().contains("\"CHANGE_ACTIONS\" is not a valid value for \"-o\".") ||
+                                    httpStatusException.getMessage().contains("\"CURRENT_ACTIONS\" is not a valid value for \"-o\".")) {
+                                tryFallback = true;
+                                EnumSet<ListChangesOption> options = queryRequest.getOptions();
+                                options.remove(ListChangesOption.CHANGE_ACTIONS);
+                                options.remove(ListChangesOption.CURRENT_ACTIONS);
+                                queryRequest.withOptions(options);
+                            }
+                            if (tryFallback) {
+                                try {
+                                    return queryRequest.get();
+                                } catch (RestApiException ex) {
+                                    notifyError(ex, "Failed to get Gerrit changes.", project);
+                                    return Collections.emptyList();
+                                }
                             }
                         }
                     }

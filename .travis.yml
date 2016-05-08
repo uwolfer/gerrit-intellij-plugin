@@ -8,3 +8,15 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+deploy:
+  provider: releases
+  api_key:
+    secure: "${GITHUB_KEY}"
+  skip_cleanup: true
+  file_glob: true
+  file: "build/distributions/gerrit-intellij-plugin-*.zip"
+  on:
+    tags: true
+    condition: "$TRAVIS_TAG =~ ^v[0-9]+.*$"
+after_deploy:
+  - ./gradlew publishPlugin

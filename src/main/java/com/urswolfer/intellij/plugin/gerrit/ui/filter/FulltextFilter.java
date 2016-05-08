@@ -67,6 +67,7 @@ public class FulltextFilter extends AbstractChangesFilter {
                 .replace("+", "%2B")
                 .replace(' ', '+')
                 .replace("\"", "%22")
+                .replace("%", "%25")
                 .replace("<", "%3C")
                 .replace(">", "%3E")
                 .replace("^", "%5E");

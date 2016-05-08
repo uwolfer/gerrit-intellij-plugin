@@ -1,10 +1,12 @@
 gerrit-intellij-plugin
 ======================
 
+[![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg?branch=intellij14)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
+
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports any product based on the IntelliJ platform:
+Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supports any product based on the IntelliJ platform:
 * IntelliJ IDEA
 * IntelliJ IDEA CE
 * RubyMine
@@ -20,7 +22,7 @@ Unofficial [IntelliJ Platform] plugin for [Gerrit Code Review Tool]. It supports
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
 [IntelliJ Platform]: http://www.jetbrains.com/idea/
-[Gerrit Code Review Tool]: http://code.google.com/p/gerrit/
+[Gerrit Code Review]: https://www.gerritcodereview.com/
 
 You can install this plugin from the [IntelliJ Plugin Manager].
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
@@ -58,7 +60,7 @@ When installing Gerrit 2.8 (or newer) from scratch (rather than using the update
 
 ### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
 There are two workarounds for this issue:
-* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should by the default in any case.
+* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
 * use a recent Java setup (> 1.6)
 
 ### Checking out from VCS with Gerrit plugin does not work
@@ -103,17 +105,13 @@ To build the plugin on your machine you need to have at least a downloaded copy 
 It's very easy to set it up as an IntelliJ project. Gradle is required.
 
 1. Activate plugins ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
-2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against ```master```)
-3. Run ```gradle idea``` from a command line in cloned folder.
-4. Open checked out project in IntelliJ ("File" -> "Open..." -> select ```gerrit-intellij-plugin``` folder and press "OK")
-5. A notification will appear: "Unlinked Gradle project?". Press "Import Gradle project". You can press "OK" in the window which shows up.
-6. Open project settings, "Modules" -> "Dependencies" -> "Module SDK" -> "New" -> IntelliJ Platform Plugin SDK -> Choose your IntelliJ installation folder
-7. Open project settings, "Modules" -> "Dependencies" -> Click "+" -> "Jar or directory" -> Choose git4idea/lib
-   (e.g. /Applications/IntelliJ IDEA.app/plugins/git4idea/lib) -> set scope to "Provided"
-8. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
-   project to see changes (it shows only changes for Git repositories that are set up in current workspace).
+2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
+3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select ```gerrit-intellij-plugin``` folder and press "OK")
+4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIdea"
+5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
+   project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).
 
-Once ```build.grade``` gets updated, you need to start again with step 3 (including all following steps).
+Once ```build.gradle``` gets updated, you need to "Refresh all Gradle projects" in the Gradle panel.
 
 
 Credits
@@ -132,7 +130,7 @@ Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verif
 Copyright and license
 --------------------
 
-Copyright 2013 - 2014 Urs Wolfer
+Copyright 2013 - 2016 Urs Wolfer
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.

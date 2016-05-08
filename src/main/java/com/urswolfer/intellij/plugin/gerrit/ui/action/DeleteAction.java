@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +17,23 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
-import org.jetbrains.annotations.Nullable;
-
-import javax.swing.*;
 
 /**
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class AbandonAction extends AbstractLoggedInChangeAction {
+public class DeleteAction extends AbstractLoggedInChangeAction {
 
-    public AbandonAction() {
-        super("Abandon", "Abandon Change", AllIcons.Actions.Delete);
+    public DeleteAction() {
+        super("Delete Draft", "Delete Draft Change", AllIcons.Actions.Delete);
     }
 
     @Override
@@ -47,76 +41,47 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
         if (selectedChange.isPresent()) {
-            if (!canAbandon(selectedChange.get())) {
+            if (!canPublish(selectedChange.get())) {
                 e.getPresentation().setEnabled(false);
             }
         }
     }
 
-    private boolean canAbandon(ChangeInfo selectedChange) {
+    private boolean canPublish(ChangeInfo selectedChange) {
+        if (!ChangeStatus.DRAFT.equals(selectedChange.status)) {
+            return false;
+        }
         if (selectedChange.actions == null) {
             // if there are absolutely no actions, assume an older Gerrit instance
             // which does not support receiving actions
             // return false once we drop Gerrit < 2.9 support
             return true;
         }
-        ActionInfo abandonAction = selectedChange.actions.get("abandon");
-        return abandonAction != null && Boolean.TRUE.equals(abandonAction.enabled);
+        ActionInfo deleteAction = selectedChange.actions.get("/");
+        if (deleteAction == null) {
+            return false;
+        }
+        if (!"DELETE".equalsIgnoreCase(deleteAction.method)) {
+            return false;
+        }
+        return Boolean.TRUE.equals(deleteAction.enabled);
     }
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-
+        Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
-
-        AbandonInput abandonInput = new AbandonInput();
-
-        SafeHtmlTextEditor editor = new SafeHtmlTextEditor(project);
-        AbandonDialog dialog = new AbandonDialog(project, true, editor);
-        dialog.show();
-        if (!dialog.isOK()) {
-            return;
-        }
-        String message = editor.getMessageField().getText().trim();
-        if (!Strings.isNullOrEmpty(message)) {
-            abandonInput.message = message;
-        }
-
-        gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project);
+        gerritUtil.delete(selectedChange.get().id, project);
     }
 
-    private static class AbandonDialog extends DialogWrapper {
-        private final SafeHtmlTextEditor editor;
-
-        protected AbandonDialog(Project project, boolean canBeParent, SafeHtmlTextEditor editor) {
-            super(project, canBeParent);
-            this.editor = editor;
-            setTitle("Abandon Change");
-            setOKButtonText("Abandon");
-            init();
-        }
-
-        @Nullable
-        @Override
-        protected JComponent createCenterPanel() {
-            return editor;
-        }
-
-        @Override
-        public JComponent getPreferredFocusedComponent() {
-            return editor.getMessageField();
-        }
-    }
-
-    public static class Proxy extends AbandonAction {
-        private final AbandonAction delegate;
+    public static class Proxy extends DeleteAction {
+        private final DeleteAction delegate;
 
         public Proxy() {
-            delegate = GerritModule.getInstance(AbandonAction.class);
+            delegate = GerritModule.getInstance(DeleteAction.class);
         }
 
         @Override

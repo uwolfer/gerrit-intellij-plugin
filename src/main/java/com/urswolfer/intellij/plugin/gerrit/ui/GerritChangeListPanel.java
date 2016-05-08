@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013-2015 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import static com.intellij.icons.AllIcons.Actions.Cancel;
+import static com.intellij.icons.AllIcons.Actions.Checked;
+import static com.intellij.icons.AllIcons.Actions.MoveDown;
+import static com.intellij.icons.AllIcons.Actions.MoveUp;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
@@ -58,8 +64,6 @@ import java.awt.event.AdjustmentListener;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static com.intellij.icons.AllIcons.Actions.*;
 
 /**
  * A table with the list of changes.
@@ -229,6 +233,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         ItemAndWidth number = new ItemAndWidth("", 0);
         ItemAndWidth hash = new ItemAndWidth("", 0);
         ItemAndWidth subject = new ItemAndWidth("", 0);
+        ItemAndWidth status = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
         ItemAndWidth project = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
@@ -238,6 +243,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
             subject = getMax(subject, getShortenedSubject(change));
+            status = getMax(status, getStatus(change));
             author = getMax(author, getOwner(change));
             project = getMax(project, getProject(change));
             branch = getMax(branch, getBranch(change));
@@ -282,6 +288,14 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
             }
         );
         columnList.add(
+            new GerritChangeColumnInfo("Status", status.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getStatus(change);
+                }
+            }
+        );
+        columnList.add(
             new GerritChangeColumnInfo("Owner", author.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
@@ -315,7 +329,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         );
         for (final String label : availableLabels) {
             columnList.add(
-                new GerritChangeColumnIconLabelInfo(getShortLabelDisplay(label)) {
+                new GerritChangeColumnIconLabelInfo(getShortLabelDisplay(label), label) {
                     @Override
                     public LabelInfo getLabelInfo(ChangeInfo change) {
                         return getLabel(change, label);
@@ -377,6 +391,22 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         return change.subject;
     }
 
+    private static String getStatus(ChangeInfo change) {
+        if (ChangeStatus.MERGED.equals(change.status)) {
+            return "Merged";
+        }
+        if (ChangeStatus.ABANDONED.equals(change.status)) {
+            return "Abandoned";
+        }
+        if (change.mergeable != null && !change.mergeable) {
+            return "Merge Conflict";
+        }
+        if (ChangeStatus.DRAFT.equals(change.status)) {
+            return "Draft";
+        }
+        return "";
+    }
+
     private static String getOwner(ChangeInfo change) {
         return change.owner.name;
     }
@@ -425,8 +455,11 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
 
     private abstract static class GerritChangeColumnIconLabelInfo extends ColumnInfo<ChangeInfo, LabelInfo> {
 
-        public GerritChangeColumnIconLabelInfo(String name) {
-            super(name);
+        private final String label;
+
+        public GerritChangeColumnIconLabelInfo(String shortLabel, String label) {
+            super(shortLabel);
+            this.label = label;
         }
 
         @Nullable
@@ -436,6 +469,12 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         }
 
         public abstract LabelInfo getLabelInfo(ChangeInfo change);
+
+        @Nullable
+        @Override
+        public String getTooltipText() {
+            return label;
+        }
 
         @Nullable
         @Override

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
+<!--<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">-->
 <idea-plugin version="2">
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
-  <version>0.9.7.6-142</version>
+  <!-- element "version" set by gradle-intellij-plugin -->
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
           logo="/icons/gerrit.png">Urs Wolfer</vendor>
@@ -88,6 +88,17 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
           https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
 
+          <li>0.9.8</li>
+          <ul>
+            <li>add support for setting custom review labels when supported by server (other than Code-Review and Verified)</li>
+            <li>add support for publish / delete draft changes</li>
+            <li>add column "status" to change list</li>
+            <li>reviewer and owner filter: allow filtering by username</li>
+            <li>disable actions when not permitted</li>
+            <li>fix status-filter option "All"</li>
+            <li>many minor fixes and improvements</li>
+            <li>Note: Updates for IntelliJ versions older than 14 are no longer provided</li>
+          </ul>
           <li>0.9.7.6</li>
           <ul>
             <li>fixes (including Java 6 support)</li>
@@ -372,8 +383,6 @@
     </group>
 
     <group id="Gerrit.ListPopup">
-      <group id="Gerrit.ListPopup.Review" text="Review" icon="/toolbarDecorator/export.png" popup="true"/>
-      <group id="Gerrit.ListPopup.Verify" text="Verify" icon="/debugger/watch.png" popup="true"/>
       <separator/>
     </group>
 
@@ -397,9 +406,21 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AddReviewersAction$Proxy">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Star"/>
     </action>
+    <action id="Gerrit.Publish" text="Publish Draft"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.PublishAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
+    </action>
+    <action id="Gerrit.Delete" text="Delete Draft"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.DeleteAction$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Publish"/>
+    </action>
+    <group id="Gerrit.Review" text="Review"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewActionGroup$Proxy">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Delete"/>
+    </group>
     <action id="Gerrit.Submit" text="Submit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction$Proxy">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.ListPopup.Verify"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Review"/>
     </action>
     <action id="Gerrit.Abandon" text="Abandon"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AbandonAction$Proxy">
@@ -427,71 +448,5 @@
             class="com.urswolfer.intellij.plugin.gerrit.errorreport.ThrowTestExceptionAction">
       <add-to-group group-id="Gerrit.Toolbar" anchor="before" relative-to-action="Gerrit.Settings"/>
     </action-->
-
-    <action id="Gerrit.ReviewPlusTwoProxy" text="+2"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusTwoProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="first"/>
-    </action>
-    <action id="Gerrit.ReviewPlusTwoDialogProxy" text="+2..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusTwoDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewPlusTwoProxy"/>
-    </action>
-    <action id="Gerrit.ReviewPlusOneProxy" text="+1"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusOneProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewPlusTwoDialogProxy"/>
-    </action>
-    <action id="Gerrit.ReviewPlusOneDialogProxy" text="+1..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewPlusOneDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewPlusOneProxy"/>
-    </action>
-    <action id="Gerrit.ReviewNeutralProxy" text="0"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewNeutralProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewPlusOneDialogProxy"/>
-    </action>
-    <action id="Gerrit.ReviewNeutralDialogProxy" text="0..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewNeutralDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewNeutralProxy"/>
-    </action>
-    <action id="Gerrit.ReviewMinusOneProxy" text="-1"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewMinusOneProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewNeutralDialogProxy"/>
-    </action>
-    <action id="Gerrit.ReviewMinusOneDialogProxy" text="-1..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewMinusOneDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewMinusOneProxy"/>
-    </action>
-    <action id="Gerrit.ReviewMinusTwoProxy" text="-2"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewMinusTwoProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewMinusOneDialogProxy"/>
-    </action>
-    <action id="Gerrit.ReviewMinusTwoDialogProxy" text="-2..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$ReviewMinusTwoDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Review" anchor="after" relative-to-action="Gerrit.ReviewMinusTwoProxy"/>
-    </action>
-
-    <action id="Gerrit.VerifyPlusOneProxy" text="+1"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyPlusOneProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="first"/>
-    </action>
-    <action id="Gerrit.VerifyPlusOneDialogProxy" text="+1..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyPlusOneDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="after" relative-to-action="Gerrit.VerifyPlusOneProxy"/>
-    </action>
-    <action id="Gerrit.VerifyNeutralProxy" text="0"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyNeutralProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="after" relative-to-action="Gerrit.VerifyPlusOneDialogProxy"/>
-    </action>
-    <action id="Gerrit.VerifyNeutralDialogProxy" text="0..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyNeutralDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="after" relative-to-action="Gerrit.VerifyNeutralProxy"/>
-    </action>
-    <action id="Gerrit.VerifyMinusOneProxy" text="-1"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyMinusOneProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="after" relative-to-action="Gerrit.VerifyNeutralDialogProxy"/>
-    </action>
-    <action id="Gerrit.VerifyMinusOneDialogProxy" text="-1..."
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewAction$VerifyMinusOneDialogProxy">
-      <add-to-group group-id="Gerrit.ListPopup.Verify" anchor="after" relative-to-action="Gerrit.VerifyMinusOneProxy"/>
-    </action>
   </actions>
 </idea-plugin>

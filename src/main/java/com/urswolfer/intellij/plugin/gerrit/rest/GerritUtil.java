@@ -324,12 +324,12 @@ public class GerritUtil {
                         HttpStatusException httpStatusException = (HttpStatusException) e;
                         if (httpStatusException.getStatusCode() == 400) {
                             boolean tryFallback = false;
-                            if (httpStatusException.getMessage().contains("Content: \"-S\" is not a valid option.")) {
+                            String message = httpStatusException.getMessage();
+                            if (message.matches(".*Content:.*\"-S\".*")) {
                                 tryFallback = true;
                                 queryRequest.withStart(0); // remove start, trust that sortkey is set
                             }
-                            if (httpStatusException.getMessage().contains("\"CHANGE_ACTIONS\" is not a valid value for \"-o\".") ||
-                                    httpStatusException.getMessage().contains("\"CURRENT_ACTIONS\" is not a valid value for \"-o\".")) {
+                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
                                 tryFallback = true;
                                 EnumSet<ListChangesOption> options = queryRequest.getOptions();
                                 options.remove(ListChangesOption.CHANGE_ACTIONS);

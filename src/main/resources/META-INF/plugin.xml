@@ -1,5 +1,5 @@
 <!--
- * Copyright 2013-2015 Urs Wolfer
+ * Copyright 2013-2016 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@
           </li>
           <li>Clone and set up Gerrit projects directly in IDE (commit-message-hook is automatically added)</li>
           <li>Abandon changes</li>
+          <li>Publish and delete draft changes</li>
         </ul>
       </p>
 
@@ -68,14 +69,14 @@
           <li>Vote for it: Write your review and vote for it at the <a href="http://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
           <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin/star">Star it at GitHub</a>. GitHub account required.</li>
           <li>Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!</li>
-          <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin/blob/master/README.md">README</a> file (at the bottom).</li>
+          <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin#donations">README</a> file.</li>
         </ul>
       </p>
       ]]></description>
 
   <change-notes><![CDATA[
       <p>
-        See for all changes: https://github.com/uwolfer/gerrit-intellij-plugin/commits/master
+        See for all changes: https://github.com/uwolfer/gerrit-intellij-plugin/commits/
       </p>
 
       <p>
@@ -85,9 +86,14 @@
           when add an email address so I can contact you in case of questions.</li>
 
           <li>Would you like to try test-builds of this plugin before official release? Please check out: <a
-          href="https://github.com/uwolfer/gerrit-intellij-plugin/issues/34">
-          https://github.com/uwolfer/gerrit-intellij-plugin/issues/34</a>.</li>
+          href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
+          https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>0.9.8.1</li>
+          <ul>
+            <li>fix loading changes with older Gerrit versions when env is non-English</li>
+            <li>fix NumberFormatException when using JRE 6</li>
+          </ul>
           <li>0.9.8</li>
           <ul>
             <li>add support for setting custom review labels when supported by server (other than Code-Review and Verified)</li>

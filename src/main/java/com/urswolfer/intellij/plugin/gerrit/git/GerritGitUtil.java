@@ -339,11 +339,6 @@ public class GerritGitUtil {
 
     }
 
-    public boolean resetHard(GitRepository repository, String target) {
-        GitCommandResult gitCommandResult = git.reset(repository, GitResetMode.HARD, target);
-        return gitCommandResult.success();
-    }
-
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {
 
         private List<String> messages = new ArrayList<String>();

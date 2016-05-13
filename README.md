@@ -1,7 +1,7 @@
 gerrit-intellij-plugin
 ======================
 
-[![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg?branch=intellij14)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
+[![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
 
 Introduction
 -----------
@@ -18,6 +18,7 @@ Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supp
 * Android Studio
 * 0xDBE
 * CLion
+* Rider
 
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
@@ -27,6 +28,14 @@ Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older ve
 You can install this plugin from the [IntelliJ Plugin Manager].
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
 [IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
+
+###### Pre-Releases
+If you want to get new releases earlier, you can subscribe to the release-candidate plugin channel:
+
+1. Copy the following URL: https://plugins.jetbrains.com/plugins/rc/7272
+2. Use the copied URL as the [Custom Plugin Repository](https://www.jetbrains.com/idea/help/managing-enterprise-plugin-repositories.html)
+3. Reload the list of plugins
+4. Search for the 'Gerrit' plugin in the plugin manager and install it
 
 Your Support
 ------------
@@ -101,12 +110,11 @@ See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 Build (and develop!) the Plugin
 ------------------
 
-To build the plugin on your machine you need to have at least a downloaded copy of IntelliJ.
-It's very easy to set it up as an IntelliJ project. Gradle is required.
+It's very easy to set it up as an IntelliJ project.
 
-1. Activate plugins ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
+1. Activate plugins ```Gradle```, ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
 2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
-3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select ```gerrit-intellij-plugin``` folder and press "OK")
+3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select file ```build.gradle``` in ```gerrit-intellij-plugin``` folder and press "OK")
 4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIdea"
 5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
    project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).

@@ -93,6 +93,7 @@
           <ul>
             <li>fix loading changes with older Gerrit versions when env is non-English</li>
             <li>fix NumberFormatException when using JRE 6</li>
+            <li>do not 'git reset' when checking out a change which was checked out before already</li>
           </ul>
           <li>0.9.8</li>
           <ul>

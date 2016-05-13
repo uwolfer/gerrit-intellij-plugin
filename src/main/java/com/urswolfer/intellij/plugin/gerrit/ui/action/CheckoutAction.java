@@ -78,16 +78,8 @@ public class CheckoutAction extends AbstractChangeAction {
                         final GitRepository repository = gitRepositoryOptional.get();
                         List<GitRepository> gitRepositories = Collections.singletonList(repository);
                         try {
-                            if (gerritGitUtil.checkoutNewBranch(repository, branchName)) {
-                                brancher.checkout(branchName, gitRepositories, null);
-                            } else {
-                                brancher.checkout(branchName, gitRepositories, new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        gerritGitUtil.resetHard(repository, "FETCH_HEAD");
-                                    }
-                                });
-                            }
+                            gerritGitUtil.checkoutNewBranch(repository, branchName);
+                            brancher.checkout(branchName, gitRepositories, null);
                         } catch (VcsException e) {
                             NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
                             notificationService.notifyError(builder);

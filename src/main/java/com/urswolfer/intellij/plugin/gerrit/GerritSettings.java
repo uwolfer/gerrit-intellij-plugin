@@ -40,13 +40,7 @@ import java.util.Collection;
  * @author oleg
  * @author Urs Wolfer
  */
-@State(
-        name = "GerritSettings",
-        storages = {
-                @Storage(
-                        file = StoragePathMacros.APP_CONFIG + "/gerrit_settings.xml"
-                )}
-)
+@State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
 public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
 
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";

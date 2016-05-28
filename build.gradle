@@ -67,7 +67,6 @@ intellij {
     plugins 'git4idea'
 
     publish {
-        pluginId '7272'
         channel ijPluginRepoChannel
         username System.getenv('IJ_REPO_USERNAME')
         password System.getenv('IJ_REPO_PASSWORD')

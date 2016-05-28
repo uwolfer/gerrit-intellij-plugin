@@ -322,7 +322,7 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="142.2087" until-build="146.938"/>
+  <idea-version since-build="146.939"/>
   <!--
     IntelliJ IDEA 2016.2
     ================

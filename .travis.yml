@@ -1,7 +1,7 @@
 sudo: false
 language: java
 jdk:
-  - openjdk6
+  - oraclejdk8
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
 cache:

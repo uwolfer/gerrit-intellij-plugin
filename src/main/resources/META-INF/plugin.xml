@@ -322,8 +322,12 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="142.2087"/>
+  <idea-version since-build="142.2087" until-build="146.938"/>
   <!--
+    IntelliJ IDEA 2016.2
+    ================
+    Broken binary compatibility because of changed return type, ShowDiffAction ChangesBrowserBase#getDiffAction -> AnAction ChangesBrowserBase#getDiffAction, 32e562fd2359fc8e771ef6b5ef09bf835389dc36
+
     IntelliJ IDEA 15
     ================
     Rename FilePathImpl to LocalFilePath idea/142.2092 (appcode/142.2087), 413e49df6e531e322257af412d10dd242ce88a24

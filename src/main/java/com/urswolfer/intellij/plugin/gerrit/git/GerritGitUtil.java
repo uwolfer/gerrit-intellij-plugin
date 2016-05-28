@@ -31,6 +31,7 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.changes.ChangeListManagerImpl;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -76,8 +77,6 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
 public class GerritGitUtil {
     @Inject
     private Git git;
-    @Inject
-    private GitPlatformFacade platformFacade;
     @Inject
     private FileDocumentManager fileDocumentManager;
     @Inject
@@ -157,7 +156,7 @@ public class GerritGitUtil {
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
         fileDocumentManager.saveAllDocuments();
-        platformFacade.getChangeListManager(project).blockModalNotifications();
+        ChangeListManagerImpl.getInstanceImpl(project).blockModalNotifications();
 
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
@@ -166,19 +165,19 @@ public class GerritGitUtil {
                     if (!gitRepositoryOptional.isPresent()) return;
                     GitRepository gitRepository = gitRepositoryOptional.get();
 
-                    final VirtualFile virtualFile = gitRepository.getGitDir();
+                    final VirtualFile virtualFile = gitRepository.getRoot();
 
                     final String notLoaded = "Not loaded";
                     VcsUser notLoadedUser = new VcsUserImpl(notLoaded, notLoaded);
                     VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
                         HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
 
-                    cherryPick(gitRepository, gitCommit, git, platformFacade, project);
+                    cherryPick(gitRepository, gitCommit, git, project);
                 } finally {
                     application.invokeLater(new Runnable() {
                         public void run() {
                             virtualFileManager.syncRefresh();
-                            platformFacade.getChangeListManager(project).unblockModalNotifications();
+                            ChangeListManagerImpl.getInstanceImpl(project).unblockModalNotifications();
                         }
                     });
                 }
@@ -190,7 +189,7 @@ public class GerritGitUtil {
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
     private boolean cherryPick(@NotNull GitRepository repository, @NotNull VcsShortCommitDetails commit,
-                               @NotNull Git git, @NotNull GitPlatformFacade platformFacade, @NotNull Project project) {
+                               @NotNull Git git, @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
@@ -200,7 +199,7 @@ public class GerritGitUtil {
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
-            return new CherryPickConflictResolver(project, git, platformFacade, repository.getRoot(),
+            return new CherryPickConflictResolver(project, git, repository.getRoot(),
                     commit.getId().toShortString(), commit.getAuthor().getName(),
                     commit.getSubject()).merge();
         } else if (untrackedFilesDetector.wasMessageDetected()) {
@@ -228,9 +227,9 @@ public class GerritGitUtil {
      */
     private static class CherryPickConflictResolver extends GitConflictResolver {
 
-        public CherryPickConflictResolver(@NotNull Project project, @NotNull Git git, @NotNull GitPlatformFacade facade, @NotNull VirtualFile root,
+        public CherryPickConflictResolver(@NotNull Project project, @NotNull Git git, @NotNull VirtualFile root,
                                           @NotNull String commitHash, @NotNull String commitAuthor, @NotNull String commitMessage) {
-            super(project, git, facade, Collections.singleton(root), makeParams(commitHash, commitAuthor, commitMessage));
+            super(project, git, Collections.singleton(root), makeParams(commitHash, commitAuthor, commitMessage));
         }
 
         private static Params makeParams(String commitHash, String commitAuthor, String commitMessage) {

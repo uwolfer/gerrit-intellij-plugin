@@ -27,7 +27,6 @@ import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import git4idea.GitPlatformFacade;
 import git4idea.commands.Git;
 
 /**
@@ -49,7 +48,6 @@ public class OpenIdeDependenciesModule extends AbstractModule {
         bind(LocalFileSystem.class).toInstance(LocalFileSystem.getInstance());
 
         bind(Git.class).toInstance(ServiceManager.getService(Git.class));
-        bind(GitPlatformFacade.class).toInstance(ServiceManager.getService(GitPlatformFacade.class));
         bind(FileDocumentManager.class).toInstance(FileDocumentManager.getInstance());
         bind(VirtualFileManager.class).toInstance(VirtualFileManager.getInstance());
 

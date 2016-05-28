@@ -33,7 +33,6 @@ import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.OpenIdeDependenciesModule;
-import git4idea.GitPlatformFacade;
 import git4idea.commands.Git;
 import org.easymock.EasyMock;
 
@@ -62,7 +61,6 @@ public class GerritTestModule extends GerritModule {
         bindMock(LocalFileSystem.class);
 
         bindMock(Git.class);
-        bindMock(GitPlatformFacade.class);
         bindMock(FileDocumentManager.class);
         bindMock(VirtualFileManager.class);
 

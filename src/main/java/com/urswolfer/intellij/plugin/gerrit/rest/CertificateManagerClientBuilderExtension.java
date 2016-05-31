@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 import com.intellij.util.net.ssl.CertificateManager;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 /**
@@ -30,6 +31,7 @@ public class CertificateManagerClientBuilderExtension extends HttpClientBuilderE
     public HttpClientBuilder extend(HttpClientBuilder httpClientBuilder, GerritAuthData authData) {
         HttpClientBuilder builder = super.extend(httpClientBuilder, authData);
         builder.setSslcontext(CertificateManager.getInstance().getSslContext());
+        builder.setHostnameVerifier((X509HostnameVerifier) CertificateManager.HOSTNAME_VERIFIER);
         return builder;
     }
 }

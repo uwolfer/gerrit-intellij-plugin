@@ -38,6 +38,8 @@ import org.jetbrains.annotations.NotNull;
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class GerritPushExtension implements ApplicationComponent {
 
+    private static final String GERRIT_PUSH_FAILURE_MESSAGE = "Failed to inject Gerrit push UI.";
+
     @Inject
     private GerritSettings gerritSettings;
     @Inject
@@ -56,9 +58,9 @@ public class GerritPushExtension implements ApplicationComponent {
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
         } catch (Exception e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            log.error(GERRIT_PUSH_FAILURE_MESSAGE, e);
         } catch (Error e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            log.error(GERRIT_PUSH_FAILURE_MESSAGE, e);
         }
     }
 
@@ -90,9 +92,9 @@ public class GerritPushExtension implements ApplicationComponent {
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
         } catch (CannotCompileException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            log.error(GERRIT_PUSH_FAILURE_MESSAGE, e);
         } catch (NotFoundException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            log.error(GERRIT_PUSH_FAILURE_MESSAGE, e);
         }
     }
 

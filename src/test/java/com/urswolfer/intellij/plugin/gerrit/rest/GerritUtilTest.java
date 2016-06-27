@@ -27,6 +27,12 @@ import java.lang.reflect.Method;
  */
 public class GerritUtilTest {
 
+    private static final String PROJECT = "project";
+    private static final String HTTP_GERRIT_SERVER = "http://gerrit.server";
+    private static final String HTTP_GERRIT_SERVER_SLASH = "http://gerrit.server/";
+    private static final String HTTP_GERRIT_SERVER_R = "http://gerrit.server/r";
+    private static final String HTTP_GERRIT_SERVER_R_SLASH = "http://gerrit.server/r/";
+
     private GerritUtil gerritUtil;
 
     @BeforeMethod
@@ -41,100 +47,100 @@ public class GerritUtilTest {
         getProjectName.setAccessible(true);
 
         // Default set - test trailing / behaviour
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server",
+                        HTTP_GERRIT_SERVER,
                         "http://gerrit.server/project"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/",
+                        HTTP_GERRIT_SERVER_SLASH,
                         "http://gerrit.server/project"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server",
+                        HTTP_GERRIT_SERVER,
                         "http://gerrit.server/project/"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/",
+                        HTTP_GERRIT_SERVER_SLASH,
                         "http://gerrit.server/project/"
                 ));
 
         // Subdirectory set - test trailing / behaviour
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r",
+                        HTTP_GERRIT_SERVER_R,
                         "http://gerrit.server/r/project"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r/",
+                        HTTP_GERRIT_SERVER_R_SLASH,
                         "http://gerrit.server/r/project"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r",
+                        HTTP_GERRIT_SERVER_R,
                         "http://gerrit.server/r/project/"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r/",
+                        HTTP_GERRIT_SERVER_R_SLASH,
                         "http://gerrit.server/r/project/"
                 ));
 
         // Default set - test named .git
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server",
+                        HTTP_GERRIT_SERVER,
                         "http://gerrit.server/project.git"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/",
+                        HTTP_GERRIT_SERVER_SLASH,
                         "http://gerrit.server/project.git"
                 ));
 
 
         // Subdirectory set - test named .git
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r",
+                        HTTP_GERRIT_SERVER_R,
                         "http://gerrit.server/r/project.git"
                 ));
 
-        Assert.assertEquals("project",
+        Assert.assertEquals(PROJECT,
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r/",
+                        HTTP_GERRIT_SERVER_R_SLASH,
                         "http://gerrit.server/r/project.git"
                 ));
 
         // Test some project names with / in them
         Assert.assertEquals("project/blah/test",
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r",
+                        HTTP_GERRIT_SERVER_R,
                         "http://gerrit.server/r/project/blah/test"
                 ));
 
         Assert.assertEquals("project/blah/test",
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server/r",
+                        HTTP_GERRIT_SERVER_R,
                         "http://gerrit.server/r/project/blah/test.git"
                 ));
 
         // should not fail with an StringIndexOutOfBoundsException
         Assert.assertEquals("",
                 getProjectName.invoke(gerritUtil,
-                        "http://gerrit.server",
-                        "http://gerrit.server"
+                        HTTP_GERRIT_SERVER,
+                        HTTP_GERRIT_SERVER
                 ));
     }
 }

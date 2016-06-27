@@ -30,8 +30,9 @@ public class TextToHtml {
         if (!text.contains("\n")) {
             return text;
         }
-        text = SafeHtmlBuilder.asis(text).wikify().asString();
-        text = text.replace("</p><p>", "</p><br/><p>"); // otherwise paragraph breaks are not visible in IntelliJ...
-        return text;
+        String textLocal;
+        textLocal = SafeHtmlBuilder.asis(text).wikify().asString();
+        textLocal = textLocal.replace("</p><p>", "</p><br/><p>"); // otherwise paragraph breaks are not visible in IntelliJ...
+        return textLocal;
     }
 }

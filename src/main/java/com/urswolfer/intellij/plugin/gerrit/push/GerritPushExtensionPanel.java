@@ -71,13 +71,13 @@ public class GerritPushExtensionPanel extends JPanel {
             initialized = false;
             gerritPushTargetPanels.clear();
         }
-
+        String branchLocal = branch;
         if (branch != null) {
-            branch = branch.replaceAll("^refs/(for|drafts)/", "");
-            branch = branch.replaceAll("%.*$", "");
+            branchLocal = branch.replaceAll("^refs/(for|drafts)/", "");
+            branchLocal = branchLocal.replaceAll("%.*$", "");
         }
 
-        gerritPushTargetPanels.put(gerritPushTargetPanel, branch);
+        gerritPushTargetPanels.put(gerritPushTargetPanel, branchLocal);
     }
 
     public void initialized() {

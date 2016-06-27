@@ -287,10 +287,11 @@ public class GerritUtil {
     }
 
     public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
+        String queryLocal = query;
         if (!gerritSettings.getListAllChanges()) {
-            query = appendQueryStringForProject(project, query);
+            queryLocal = appendQueryStringForProject(project, query);
         }
-        getChanges(query, project, consumer);
+        getChanges(queryLocal, project, consumer);
     }
 
     public void getChanges(final String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
@@ -355,9 +356,10 @@ public class GerritUtil {
     }
 
     private String appendQueryStringForProject(Project project, String query) {
+        String queryLocal;
         String projectQueryPart = getProjectQueryPart(project);
-        query = Joiner.on('+').skipNulls().join(Strings.emptyToNull(query), Strings.emptyToNull(projectQueryPart));
-        return query;
+        queryLocal = Joiner.on('+').skipNulls().join(Strings.emptyToNull(query), Strings.emptyToNull(projectQueryPart));
+        return queryLocal;
     }
 
     private String getProjectQueryPart(Project project) {
@@ -400,11 +402,12 @@ public class GerritUtil {
     }
 
     private String getProjectName(String repositoryUrl, String url) {
+        String repositoryUrlLocal = repositoryUrl;
         if (!repositoryUrl.endsWith("/")) {
-            repositoryUrl = repositoryUrl + "/";
+            repositoryUrlLocal = repositoryUrl + "/";
         }
 
-        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrlLocal).getPath();
         String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
         if (path.length() >= basePath.length()) {

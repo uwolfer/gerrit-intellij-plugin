@@ -22,10 +22,11 @@ import com.intellij.openapi.extensions.PluginId;
 /**
  * @author Urs Wolfer
  */
-public class Version {
+public final class Version {
 
     private static final String PLUGIN_VERSION = PluginManager.getPlugin(PluginId.getId("com.urswolfer.intellij.plugin.gerrit")).getVersion();
 
+    private Version() {}
     public static String get() {
         return PLUGIN_VERSION;
     }

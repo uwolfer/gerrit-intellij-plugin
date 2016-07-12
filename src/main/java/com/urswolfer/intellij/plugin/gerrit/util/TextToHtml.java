@@ -21,7 +21,9 @@ import com.urswolfer.intellij.plugin.gerrit.util.safehtml.SafeHtmlBuilder;
 /**
  * @author Urs Wolfer
  */
-public class TextToHtml {
+public final class TextToHtml {
+
+    private TextToHtml() {}
 
     /**
      * Converts plain text formatted with wiki-like syntax to HTML.

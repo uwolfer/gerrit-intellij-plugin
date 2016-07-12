@@ -29,7 +29,10 @@ import javax.swing.*;
  *
  * @author Urs Wolfer
  */
-public class GerritIcons {
+public final class GerritIcons {
+
+    private GerritIcons() {}
+
     private static Icon load(String path) {
         return IconLoader.getIcon(path, GerritIcons.class);
     }

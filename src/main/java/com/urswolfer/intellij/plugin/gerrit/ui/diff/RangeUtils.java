@@ -26,7 +26,10 @@ import java.io.IOException;
 /**
  * @author Urs Wolfer
  */
-public class RangeUtils {
+public final class RangeUtils {
+
+    private RangeUtils() {}
+
     public static Comment.Range textOffsetToRange(CharSequence charsSequence, int start, int end) {
         int startLine = 1;
         int startOffset = -1;

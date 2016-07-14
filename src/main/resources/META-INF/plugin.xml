@@ -89,6 +89,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>0.9.8.2</li>
+          <ul>
+            <li>fix displaying most significant label in change list</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.9.8.1</li>
           <ul>
             <li>fix loading changes with older Gerrit versions when env is non-English</li>

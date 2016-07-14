@@ -40,10 +40,8 @@ public class DeleteAction extends AbstractLoggedInChangeAction {
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent()) {
-            if (!canPublish(selectedChange.get())) {
-                e.getPresentation().setEnabled(false);
-            }
+        if (selectedChange.isPresent() && !canPublish(selectedChange.get())) {
+            e.getPresentation().setEnabled(false);
         }
     }
 

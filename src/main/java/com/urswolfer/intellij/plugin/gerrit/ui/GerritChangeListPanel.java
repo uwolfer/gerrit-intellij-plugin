@@ -500,17 +500,17 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
 
         private static Icon getIconForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
+                if (labelInfo.rejected != null) {
+                    return Cancel;
+                }
                 if (labelInfo.approved != null) {
                     return Checked;
-                }
-                if (labelInfo.recommended != null) {
-                    return MoveUp;
                 }
                 if (labelInfo.disliked != null) {
                     return MoveDown;
                 }
-                if (labelInfo.rejected != null) {
-                    return Cancel;
+                if (labelInfo.recommended != null) {
+                    return MoveUp;
                 }
             }
             return null;
@@ -518,17 +518,17 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
 
         private static String getToolTipForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
+                if (labelInfo.rejected != null) {
+                    return labelInfo.rejected.name;
+                }
                 if (labelInfo.approved != null) {
                     return labelInfo.approved.name;
-                }
-                if (labelInfo.recommended != null) {
-                    return labelInfo.recommended.name;
                 }
                 if (labelInfo.disliked != null) {
                     return labelInfo.disliked.name;
                 }
-                if (labelInfo.rejected != null) {
-                    return labelInfo.rejected.name;
+                if (labelInfo.recommended != null) {
+                    return labelInfo.recommended.name;
                 }
             }
             return null;

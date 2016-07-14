@@ -65,11 +65,9 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         this.selectedRevisions.addObserver(new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                if (arg != null && arg instanceof String) {
-                    if (selectedChange.id.equals(arg)) {
+                if (arg != null && arg instanceof String && selectedChange.id.equals(arg)) {
                         comments = setupCommentsSupplier();
                         drafts = setupDraftsSupplier();
-                    }
                 }
             }
         });

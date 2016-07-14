@@ -45,10 +45,8 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent()) {
-            if (isSubmittable(selectedChange.get())) {
-                e.getPresentation().setEnabled(false);
-            }
+        if (selectedChange.isPresent() && isSubmittable(selectedChange.get())) {
+            e.getPresentation().setEnabled(false);
         }
     }
 

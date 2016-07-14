@@ -15,7 +15,7 @@
  */
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.1.4'
+    id 'org.jetbrains.intellij' version '0.1.10'
 }
 
 apply plugin: 'java'
@@ -67,7 +67,6 @@ intellij {
     plugins 'git4idea'
 
     publish {
-        pluginId '7272'
         channel ijPluginRepoChannel
         username System.getenv('IJ_REPO_USERNAME')
         password System.getenv('IJ_REPO_PASSWORD')

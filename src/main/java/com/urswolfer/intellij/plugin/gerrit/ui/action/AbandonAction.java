@@ -46,10 +46,8 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent()) {
-            if (!canAbandon(selectedChange.get())) {
-                e.getPresentation().setEnabled(false);
-            }
+        if (selectedChange.isPresent() && !canAbandon(selectedChange.get())) {
+            e.getPresentation().setEnabled(false);
         }
     }
 

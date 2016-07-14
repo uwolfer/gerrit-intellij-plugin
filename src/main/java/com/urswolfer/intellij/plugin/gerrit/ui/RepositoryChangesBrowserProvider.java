@@ -115,10 +115,8 @@ public class RepositoryChangesBrowserProvider {
             selectedRevisions.addObserver(new Observer() {
                 @Override
                 public void update(Observable o, Object arg) {
-                    if (arg != null && arg instanceof String && selectedChange != null) {
-                        if (selectedChange.id.equals(arg)) {
-                            updateChangesBrowser();
-                        }
+                    if (arg != null && arg instanceof String && selectedChange != null && selectedChange.id.equals(arg)) {
+                        updateChangesBrowser();
                     }
                 }
             });

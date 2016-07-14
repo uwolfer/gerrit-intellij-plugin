@@ -426,10 +426,8 @@ public class GerritUtil {
                 .listener(new NotificationListener() {
                     @Override
                     public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                            if (event.getDescription().equals("vcs")) {
-                                ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
-                            }
+                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED && event.getDescription().equals("vcs")) {
+                            ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
                         }
                     }
                 });

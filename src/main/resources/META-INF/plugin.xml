@@ -67,7 +67,7 @@
         <ul>
           <li>Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)</li>
           <li>Vote for it: Write your review and vote for it at the <a href="http://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
-          <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin/star">Star it at GitHub</a>. GitHub account required.</li>
+          <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin">Star it at GitHub</a>. GitHub account required.</li>
           <li>Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!</li>
           <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin#donations">README</a> file.</li>
         </ul>
@@ -89,6 +89,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>0.9.8.2</li>
+          <ul>
+            <li>fix displaying most significant label in change list</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.9.8.1</li>
           <ul>
             <li>fix loading changes with older Gerrit versions when env is non-English</li>

@@ -77,13 +77,13 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
-        element.setAttribute(LIST_ALL_CHANGES, "" + getListAllChanges());
-        element.setAttribute(AUTOMATIC_REFRESH, "" + getAutomaticRefresh());
+        element.setAttribute(LIST_ALL_CHANGES, Boolean.toString(getListAllChanges()));
+        element.setAttribute(AUTOMATIC_REFRESH, Boolean.toString(getAutomaticRefresh()));
         element.setAttribute(REFRESH_TIMEOUT, "" + getRefreshTimeout());
-        element.setAttribute(REVIEW_NOTIFICATIONS, "" + getReviewNotifications());
-        element.setAttribute(PUSH_TO_GERRIT, "" + getPushToGerrit());
-        element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, "" + getShowChangeNumberColumn());
-        element.setAttribute(SHOW_CHANGE_ID_COLUMN, "" + getShowChangeIdColumn());
+        element.setAttribute(REVIEW_NOTIFICATIONS, Boolean.toString(getReviewNotifications()));
+        element.setAttribute(PUSH_TO_GERRIT, Boolean.toString(getPushToGerrit()));
+        element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, Boolean.toString(getShowChangeNumberColumn()));
+        element.setAttribute(SHOW_CHANGE_ID_COLUMN, Boolean.toString(getShowChangeIdColumn()));
         return element;
     }
 

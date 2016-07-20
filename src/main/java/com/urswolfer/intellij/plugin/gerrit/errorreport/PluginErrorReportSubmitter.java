@@ -26,6 +26,7 @@ import com.intellij.openapi.diagnostic.SubmittedReportInfo;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.Version;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -86,7 +87,15 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
         httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
         try {
-            httpClient.execute(httpPost);
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                if (response.getStatusLine().getStatusCode() == 406) {
+                    String reasonPhrase = response.getStatusLine().getReasonPhrase();
+                    Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
+                }
+            } finally {
+                response.close();
+            }
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

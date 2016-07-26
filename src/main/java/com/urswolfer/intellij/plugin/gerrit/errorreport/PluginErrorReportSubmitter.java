@@ -16,14 +16,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ex.ApplicationInfoEx;
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter;
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent;
 import com.intellij.openapi.diagnostic.SubmittedReportInfo;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.Version;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -47,6 +50,17 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     @Override
     public boolean submit(IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<SubmittedReportInfo> consumer) {
+        if (Strings.isNullOrEmpty(additionalInfo) || !additionalInfo.contains("@")) {
+            String emailAddress = Messages.showInputDialog(
+                "It seems you have not included your email address.\n" +
+                "If you enter it below, you will get most probably a message " +
+                "with a solution for your issue or a question which " +
+                "will help to solve it.", "Information Required", null);
+            if (!Strings.isNullOrEmpty(emailAddress)) {
+                additionalInfo = additionalInfo == null
+                    ? emailAddress : additionalInfo + '\n' + emailAddress;
+            }
+        }
         ErrorBean errorBean = createErrorBean(events[0], additionalInfo);
         String json = new Gson().toJson(errorBean);
         postError(json);
@@ -73,7 +87,15 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
         httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
         try {
-            httpClient.execute(httpPost);
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            try {
+                if (response.getStatusLine().getStatusCode() == 406) {
+                    String reasonPhrase = response.getStatusLine().getReasonPhrase();
+                    Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
+                }
+            } finally {
+                response.close();
+            }
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

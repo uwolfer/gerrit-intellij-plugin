@@ -89,6 +89,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>0.9.9.0</li>
+          <ul>
+            <li>fix automatic update for IntelliJ 2016.2 (by bumping version number)</li>
+            <li>improvements in error reporting flow</li>
+          </ul>
           <li>0.9.8.2</li>
           <ul>
             <li>fix displaying most significant label in change list</li>

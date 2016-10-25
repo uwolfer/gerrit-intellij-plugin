@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
@@ -28,7 +29,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 /**
  * @author Urs Wolfer
  */
-public class GerritToolWindowFactory implements ToolWindowFactory {
+public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
     @Override
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
         GerritToolWindow gerritToolWindow = GerritModule.getInstance(GerritToolWindow.class);

@@ -407,7 +407,7 @@ public class GerritUtil {
         String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
         String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
-        if (path.length() >= basePath.length()) {
+        if (path.length() >= basePath.length() && path.startsWith(basePath)) {
             path = path.substring(basePath.length());
         }
 
@@ -415,6 +415,10 @@ public class GerritUtil {
 
         if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
+        }
+        // gerrit project names usually dont start with a slash
+        if (path.startsWith("/")) {
+            path = path.substring(1, path.length());
         }
 
         return path;

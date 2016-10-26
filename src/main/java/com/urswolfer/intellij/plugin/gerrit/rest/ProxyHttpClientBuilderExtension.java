@@ -60,7 +60,7 @@ public class ProxyHttpClientBuilderExtension extends HttpClientBuilderExtension 
                 // to use these credential but it's probably what the user expects.
                 if (proxySettings.PROXY_AUTHENTICATION) {
                     AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
-                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.PROXY_LOGIN, proxySettings.getPlainProxyPassword());
+                    UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.getProxyLogin(), proxySettings.getPlainProxyPassword());
                     credentialsProvider.setCredentials(authScope, credentials);
                     break;
                 }

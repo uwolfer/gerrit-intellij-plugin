@@ -89,6 +89,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>0.9.9.1</li>
+          <ul>
+            <li>fix compatibility with IntelliJ 2016.3 EAP (tool window is blank)</li>
+            <li>allow using the tool window while IntelliJ is creating index</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.9.9.0</li>
           <ul>
             <li>fix automatic update for IntelliJ 2016.2 (by bumping version number)</li>

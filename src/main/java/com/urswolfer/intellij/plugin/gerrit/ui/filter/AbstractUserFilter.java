@@ -67,7 +67,9 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     @Nullable
     public String getSearchQueryPart() {
         if (value.isPresent() && value.get().forQuery.isPresent()) {
-            return String.format("%s:%s", getQueryField(), value.get().forQuery.get());
+            String queryValue = value.get().forQuery.get();
+            queryValue = FulltextFilter.specialEncodeFulltextQuery(queryValue);
+            return String.format("%s:%s", getQueryField(), queryValue);
         } else {
             return null;
         }

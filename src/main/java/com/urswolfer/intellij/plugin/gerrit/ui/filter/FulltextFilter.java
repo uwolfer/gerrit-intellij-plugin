@@ -62,7 +62,7 @@ public class FulltextFilter extends AbstractChangesFilter {
      * @param query a query string to encode
      * @return an encoded version of the passed {@code query}
      */
-    private String specialEncodeFulltextQuery(String query) {
+    public static String specialEncodeFulltextQuery(String query) {
         return query
                 .replace("+", "%2B")
                 .replace(' ', '+')

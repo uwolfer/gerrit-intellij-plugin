@@ -61,7 +61,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                         SubmitAction submitAction,
                         NotificationService notificationService,
                         GerritSettings gerritSettings) {
-        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
+        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;

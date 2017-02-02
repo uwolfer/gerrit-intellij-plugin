@@ -141,7 +141,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, consumer, project, "Failed to post Gerrit review.");
+        accessGerrit(supplier, consumer, project, "Failed to post Gerrit review");
     }
 
     public void postSubmit(final String changeId,
@@ -159,7 +159,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, consumer, project, "Failed to submit Gerrit change.");
+        accessGerrit(supplier, consumer, project, "Failed to submit Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -176,7 +176,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -193,7 +193,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -211,7 +211,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -229,7 +229,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer");
     }
 
     /**
@@ -254,8 +254,8 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change." +
-                "<br/>Not supported for Gerrit instances older than version 2.8.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change " +
+                "(not supported for Gerrit versions older than 2.8)");
     }
 
     @SuppressWarnings("unchecked")
@@ -277,7 +277,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change.");
+        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change");
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
@@ -543,7 +543,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, consumer, project, "Failed to save draft comment.");
+        accessGerrit(supplier, consumer, project, "Failed to save draft comment");
     }
 
     public void deleteDraftComment(final int changeNr,
@@ -562,7 +562,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, consumer, project, "Failed to delete draft comment.");
+        accessGerrit(supplier, consumer, project, "Failed to delete draft comment");
     }
 
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {

@@ -232,6 +232,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private ColumnInfo[] generateColumnsInfo(@NotNull List<ChangeInfo> changes) {
         ItemAndWidth number = new ItemAndWidth("", 0);
         ItemAndWidth hash = new ItemAndWidth("", 0);
+        ItemAndWidth topic = new ItemAndWidth("", 0);
         ItemAndWidth subject = new ItemAndWidth("", 0);
         ItemAndWidth status = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
@@ -242,6 +243,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
+            topic = getMax(topic, getTopic(change));
             subject = getMax(subject, getShortenedSubject(change));
             status = getMax(status, getStatus(change));
             author = getMax(author, getOwner(change));
@@ -279,6 +281,18 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             );
         }
+        boolean showTopicColumn = gerritSettings.getShowTopicColumn();
+        if (showTopicColumn) {
+            columnList.add(
+                new GerritChangeColumnInfo("Topic", topic.item) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getTopic(change);
+                    }
+                }
+            );
+        }
+
         columnList.add(
             new GerritChangeColumnInfo("Subject", subject.item) {
                 @Override
@@ -382,6 +396,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private static String getHash(ChangeInfo change) {
         return change.changeId.substring(0, 9);
+    }
+
+    private static String getTopic(ChangeInfo change) {
+        return change.topic;
     }
 
     private static String getShortenedSubject(ChangeInfo change) {

@@ -58,6 +58,7 @@ public class SettingsPanel {
     private JCheckBox pushToGerritCheckbox;
     private JCheckBox showChangeNumberColumnCheckBox;
     private JCheckBox showChangeIdColumnCheckBox;
+    private JCheckBox showTopicColumnCheckBox;
 
     private boolean passwordModified;
 
@@ -226,6 +227,14 @@ public class SettingsPanel {
 
     public void setShowChangeIdColumn(final boolean showChangeIdColumn) {
         showChangeIdColumnCheckBox.setSelected(showChangeIdColumn);
+    }
+
+    public boolean getShowTopicColumn() {
+        return showTopicColumnCheckBox.isSelected();
+    }
+
+    public void setShowTopicColumn(final boolean showTopicColumn) {
+        showTopicColumnCheckBox.setSelected(showTopicColumn);
     }
 
     public boolean isPasswordModified() {

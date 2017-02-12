@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.*;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.issueLinks.IssueLinkHtmlRenderer;
 import com.intellij.ui.components.JBScrollPane;
@@ -30,6 +31,8 @@ import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -73,6 +76,12 @@ public class GerritChangeDetailsPanel {
         jEditorPane.setPreferredSize(new Dimension(150, 100));
         jEditorPane.setEditable(false);
         jEditorPane.setBackground(UIUtil.getComboBoxDisabledBackground());
+        jEditorPane.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(HyperlinkEvent e) {
+                GerritChangeDetailsPanel.this.handleHyperlinkEvent(e);
+            }
+        });
 
         final JBScrollPane tableScroll = new JBScrollPane(jEditorPane);
         tableScroll.setBorder(null);
@@ -103,6 +112,12 @@ public class GerritChangeDetailsPanel {
         ((CardLayout) panel.getLayout()).show(panel, DATA);
 
         changeDetailsText();
+    }
+
+    private void handleHyperlinkEvent(HyperlinkEvent e) {
+        if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+            BrowserUtil.browse(e.getURL());
+        }
     }
 
     private void changeDetailsText() {

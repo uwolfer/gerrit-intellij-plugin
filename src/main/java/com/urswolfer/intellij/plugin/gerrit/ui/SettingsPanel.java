@@ -23,6 +23,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.ui.EnumComboBoxModel;
 import com.intellij.ui.GuiUtils;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -59,6 +60,7 @@ public class SettingsPanel {
     private JCheckBox showChangeNumberColumnCheckBox;
     private JCheckBox showChangeIdColumnCheckBox;
     private JCheckBox showTopicColumnCheckBox;
+    private JComboBox showProjectColumnComboBox;
 
     private boolean passwordModified;
 
@@ -126,6 +128,8 @@ public class SettingsPanel {
                 updateAutomaticRefresh();
             }
         });
+
+        showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
     }
 
     public static void fixUrl(JTextField textField) {
@@ -235,6 +239,14 @@ public class SettingsPanel {
 
     public void setShowTopicColumn(final boolean showTopicColumn) {
         showTopicColumnCheckBox.setSelected(showTopicColumn);
+    }
+
+    public ShowProjectColumn getShowProjectColumn() {
+        return (ShowProjectColumn) showProjectColumnComboBox.getModel().getSelectedItem();
+    }
+
+    public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
+        showProjectColumnComboBox.getModel().setSelectedItem(showProjectColumn);
     }
 
     public boolean isPasswordModified() {

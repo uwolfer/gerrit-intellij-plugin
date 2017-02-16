@@ -76,7 +76,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
                 !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
-                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()));
+                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn())) ||
+                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn());
     }
 
     private boolean isPasswordModified() {
@@ -99,6 +100,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
             gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
             gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
+            gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
 
             gerritUpdatesNotificationComponent.handleConfigurationChange();
         }
@@ -119,6 +121,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             settingsPane.setShowChangeNumberColumn(gerritSettings.getShowChangeNumberColumn());
             settingsPane.setShowChangeIdColumn(gerritSettings.getShowChangeIdColumn());
             settingsPane.setShowTopicColumn(gerritSettings.getShowTopicColumn());
+            settingsPane.setShowProjectColumn(gerritSettings.getShowProjectColumn());
         }
     }
 

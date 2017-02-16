@@ -27,12 +27,10 @@ import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
+import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubSettings
@@ -60,6 +58,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_CHANGE_NUMBER_COLUMN = "ShowChangeNumberColumn";
     private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
     private static final String SHOW_TOPIC_COLUMN = "ShowTopicColumn";
+    private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
     private String login;
@@ -72,6 +71,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showChangeNumberColumn;
     private boolean showChangeIdColumn;
     private boolean showTopicColumn;
+    private ShowProjectColumn showProjectColumn;
 
     private Logger log;
 
@@ -87,6 +87,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, Boolean.toString(getShowChangeNumberColumn()));
         element.setAttribute(SHOW_CHANGE_ID_COLUMN, Boolean.toString(getShowChangeIdColumn()));
         element.setAttribute(SHOW_TOPIC_COLUMN, Boolean.toString(getShowTopicColumn()));
+        element.setAttribute(SHOW_PROJECT_COLUMN, getShowProjectColumn().name());
         return element;
     }
 
@@ -104,6 +105,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setShowChangeNumberColumn(getBooleanValue(element, SHOW_CHANGE_NUMBER_COLUMN));
             setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
             setShowTopicColumn(getBooleanValue(element, SHOW_TOPIC_COLUMN));
+            setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
         }
@@ -124,6 +126,15 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             return Integer.valueOf(attributeValue);
         } else {
             return 0;
+        }
+    }
+
+    private ShowProjectColumn getShowProjectColumnValue(Element element, String attributeName) {
+        String attributeValue = element.getAttributeValue(attributeName);
+        if (attributeValue != null) {
+            return ShowProjectColumn.valueOf(attributeValue);
+        } else {
+            return ShowProjectColumn.AUTO;
         }
     }
 
@@ -238,6 +249,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public boolean getShowTopicColumn() {
         return showTopicColumn;
+    }
+
+    public ShowProjectColumn getShowProjectColumn() {
+        return showProjectColumn;
+    }
+
+    public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
+        this.showProjectColumn = showProjectColumn;
     }
 
     public void setShowTopicColumn(boolean showTopicColumn) {

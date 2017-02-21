@@ -50,6 +50,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import git4idea.GitUtil;
+import git4idea.repo.GitRepositoryManager;
 import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,6 +87,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     private final TableView<ChangeInfo> table;
     private GerritToolWindow gerritToolWindow;
     private LoadChangesProxy loadChangesProxy = null;
+
+    private Project project;
 
     private volatile boolean loadingMoreChanges = false;
     private final JScrollPane scrollPane;
@@ -132,6 +136,10 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             }
         });
         add(scrollPane);
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     @Override
@@ -317,14 +325,19 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
         );
-        columnList.add(
-            new GerritChangeColumnInfo("Project", project.item) {
-                @Override
-                public String valueOf(ChangeInfo change) {
-                    return getProject(change);
+        ShowProjectColumn showProjectColumn = gerritSettings.getShowProjectColumn();
+        boolean listAllChanges = gerritSettings.getListAllChanges();
+        if (showProjectColumn == ShowProjectColumn.ALWAYS
+            || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos()))) {
+            columnList.add(
+                new GerritChangeColumnInfo("Project", project.item) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getProject(change);
+                    }
                 }
-            }
-        );
+            );
+        }
         columnList.add(
             new GerritChangeColumnInfo("Branch", branch.item) {
                 @Override
@@ -354,6 +367,14 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         columnList.add(selectRevisionInfoColumn);
 
         return columnList.toArray(new ColumnInfo[columnList.size()]);
+    }
+
+    private boolean hasProjectMultipleRepos() {
+        if (project == null) {
+            return false;
+        }
+        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+        return repositoryManager.getRepositories().size() > 1;
     }
 
     /**

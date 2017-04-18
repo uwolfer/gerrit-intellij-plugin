@@ -634,6 +634,9 @@ public class GerritUtil {
     }
 
     public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {
+        if (revisionInfo == null) {
+            return null;
+        }
         return Iterables.getFirst(revisionInfo.fetch.values(), null);
     }
 

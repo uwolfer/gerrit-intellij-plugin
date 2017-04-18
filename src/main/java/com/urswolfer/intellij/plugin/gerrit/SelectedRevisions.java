@@ -54,7 +54,7 @@ public class SelectedRevisions extends Observable {
                 currentRevision = Iterables.getLast(revisionKeys);
             }
         }
-        return get(changeInfo.id).or(currentRevision);
+        return get(changeInfo.id).or(Optional.fromNullable(currentRevision)).orNull();
     }
 
     public void put(String changeId, String revisionHash) {

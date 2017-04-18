@@ -69,6 +69,9 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Override
     public String valueOf(ChangeInfo changeInfo) {
         String activeRevision = selectedRevisions.get(changeInfo);
+        if (activeRevision == null) {
+            return "";
+        }
         RevisionInfo revisionInfo = changeInfo.revisions.get(activeRevision);
         return getRevisionLabelFunction(changeInfo).apply(Pair.create(activeRevision, revisionInfo));
     }

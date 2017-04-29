@@ -158,6 +158,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     @Override
+    public boolean isHttpPassword() {
+        return false;
+    }
+
+    @Override
     public String getHost() {
         return host;
     }

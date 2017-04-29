@@ -106,7 +106,7 @@ It's very easy to set it up as an IntelliJ project.
 1. Activate plugins ```Gradle```, ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
 2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
 3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select file ```build.gradle``` in ```gerrit-intellij-plugin``` folder and press "OK")
-4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIdea"
+4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIde"
 5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
    project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).
 

@@ -56,7 +56,7 @@ dependencies {
     compile 'org.javassist:javassist:3.19.0-GA'
 
     testCompile 'org.testng:testng:6.8.7'
-    testCompile 'org.easymock:easymock:3.2'
+    testCompile 'org.easymock:easymock:3.4'
 }
 
 intellij {

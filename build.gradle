@@ -41,10 +41,10 @@ repositories {
 }
 
 dependencies {
-    compile ('com.google.inject:guice:4.0') {
+    compile ('com.google.inject:guice:4.1') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.google.inject.extensions:guice-multibindings:4.0') {
+    compile ('com.google.inject.extensions:guice-multibindings:4.1.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
     compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.12') {

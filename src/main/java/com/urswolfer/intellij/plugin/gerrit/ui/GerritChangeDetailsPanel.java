@@ -49,6 +49,10 @@ public class GerritChangeDetailsPanel {
     private final static String LOADING = "loading";
     private final static String DATA = "data";
     private final static String MULTIPLE_SELECTED = "multiple_selected";
+    private static final String HTML_B_TD_TR_CLOSE = "</b></td></tr>";
+    private static final String HTML_TD_TR_CLOSE = "</td></tr>";
+    private static final String HTML_BR = "<br/>";
+
     private final static ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
         protected DecimalFormat initialValue() {
@@ -154,20 +158,20 @@ public class GerritChangeDetailsPanel {
             final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.subject);
             sb.append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
-                    .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Change #:</i></td><td><b>").append(changeInfo._number).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? changeInfo.owner.name : "").append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append(HTML_B_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Change #:</i></td><td><b>").append(changeInfo._number).append(HTML_B_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? changeInfo.owner.name : "").append(HTML_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append(HTML_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append(HTML_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append(HTML_TD_TR_CLOSE)
                     .append("<tr valign=\"top\"><td><i>Uploaded:</i></td><td>")
                     .append(changeInfo.created != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.created) : "")
-                    .append("</td></tr>")
+                    .append(HTML_TD_TR_CLOSE)
                     .append("<tr valign=\"top\"><td><i>Updated:</i></td><td>")
                     .append(changeInfo.updated != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.updated) : "")
-                    .append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.status).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
+                    .append(HTML_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.status).append(HTML_TD_TR_CLOSE)
+                    .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append(HTML_B_TD_TR_CLOSE);
         }
 
         private void addLabels(ChangeInfo changeInfo, StringBuilder sb) {
@@ -187,17 +191,17 @@ public class GerritChangeDetailsPanel {
                         for (ApprovalInfo approvalInfo : all) {
                             if (approvalInfo.value != null && approvalInfo.value != 0) {
                                 sb.append("<b>").append(approvalInfo.name).append("</b>").append(": ");
-                                sb.append(APPROVAL_VALUE_FORMAT.get().format(approvalInfo.value)).append("<br/>");
+                                sb.append(APPROVAL_VALUE_FORMAT.get().format(approvalInfo.value)).append(HTML_BR);
                                 ccAccounts.remove(approvalInfo); // remove accounts from CC which are already listed in a review section
                             }
                         }
                     }
-                    sb.append("</td></tr>");
+                    sb.append(HTML_TD_TR_CLOSE);
                 }
                 if (ccAccounts != null) {
                     sb.append("<tr valign=\"top\"><td><i>").append("CC").append(":</i></td><td>");
                     for (ApprovalInfo approvalInfo : ccAccounts) {
-                        sb.append("<b>").append(approvalInfo.name).append("</b>").append("<br/>");
+                        sb.append("<b>").append(approvalInfo.name).append("</b>").append(HTML_BR);
                     }
                 }
             }
@@ -215,9 +219,9 @@ public class GerritChangeDetailsPanel {
                         }
                         sb.append(": ");
                     }
-                    sb.append(TextToHtml.textToHtml(changeMessageInfo.message)).append("<br/>");
+                    sb.append(TextToHtml.textToHtml(changeMessageInfo.message)).append(HTML_BR);
                 }
-                sb.append("</td></tr>");
+                sb.append(HTML_TD_TR_CLOSE);
             }
         }
 

@@ -370,10 +370,11 @@ public class GerritGitUtil {
 
         @Override
         public void onLineAvailable(String s, Key key) {
+            String sLocal = s;
             if ( s.startsWith("\t") ) {
-                s = "<b>" + s.substring(1) + "</b>";
+                sLocal = "<b>" + s.substring(1) + "</b>";
             }
-            messages.add(s);
+            messages.add(sLocal);
         }
 
         @Override

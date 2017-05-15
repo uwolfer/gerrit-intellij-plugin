@@ -102,9 +102,10 @@ public class ReviewActionGroup extends ActionGroup {
                     values, new Function<String, Integer>() {
                         @Override
                         public Integer apply(String v) {
-                            v = v.trim();
-                            if (v.charAt(0) == '+') v = v.substring(1); // required for Java 6 support
-                            return Integer.valueOf(v);
+                            String vLocal;
+                            vLocal = v.trim();
+                            if (vLocal.charAt(0) == '+') vLocal = vLocal.substring(1); // required for Java 6 support
+                            return Integer.valueOf(vLocal);
                         }
                     }));
                 Collections.sort(intValues);

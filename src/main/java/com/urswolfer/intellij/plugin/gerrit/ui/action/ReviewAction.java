@@ -21,6 +21,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.gerrit.extensions.api.changes.NotifyHandling;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
@@ -61,7 +62,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                         SubmitAction submitAction,
                         NotificationService notificationService,
                         GerritSettings gerritSettings) {
-        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating, icon);
+        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
@@ -108,7 +109,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                     submitChange = dialog.getReviewPanel().getSubmitChange();
 
                     if (!dialog.getReviewPanel().getDoNotify()) {
-                        reviewInput.notify = ReviewInput.NotifyHandling.NONE;
+                        reviewInput.notify = NotifyHandling.NONE;
                     }
                 }
 

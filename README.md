@@ -6,7 +6,8 @@ gerrit-intellij-plugin
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supports any product based on the IntelliJ platform:
+Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
+[Gerrit Code Review](https://www.gerritcodereview.com/) tool. It supports any product based on the IntelliJ platform:
 * IntelliJ IDEA
 * IntelliJ IDEA CE
 * RubyMine
@@ -16,18 +17,15 @@ Unofficial [IntelliJ Platform] plugin for the [Gerrit Code Review] tool. It supp
 * PyCharm CE
 * AppCode
 * Android Studio
-* 0xDBE
+* DataGrip
 * CLion
+* Gogland
 * Rider
 
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
-[IntelliJ Platform]: http://www.jetbrains.com/idea/
-[Gerrit Code Review]: https://www.gerritcodereview.com/
-
-You can install this plugin from the [IntelliJ Plugin Manager].
+You can install this plugin from the [IntelliJ Plugin Manager](http://plugins.jetbrains.com/plugin/7272).
 If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
-[IntelliJ Plugin Manager]: http://plugins.jetbrains.com/plugin/7272
 
 ###### Pre-Releases
 If you want to get new releases earlier, you can subscribe to the release-candidate plugin channel:
@@ -41,12 +39,10 @@ Your Support
 ------------
 If you like this plugin, you can support it:
 * Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even encourage them to use these fantastic products!)
-* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository].
-* Star it: [Star it at GitHub]. GitHub account required.
+* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository](http://plugins.jetbrains.com/plugin/7272).
+* Star it: [Star it at GitHub](https://github.com/uwolfer/gerrit-intellij-plugin). GitHub account required.
 * Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!
 * Donate: You can find donation-possibilities at the bottom of this file.
-[IntelliJ plugin repository]: http://plugins.jetbrains.com/plugin/7272
-[Star it at GitHub]: https://github.com/uwolfer/gerrit-intellij-plugin
 
 Troubleshooting
 ---------------
@@ -78,32 +74,27 @@ error or checking out does not properly finish, you can try to:
 * use SSH clone URL in checkout dialog (you can find the SSH URL in the Gerrit Web UI project settings)
 * or: check out with the default Git plugin and set up the Gerrit plugin manually afterwards
 
-You can find background information about this issue in a [Gerrit mailing list topic].
-[Gerrit mailing list topic]: https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820
+You can find background information about this issue in a [Gerrit mailing list topic](https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820).
 
 ### Loading file-diff-list is slow
 Diff viewing is based on Git operations (i.e. it fetches the commit from the Gerrit remote). When loading the file list
-takes a lot of time, you can run a local "[git gc]" and ask your Gerrit administrator to do run a "[gerrit gc]".
-[git gc]: https://www.kernel.org/pub/software/scm/git/docs/git-gc.html
-[gerrit gc]: https://gerrit-review.googlesource.com/Documentation/cmd-gc.html
+takes a lot of time, you can run a local "[git gc](https://www.kernel.org/pub/software/scm/git/docs/git-gc.html)"
+and ask your Gerrit administrator to do run a "[gerrit gc](https://gerrit-review.googlesource.com/Documentation/cmd-gc.html)".
 
 Architecture
 ------------
 ### IntelliJ Integration
-The plugin is integrated into the IntelliJ IDE with a [tool window].
-[tool window]: http://confluence.jetbrains.com/display/IDEADEV/IntelliJ+IDEA+Tool+Windows
+The plugin is integrated into the IntelliJ IDE with a [tool window](http://confluence.jetbrains.com/display/IDEADEV/IntelliJ+IDEA+Tool+Windows).
 See package <code>com.urswolfer.intellij.plugin.gerrit.ui</code>.
 
 ### REST API
-Most of the communication between the plugin and a Gerrit instance is based on the [Gerrit REST API].
-The REST specific part is available as [standalone implementation].
-[Gerrit REST API]: https://gerrit-review.googlesource.com/Documentation/rest-api.html
-[standalone implementation]: https://github.com/uwolfer/gerrit-rest-java-client
+Most of the communication between the plugin and a Gerrit instance is based on the [Gerrit REST API](https://gerrit-review.googlesource.com/Documentation/rest-api.html).
+The REST specific part is available as [standalone implementation](https://github.com/uwolfer/gerrit-rest-java-client).
 See package <code>com.urswolfer.intellij.plugin.gerrit.rest</code>.
 
 ### Git
-Some actions like comparing and listing files are based on Git operations. [IntelliJ Git4Idea] is used for these operations.
-[IntelliJ Git4Idea]:http://git.jetbrains.org/?p=idea/community.git;a=tree;f=plugins/git4idea
+Some actions like comparing and listing files are based on Git operations.
+[IntelliJ Git4Idea](http://git.jetbrains.org/?p=idea/community.git;a=tree;f=plugins/git4idea) is used for these operations.
 See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 
 
@@ -115,7 +106,7 @@ It's very easy to set it up as an IntelliJ project.
 1. Activate plugins ```Gradle```, ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
 2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
 3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select file ```build.gradle``` in ```gerrit-intellij-plugin``` folder and press "OK")
-4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIdea"
+4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIde"
 5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
    project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).
 
@@ -129,10 +120,10 @@ Credits
 
 Donations
 --------
-If you like this work, you can support it with [this donation link]. If you don't like Paypal
-(Paypal takes 2.9% plus $0.30 per transaction fee from your donation), please contact me.
+If you like this work, you can support it with
+[this donation link](https://www.paypal.com/webscr?cmd=_s-xclick&hosted_button_id=8F2GZVBCVEDUQ).
+If you don't like Paypal (Paypal takes 2.9% plus $0.30 per transaction fee from your donation), please contact me.
 Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verify that it is correct.
-[this donation link]: https://www.paypal.com/webscr?cmd=_s-xclick&hosted_button_id=8F2GZVBCVEDUQ
 
 
 Copyright and license

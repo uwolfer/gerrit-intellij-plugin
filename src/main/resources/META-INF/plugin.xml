@@ -89,6 +89,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.0</li>
+          <ul>
+            <li>add columns "Project" and "Topic" (optional) (thanks to eekboom)</li>
+            <li>handle hyperlinks in change details (thanks to eekboom)</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>0.9.9.1</li>
           <ul>
             <li>fix compatibility with IntelliJ 2016.3 EAP (tool window is blank)</li>

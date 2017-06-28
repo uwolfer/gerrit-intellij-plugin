@@ -24,6 +24,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
 import java.util.concurrent.Callable;
@@ -36,7 +38,8 @@ public class FetchAction {
     private GerritUtil gerritUtil;
     @Inject
     private GerritGitUtil gerritGitUtil;
-
+    @Inject
+    private NotificationService notificationService;
 
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> successCallable) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
@@ -44,7 +47,12 @@ public class FetchAction {
             public void consume(ChangeInfo changeDetails) {
 
                 Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.project);
-                if (!gitRepository.isPresent()) return;
+                if (!gitRepository.isPresent()) {
+                    NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                        String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));
+                    notificationService.notifyError(notification);
+                    return;
+                }
 
                 FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
                 if (firstFetchInfo == null) {

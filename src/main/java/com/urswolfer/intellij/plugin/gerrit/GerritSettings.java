@@ -71,7 +71,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showChangeNumberColumn;
     private boolean showChangeIdColumn;
     private boolean showTopicColumn;
-    private ShowProjectColumn showProjectColumn;
+    private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
 
     private Logger log;
 

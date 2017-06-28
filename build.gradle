@@ -15,7 +15,7 @@
  */
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.1.10'
+    id 'org.jetbrains.intellij' version '0.2.9'
 }
 
 apply plugin: 'java'
@@ -41,22 +41,22 @@ repositories {
 }
 
 dependencies {
-    compile ('com.google.inject:guice:4.0') {
+    compile ('com.google.inject:guice:4.1') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.google.inject.extensions:guice-multibindings:4.0') {
+    compile ('com.google.inject.extensions:guice-multibindings:4.1.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.8') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.12') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    compile 'org.javassist:javassist:3.19.0-GA'
+    compile 'org.javassist:javassist:3.21.0-GA'
 
-    testCompile 'org.testng:testng:6.8.7'
-    testCompile 'org.easymock:easymock:3.2'
+    testCompile 'org.testng:testng:6.8.21'
+    testCompile 'org.easymock:easymock:3.4'
 }
 
 intellij {
@@ -66,8 +66,8 @@ intellij {
     downloadSources Boolean.valueOf(downloadIdeaSources)
     plugins 'git4idea'
 
-    publish {
-        channel ijPluginRepoChannel
+    publishPlugin {
+        channels ijPluginRepoChannel
         username System.getenv('IJ_REPO_USERNAME')
         password System.getenv('IJ_REPO_PASSWORD')
     }

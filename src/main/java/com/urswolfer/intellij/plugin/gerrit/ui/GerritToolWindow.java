@@ -61,6 +61,7 @@ public class GerritToolWindow {
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel.registerChangeListPanel(this);
+        changeListPanel.setProject(project);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);
 

@@ -111,9 +111,6 @@ public class GerritGitUtil {
                 }
             }
         }
-        NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                String.format("No repository found for Gerrit project: '%s'.", gerritProjectName));
-        notificationService.notifyError(notification);
         return Optional.absent();
     }
 
@@ -162,7 +159,12 @@ public class GerritGitUtil {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     Optional<GitRepository> gitRepositoryOptional = getRepositoryForGerritProject(project, changeInfo.project);
-                    if (!gitRepositoryOptional.isPresent()) return;
+                    if (!gitRepositoryOptional.isPresent()) {
+                        NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                            String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));
+                        notificationService.notifyError(notification);
+                        return;
+                    }
                     GitRepository gitRepository = gitRepositoryOptional.get();
 
                     final VirtualFile virtualFile = gitRepository.getGitDir();

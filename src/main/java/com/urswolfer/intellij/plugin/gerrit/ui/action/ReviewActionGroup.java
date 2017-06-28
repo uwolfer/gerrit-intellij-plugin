@@ -85,8 +85,10 @@ public class ReviewActionGroup extends ActionGroup {
         }
         Map<String, Collection<String>> permittedLabels = selectedChange.get().permittedLabels;
         List<AnAction> labels = Lists.newArrayList();
-        for (Map.Entry<String, Collection<String>> entry : permittedLabels.entrySet()) {
-            labels.add(createLabelGroup(entry));
+        if (permittedLabels != null) {
+            for (Map.Entry<String, Collection<String>> entry : permittedLabels.entrySet()) {
+                labels.add(createLabelGroup(entry));
+            }
         }
         return labels.toArray(new AnAction[labels.size()]);
     }

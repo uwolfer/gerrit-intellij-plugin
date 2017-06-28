@@ -74,6 +74,12 @@ public class CheckoutAction extends AbstractChangeAction {
                         GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
                         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
                                 getRepositoryForGerritProject(project, changeDetails.project);
+                        if (!gitRepositoryOptional.isPresent()) {
+                            NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                                String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));
+                            notificationService.notifyError(notification);
+                            return null;
+                        }
                         String branchName = buildBranchName(changeDetails);
                         final GitRepository repository = gitRepositoryOptional.get();
                         List<GitRepository> gitRepositories = Collections.singletonList(repository);
@@ -98,7 +104,7 @@ public class CheckoutAction extends AbstractChangeAction {
         if (topic == null) {
             topic = "" + changeDetails._number;
         }
-        String branchName = "review/" + changeDetails.owner.name.toLowerCase().replace(" ", "_") + '/' + topic;
+        String branchName = "review/" + changeDetails.owner.name.toLowerCase().replace(" ", "_").replace("?", "_") + '/' + topic;
         if (revisionInfo._number != changeDetails.revisions.size()) {
             branchName += "-patch" + revisionInfo._number;
         }

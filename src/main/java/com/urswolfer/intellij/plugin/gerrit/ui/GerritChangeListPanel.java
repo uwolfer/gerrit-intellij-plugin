@@ -47,6 +47,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
+import git4idea.GitUtil;
+import git4idea.repo.GitRepositoryManager;
 import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -82,6 +84,8 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
     private final TableView<ChangeInfo> table;
     private GerritToolWindow gerritToolWindow;
     private LoadChangesProxy loadChangesProxy = null;
+
+    private Project project;
 
     private volatile boolean loadingMoreChanges = false;
     private final JScrollPane scrollPane;
@@ -129,6 +133,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
             }
         });
         add(scrollPane);
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 
     @Override
@@ -232,6 +240,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
     private ColumnInfo[] generateColumnsInfo(@NotNull List<ChangeInfo> changes) {
         ItemAndWidth number = new ItemAndWidth("", 0);
         ItemAndWidth hash = new ItemAndWidth("", 0);
+        ItemAndWidth topic = new ItemAndWidth("", 0);
         ItemAndWidth subject = new ItemAndWidth("", 0);
         ItemAndWidth status = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
@@ -242,6 +251,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
+            topic = getMax(topic, getTopic(change));
             subject = getMax(subject, getShortenedSubject(change));
             status = getMax(status, getStatus(change));
             author = getMax(author, getOwner(change));
@@ -279,6 +289,18 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
                 }
             );
         }
+        boolean showTopicColumn = gerritSettings.getShowTopicColumn();
+        if (showTopicColumn) {
+            columnList.add(
+                new GerritChangeColumnInfo("Topic", topic.item) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getTopic(change);
+                    }
+                }
+            );
+        }
+
         columnList.add(
             new GerritChangeColumnInfo("Subject", subject.item) {
                 @Override
@@ -303,14 +325,19 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
                 }
             }
         );
-        columnList.add(
-            new GerritChangeColumnInfo("Project", project.item) {
-                @Override
-                public String valueOf(ChangeInfo change) {
-                    return getProject(change);
+        ShowProjectColumn showProjectColumn = gerritSettings.getShowProjectColumn();
+        boolean listAllChanges = gerritSettings.getListAllChanges();
+        if (showProjectColumn == ShowProjectColumn.ALWAYS
+            || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos()))) {
+            columnList.add(
+                new GerritChangeColumnInfo("Project", project.item) {
+                    @Override
+                    public String valueOf(ChangeInfo change) {
+                        return getProject(change);
+                    }
                 }
-            }
-        );
+            );
+        }
         columnList.add(
             new GerritChangeColumnInfo("Branch", branch.item) {
                 @Override
@@ -340,6 +367,14 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         columnList.add(selectRevisionInfoColumn);
 
         return columnList.toArray(new ColumnInfo[columnList.size()]);
+    }
+
+    private boolean hasProjectMultipleRepos() {
+        if (project == null) {
+            return false;
+        }
+        GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+        return repositoryManager.getRepositories().size() > 1;
     }
 
     /**
@@ -382,6 +417,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
 
     private static String getHash(ChangeInfo change) {
         return change.changeId.substring(0, 9);
+    }
+
+    private static String getTopic(ChangeInfo change) {
+        return change.topic;
     }
 
     private static String getShortenedSubject(ChangeInfo change) {

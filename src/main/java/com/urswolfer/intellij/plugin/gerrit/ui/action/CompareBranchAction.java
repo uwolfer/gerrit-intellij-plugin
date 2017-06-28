@@ -25,6 +25,8 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 import git4idea.ui.branch.GitCompareBranchesDialog;
@@ -42,6 +44,8 @@ public class CompareBranchAction extends AbstractChangeAction {
     private GerritGitUtil gerritGitUtil;
     @Inject
     private FetchAction fetchAction;
+    @Inject
+    private NotificationService notificationService;
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
@@ -66,7 +70,12 @@ public class CompareBranchAction extends AbstractChangeAction {
 
     private void diffChange(Project project, ChangeInfo changeInfo) {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
-        if (!gitRepositoryOptional.isPresent()) return;
+        if (!gitRepositoryOptional.isPresent()) {
+            NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));
+            notificationService.notifyError(notification);
+            return;
+        }
         GitRepository gitRepository = gitRepositoryOptional.get();
 
         final String branchName = "FETCH_HEAD";

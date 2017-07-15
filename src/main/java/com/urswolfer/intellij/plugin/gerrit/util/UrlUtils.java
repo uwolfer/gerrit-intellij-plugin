@@ -35,6 +35,7 @@ public class UrlUtils {
         if (!gitConfigUrl.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
             gitConfigUrl = "git://" + gitConfigUrl;
         }
+        gitConfigUrl = gitConfigUrl.replace(" ", "%20");
         return URI.create(gitConfigUrl);
     }
 

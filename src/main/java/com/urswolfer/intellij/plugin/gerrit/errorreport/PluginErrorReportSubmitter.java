@@ -41,7 +41,7 @@ import java.io.IOException;
  */
 public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
-    private static final String ERROR_REPORT_URL = "http://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
+    private static final String ERROR_REPORT_URL = "https://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
 
     @Override
     public String getReportActionText() {

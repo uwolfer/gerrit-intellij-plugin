@@ -39,6 +39,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.awt.event.MouseEvent;
+import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
 import java.util.Map;
@@ -141,6 +142,9 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     }
 
     private List<String> getRevisions(ChangeInfo changeInfo) {
+        if (changeInfo.revisions == null) {
+            return Collections.emptyList();
+        }
         Set<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
                 RevisionInfos.MAP_ENTRY_COMPARATOR,
                 changeInfo.revisions.entrySet());

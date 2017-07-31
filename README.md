@@ -2,6 +2,8 @@ gerrit-intellij-plugin
 ======================
 
 [![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
+[![Version](http://phpstorm.espend.de/badge/7272/version)](https://plugins.jetbrains.com/plugin/7272)
+[![Downloads](http://phpstorm.espend.de/badge/7272/downloads)](https://plugins.jetbrains.com/plugin/7272)
 
 Introduction
 -----------
@@ -22,10 +24,21 @@ Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
 * Gogland
 * Rider
 
+*Compiled with Java 1.6*
+
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
-You can install this plugin from the [IntelliJ Plugin Manager](http://plugins.jetbrains.com/plugin/7272).
-If you install this plugin directly in your IDE's plugin manager, you will get notified when a new release is available.
+Installation
+------------
+- Using IDE built-in plugin system (suggested: you'll get notified when an update is available):
+  - <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Browse repositories...</kbd> >
+  <kbd>Search for "Gerrit"</kbd> > <kbd>Install Plugin</kbd>
+- Manually:
+  - Download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
+  matching your IntelliJ version and install it manually using
+  <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Install plugin from disk...</kbd>
+  
+Restart your IDE.
 
 ###### Pre-Releases
 If you want to get new releases earlier, you can subscribe to the release-candidate plugin channel:
@@ -113,6 +126,11 @@ It's very easy to set it up as an IntelliJ project.
 Once ```build.gradle``` gets updated, you need to "Refresh all Gradle projects" in the Gradle panel.
 
 
+Contributing
+------------
+Check the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
+
+
 Credits
 ------
 * IntelliJ Github plugin (some code of this plugin is based on its code)
@@ -129,7 +147,7 @@ Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verif
 Copyright and license
 --------------------
 
-Copyright 2013 - 2016 Urs Wolfer
+Copyright 2013 - 2017 Urs Wolfer
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.

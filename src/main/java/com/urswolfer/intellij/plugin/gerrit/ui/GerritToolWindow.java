@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.diff.DiffManager;
@@ -45,6 +46,7 @@ import java.util.Observer;
  * @author Urs Wolfer
  * @author Konrad Dobrzynski
  */
+@Singleton
 public class GerritToolWindow {
     @Inject
     private DiffManager diffManager;

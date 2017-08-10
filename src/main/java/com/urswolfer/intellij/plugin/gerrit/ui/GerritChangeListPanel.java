@@ -49,7 +49,6 @@ import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
-import com.urswolfer.intellij.plugin.gerrit.util.GerritDataKeys;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepositoryManager;
 import icons.Git4ideaIcons;
@@ -200,10 +199,8 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         });
     }
 
-    // Make changes available for diff action
     @Override
     public void calcData(DataKey key, DataSink sink) {
-        sink.put(GerritDataKeys.TOOL_WINDOW, gerritToolWindow);
     }
 
     public TableView<ChangeInfo> getTable() {

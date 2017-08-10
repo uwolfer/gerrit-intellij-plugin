@@ -29,5 +29,4 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 public interface GerritDataKeys {
     DataKey<ChangeInfo> CHANGE = DataKey.create("gerrit.Change");
     DataKey<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = DataKey.create("gerrit.Change.BaseRevision");
-    DataKey<GerritToolWindow> TOOL_WINDOW = DataKey.create("gerrit.ToolWindow");
 }

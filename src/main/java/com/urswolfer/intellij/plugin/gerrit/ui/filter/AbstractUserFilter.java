@@ -29,8 +29,6 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 

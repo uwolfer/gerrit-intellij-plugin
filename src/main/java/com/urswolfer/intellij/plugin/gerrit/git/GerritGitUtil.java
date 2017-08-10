@@ -17,6 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
+import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
+import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -46,29 +49,38 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
-import git4idea.*;
-import git4idea.commands.*;
+import git4idea.GitCommit;
+import git4idea.GitExecutionException;
+import git4idea.GitPlatformFacade;
+import git4idea.GitUtil;
+import git4idea.GitVcs;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitCommandResult;
+import git4idea.commands.GitLineHandler;
+import git4idea.commands.GitLineHandlerListener;
+import git4idea.commands.GitSimpleEventDetector;
+import git4idea.commands.GitStandardProgressAnalyzer;
+import git4idea.commands.GitTask;
+import git4idea.commands.GitTaskResultHandlerAdapter;
+import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
 import git4idea.history.GitHistoryUtils;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
-import git4idea.reset.GitResetMode;
 import git4idea.update.GitFetchResult;
 import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.UntrackedFilesNotifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
-import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
 /**
  * @author Urs Wolfer

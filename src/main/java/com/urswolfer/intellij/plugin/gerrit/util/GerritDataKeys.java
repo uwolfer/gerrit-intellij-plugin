@@ -21,7 +21,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.util.Pair;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 
 /**
  * @author Urs Wolfer

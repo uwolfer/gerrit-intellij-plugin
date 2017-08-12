@@ -413,7 +413,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getHash(ChangeInfo change) {
-        return change.changeId.substring(0, 9);
+        return change.changeId.substring(0, Math.min(change.changeId.length(), 9));
     }
 
     private static String getTopic(ChangeInfo change) {
@@ -421,10 +421,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getShortenedSubject(ChangeInfo change) {
-        if (change.subject.length() > 80) {
-            return change.subject.substring(0, 80);
-        }
-        return change.subject;
+        return change.subject.substring(0, Math.min(change.subject.length(), 80));
     }
 
     private static String getStatus(ChangeInfo change) {

@@ -35,7 +35,7 @@ import java.util.Set;
  * @author Thomas Forrer
  */
 public class StatusFilter extends AbstractChangesFilter {
-    private static final ImmutableList<Status> statuses = ImmutableList.of(
+    private static final ImmutableList<Status> STATUSES = ImmutableList.of(
             new Status("All", null),
             new Status("Open", "open"),
             new Status("Merged", "merged"),
@@ -43,11 +43,11 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("Drafts", "draft")
     );
 
-    private static final Supplier<String> queryForAll = new Supplier<String>() {
+    private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {
         @Override
         public String get() {
             Set<String> queryForAll = Sets.newHashSet();
-            for (Status status : statuses) {
+            for (Status status : STATUSES) {
                 if (status.forQuery.isPresent()) {
                     queryForAll.add(String.format("is:%s", status.forQuery.get()));
                 }
@@ -59,7 +59,7 @@ public class StatusFilter extends AbstractChangesFilter {
     private Optional<Status> value = Optional.absent();
 
     public StatusFilter() {
-        value = Optional.of(statuses.get(1));
+        value = Optional.of(STATUSES.get(1));
     }
 
     @Override
@@ -74,7 +74,7 @@ public class StatusFilter extends AbstractChangesFilter {
             if (value.get().forQuery.isPresent()) {
                 return String.format("is:%s", value.get().forQuery.get());
             } else {
-                return queryForAll.get();
+                return QUERY_FOR_ALL.get();
             }
         } else {
             return null;
@@ -102,7 +102,7 @@ public class StatusFilter extends AbstractChangesFilter {
 
         @Override
         protected void createActions(Consumer<AnAction> actionConsumer) {
-            for (final Status status : statuses) {
+            for (final Status status : STATUSES) {
                 actionConsumer.consume(new DumbAwareAction(status.label) {
                     @Override
                     public void actionPerformed(AnActionEvent e) {

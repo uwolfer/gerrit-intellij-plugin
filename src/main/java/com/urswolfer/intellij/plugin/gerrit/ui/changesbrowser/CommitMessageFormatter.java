@@ -41,7 +41,16 @@ import java.util.TimeZone;
  * @author Thomas Forrer
  */
 public class CommitMessageFormatter {
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
+    private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss Z";
+
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
+        @Override
+        protected SimpleDateFormat initialValue() {
+            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return dateFormat;
+        }
+    };
     private static final String PARENT_PATTERN = "Parent:     %s\n";
     private static final String MERGE_PATTERN =
             "Merge Of:   %s\n";
@@ -56,10 +65,6 @@ public class CommitMessageFormatter {
             "\n" +
             "%s\n";
 
-    static {
-        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
-
     private final GitCommit gitCommit;
 
     public CommitMessageFormatter(GitCommit gitCommit) {
@@ -70,9 +75,9 @@ public class CommitMessageFormatter {
         return String.format(PATTERN,
                 getParentLine(),
                 gitCommit.getAuthor().getName(), gitCommit.getAuthor().getEmail(),
-                DATE_FORMAT.format(new Date(gitCommit.getAuthorTime())),
+                DATE_FORMAT.get().format(new Date(gitCommit.getAuthorTime())),
                 gitCommit.getCommitter().getName(), gitCommit.getCommitter().getEmail(),
-                DATE_FORMAT.format(gitCommit.getCommitTime()),
+                DATE_FORMAT.get().format(gitCommit.getCommitTime()),
                 gitCommit.getFullMessage()
         );
     }

@@ -55,7 +55,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Inject
     private SelectedRevisions selectedRevisions;
 
-    private final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
+    private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
         @Override
         public Pair<String, RevisionInfo> apply(Map.Entry<String, RevisionInfo> entry) {
             return Pair.create(entry.getKey(), entry.getValue());

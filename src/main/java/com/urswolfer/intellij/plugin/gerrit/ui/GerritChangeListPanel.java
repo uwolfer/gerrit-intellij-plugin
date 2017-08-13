@@ -84,7 +84,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
-    private GerritToolWindow gerritToolWindow;
     private LoadChangesProxy loadChangesProxy = null;
 
     private Project project;
@@ -221,10 +220,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getValue() - 1);
     }
 
-    public void registerChangeListPanel(GerritToolWindow gerritToolWindow) {
-        this.gerritToolWindow = gerritToolWindow;
-    }
-
     private void initModel() {
         table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
     }
@@ -241,7 +236,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         ItemAndWidth subject = new ItemAndWidth("", 0);
         ItemAndWidth status = new ItemAndWidth("", 0);
         ItemAndWidth author = new ItemAndWidth("", 0);
-        ItemAndWidth project = new ItemAndWidth("", 0);
+        ItemAndWidth projectName = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
         Set<String> availableLabels = Sets.newTreeSet();
@@ -252,7 +247,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             subject = getMax(subject, getShortenedSubject(change));
             status = getMax(status, getStatus(change));
             author = getMax(author, getOwner(change));
-            project = getMax(project, getProject(change));
+            projectName = getMax(projectName, getProject(change));
             branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
             if (change.labels != null) {
@@ -327,7 +322,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
         if (showProjectColumn == ShowProjectColumn.ALWAYS
             || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos()))) {
             columnList.add(
-                new GerritChangeColumnInfo("Project", project.item) {
+                new GerritChangeColumnInfo("Project", projectName.item) {
                     @Override
                     public String valueOf(ChangeInfo change) {
                         return getProject(change);
@@ -409,7 +404,7 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
     }
 
     private static String getNumber(ChangeInfo change) {
-        return "" + change._number;
+        return Integer.toString(change._number);
     }
 
     private static String getHash(ChangeInfo change) {
@@ -515,13 +510,13 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
             return new DefaultTableCellRenderer() {
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    JLabel labelComponent = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     LabelInfo labelInfo = getLabelInfo(changeInfo);
-                    label.setIcon(getIconForLabel(labelInfo));
-                    label.setToolTipText(getToolTipForLabel(labelInfo));
-                    label.setHorizontalAlignment(CENTER);
-                    label.setVerticalAlignment(CENTER);
-                    return label;
+                    labelComponent.setIcon(getIconForLabel(labelInfo));
+                    labelComponent.setToolTipText(getToolTipForLabel(labelInfo));
+                    labelComponent.setHorizontalAlignment(CENTER);
+                    labelComponent.setVerticalAlignment(CENTER);
+                    return labelComponent;
                 }
             };
         }

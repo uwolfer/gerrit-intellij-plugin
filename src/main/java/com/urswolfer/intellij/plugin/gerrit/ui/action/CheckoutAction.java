@@ -117,7 +117,7 @@ public class CheckoutAction extends AbstractChangeAction {
         RevisionInfo revisionInfo = changeDetails.revisions.get(selectedRevisions.get(changeDetails));
         String topic = changeDetails.topic;
         if (topic == null) {
-            topic = "" + changeDetails._number;
+            topic = Integer.toString(changeDetails._number);
         }
         String branchName = "review/" + changeDetails.owner.name.toLowerCase().replace(" ", "_").replace("?", "_") + '/' + topic;
         if (revisionInfo._number != changeDetails.revisions.size()) {

@@ -145,6 +145,7 @@ public class CommentForm extends JPanel {
         return comment;
     }
 
+    @Override
     public void requestFocus() {
         IdeFocusManager.findInstanceByComponent(reviewTextField).requestFocus(reviewTextField, true);
     }

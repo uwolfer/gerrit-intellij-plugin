@@ -24,6 +24,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.Logger;
@@ -70,6 +71,7 @@ import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
 import git4idea.update.GitFetchResult;
+import git4idea.update.GitFetcher;
 import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.UntrackedFilesNotifier;
 import org.jetbrains.annotations.NotNull;
@@ -126,10 +128,26 @@ public class GerritGitUtil {
         return Optional.absent();
     }
 
+    public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
+        String url = fetchInfo.url;
+        for (GitRemote remote : gitRepository.getRemotes()) {
+            for (String repositoryUrl : remote.getUrls()) {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, url)
+                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
+                    return Optional.of(remote);
+                }
+            }
+        }
+        NotificationBuilder notification = new NotificationBuilder(project, "Error",
+            String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
+                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
+        notificationService.notifyError(notification);
+        return Optional.absent();
+    }
+
     public void fetchChange(final Project project,
                             final GitRepository gitRepository,
-                            final String url,
-                            final String branch,
+                            final FetchInfo fetchInfo,
                             @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
@@ -146,19 +164,14 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                for (GitRemote remote : gitRepository.getRemotes()) {
-                    for (String repositoryUrl : remote.getUrls()) {
-                        if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                                || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
-                            fetchNatively(gitRepository.getGitDir(), remote, repositoryUrl, branch, project, indicator);
-                            return;
-                        }
-                    }
+                Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
+                if (!remote.isPresent()) {
+                    return;
                 }
-                NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                        String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
-                                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
-                notificationService.notifyError(notification);
+                GitFetchResult result = fetchNatively(gitRepository.getGitDir(), remote.get(), remote.get().getFirstUrl(), fetchInfo.ref, project, indicator);
+                if (!result.isSuccess()) {
+                    GitFetcher.displayFetchResult(project, result, null, result.getErrors());
+                }
             }
         });
     }

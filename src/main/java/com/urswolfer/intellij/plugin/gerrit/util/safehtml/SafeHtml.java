@@ -16,156 +16,159 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
-import java.util.List;
-
 /** Immutable string safely placed as HTML without further escaping. */
-@SuppressWarnings("UnusedDeclaration")
+@SuppressWarnings("serial")
 public abstract class SafeHtml {
 
-    /** @return the existing HTML text, wrapped in a safe buffer. */
-    public static SafeHtml asis(final String htmlText) {
-        return new SafeHtmlString(htmlText);
-    }
+  /** @return the existing HTML text, wrapped in a safe buffer. */
+  public static SafeHtml asis(String htmlText) {
+    return new SafeHtmlString(htmlText);
+  }
 
-    /** Convert bare http:// and https:// URLs into &lt;a href&gt; tags. */
-    public SafeHtml linkify() {
-        final String part = "(?:" +
-                "[a-zA-Z0-9$_.+!*',%;:@=?#/~-]" +
-                "|&(?!lt;|gt;)" +
-                ")";
-        return replaceAll(
-                "(https?://" +
-                        part + "{2,}" +
-                        "(?:[(]" + part + "*" + "[)])*" +
-                        part + "*" +
-                        ")",
-                "<a href=\"$1\">$1</a>");
-    }
+  /** Convert bare http:// and https:// URLs into &lt;a href&gt; tags. */
+  public SafeHtml linkify() {
+    final String part = "(?:[a-zA-Z0-9$_+!*'%;:@=?#/~-]|&(?!lt;|gt;)|[.,](?!(?:\\s|$)))";
+    return replaceAll(
+        "(https?://" + part + "{2,}(?:[(]" + part + "*[)])*" + part + "*)",
+        "<a href=\"$1\" target=\"_blank\" rel=\"nofollow\">$1</a>");
+  }
 
-    /**
-     * Apply {@link #linkify()}, and "\n\n" to &lt;p&gt;.
-     * Lines that start with whitespace are assumed to be preformatted.
-     */
-    public SafeHtml wikify() {
-        final SafeHtmlBuilder r = new SafeHtmlBuilder();
-        for (final String p : linkify().asString().split("\n\n")) {
-            if (isPreFormat(p)) {
-                r.openElement("pre");
-                for (final String line : p.split("\n")) {
-                    r.append(asis(line));
-                    r.br();
-                }
-                r.closeElement("pre");
+  /**
+   * Apply {@link #linkify()}, and "\n\n" to &lt;p&gt;.
+   *
+   * <p>Lines that start with whitespace are assumed to be preformatted.
+   */
+  public SafeHtml wikify() {
+    final SafeHtmlBuilder r = new SafeHtmlBuilder();
+    for (String p : linkify().asString().split("\n\n")) {
+      if (isQuote(p)) {
+        wikifyQuote(r, p);
 
-            } else if (isList(p)) {
-                wikifyList(r, p);
-
-            } else {
-                r.openElement("p");
-                r.append(asis(p));
-                r.closeElement("p");
-            }
-        }
-        return r.toSafeHtml();
-    }
-
-    private void wikifyList(final SafeHtmlBuilder r, final String p) {
-        boolean in_ul = false;
-        boolean in_p = false;
+      } else if (isPreFormat(p)) {
+        r.openElement("p");
         for (String line : p.split("\n")) {
-            if (line.startsWith("-") || line.startsWith("*")) {
-                if (!in_ul) {
-                    if (in_p) {
-                        in_p = false;
-                        r.closeElement("p");
-                    }
-
-                    in_ul = true;
-                    r.openElement("ul");
-                }
-                line = line.substring(1).trim();
-
-            } else if (!in_ul) {
-                if (!in_p) {
-                    in_p = true;
-                    r.openElement("p");
-                } else {
-                    r.append(' ');
-                }
-                r.append(asis(line));
-                continue;
-            }
-
-            r.openElement("li");
-            r.append(asis(line));
-            r.closeElement("li");
+          r.openSpan();
+          r.append(asis(line));
+          r.closeSpan();
+          r.br();
         }
+        r.closeElement("p");
 
-        if (in_ul) {
-            r.closeElement("ul");
-        } else if (in_p) {
+      } else if (isList(p)) {
+        wikifyList(r, p);
+
+      } else {
+        r.openElement("p");
+        r.append(asis(p));
+        r.closeElement("p");
+      }
+    }
+    return r.toSafeHtml();
+  }
+
+  private void wikifyList(SafeHtmlBuilder r, String p) {
+    boolean in_ul = false;
+    boolean in_p = false;
+    for (String line : p.split("\n")) {
+      if (line.startsWith("-") || line.startsWith("*")) {
+        if (!in_ul) {
+          if (in_p) {
+            in_p = false;
             r.closeElement("p");
+          }
+
+          in_ul = true;
+          r.openElement("ul");
         }
-    }
+        line = line.substring(1).trim();
 
-    private static boolean isPreFormat(final String p) {
-        return p.contains("\n ") || p.contains("\n\t") || p.startsWith(" ")
-                || p.startsWith("\t");
-    }
-
-    private static boolean isList(final String p) {
-        return p.contains("\n- ") || p.contains("\n* ") || p.startsWith("- ")
-                || p.startsWith("* ");
-    }
-
-    /**
-     * Replace first occurrence of <code>regex</code> with <code>repl</code> .
-     * <p>
-     * <b>WARNING:</b> This replacement is being performed against an otherwise
-     * safe HTML string. The caller must ensure that the replacement does not
-     * introduce cross-site scripting attack entry points.
-     *
-     * @param regex regular expression pattern to match the substring with.
-     * @param repl replacement expression. Capture groups within
-     *        <code>regex</code> can be referenced with <code>$<i>n</i></code>.
-     * @return a new string, after the replacement has been made.
-     */
-    public SafeHtml replaceFirst(final String regex, final String repl) {
-        return new SafeHtmlString(asString().replaceFirst(regex, repl));
-    }
-
-    /**
-     * Replace each occurrence of <code>regex</code> with <code>repl</code> .
-     * <p>
-     * <b>WARNING:</b> This replacement is being performed against an otherwise
-     * safe HTML string. The caller must ensure that the replacement does not
-     * introduce cross-site scripting attack entry points.
-     *
-     * @param regex regular expression pattern to match substrings with.
-     * @param repl replacement expression. Capture groups within
-     *        <code>regex</code> can be referenced with <code>$<i>n</i></code>.
-     * @return a new string, after the replacements have been made.
-     */
-    public SafeHtml replaceAll(final String regex, final String repl) {
-        return new SafeHtmlString(asString().replaceAll(regex, repl));
-    }
-
-    /**
-     * Go through the {@link RegexFindReplace} list, calling
-     * {@link #replaceAll(String,String)} on the HTML string for every
-     * find/replace pair in the list.
-     */
-    public SafeHtml replaceAll(final List<RegexFindReplace> findReplaceList) {
-        if (findReplaceList == null) {
-            return this;
+      } else if (!in_ul) {
+        if (!in_p) {
+          in_p = true;
+          r.openElement("p");
+        } else {
+          r.append(' ');
         }
-        String html = this.asString();
-        for (RegexFindReplace findReplace : findReplaceList) {
-            html = html.replaceAll(findReplace.find(), findReplace.replace());
-        }
-        return new SafeHtmlString(html);
+        r.append(asis(line));
+        continue;
+      }
+
+      r.openElement("li");
+      r.append(asis(line));
+      r.closeElement("li");
     }
 
-    /** @return a clean HTML string safe for inclusion in any context. */
-    public abstract String asString();
+    if (in_ul) {
+      r.closeElement("ul");
+    } else if (in_p) {
+      r.closeElement("p");
+    }
+  }
+
+  private void wikifyQuote(SafeHtmlBuilder r, String p) {
+    r.openElement("blockquote");
+    if (p.startsWith("&gt; ")) {
+      p = p.substring(5);
+    } else if (p.startsWith(" &gt; ")) {
+      p = p.substring(6);
+    }
+    p = p.replaceAll("\\n ?&gt; ", "\n");
+    for (String e : p.split("\n\n")) {
+      if (isQuote(e)) {
+        SafeHtmlBuilder b = new SafeHtmlBuilder();
+        wikifyQuote(b, e);
+        r.append(b);
+      } else {
+        r.append(asis(e));
+      }
+    }
+    r.closeElement("blockquote");
+  }
+
+  private static boolean isQuote(String p) {
+    return p.startsWith("&gt; ") || p.startsWith(" &gt; ");
+  }
+
+  private static boolean isPreFormat(String p) {
+    return p.contains("\n ") || p.contains("\n\t") || p.startsWith(" ") || p.startsWith("\t");
+  }
+
+  private static boolean isList(String p) {
+    return p.contains("\n- ") || p.contains("\n* ") || p.startsWith("- ") || p.startsWith("* ");
+  }
+
+  /**
+   * Replace first occurrence of {@code regex} with {@code repl} .
+   *
+   * <p><b>WARNING:</b> This replacement is being performed against an otherwise safe HTML string.
+   * The caller must ensure that the replacement does not introduce cross-site scripting attack
+   * entry points.
+   *
+   * @param regex regular expression pattern to match the substring with.
+   * @param repl replacement expression. Capture groups within {@code regex} can be referenced with
+   *     {@code $<i>n</i>}.
+   * @return a new string, after the replacement has been made.
+   */
+  public SafeHtml replaceFirst(String regex, String repl) {
+    return new SafeHtmlString(asString().replaceFirst(regex, repl));
+  }
+
+  /**
+   * Replace each occurrence of {@code regex} with {@code repl} .
+   *
+   * <p><b>WARNING:</b> This replacement is being performed against an otherwise safe HTML string.
+   * The caller must ensure that the replacement does not introduce cross-site scripting attack
+   * entry points.
+   *
+   * @param regex regular expression pattern to match substrings with.
+   * @param repl replacement expression. Capture groups within {@code regex} can be referenced with
+   *     {@code $<i>n</i>}.
+   * @return a new string, after the replacements have been made.
+   */
+  public SafeHtml replaceAll(String regex, String repl) {
+    return new SafeHtmlString(asString().replaceAll(regex, repl));
+  }
+
+  /** @return a clean HTML string safe for inclusion in any context. */
+  public abstract String asString();
 }

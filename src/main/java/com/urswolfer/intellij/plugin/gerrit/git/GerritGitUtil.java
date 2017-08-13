@@ -32,6 +32,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
@@ -387,6 +388,25 @@ public class GerritGitUtil {
             throw new VcsException(listener.getHtmlMessage());
         }
 
+    }
+
+    public void setUpstreamBranch(GitRepository repository, String remoteBranch) throws VcsException {
+        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.BRANCH);
+        h.setSilent(false);
+        h.setStdoutSuppressed(false);
+        h.addParameters("-u", "remotes/" + remoteBranch);
+        h.endOptions();
+        h.addLineListener(listener);
+        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+            @Override
+            public GitLineHandler compute() {
+                return h;
+            }
+        });
+        if (!gitCommandResult.success()) {
+            throw new VcsException(listener.getHtmlMessage());
+        }
     }
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {

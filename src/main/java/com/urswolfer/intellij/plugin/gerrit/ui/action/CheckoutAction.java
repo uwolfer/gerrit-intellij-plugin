@@ -99,6 +99,7 @@ public class CheckoutAction extends AbstractChangeAction {
                                 checkedOut = gerritGitUtil.checkoutNewBranch(repository, checkedOutBranchName);
                                 i++;
                             }
+                            gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
                             brancher.checkout(checkedOutBranchName, gitRepositories, null);
                         } catch (VcsException e) {
                             NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());

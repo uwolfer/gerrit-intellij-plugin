@@ -45,14 +45,12 @@ public abstract class SafeHtml {
         wikifyQuote(r, p);
 
       } else if (isPreFormat(p)) {
-        r.openElement("p");
+        r.openElement("pre");
         for (String line : p.split("\n")) {
-          r.openSpan();
           r.append(asis(line));
-          r.closeSpan();
           r.br();
         }
-        r.closeElement("p");
+        r.closeElement("pre");
 
       } else if (isList(p)) {
         wikifyList(r, p);

@@ -89,6 +89,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.1</li>
+          <ul>
+            <li>checkout: set remote branch for simpler push</li>
+            <li>checkout: create unique branch name (fixes issue when change was checked out before already)</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>1.0.0</li>
           <ul>
             <li>add columns "Project" and "Topic" (optional) (thanks to eekboom)</li>

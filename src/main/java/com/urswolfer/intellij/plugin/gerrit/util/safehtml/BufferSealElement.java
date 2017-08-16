@@ -17,42 +17,49 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
 final class BufferSealElement implements Buffer {
-    private final SafeHtmlBuilder shb;
+  private final SafeHtmlBuilder shb;
 
-    BufferSealElement(final SafeHtmlBuilder safeHtmlBuilder) {
-        shb = safeHtmlBuilder;
-    }
+  BufferSealElement(SafeHtmlBuilder safeHtmlBuilder) {
+    shb = safeHtmlBuilder;
+  }
 
-    public void append(final boolean v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(boolean v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final char v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(char v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final double v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(double v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final float v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(float v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final int v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(int v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final long v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(long v) {
+    shb.sealElement().append(v);
+  }
 
-    public void append(final String v) {
-        shb.sealElement().append(v);
-    }
+  @Override
+  public void append(String v) {
+    shb.sealElement().append(v);
+  }
 
-    @Override
-    public String toString() {
-        return shb.sealElement().toString();
-    }
+  @Override
+  public String toString() {
+    return shb.sealElement().toString();
+  }
 }

@@ -41,4 +41,10 @@ public class UrlUtilsTest {
         URI uriFromGitConfigStringWithoutProtocol = UrlUtils.createUriFromGitConfigString("git.example.com/");
         Assert.assertEquals(uriFromGitConfigStringWithoutProtocol.toString(), "git://git.example.com/");
     }
+
+    @Test
+    public void testUrlSpace() throws Exception {
+        URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("ssh://username@gerrit.example.com:39528/SDT Framework/act");
+        Assert.assertEquals(uriFromGitConfigString.toString(), "ssh://username@gerrit.example.com:39528/SDT%20Framework/act");
+    }
 }

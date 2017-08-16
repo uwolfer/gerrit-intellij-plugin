@@ -81,9 +81,7 @@ public class RevisionFetcher {
         if (fetchInfo == null) {
             notifyError();
         } else {
-            String ref = fetchInfo.ref;
-            String url = fetchInfo.url;
-            gerritGitUtil.fetchChange(project, gitRepository, url, ref, fetchCallback);
+            gerritGitUtil.fetchChange(project, gitRepository, fetchInfo, fetchCallback);
         }
     }
 

@@ -17,42 +17,49 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
 final class BufferDirect implements Buffer {
-    private final StringBuilder strbuf = new StringBuilder();
+  private final StringBuilder strbuf = new StringBuilder();
 
-    boolean isEmpty() {
-        return strbuf.length() == 0;
-    }
+  boolean isEmpty() {
+    return strbuf.length() == 0;
+  }
 
-    public void append(final boolean v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(boolean v) {
+    strbuf.append(v);
+  }
 
-    public void append(final char v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(char v) {
+    strbuf.append(v);
+  }
 
-    public void append(final int v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(int v) {
+    strbuf.append(v);
+  }
 
-    public void append(final long v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(long v) {
+    strbuf.append(v);
+  }
 
-    public void append(final float v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(float v) {
+    strbuf.append(v);
+  }
 
-    public void append(final double v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(double v) {
+    strbuf.append(v);
+  }
 
-    public void append(final String v) {
-        strbuf.append(v);
-    }
+  @Override
+  public void append(String v) {
+    strbuf.append(v);
+  }
 
-    @Override
-    public String toString() {
-        return strbuf.toString();
-    }
+  @Override
+  public String toString() {
+    return strbuf.toString();
+  }
 }

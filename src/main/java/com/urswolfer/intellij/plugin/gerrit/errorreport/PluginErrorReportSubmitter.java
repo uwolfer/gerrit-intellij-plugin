@@ -41,7 +41,7 @@ import java.io.IOException;
  */
 public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
-    private static final String ERROR_REPORT_URL = "http://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
+    private static final String ERROR_REPORT_URL = "https://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
 
     @Override
     public String getReportActionText() {
@@ -83,18 +83,18 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
     }
 
     private void postError(String json) {
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
-        httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
         try {
-            CloseableHttpResponse response = httpClient.execute(httpPost);
+            CloseableHttpClient httpClient = HttpClients.createDefault();
             try {
+                HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
+                httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
+                CloseableHttpResponse response = httpClient.execute(httpPost);
                 if (response.getStatusLine().getStatusCode() == 406) {
                     String reasonPhrase = response.getStatusLine().getReasonPhrase();
                     Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
                 }
             } finally {
-                response.close();
+                httpClient.close();
             }
         } catch (IOException e) {
             throw Throwables.propagate(e);

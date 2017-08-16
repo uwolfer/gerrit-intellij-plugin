@@ -20,7 +20,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.actionSystem.*;
+import com.google.inject.Singleton;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.Constraints;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -43,6 +48,7 @@ import java.util.Observer;
  * @author Urs Wolfer
  * @author Konrad Dobrzynski
  */
+@Singleton
 public class GerritToolWindow {
     @Inject
     private GerritUtil gerritUtil;
@@ -60,7 +66,6 @@ public class GerritToolWindow {
     private GerritChangeDetailsPanel detailsPanel;
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
-        changeListPanel.registerChangeListPanel(this);
         changeListPanel.setProject(project);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);

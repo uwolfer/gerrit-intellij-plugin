@@ -16,15 +16,16 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
+@SuppressWarnings("serial")
 class SafeHtmlString extends SafeHtml {
-    private final String html;
+  private final String html;
 
-    SafeHtmlString(final String h) {
-        html = h;
-    }
+  SafeHtmlString(String h) {
+    html = h;
+  }
 
-    @Override
-    public String asString() {
-        return html;
-    }
+  @Override
+  public String asString() {
+    return html;
+  }
 }

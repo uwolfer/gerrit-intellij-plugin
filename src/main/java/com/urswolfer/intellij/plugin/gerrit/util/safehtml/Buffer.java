@@ -17,19 +17,20 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
 interface Buffer {
-    void append(boolean v);
+  void append(boolean v);
 
-    void append(char v);
+  void append(char v);
 
-    void append(int v);
+  void append(int v);
 
-    void append(long v);
+  void append(long v);
 
-    void append(float v);
+  void append(float v);
 
-    void append(double v);
+  void append(double v);
 
-    void append(String v);
+  void append(String v);
 
-    String toString();
+  @Override
+  String toString();
 }

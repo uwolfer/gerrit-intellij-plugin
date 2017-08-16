@@ -17,10 +17,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
+import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
+import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.Logger;
@@ -28,6 +32,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
@@ -46,29 +51,39 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
-import git4idea.*;
-import git4idea.commands.*;
+import git4idea.GitCommit;
+import git4idea.GitExecutionException;
+import git4idea.GitPlatformFacade;
+import git4idea.GitUtil;
+import git4idea.GitVcs;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitCommandResult;
+import git4idea.commands.GitLineHandler;
+import git4idea.commands.GitLineHandlerListener;
+import git4idea.commands.GitSimpleEventDetector;
+import git4idea.commands.GitStandardProgressAnalyzer;
+import git4idea.commands.GitTask;
+import git4idea.commands.GitTaskResultHandlerAdapter;
+import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
 import git4idea.history.GitHistoryUtils;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
-import git4idea.reset.GitResetMode;
 import git4idea.update.GitFetchResult;
+import git4idea.update.GitFetcher;
 import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.UntrackedFilesNotifier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
-import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
 /**
  * @author Urs Wolfer
@@ -114,10 +129,26 @@ public class GerritGitUtil {
         return Optional.absent();
     }
 
+    public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
+        String url = fetchInfo.url;
+        for (GitRemote remote : gitRepository.getRemotes()) {
+            for (String repositoryUrl : remote.getUrls()) {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, url)
+                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
+                    return Optional.of(remote);
+                }
+            }
+        }
+        NotificationBuilder notification = new NotificationBuilder(project, "Error",
+            String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
+                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
+        notificationService.notifyError(notification);
+        return Optional.absent();
+    }
+
     public void fetchChange(final Project project,
                             final GitRepository gitRepository,
-                            final String url,
-                            final String branch,
+                            final FetchInfo fetchInfo,
                             @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
@@ -134,19 +165,14 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                for (GitRemote remote : gitRepository.getRemotes()) {
-                    for (String repositoryUrl : remote.getUrls()) {
-                        if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                                || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
-                            fetchNatively(gitRepository.getGitDir(), remote, repositoryUrl, branch, project, indicator);
-                            return;
-                        }
-                    }
+                Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
+                if (!remote.isPresent()) {
+                    return;
                 }
-                NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                        String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
-                                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
-                notificationService.notifyError(notification);
+                GitFetchResult result = fetchNatively(gitRepository.getGitDir(), remote.get(), remote.get().getFirstUrl(), fetchInfo.ref, project, indicator);
+                if (!result.isSuccess()) {
+                    GitFetcher.displayFetchResult(project, result, null, result.getErrors());
+                }
             }
         });
     }
@@ -362,6 +388,25 @@ public class GerritGitUtil {
             throw new VcsException(listener.getHtmlMessage());
         }
 
+    }
+
+    public void setUpstreamBranch(GitRepository repository, String remoteBranch) throws VcsException {
+        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.BRANCH);
+        h.setSilent(false);
+        h.setStdoutSuppressed(false);
+        h.addParameters("-u", "remotes/" + remoteBranch);
+        h.endOptions();
+        h.addLineListener(listener);
+        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+            @Override
+            public GitLineHandler compute() {
+                return h;
+            }
+        });
+        if (!gitCommandResult.success()) {
+            throw new VcsException(listener.getHtmlMessage());
+        }
     }
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {

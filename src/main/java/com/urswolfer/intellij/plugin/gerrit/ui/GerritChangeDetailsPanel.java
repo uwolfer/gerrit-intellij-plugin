@@ -19,7 +19,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 
 import com.google.common.collect.Lists;
-import com.google.gerrit.extensions.common.*;
+import com.google.gerrit.extensions.common.AccountInfo;
+import com.google.gerrit.extensions.common.ApprovalInfo;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ChangeMessageInfo;
+import com.google.gerrit.extensions.common.LabelInfo;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.issueLinks.IssueLinkHtmlRenderer;
@@ -45,11 +49,11 @@ import java.util.Map;
  * @author Urs Wolfer
  */
 public class GerritChangeDetailsPanel {
-    private final static String NOTHING_SELECTED = "nothingSelected";
-    private final static String LOADING = "loading";
-    private final static String DATA = "data";
-    private final static String MULTIPLE_SELECTED = "multiple_selected";
-    private final static ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
+    private static final String NOTHING_SELECTED = "nothingSelected";
+    private static final String LOADING = "loading";
+    private static final String DATA = "data";
+    private static final String MULTIPLE_SELECTED = "multiple_selected";
+    private static final ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
         protected DecimalFormat initialValue() {
             return new DecimalFormat("+#;-#");
@@ -135,7 +139,7 @@ public class GerritChangeDetailsPanel {
 
     private static class MyPresentationData {
         private String startPattern;
-        private final String endPattern = "</table></body></html>";
+        private static final String endPattern = "</table></body></html>";
         private final Project project;
 
         private MyPresentationData(final Project project) {
@@ -204,7 +208,7 @@ public class GerritChangeDetailsPanel {
         }
 
         private void addMessages(ChangeInfo changeInfo, StringBuilder sb) {
-            if (changeInfo.messages != null && changeInfo.messages.size() > 0) {
+            if (changeInfo.messages != null && !changeInfo.messages.isEmpty()) {
                 sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
                 for (ChangeMessageInfo changeMessageInfo : changeInfo.messages) {
                     AccountInfo author = changeMessageInfo.author;

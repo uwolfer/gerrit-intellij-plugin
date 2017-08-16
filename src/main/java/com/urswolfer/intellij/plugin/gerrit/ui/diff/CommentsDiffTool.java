@@ -305,7 +305,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
     }
 
-    public static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {
+    private static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {
         CharSequence charsSequence = editor.getMarkupModel().getDocument().getCharsSequence();
 
         RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(charsSequence, range);

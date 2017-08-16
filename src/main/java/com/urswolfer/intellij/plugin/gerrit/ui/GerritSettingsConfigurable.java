@@ -76,8 +76,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
                 !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
-                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn())) ||
-                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn());
+                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
+                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()));
     }
 
     private boolean isPasswordModified() {

@@ -58,6 +58,7 @@ public class LoginDialog extends DialogWrapper {
         init();
     }
 
+    @Override
     @NotNull
     protected Action[] createActions() {
         return new Action[]{getOKAction(), getCancelAction(), getHelpAction()};

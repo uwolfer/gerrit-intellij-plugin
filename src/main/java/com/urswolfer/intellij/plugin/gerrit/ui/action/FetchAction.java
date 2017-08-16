@@ -58,9 +58,7 @@ public class FetchAction {
                 if (firstFetchInfo == null) {
                     return;
                 }
-                String ref = firstFetchInfo.ref;
-                String url = firstFetchInfo.url;
-                gerritGitUtil.fetchChange(project, gitRepository.get(), url, ref, successCallable);
+                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, successCallable);
             }
         });
     }

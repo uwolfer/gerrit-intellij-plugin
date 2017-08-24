@@ -21,10 +21,12 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent;
 
 /**
@@ -35,9 +37,6 @@ public class RefreshAction extends AnAction implements DumbAware {
     @Inject
     private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
 
-    @Inject
-    private GerritToolWindow gerritToolWindow;
-
     public RefreshAction() {
         super("Refresh", "Refresh changes list", AllIcons.Actions.Refresh);
     }
@@ -45,6 +44,8 @@ public class RefreshAction extends AnAction implements DumbAware {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
+        GerritToolWindowFactory.ProjectService projectService = ServiceManager.getService(project, GerritToolWindowFactory.ProjectService.class);
+        GerritToolWindow gerritToolWindow = projectService.getGerritToolWindow();
         gerritToolWindow.reloadChanges(project, true);
         gerritUpdatesNotificationComponent.handleNotification();
     }

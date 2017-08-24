@@ -20,7 +20,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
-import com.google.inject.Singleton;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.Constraints;
@@ -48,7 +47,6 @@ import java.util.Observer;
  * @author Urs Wolfer
  * @author Konrad Dobrzynski
  */
-@Singleton
 public class GerritToolWindow {
     @Inject
     private GerritUtil gerritUtil;

@@ -388,6 +388,8 @@
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+    <projectService serviceInterface="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService"
+                    serviceImplementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService" />
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>

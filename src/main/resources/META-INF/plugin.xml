@@ -89,6 +89,10 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.2</li>
+          <ul>
+            <li>fix multiple IntelliJ instances (project windows) support</li>
+          </ul>
           <li>1.0.1</li>
           <ul>
             <li>checkout: set remote branch for simpler push</li>
@@ -400,6 +404,8 @@
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
+    <projectService serviceInterface="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService"
+                    serviceImplementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService" />
     <diff.DiffTool implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool$Proxy"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>

@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -34,11 +35,27 @@ public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
         GerritToolWindow gerritToolWindow = GerritModule.getInstance(GerritToolWindow.class);
 
+        ProjectService projectService = ServiceManager.getService(project, ProjectService.class);
+        projectService.setGerritToolWindow(gerritToolWindow);
+
         SimpleToolWindowPanel toolWindowContent = gerritToolWindow.createToolWindowContent(project);
 
         ContentManager contentManager = toolWindow.getContentManager();
         Content content = ContentFactory.SERVICE.getInstance().createContent(toolWindowContent, "", false);
         contentManager.addContent(content);
         contentManager.setSelectedContent(content);
+    }
+
+    public static class ProjectService {
+
+        private GerritToolWindow gerritToolWindow;
+
+        public GerritToolWindow getGerritToolWindow() {
+            return gerritToolWindow;
+        }
+
+        void setGerritToolWindow(GerritToolWindow gerritToolWindow) {
+            this.gerritToolWindow = gerritToolWindow;
+        }
     }
 }

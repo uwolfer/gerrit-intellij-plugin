@@ -14,13 +14,13 @@
  * limitations under the License.
 -->
 <!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
-<idea-plugin version="2">
+<idea-plugin>
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
   <!-- element "version" set by gradle-intellij-plugin -->
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
-          logo="/icons/gerrit.png">Urs Wolfer</vendor>
+  >Urs Wolfer</vendor>
 
   <description><![CDATA[
       <p>

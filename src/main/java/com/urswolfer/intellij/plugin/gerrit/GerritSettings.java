@@ -61,16 +61,16 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
-    private String login;
-    private String host;
-    private boolean listAllChanges;
-    private boolean automaticRefresh;
-    private int refreshTimeout;
-    private boolean refreshNotifications;
-    private boolean pushToGerrit;
-    private boolean showChangeNumberColumn;
-    private boolean showChangeIdColumn;
-    private boolean showTopicColumn;
+    private String login = "";
+    private String host = "";
+    private boolean listAllChanges = false;
+    private boolean automaticRefresh = true;
+    private int refreshTimeout = 15;
+    private boolean refreshNotifications = true;
+    private boolean pushToGerrit = false;
+    private boolean showChangeNumberColumn = false;
+    private boolean showChangeIdColumn = false;
+    private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
 
     private Logger log;

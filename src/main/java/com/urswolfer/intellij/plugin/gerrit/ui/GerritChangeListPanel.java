@@ -299,6 +299,17 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 public String valueOf(ChangeInfo change) {
                     return change.subject;
                 }
+
+                @Nullable
+                @Override
+                public String getPreferredStringValue() {
+                    return super.getMaxStringValue();
+                }
+
+                @Override
+                public String getMaxStringValue() {
+                    return null; // allow to use remaining space
+                }
             }
         );
         columnList.add(

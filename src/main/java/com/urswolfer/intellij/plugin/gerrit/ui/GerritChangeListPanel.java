@@ -32,9 +32,6 @@ import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.ActionPlaces;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.actionSystem.DataSink;
-import com.intellij.openapi.actionSystem.TypeSafeDataProvider;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
@@ -77,7 +74,7 @@ import java.util.Set;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvider, Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel implements Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -197,10 +194,6 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 }
             }
         });
-    }
-
-    @Override
-    public void calcData(DataKey key, DataSink sink) {
     }
 
     public TableView<ChangeInfo> getTable() {

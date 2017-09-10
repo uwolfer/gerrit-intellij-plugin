@@ -684,8 +684,14 @@ public class GerritUtil {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
+                if (project.isDisposed()) {
+                    return;
+                }
                 Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
                     public void run(@NotNull ProgressIndicator indicator) {
+                        if (project.isDisposed()) {
+                            return;
+                        }
                         try {
                             final T result = supplier.get();
                             ApplicationManager.getApplication().invokeLater(new Runnable() {

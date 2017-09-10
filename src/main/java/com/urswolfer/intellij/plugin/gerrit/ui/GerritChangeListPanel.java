@@ -26,6 +26,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.client.ChangeStatus;
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
@@ -326,6 +327,19 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
                 public String valueOf(ChangeInfo change) {
                     return getOwner(change);
                 }
+
+                @Nullable
+                @Override
+                public TableCellRenderer getRenderer(final ChangeInfo changeInfo) {
+                    return new DefaultTableCellRenderer() {
+                        @Override
+                        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                            JLabel labelComponent = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                            labelComponent.setToolTipText(getOwnerTooltip(changeInfo));
+                            return labelComponent;
+                        }
+                    };
+                }
             }
         );
         ShowProjectColumn showProjectColumn = gerritSettings.getShowProjectColumn();
@@ -448,6 +462,15 @@ public class GerritChangeListPanel extends JPanel implements TypeSafeDataProvide
 
     private static String getOwner(ChangeInfo change) {
         return change.owner.name;
+    }
+
+    private static String getOwnerTooltip(ChangeInfo change) {
+        AccountInfo owner = change.owner;
+        if (owner.email != null) {
+            return String.format("%s &lt;%s&gt;", owner.name, owner.email);
+        } else {
+            return owner.name;
+        }
     }
 
     private static String getProject(ChangeInfo change) {

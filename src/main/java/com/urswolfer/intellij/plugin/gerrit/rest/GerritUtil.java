@@ -710,7 +710,9 @@ public class GerritUtil {
                         }
                     }
                 };
-                backgroundTask.queue();
+                if (gerritSettings.preloadPassword()) {
+                    backgroundTask.queue();
+                }
             }
         });
     }

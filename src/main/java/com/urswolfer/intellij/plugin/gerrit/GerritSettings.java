@@ -17,16 +17,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
@@ -73,6 +74,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showChangeIdColumn = false;
     private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
+
+    private Optional<String> preloadedPassword = Optional.absent();
 
     private Logger log;
 
@@ -148,6 +151,17 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     @NotNull
     public String getPassword() {
+        if (!ApplicationManager.getApplication().isDispatchThread()) {
+            if (!preloadedPassword.isPresent()) {
+                throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
+            }
+        } else {
+            preloadPassword();
+        }
+        return preloadedPassword.or("");
+    }
+
+    public boolean preloadPassword() {
         String password = null;
         try {
             password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
@@ -158,8 +172,12 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             password = Messages.showPasswordDialog(
                 String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
                 "Gerrit Password");
+            if (password == null) {
+                return false;
+            }
         }
-        return StringUtil.notNullize(password);
+        preloadedPassword = Optional.fromNullable(password);
+        return true;
     }
 
     @Override

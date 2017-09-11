@@ -43,10 +43,11 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
         if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
             return null;
         }
-        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(gerritSettings.getPassword())) {
+        String password = gerritSettings.getPassword();
+        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(password)) {
             return null;
         }
-        return new AuthData(gerritSettings.getLogin(), gerritSettings.getPassword());
+        return new AuthData(gerritSettings.getLogin(), password);
     }
 
     @Override

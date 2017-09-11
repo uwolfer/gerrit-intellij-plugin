@@ -328,7 +328,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
                         @Override
                         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                             JLabel labelComponent = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                            labelComponent.setToolTipText(getOwnerTooltip(changeInfo));
+                            labelComponent.setToolTipText(getAccountTooltip(changeInfo.owner));
                             return labelComponent;
                         }
                     };
@@ -457,12 +457,11 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         return change.owner.name;
     }
 
-    private static String getOwnerTooltip(ChangeInfo change) {
-        AccountInfo owner = change.owner;
-        if (owner.email != null) {
-            return String.format("%s &lt;%s&gt;", owner.name, owner.email);
+    private static String getAccountTooltip(AccountInfo accountInfo) {
+        if (accountInfo.email != null) {
+            return String.format("%s &lt;%s&gt;", accountInfo.name, accountInfo.email);
         } else {
-            return owner.name;
+            return accountInfo.name;
         }
     }
 
@@ -573,17 +572,21 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
 
         private static String getToolTipForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
+                AccountInfo accountInfo = null;
                 if (labelInfo.rejected != null) {
-                    return labelInfo.rejected.name;
+                    accountInfo = labelInfo.rejected;
                 }
                 if (labelInfo.approved != null) {
-                    return labelInfo.approved.name;
+                    accountInfo = labelInfo.approved;
                 }
                 if (labelInfo.disliked != null) {
-                    return labelInfo.disliked.name;
+                    accountInfo = labelInfo.disliked;
                 }
                 if (labelInfo.recommended != null) {
-                    return labelInfo.recommended.name;
+                    accountInfo = labelInfo.recommended;
+                }
+                if (accountInfo != null) {
+                    return getAccountTooltip(accountInfo);
                 }
             }
             return null;

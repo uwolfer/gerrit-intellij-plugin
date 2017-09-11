@@ -26,6 +26,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.client.ChangeStatus;
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
@@ -73,7 +74,7 @@ import java.util.Set;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements DataProvider, Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel implements Consumer<LoadChangesProxy> {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -195,12 +196,6 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         });
     }
 
-    @Nullable
-    @Override
-    public Object getData(String dataId) {
-        return null;
-    }
-
     public TableView<ChangeInfo> getTable() {
         return table;
     }
@@ -298,6 +293,17 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
                 public String valueOf(ChangeInfo change) {
                     return change.subject;
                 }
+
+                @Nullable
+                @Override
+                public String getPreferredStringValue() {
+                    return super.getMaxStringValue();
+                }
+
+                @Override
+                public String getMaxStringValue() {
+                    return null; // allow to use remaining space
+                }
             }
         );
         columnList.add(
@@ -313,6 +319,19 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getOwner(change);
+                }
+
+                @Nullable
+                @Override
+                public TableCellRenderer getRenderer(final ChangeInfo changeInfo) {
+                    return new DefaultTableCellRenderer() {
+                        @Override
+                        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                            JLabel labelComponent = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                            labelComponent.setToolTipText(getAccountTooltip(changeInfo.owner));
+                            return labelComponent;
+                        }
+                    };
                 }
             }
         );
@@ -438,6 +457,14 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
         return change.owner.name;
     }
 
+    private static String getAccountTooltip(AccountInfo accountInfo) {
+        if (accountInfo.email != null) {
+            return String.format("%s &lt;%s&gt;", accountInfo.name, accountInfo.email);
+        } else {
+            return accountInfo.name;
+        }
+    }
+
     private static String getProject(ChangeInfo change) {
         return change.project;
     }
@@ -545,17 +572,21 @@ public class GerritChangeListPanel extends JPanel implements DataProvider, Consu
 
         private static String getToolTipForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
+                AccountInfo accountInfo = null;
                 if (labelInfo.rejected != null) {
-                    return labelInfo.rejected.name;
+                    accountInfo = labelInfo.rejected;
                 }
                 if (labelInfo.approved != null) {
-                    return labelInfo.approved.name;
+                    accountInfo = labelInfo.approved;
                 }
                 if (labelInfo.disliked != null) {
-                    return labelInfo.disliked.name;
+                    accountInfo = labelInfo.disliked;
                 }
                 if (labelInfo.recommended != null) {
-                    return labelInfo.recommended.name;
+                    accountInfo = labelInfo.recommended;
+                }
+                if (accountInfo != null) {
+                    return getAccountTooltip(accountInfo);
                 }
             }
             return null;

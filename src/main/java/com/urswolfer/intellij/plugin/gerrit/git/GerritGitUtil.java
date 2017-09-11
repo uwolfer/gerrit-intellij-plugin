@@ -129,7 +129,10 @@ public class GerritGitUtil {
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
         String url = fetchInfo.url;
         for (GitRemote remote : gitRepository.getRemotes()) {
-            for (String repositoryUrl : remote.getUrls()) {
+            List<String> repositoryUrls = new ArrayList<String>();
+            repositoryUrls.addAll(remote.getUrls());
+            repositoryUrls.addAll(remote.getPushUrls());
+            for (String repositoryUrl : repositoryUrls) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, url)
                     || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
                     return Optional.of(remote);

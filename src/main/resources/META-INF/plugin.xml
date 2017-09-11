@@ -14,13 +14,13 @@
  * limitations under the License.
 -->
 <!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
-<idea-plugin version="2">
+<idea-plugin>
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
   <!-- element "version" set by gradle-intellij-plugin -->
   <vendor email="uwolfer@fwo.ch"
           url="https://github.com/uwolfer/gerrit-intellij-plugin"
-          logo="/icons/gerrit.png">Urs Wolfer</vendor>
+  >Urs Wolfer</vendor>
 
   <description><![CDATA[
       <p>
@@ -89,6 +89,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.3</li>
+          <ul>
+            <li>fixes related to password-safe</li>
+            <li>UI optimizations</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>1.0.2</li>
           <ul>
             <li>fix multiple IntelliJ instances (project windows) support</li>

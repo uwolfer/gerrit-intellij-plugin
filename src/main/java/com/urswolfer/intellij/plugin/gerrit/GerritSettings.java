@@ -169,7 +169,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     @Override
     public boolean isLoginAndPasswordAvailable() {
-        return !Strings.isNullOrEmpty(getLogin()) && !Strings.isNullOrEmpty(getPassword());
+        return !Strings.isNullOrEmpty(getLogin());
     }
 
     public boolean getListAllChanges() {

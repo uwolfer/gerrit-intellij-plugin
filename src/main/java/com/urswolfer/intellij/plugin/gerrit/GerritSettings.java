@@ -17,15 +17,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.ui.Messages;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
@@ -61,17 +63,19 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
-    private String login;
-    private String host;
-    private boolean listAllChanges;
-    private boolean automaticRefresh;
-    private int refreshTimeout;
-    private boolean refreshNotifications;
-    private boolean pushToGerrit;
-    private boolean showChangeNumberColumn;
-    private boolean showChangeIdColumn;
-    private boolean showTopicColumn;
+    private String login = "";
+    private String host = "";
+    private boolean listAllChanges = false;
+    private boolean automaticRefresh = true;
+    private int refreshTimeout = 15;
+    private boolean refreshNotifications = true;
+    private boolean pushToGerrit = false;
+    private boolean showChangeNumberColumn = false;
+    private boolean showChangeIdColumn = false;
+    private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
+
+    private Optional<String> preloadedPassword = Optional.absent();
 
     private Logger log;
 
@@ -147,14 +151,33 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     @NotNull
     public String getPassword() {
-        String password;
+        if (!ApplicationManager.getApplication().isDispatchThread()) {
+            if (!preloadedPassword.isPresent()) {
+                throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
+            }
+        } else {
+            preloadPassword();
+        }
+        return preloadedPassword.or("");
+    }
+
+    public boolean preloadPassword() {
+        String password = null;
         try {
             password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
         } catch (PasswordSafeException e) {
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-            password = "";
         }
-        return StringUtil.notNullize(password);
+        if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
+            password = Messages.showPasswordDialog(
+                String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
+                "Gerrit Password");
+            if (password == null) {
+                return false;
+            }
+        }
+        preloadedPassword = Optional.fromNullable(password);
+        return true;
     }
 
     @Override
@@ -169,7 +192,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     @Override
     public boolean isLoginAndPasswordAvailable() {
-        return !Strings.isNullOrEmpty(getLogin()) && !Strings.isNullOrEmpty(getPassword());
+        return !Strings.isNullOrEmpty(getLogin());
     }
 
     public boolean getListAllChanges() {

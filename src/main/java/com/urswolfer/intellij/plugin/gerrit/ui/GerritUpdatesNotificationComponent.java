@@ -29,7 +29,11 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * @author Urs Wolfer
@@ -84,8 +88,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
         }
 
         if (Strings.isNullOrEmpty(gerritSettings.getHost())
-                || Strings.isNullOrEmpty(gerritSettings.getLogin())
-                || Strings.isNullOrEmpty(gerritSettings.getPassword())) {
+                || Strings.isNullOrEmpty(gerritSettings.getLogin())) {
             return;
         }
 

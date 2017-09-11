@@ -25,6 +25,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
@@ -147,12 +148,16 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @Override
     @NotNull
     public String getPassword() {
-        String password;
+        String password = null;
         try {
             password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
         } catch (PasswordSafeException e) {
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-            password = "";
+        }
+        if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
+            password = Messages.showPasswordDialog(
+                String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
+                "Gerrit Password");
         }
         return StringUtil.notNullize(password);
     }

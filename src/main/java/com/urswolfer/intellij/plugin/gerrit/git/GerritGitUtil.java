@@ -152,6 +152,7 @@ public class GerritGitUtil {
     public void fetchChange(final Project project,
                             final GitRepository gitRepository,
                             final FetchInfo fetchInfo,
+                            final String commitHash,
                             @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
@@ -168,11 +169,25 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
-                if (!remote.isPresent()) {
-                    return;
+                GitRemote remote;
+                String fetch;
+                String url;
+                boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
+                if (commitIsFetched) {
+                    // 'git fetch' works with a local path instead of a remote -> this way FETCH_HEAD is set
+                    remote = new GitRemote(gitRepository.getRoot().getPath(),
+                        Collections.<String>emptyList(), Collections.<String>emptySet(), Collections.<String>emptyList(), Collections.<String>emptyList());
+                    fetch = commitHash;
+                    url = "";
+                } else {
+                    remote = getRemoteForChange(project, gitRepository, fetchInfo).orNull();
+                    if (remote == null) {
+                        return;
+                    }
+                    fetch = fetchInfo.ref;
+                    url = remote.getFirstUrl();
                 }
-                GitFetchResult result = fetchNatively(gitRepository.getGitDir(), remote.get(), remote.get().getFirstUrl(), fetchInfo.ref, project, indicator);
+                GitFetchResult result = fetchNatively(gitRepository.getGitDir(), remote, url, fetch, project, indicator);
                 if (!result.isSuccess()) {
                     GitFetcher.displayFetchResult(project, result, null, result.getErrors());
                 }
@@ -355,6 +370,26 @@ public class GerritGitUtil {
         return result.get();
     }
 
+    public boolean checkIfCommitIsFetched(GitRepository repository, String commitHash) {
+        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.SHOW);
+        h.setSilent(false);
+        h.setStdoutSuppressed(false);
+        h.addParameters(commitHash);
+        h.addParameters("--format=short");
+        h.endOptions();
+        h.addLineListener(listener);
+        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+            @Override
+            public GitLineHandler compute() {
+                return h;
+            }
+        });
+        boolean success = gitCommandResult.success();
+        List<String> output = gitCommandResult.getOutput();
+        boolean isCommit = !output.isEmpty() && output.get(0).startsWith("commit");
+        return success && isCommit;
+    }
 
     @NotNull
     public Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {

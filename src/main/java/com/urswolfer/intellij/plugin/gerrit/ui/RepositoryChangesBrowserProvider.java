@@ -95,7 +95,7 @@ public class RepositoryChangesBrowserProvider {
 
         final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project);
         changesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
-        changesBrowser.getViewer().setScrollPaneBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
+        changesBrowser.getViewerScrollPane().setBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
         changesBrowser.getViewer().setChangeDecorator(changesBrowser.getChangeNodeDecorator());
 
         changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {

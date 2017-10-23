@@ -89,6 +89,13 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.4</li>
+          <ul>
+            <li>optimize checkout: display smart file checkout dialog when required</li>
+            <li>performance optimization: do not execute unnecessary Git fetches</li>
+            <li>fix random startup notification "Insufficient dependencies for Gerrit plugin"</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>1.0.3</li>
           <ul>
             <li>fixes related to password-safe</li>

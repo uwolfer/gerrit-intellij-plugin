@@ -86,7 +86,7 @@ public class CompareBranchAction extends AbstractChangeAction {
         } else {
             currentBranchName = gitRepository.getCurrentRevision();
         }
-        assert currentBranch != null : "Current branch is neither a named branch nor a revision";
+        assert currentBranchName != null : "Current branch is neither a named branch nor a revision";
 
         GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(
             Collections.singletonList(gitRepository), branchName, project);

@@ -36,6 +36,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.branch.GitBrancher;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
+import git4idea.validators.GitNewBranchNameValidator;
 
 import java.util.Collections;
 import java.util.List;
@@ -87,24 +88,29 @@ public class CheckoutAction extends AbstractChangeAction {
                         final GitRepository repository = gitRepositoryOptional.get();
                         List<GitRepository> gitRepositories = Collections.singletonList(repository);
                         FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
-                        Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
+                        final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
                         if (!remote.isPresent()) {
                             return null;
                         }
-                        try {
-                            boolean checkedOut = false;
-                            int i = 0;
-                            while (!checkedOut && i < 100) { // do not loop endless - stop after 100 tries because most probably something went wrong
-                                checkedOutBranchName = branchName + (i != 0 ? "_" + i : "");
-                                checkedOut = gerritGitUtil.checkoutNewBranch(repository, checkedOutBranchName);
-                                i++;
-                            }
-                            gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
-                            brancher.checkout(checkedOutBranchName, false, gitRepositories, null);
-                        } catch (VcsException e) {
-                            NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
-                            notificationService.notifyError(builder);
+                        boolean validName = false;
+                        int i = 0;
+                        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
+                        while (!validName && i < 100) { // do not loop endless - stop after 100 tries because most probably something went wrong
+                            checkedOutBranchName = branchName + (i != 0 ? "_" + i : "");
+                            validName = newBranchNameValidator.checkInput(checkedOutBranchName);
+                            i++;
                         }
+                        brancher.checkoutNewBranchStartingFrom(checkedOutBranchName, "FETCH_HEAD", gitRepositories, new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
+                                } catch (VcsException e) {
+                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
+                                    notificationService.notifyError(builder);
+                                }
+                            }
+                        });
                         return null;
                     }
                 };

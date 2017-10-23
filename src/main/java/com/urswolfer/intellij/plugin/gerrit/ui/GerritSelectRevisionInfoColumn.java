@@ -79,7 +79,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
 
     @Override
     public boolean isCellEditable(ChangeInfo changeInfo) {
-        return changeInfo.revisions.size() > 1;
+        return changeInfo.revisions != null && changeInfo.revisions.size() > 1;
     }
 
     @Nullable

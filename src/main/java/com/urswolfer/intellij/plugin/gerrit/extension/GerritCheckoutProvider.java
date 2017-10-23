@@ -194,6 +194,12 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             ByteStreams.copy(commitMessageHook, new FileOutputStream(targetFile));
             //noinspection ResultOfMethodCallIgnored
             targetFile.setExecutable(true);
+
+            NotificationBuilder notification = new NotificationBuilder(
+                project,
+                "Gerrit Checkout done",
+                "Commit-Message Hook has been set up.");
+            notificationService.notify(notification);
         } catch (Exception e) {
             log.info(e);
             NotificationBuilder notification = new NotificationBuilder(

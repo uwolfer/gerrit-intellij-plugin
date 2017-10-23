@@ -22,7 +22,11 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.actionSystem.DataKey;
+import com.intellij.openapi.actionSystem.DataSink;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -56,7 +60,13 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
@@ -167,9 +177,9 @@ public class RepositoryChangesBrowserProvider {
             final String revisionId = selectedRevisions.get(selectedChange);
             RevisionInfo currentRevision = revisions.get(revisionId);
             RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, notificationService, project, gitRepository)
-                    .addRevision(currentRevision);
+                .addRevision(revisionId, currentRevision);
             if (baseRevision.isPresent()) {
-                revisionFetcher.addRevision(baseRevision.get().getSecond());
+                revisionFetcher.addRevision(baseRevision.get().first, baseRevision.get().getSecond());
             }
             revisionFetcher.fetch(new Callable<Void>() {
                 @Override

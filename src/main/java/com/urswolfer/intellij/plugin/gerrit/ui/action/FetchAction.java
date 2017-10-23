@@ -22,6 +22,7 @@ import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -40,6 +41,8 @@ public class FetchAction {
     private GerritGitUtil gerritGitUtil;
     @Inject
     private NotificationService notificationService;
+    @Inject
+    private SelectedRevisions selectedRevisions;
 
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> successCallable) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
@@ -54,11 +57,13 @@ public class FetchAction {
                     return;
                 }
 
+                String commitHash = selectedRevisions.get(changeDetails);
+
                 FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
                 if (firstFetchInfo == null) {
                     return;
                 }
-                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, successCallable);
+                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, successCallable);
             }
         });
     }

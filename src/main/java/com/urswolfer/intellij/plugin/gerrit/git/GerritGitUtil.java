@@ -41,7 +41,6 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.util.ArrayUtil;
 import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcs.log.VcsUser;
@@ -63,9 +62,6 @@ import git4idea.commands.GitCommandResult;
 import git4idea.commands.GitLineHandler;
 import git4idea.commands.GitLineHandlerListener;
 import git4idea.commands.GitSimpleEventDetector;
-import git4idea.commands.GitStandardProgressAnalyzer;
-import git4idea.commands.GitTask;
-import git4idea.commands.GitTaskResultHandlerAdapter;
 import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
 import git4idea.history.GitHistoryUtils;
 import git4idea.merge.GitConflictResolver;
@@ -148,6 +144,7 @@ public class GerritGitUtil {
     public void fetchChange(final Project project,
                             final GitRepository gitRepository,
                             final FetchInfo fetchInfo,
+                            final String commitHash,
                             @Nullable final Callable<Void> successCallable) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
@@ -164,11 +161,22 @@ public class GerritGitUtil {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
-                if (!remote.isPresent()) {
-                    return;
+                GitRemote remote;
+                String fetch;
+                boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
+                if (commitIsFetched) {
+                    // 'git fetch' works with a local path instead of a remote -> this way FETCH_HEAD is set
+                    remote = new GitRemote(gitRepository.getRoot().getPath(),
+                        Collections.<String>emptyList(), Collections.<String>emptySet(), Collections.<String>emptyList(), Collections.<String>emptyList());
+                    fetch = commitHash;
+                } else {
+                    remote = getRemoteForChange(project, gitRepository, fetchInfo).orNull();
+                    if (remote == null) {
+                        return;
+                    }
+                    fetch = fetchInfo.ref;
                 }
-                GitFetchResult result = fetchNatively(gitRepository, remote.get(), fetchInfo.ref);
+                GitFetchResult result = fetchNatively(gitRepository, remote, fetch);
                 if (!result.isSuccess()) {
                     GitFetcher.displayFetchResult(project, result, null, result.getErrors());
                 }
@@ -328,6 +336,27 @@ public class GerritGitUtil {
         return fetchResult;
     }
 
+    public boolean checkIfCommitIsFetched(GitRepository repository, String commitHash) {
+        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.SHOW);
+        h.setSilent(false);
+        h.setStdoutSuppressed(false);
+        h.addParameters(commitHash);
+        h.addParameters("--format=short");
+        h.endOptions();
+        h.addLineListener(listener);
+        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+            @Override
+            public GitLineHandler compute() {
+                return h;
+            }
+        });
+        boolean success = gitCommandResult.success();
+        List<String> output = gitCommandResult.getOutput();
+        boolean isCommit = !output.isEmpty() && output.get(0).startsWith("commit");
+        return success && isCommit;
+    }
+
     @NotNull
     public Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {
         final List<GitCommit> headToBranch;
@@ -350,19 +379,6 @@ public class GerritGitUtil {
 //            compareInfo.put(repository, loadTotalDiff(repository, branchName));
         }
         return compareInfo;
-    }
-
-    public boolean checkoutNewBranch(GitRepository repository, String branch) throws VcsException {
-        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
-        GitCommandResult gitCommandResult = git.checkout(repository, "FETCH_HEAD", branch, false, false, listener);
-        if (gitCommandResult.success()) {
-            return true;
-        } else if (gitCommandResult.getErrorOutputAsJoinedString().contains("already exists")){
-            return false;
-        } else {
-            throw new VcsException(listener.getHtmlMessage());
-        }
-
     }
 
     public void setUpstreamBranch(GitRepository repository, String remoteBranch) throws VcsException {

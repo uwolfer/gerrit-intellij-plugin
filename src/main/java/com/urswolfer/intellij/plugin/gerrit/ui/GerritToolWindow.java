@@ -20,6 +20,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
+import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.Constraints;
@@ -38,8 +40,11 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
+import git4idea.GitUtil;
+import git4idea.repo.GitRepository;
 
 import javax.swing.*;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -100,11 +105,26 @@ public class GerritToolWindow {
 
         panel.setContent(horizontalSplitter);
 
-        reloadChanges(project, false);
+        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+        if (!repositories.isEmpty()) {
+            reloadChanges(project, false);
+        }
+
+        registerVcsChangeListener(project);
 
         changeListPanel.showSetupHintWhenRequired(project);
 
         return panel;
+    }
+
+    private void registerVcsChangeListener(final Project project) {
+        VcsRepositoryMappingListener vcsListener = new VcsRepositoryMappingListener() {
+            @Override
+            public void mappingChanged() {
+                reloadChanges(project, false);
+            }
+        };
+        project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {

@@ -21,6 +21,7 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.project.Project;
@@ -30,6 +31,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -44,7 +46,7 @@ public class RevisionFetcher {
     private final Project project;
     private final GitRepository gitRepository;
 
-    private final List<RevisionInfo> revisionInfoList = Lists.newArrayList();
+    private final Map<String, RevisionInfo> revisionInfoList = Maps.newLinkedHashMap();
     private final List<FetchCallback> fetchCallbacks = Lists.newArrayList();
 
     public RevisionFetcher(GerritUtil gerritUtil,
@@ -59,8 +61,8 @@ public class RevisionFetcher {
         this.gitRepository = gitRepository;
     }
 
-    public RevisionFetcher addRevision(RevisionInfo revisionInfo) {
-        revisionInfoList.add(revisionInfo);
+    public RevisionFetcher addRevision(String commitHash, RevisionInfo revisionInfo) {
+        revisionInfoList.put(commitHash, revisionInfo);
         return this;
     }
 
@@ -69,19 +71,19 @@ public class RevisionFetcher {
      * @param callback the callback will be executed as soon as all revisions have been fetched successfully
      */
     public void fetch(final Callable<Void> callback) {
-        for (RevisionInfo revisionInfo : revisionInfoList) {
+        for (Map.Entry<String, RevisionInfo> entry : revisionInfoList.entrySet()) {
             FetchCallback fetchCallback = new FetchCallback(callback);
             fetchCallbacks.add(fetchCallback);
-            fetchChange(revisionInfo, fetchCallback);
+            fetchChange(entry.getKey(), entry.getValue(), fetchCallback);
         }
     }
 
-    private void fetchChange(RevisionInfo revisionInfo, FetchCallback fetchCallback) {
+    private void fetchChange(String commitHash, RevisionInfo revisionInfo, FetchCallback fetchCallback) {
         FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(revisionInfo);
         if (fetchInfo == null) {
             notifyError();
         } else {
-            gerritGitUtil.fetchChange(project, gitRepository, fetchInfo, fetchCallback);
+            gerritGitUtil.fetchChange(project, gitRepository, fetchInfo, commitHash, fetchCallback);
         }
     }
 

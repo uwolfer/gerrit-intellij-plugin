@@ -47,13 +47,13 @@ dependencies {
     compile ('com.google.inject.extensions:guice-multibindings:4.1.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.12') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.13') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    compile 'org.javassist:javassist:3.21.0-GA'
+    compile 'org.javassist:javassist:3.22.0-GA'
 
     testCompile 'org.testng:testng:6.8.21'
     testCompile 'org.easymock:easymock:3.4'

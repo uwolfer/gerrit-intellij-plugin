@@ -25,9 +25,12 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.Constraints;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
+import com.intellij.openapi.vcs.ProjectLevelVcsManager;
+import com.intellij.openapi.vcs.VcsListener;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.JBSplitter;
@@ -38,8 +41,12 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
+import git4idea.GitUtil;
+import git4idea.repo.GitRepository;
+import git4idea.repo.GitRepositoryManager;
 
 import javax.swing.*;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -100,11 +107,37 @@ public class GerritToolWindow {
 
         panel.setContent(horizontalSplitter);
 
-        reloadChanges(project, false);
+        List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+        if (!repositories.isEmpty()) {
+            reloadChanges(project, false);
+        }
+
+        registerVcsChangeListener(project);
 
         changeListPanel.showSetupHintWhenRequired(project);
 
         return panel;
+    }
+
+    private void registerVcsChangeListener(final Project project) {
+        VcsListener vcsListener = new VcsListener() {
+            @Override
+            public void directoryMappingChanged() {
+                forceGitRepositoryMappingInit(project);
+            }
+        };
+        project.getMessageBus().connect().subscribe(ProjectLevelVcsManager.VCS_CONFIGURATION_CHANGED, vcsListener);
+    }
+
+    private void forceGitRepositoryMappingInit(final Project project) {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+                repositoryManager.getRepositoryForRoot(project.getBaseDir());
+                reloadChanges(project, false);
+            }
+        });
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {

@@ -31,9 +31,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
-import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.JBSplitter;
-import com.intellij.ui.SideBorder;
+import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -79,11 +78,8 @@ public class GerritToolWindow {
 
         RepositoryChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel);
 
-        JBSplitter detailsSplitter = new JBSplitter(true, 0.6f);
+        JBSplitter detailsSplitter = new OnePixelSplitter(true, 0.6f);
         detailsSplitter.setSplitterProportionKey("Gerrit.ListDetailSplitter.Proportion");
-        detailsSplitter.setShowDividerControls(true);
-
-        changeListPanel.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT | SideBorder.BOTTOM));
         detailsSplitter.setFirstComponent(changeListPanel);
 
         detailsPanel = new GerritChangeDetailsPanel(project);
@@ -94,12 +90,10 @@ public class GerritToolWindow {
             }
         });
         JPanel details = detailsPanel.getComponent();
-        details.setBorder(IdeBorderFactory.createBorder(SideBorder.TOP | SideBorder.RIGHT));
         detailsSplitter.setSecondComponent(details);
 
-        JBSplitter horizontalSplitter = new JBSplitter(false, 0.7f);
+        JBSplitter horizontalSplitter = new OnePixelSplitter(false, 0.7f);
         horizontalSplitter.setSplitterProportionKey("Gerrit.DetailRepositoryChangeBrowser.Proportion");
-        horizontalSplitter.setShowDividerControls(true);
         horizontalSplitter.setFirstComponent(detailsSplitter);
         horizontalSplitter.setSecondComponent(repositoryChangesBrowser);
 

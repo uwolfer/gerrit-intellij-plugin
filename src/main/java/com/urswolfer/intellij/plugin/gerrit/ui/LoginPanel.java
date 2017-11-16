@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
@@ -39,12 +40,14 @@ public class LoginPanel {
         " for your account in the Gerrit Web Application (Settings > HTTP Password).";
 
     private JPanel pane;
-    private JTextField hostTextField;
+    private JBTextField hostTextField;
     private JTextField loginTextField;
     private JPasswordField passwordField;
     private JTextPane gerritLoginInfoTestField;
 
     public LoginPanel(final LoginDialog dialog) {
+        hostTextField.getEmptyText().setText("https://review.example.org");
+
         hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {

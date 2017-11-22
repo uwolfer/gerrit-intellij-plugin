@@ -135,6 +135,7 @@ Credits
 ------
 * IntelliJ Github plugin (some code of this plugin is based on its code)
 
+Thanks to [JetBrains](https://www.jetbrains.com/) for providing a free licence for developing this project.
 
 Donations
 --------

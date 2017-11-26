@@ -36,7 +36,7 @@ import java.awt.event.FocusEvent;
  */
 public class LoginPanel {
     public static final String LOGIN_CREDENTIALS_INFO =
-        "* If logging in with your normal Gerrit login credentials fails, you need to set a HTTP access password" +
+        "* If login in with your usual Gerrit login credentials fails, you need to set a HTTP access password" +
         " for your account in the Gerrit Web Application (Settings > HTTP Password).";
 
     private JPanel pane;

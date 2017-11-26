@@ -208,7 +208,7 @@
           <li>0.9.5</li>
           <ul>
             <li>new action to add reviewers to a change</li>
-            <li>support for LDAP authentication (when logging in happens with a HTML form)</li>
+            <li>support for LDAP authentication (when login in happens with a HTML form)</li>
             <li>fix authentication when HTTP digest method is used</li>
             <li>fix branch filter for some project setups</li>
             <li>many minor fixes and improvements</li>

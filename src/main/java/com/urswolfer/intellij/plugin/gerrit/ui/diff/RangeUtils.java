@@ -35,8 +35,9 @@ public final class RangeUtils {
         int startOffset = -1;
         int endLine = 1;
         int endOffset = -1;
+        CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence);
         try {
-            BufferedReader reader = new BufferedReader(new CharSequenceReader(charsSequence));
+            BufferedReader reader = new BufferedReader(charSequenceReader);
             String lineString;
             int currentCharCount = 0;
             while ((lineString = reader.readLine()) != null) {
@@ -58,6 +59,8 @@ public final class RangeUtils {
             }
         } catch (IOException e) {
             throw Throwables.propagate(e);
+        } finally {
+            charSequenceReader.close();
         }
 
         Comment.Range range = new Comment.Range();
@@ -71,8 +74,9 @@ public final class RangeUtils {
     public static Offset rangeToTextOffset(CharSequence charsSequence, Comment.Range range) {
         int startOffset = 0;
         int endOffset = 0;
+        CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence);
         try {
-            BufferedReader reader = new BufferedReader(new CharSequenceReader(charsSequence));
+            BufferedReader reader = new BufferedReader(charSequenceReader);
             String line;
             int textLineCount = 1;
             while ((line = reader.readLine()) != null) {
@@ -90,17 +94,19 @@ public final class RangeUtils {
             }
         } catch (IOException e) {
             throw Throwables.propagate(e);
+        } finally {
+            charSequenceReader.close();
         }
         startOffset += range.startCharacter;
         endOffset += range.endCharacter;
         return new Offset(startOffset, endOffset);
     }
 
-    public static class Offset {
-        public int start;
-        public int end;
+    static class Offset {
+        final int start;
+        final int end;
 
-        public Offset(int start, int end) {
+        Offset(int start, int end) {
             this.start = start;
             this.end = end;
         }

@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
@@ -35,16 +36,18 @@ import java.awt.event.FocusEvent;
  */
 public class LoginPanel {
     public static final String LOGIN_CREDENTIALS_INFO =
-        "* If logging in with your normal Gerrit login credentials fails, you need to set a HTTP access password" +
+        "* If login in with your usual Gerrit login credentials fails, you need to set a HTTP access password" +
         " for your account in the Gerrit Web Application (Settings > HTTP Password).";
 
     private JPanel pane;
-    private JTextField hostTextField;
+    private JBTextField hostTextField;
     private JTextField loginTextField;
     private JPasswordField passwordField;
     private JTextPane gerritLoginInfoTestField;
 
     public LoginPanel(final LoginDialog dialog) {
+        hostTextField.getEmptyText().setText("https://review.example.org");
+
         hostTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {

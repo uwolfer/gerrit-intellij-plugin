@@ -25,6 +25,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EnumComboBoxModel;
 import com.intellij.ui.GuiUtils;
+import com.intellij.ui.components.JBTextField;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -49,7 +50,7 @@ public class SettingsPanel {
     private JTextPane gerritLoginInfoTextField;
     private JPanel loginPane;
     private JButton testButton;
-    private JTextField hostTextField;
+    private JBTextField hostTextField;
     private JSpinner refreshTimeoutSpinner;
     private JPanel settingsPane;
     private JPanel pane;
@@ -72,6 +73,8 @@ public class SettingsPanel {
     private Logger log;
 
     public SettingsPanel() {
+        hostTextField.getEmptyText().setText("https://review.example.org");
+
         gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
         gerritLoginInfoTextField.setBackground(pane.getBackground());
         testButton.addActionListener(new ActionListener() {

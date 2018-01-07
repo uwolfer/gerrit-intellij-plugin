@@ -21,8 +21,9 @@ Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
 * Android Studio
 * DataGrip
 * CLion
-* Gogland
+* GoLand
 * Rider
+* MPS
 
 *Compiled with Java 1.6*
 

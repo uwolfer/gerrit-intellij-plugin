@@ -21,8 +21,9 @@ Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
 * Android Studio
 * DataGrip
 * CLion
-* Gogland
+* GoLand
 * Rider
+* MPS
 
 *Compiled with Java 1.6*
 
@@ -135,6 +136,7 @@ Credits
 ------
 * IntelliJ Github plugin (some code of this plugin is based on its code)
 
+Thanks to [JetBrains](https://www.jetbrains.com/) for providing a free licence for developing this project.
 
 Donations
 --------
@@ -147,7 +149,7 @@ Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verif
 Copyright and license
 --------------------
 
-Copyright 2013 - 2017 Urs Wolfer
+Copyright 2013 - 2018 Urs Wolfer
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.

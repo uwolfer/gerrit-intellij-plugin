@@ -89,6 +89,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.5</li>
+          <ul>
+            <li>improved labels and documentation for improved usability</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.0.4</li>
           <ul>
             <li>optimize checkout: display smart file checkout dialog when required</li>
@@ -216,7 +221,7 @@
           <li>0.9.5</li>
           <ul>
             <li>new action to add reviewers to a change</li>
-            <li>support for LDAP authentication (when logging in happens with a HTML form)</li>
+            <li>support for LDAP authentication (when login in happens with a HTML form)</li>
             <li>fix authentication when HTTP digest method is used</li>
             <li>fix branch filter for some project setups</li>
             <li>many minor fixes and improvements</li>

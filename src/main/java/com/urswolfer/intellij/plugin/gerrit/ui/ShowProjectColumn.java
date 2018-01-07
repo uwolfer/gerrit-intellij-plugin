@@ -2,7 +2,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 public enum ShowProjectColumn {
     ALWAYS("Always"),
-    AUTO("Automatic (if multiple git repositories)"),
+    AUTO("Auto (when multiple Git repositories available)"),
     NEVER("Never");
 
     ShowProjectColumn(String label) {

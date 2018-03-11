@@ -17,6 +17,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.inject.Inject;
+import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -29,6 +31,9 @@ import org.jetbrains.annotations.NotNull;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentBalloonBuilder {
+    private static final String POPUP_TEXT =
+        String.format("Hit %s to create a comment. It will be published once you post your review.",
+            KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
     @Inject
     private JBPopupFactory jbPopupFactory;
@@ -36,7 +41,7 @@ public class CommentBalloonBuilder {
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {
         final ComponentPopupBuilder builder = jbPopupFactory.
                 createComponentPopupBuilder(balloonContent, balloonContent);
-        builder.setAdText("Hit Ctrl+Enter to create comment. It will be published once you post your review.");
+        builder.setAdText(POPUP_TEXT);
         builder.setTitle(title);
         builder.setResizable(true);
         builder.setMovable(true);

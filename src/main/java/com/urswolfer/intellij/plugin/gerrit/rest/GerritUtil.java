@@ -97,6 +97,8 @@ public class GerritUtil {
     @Inject
     private NotificationService notificationService;
     @Inject
+    private GerritApiProvider gerritApiProvider;
+    @Inject
     private GerritRestApi gerritClient;
     @Inject
     private GerritRestApiFactory gerritRestApiFactory;
@@ -316,42 +318,61 @@ public class GerritUtil {
         Supplier<List<ChangeInfo>> supplier = new Supplier<List<ChangeInfo>>() {
             @Override
             public List<ChangeInfo> get() {
-                try {
-                    return queryRequest.get();
-                } catch (RestApiException e) {
-                    // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
-                    if (e instanceof HttpStatusException) {
-                        HttpStatusException httpStatusException = (HttpStatusException) e;
-                        if (httpStatusException.getStatusCode() == 400) {
-                            boolean tryFallback = false;
-                            String message = httpStatusException.getMessage();
-                            if (message.matches(".*Content:.*\"-S\".*")) {
-                                tryFallback = true;
-                                queryRequest.withStart(0); // remove start, trust that sortkey is set
-                            }
-                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
-                                tryFallback = true;
-                                EnumSet<ListChangesOption> options = queryRequest.getOptions();
-                                options.remove(ListChangesOption.CHANGE_ACTIONS);
-                                options.remove(ListChangesOption.CURRENT_ACTIONS);
-                                queryRequest.withOptions(options);
-                            }
-                            if (tryFallback) {
-                                try {
-                                    return queryRequest.get();
-                                } catch (RestApiException ex) {
-                                    notifyError(ex, "Failed to get Gerrit changes.", project);
-                                    return Collections.emptyList();
-                                }
-                            }
-                        }
-                    }
-                    notifyError(e, "Failed to get Gerrit changes.", project);
-                    return Collections.emptyList();
-                }
+                return GerritUtil.this.getChanges(queryRequest, project, true);
             }
         };
         accessGerrit(supplier, consumer, project);
+    }
+
+    private List<ChangeInfo> getChanges(Changes.QueryRequest queryRequest, Project project, boolean retry) {
+        try {
+            return queryRequest.get();
+        } catch (RestApiException e) {
+            // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
+            if (e instanceof HttpStatusException) {
+                HttpStatusException httpStatusException = (HttpStatusException) e;
+                if (httpStatusException.getStatusCode() == 400) {
+                    boolean tryFallback = false;
+                    String message = httpStatusException.getMessage();
+                    if (message.matches(".*Content:.*\"-S\".*")) {
+                        tryFallback = true;
+                        queryRequest.withStart(0); // remove start, trust that sortkey is set
+                    }
+                    if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
+                        tryFallback = true;
+                        EnumSet<ListChangesOption> options = queryRequest.getOptions();
+                        options.remove(ListChangesOption.CHANGE_ACTIONS);
+                        options.remove(ListChangesOption.CURRENT_ACTIONS);
+                        queryRequest.withOptions(options);
+                    }
+                    if (tryFallback) {
+                        try {
+                            return queryRequest.get();
+                        } catch (RestApiException ex) {
+                            return handleException(ex, project, queryRequest, retry);
+                        }
+                    }
+                }
+            }
+            return handleException(e, project, queryRequest, retry);
+        }
+    }
+
+    private List<ChangeInfo> handleException(RestApiException ex, Project project, Changes.QueryRequest queryRequest,
+                                             boolean retry) {
+        if (retry) {
+            gerritClient = gerritApiProvider.get();
+            Changes.QueryRequest newQueryRequest = gerritClient.changes()
+                .query(queryRequest.getQuery())
+                .withLimit(queryRequest.getLimit())
+                .withStart(queryRequest.getStart())
+                .withSortkey(queryRequest.getSortkey())
+                .withOptions(queryRequest.getOptions());
+            return getChanges(newQueryRequest, project, false);
+        } else {
+            notifyError(ex, "Failed to get Gerrit changes.", project);
+            return Collections.emptyList();
+        }
     }
 
     private String appendQueryStringForProject(Project project, String query) {

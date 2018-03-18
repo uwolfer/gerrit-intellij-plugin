@@ -47,7 +47,7 @@ dependencies {
     compile ('com.google.inject.extensions:guice-multibindings:4.1.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.13') {
+    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.8.14') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'

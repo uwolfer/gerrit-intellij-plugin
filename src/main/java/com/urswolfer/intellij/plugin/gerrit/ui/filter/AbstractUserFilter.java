@@ -22,6 +22,7 @@ import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
@@ -39,6 +40,9 @@ import java.awt.*;
  * @author Thomas Forrer
  */
 public abstract class AbstractUserFilter extends AbstractChangesFilter {
+    private static final String POPUP_TEXT = String.format("%s to search",
+        KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
+
     @Inject
     private JBPopupFactory jbPopupFactory;
 
@@ -146,7 +150,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         private JBPopup buildBalloon(JTextArea textArea) {
             ComponentPopupBuilder builder = jbPopupFactory.
                 createComponentPopupBuilder(textArea, textArea);
-            builder.setAdText("Ctrl+Enter to search");
+            builder.setAdText(POPUP_TEXT);
             builder.setResizable(true);
             builder.setMovable(true);
             builder.setRequestFocus(true);

@@ -89,6 +89,11 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.0.7</li>
+          <ul>
+            <li>fix for issues like: "IllegalArgumentException: expected one element but was..."</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.0.6</li>
           <ul>
             <li>fix for session expiration related issues</li>

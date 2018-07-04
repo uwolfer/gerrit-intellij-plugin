@@ -700,6 +700,9 @@ public class GerritUtil {
                             ApplicationManager.getApplication().invokeLater(new Runnable() {
                                 @Override
                                 public void run() {
+                                    if (project.isDisposed()) {
+                                        return;
+                                    }
                                     //noinspection unchecked
                                     consumer.consume(result);
                                 }

@@ -68,7 +68,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
 
-    private Optional<String> preloadedPassword = Optional.absent();
+    private Optional<String> preloadedPassword;
 
     private Logger log;
 
@@ -145,7 +145,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     @NotNull
     public String getPassword() {
         if (!ApplicationManager.getApplication().isDispatchThread()) {
-            if (!preloadedPassword.isPresent()) {
+            if (preloadedPassword == null) {
                 throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
             }
         } else {

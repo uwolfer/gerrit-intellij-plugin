@@ -390,7 +390,8 @@ public class GerritUtil {
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
                 remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
-                String projectName = getProjectName(gerritSettings.getHost(), remoteUrl);
+                String projectName = getProjectName(gerritSettings.getHost(), gerritSettings.getCloneBaseUrl(),
+                    remoteUrl);
                 if (!Strings.isNullOrEmpty(projectName) && remoteUrl.endsWith(projectName)) {
                     projectNames.add(projectName);
                 }
@@ -399,12 +400,13 @@ public class GerritUtil {
         return projectNames;
     }
 
-    private String getProjectName(String repositoryUrl, String url) {
-        if (!repositoryUrl.endsWith("/")) {
-            repositoryUrl = repositoryUrl + "/";
+    private String getProjectName(String gerritUrl, String gerritCloneBaseUrl,  String url) {
+        String baseUrl = Strings.isNullOrEmpty(gerritCloneBaseUrl) ? gerritUrl : gerritCloneBaseUrl;
+        if (!baseUrl.endsWith("/")) {
+            baseUrl = baseUrl + "/";
         }
 
-        String basePath = UrlUtils.createUriFromGitConfigString(repositoryUrl).getPath();
+        String basePath = UrlUtils.createUriFromGitConfigString(baseUrl).getPath();
         String path = UrlUtils.createUriFromGitConfigString(url).getPath();
 
         if (path.length() >= basePath.length() && path.startsWith(basePath)) {
@@ -416,9 +418,9 @@ public class GerritUtil {
         if (path.endsWith("/")) {
             path = path.substring(0, path.length() - 1);
         }
-        // gerrit project names usually dont start with a slash
+        // gerrit project names usually don't start with a slash
         if (path.startsWith("/")) {
-            path = path.substring(1, path.length());
+            path = path.substring(1);
         }
 
         return path;

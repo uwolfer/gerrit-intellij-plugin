@@ -38,7 +38,7 @@ Installation
   - Download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
   matching your IntelliJ version and install it manually using
   <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Install plugin from disk...</kbd>
-  
+
 Restart your IDE.
 
 ###### Pre-Releases
@@ -64,7 +64,8 @@ Troubleshooting
 By default, you will only see changes to Git repositories that are configured in the current project of your IntelliJ IDE.
 * Make sure that Git repositories are configured in the 'Version Control' settings.
 * Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings. Or:
-* Add a remote whose name equals the Gerrit project name with Gerrit as remote url.
+* Set the 'Clone Base URL' if it differs from the Gerrit web url. Or:
+* Add a remote whose name equals the Gerrit project name with Gerrit web url as remote url.
 
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
 In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.

@@ -62,6 +62,7 @@ public class SettingsPanel {
     private JCheckBox showChangeIdColumnCheckBox;
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
+    private JTextField cloneBaseUrlTextField;
 
     private boolean passwordModified;
 
@@ -133,6 +134,13 @@ public class SettingsPanel {
         });
 
         showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
+
+        cloneBaseUrlTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                fixUrl(cloneBaseUrlTextField);
+            }
+        });
     }
 
     public static void fixUrl(JTextField textField) {
@@ -259,5 +267,14 @@ public class SettingsPanel {
     public void resetPasswordModification() {
         passwordModified = false;
     }
+
+    public void setCloneBaseUrl(final String cloneBaseUrl) {
+        cloneBaseUrlTextField.setText(cloneBaseUrl);
+    }
+
+    public String getCloneBaseUrl() {
+        return cloneBaseUrlTextField.getText().trim();
+    }
+
 }
 

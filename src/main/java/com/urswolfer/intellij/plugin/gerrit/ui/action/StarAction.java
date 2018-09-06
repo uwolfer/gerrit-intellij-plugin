@@ -1,12 +1,13 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import icons.Git4ideaIcons;
+
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer

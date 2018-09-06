@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.passwordSafe.PasswordSafeException;
@@ -32,6 +31,8 @@ import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Optional;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubSettings
@@ -151,7 +152,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         } else {
             preloadPassword();
         }
-        return preloadedPassword.or("");
+        return preloadedPassword.orElse("");
     }
 
     public boolean preloadPassword() {
@@ -169,7 +170,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 return false;
             }
         }
-        preloadedPassword = Optional.fromNullable(password);
+        preloadedPassword = Optional.ofNullable(password);
         return true;
     }
 

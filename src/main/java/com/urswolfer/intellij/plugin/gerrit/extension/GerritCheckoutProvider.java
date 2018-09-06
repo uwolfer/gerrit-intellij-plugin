@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -54,6 +53,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubCheckoutProvider
@@ -63,12 +63,8 @@ import java.util.List;
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
 
-    private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
-        public String apply(ProjectInfo from) {
-            return from.id;
-        }
-    };
-    private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION).reverse();
+    private static final Function<ProjectInfo, String> GET_ID_FUNCTION = from -> from.id;
+    private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION::apply).reverse();
 
     @Inject
     private LocalFileSystem localFileSystem;

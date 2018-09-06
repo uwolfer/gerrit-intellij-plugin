@@ -20,8 +20,6 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
 import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
@@ -31,7 +29,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
@@ -41,7 +38,6 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcs.log.VcsUser;
 import com.intellij.vcs.log.impl.HashImpl;
@@ -78,6 +74,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -117,13 +114,13 @@ public class GerritGitUtil {
                 }
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
         String url = fetchInfo.url;
         for (GitRemote remote : gitRepository.getRemotes()) {
-            List<String> repositoryUrls = new ArrayList<String>();
+            List<String> repositoryUrls = new ArrayList<>();
             repositoryUrls.addAll(remote.getUrls());
             repositoryUrls.addAll(remote.getPushUrls());
             for (String repositoryUrl : repositoryUrls) {
@@ -137,7 +134,7 @@ public class GerritGitUtil {
             String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
                 "Git repository: '%s'.", gitRepository.getPresentableUrl()));
         notificationService.notifyError(notification);
-        return Optional.absent();
+        return Optional.empty();
     }
 
     public void fetchChange(final Project project,
@@ -154,7 +151,7 @@ public class GerritGitUtil {
                         successCallable.call();
                     }
                 } catch (Exception e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
 
@@ -166,10 +163,10 @@ public class GerritGitUtil {
                 if (commitIsFetched) {
                     // 'git fetch' works with a local path instead of a remote -> this way FETCH_HEAD is set
                     remote = new GitRemote(gitRepository.getRoot().getPath(),
-                        Collections.<String>emptyList(), Collections.<String>emptySet(), Collections.<String>emptyList(), Collections.<String>emptyList());
+                        Collections.emptyList(), Collections.emptySet(), Collections.emptyList(), Collections.emptyList());
                     fetch = commitHash;
                 } else {
-                    remote = getRemoteForChange(project, gitRepository, fetchInfo).orNull();
+                    remote = getRemoteForChange(project, gitRepository, fetchInfo).orElse(null);
                     if (remote == null) {
                         return;
                     }
@@ -204,15 +201,13 @@ public class GerritGitUtil {
                     final String notLoaded = "Not loaded";
                     VcsUser notLoadedUser = new VcsUserImpl(notLoaded, notLoaded);
                     VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
-                        HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
+                        HashImpl.build(revisionId), Collections.emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
 
                     cherryPick(gitRepository, gitCommit, git, project);
                 } finally {
-                    application.invokeLater(new Runnable() {
-                        public void run() {
-                            virtualFileManager.syncRefresh();
-                            ChangeListManagerImpl.getInstanceImpl(project).unblockModalNotifications();
-                        }
+                    application.invokeLater(() -> {
+                        virtualFileManager.syncRefresh();
+                        ChangeListManagerImpl.getInstanceImpl(project).unblockModalNotifications();
                     });
                 }
             }
@@ -322,7 +317,7 @@ public class GerritGitUtil {
     private static GitFetchResult fetchNatively(@NotNull GitRepository repository, @NotNull GitRemote remote, @Nullable String branch) {
         Git git = ServiceManager.getService(Git.class);
         GitCommandResult result = git.fetch(repository, remote,
-            Collections.<GitLineHandlerListener>emptyList(), new String[]{branch});
+            Collections.emptyList(), branch);
 
         GitFetchResult fetchResult;
         if (result.success()) {
@@ -344,12 +339,7 @@ public class GerritGitUtil {
         h.addParameters("--format=short");
         h.endOptions();
         h.addLineListener(listener);
-        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
-            @Override
-            public GitLineHandler compute() {
-                return h;
-            }
-        });
+        GitCommandResult gitCommandResult = git.runCommand(() -> h);
         boolean success = gitCommandResult.success();
         List<String> output = gitCommandResult.getOutput();
         boolean isCommit = !output.isEmpty() && output.get(0).startsWith("commit");
@@ -388,12 +378,7 @@ public class GerritGitUtil {
         h.addParameters("-u", "remotes/" + remoteBranch);
         h.endOptions();
         h.addLineListener(listener);
-        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
-            @Override
-            public GitLineHandler compute() {
-                return h;
-            }
-        });
+        GitCommandResult gitCommandResult = git.runCommand(() -> h);
         if (!gitCommandResult.success()) {
             throw new VcsException(listener.getHtmlMessage());
         }
@@ -401,7 +386,7 @@ public class GerritGitUtil {
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {
 
-        private List<String> messages = new ArrayList<String>();
+        private List<String> messages = new ArrayList<>();
 
         @Override
         public void onLineAvailable(String s, Key key) {

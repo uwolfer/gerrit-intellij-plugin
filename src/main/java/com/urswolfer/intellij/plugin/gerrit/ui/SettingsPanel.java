@@ -33,8 +33,6 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
@@ -77,29 +75,26 @@ public class SettingsPanel {
 
         gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
         gerritLoginInfoTextField.setBackground(pane.getBackground());
-        testButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
-                String host = getHost();
-                if (Strings.isNullOrEmpty(host)) {
-                    Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
-                    return;
-                }
-                try {
-                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password);
-                    if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
-                        Messages.showInfoMessage(pane, "Connection successful", "Success");
-                    } else {
-                        Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
-                    }
-                } catch (Exception ex) {
-                    log.info(ex);
-                    Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
-                            "Login Failure");
-                }
-                setPassword(password);
+        testButton.addActionListener(e -> {
+            String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
+            String host = getHost();
+            if (Strings.isNullOrEmpty(host)) {
+                Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
+                return;
             }
+            try {
+                GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password);
+                if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
+                    Messages.showInfoMessage(pane, "Connection successful", "Success");
+                } else {
+                    Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
+                }
+            } catch (Exception ex) {
+                log.info(ex);
+                Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
+                        "Login Failure");
+            }
+            setPassword(password);
         });
 
         hostTextField.addFocusListener(new FocusAdapter() {
@@ -126,11 +121,7 @@ public class SettingsPanel {
             }
         });
 
-        automaticRefreshCheckbox.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                updateAutomaticRefresh();
-            }
-        });
+        automaticRefreshCheckbox.addActionListener(e -> updateAutomaticRefresh());
 
         showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
     }

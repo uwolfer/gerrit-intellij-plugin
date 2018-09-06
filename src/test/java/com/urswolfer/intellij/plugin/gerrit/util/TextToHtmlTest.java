@@ -38,7 +38,7 @@ public class TextToHtmlTest {
     }
 
     @Test(dataProvider = "textToHtml")
-    public void testTextToHtml(String text, String expectedHtml) throws Exception {
+    public void testTextToHtml(String text, String expectedHtml) {
         Assert.assertEquals(TextToHtml.textToHtml(text), expectedHtml);
     }
 }

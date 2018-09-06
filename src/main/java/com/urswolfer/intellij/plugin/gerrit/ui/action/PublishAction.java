@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -27,6 +26,7 @@ import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer

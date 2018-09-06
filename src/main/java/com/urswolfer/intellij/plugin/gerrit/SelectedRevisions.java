@@ -16,13 +16,13 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -31,14 +31,14 @@ import java.util.Set;
  * @author Thomas Forrer
  */
 public class SelectedRevisions extends Observable {
-    private final Map<String, String> map = Maps.newHashMap();
+    private final Map<String, String> map = new HashMap<>();
 
     /**
-     * @return the selected revision for the provided changeId, or {@link com.google.common.base.Optional#absent()} if
+     * @return the selected revision for the provided changeId, or {@link Optional#empty()} ()} if
      *         the current revision was selected.
      */
     public Optional<String> get(String changeId) {
-        return Optional.fromNullable(map.get(changeId));
+        return Optional.ofNullable(map.get(changeId));
     }
 
     /**
@@ -54,7 +54,7 @@ public class SelectedRevisions extends Observable {
                 currentRevision = Iterables.getLast(revisionKeys);
             }
         }
-        return get(changeInfo.id).or(Optional.fromNullable(currentRevision)).orNull();
+        return Optional.ofNullable(get(changeInfo.id).orElse(currentRevision)).orElse(null);
     }
 
     public void put(String changeId, String revisionHash) {

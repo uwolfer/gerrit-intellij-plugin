@@ -26,7 +26,7 @@ class AttMap {
 
   static {
     final Tag src = new SrcTag();
-    TAGS = new HashMap<String, Tag>();
+    TAGS = new HashMap<>();
     TAGS.put("a", new AnchorTag());
     TAGS.put("form", new FormTag());
     TAGS.put("img", src);
@@ -34,8 +34,8 @@ class AttMap {
     TAGS.put("frame", src);
   }
 
-  private final ArrayList<String> names = new ArrayList<String>();
-  private final ArrayList<String> values = new ArrayList<String>();
+  private final ArrayList<String> names = new ArrayList<>();
+  private final ArrayList<String> values = new ArrayList<>();
 
   private Tag tag = ANY;
   private int live;

@@ -18,7 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
@@ -27,6 +26,7 @@ import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import git4idea.repo.GitRepository;
 
 import java.io.File;
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer

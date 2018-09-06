@@ -18,8 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
@@ -30,6 +28,7 @@ import git4idea.GitCommit;
 import git4idea.changes.GitChangeUtils;
 
 import java.util.Collection;
+import java.util.function.Predicate;
 
 /**
  * This class diffs commits based in IntelliJ git4idea code and adds support for diffing commit msg.
@@ -38,20 +37,17 @@ import java.util.Collection;
  */
 public class CommitDiffBuilder {
 
-    private static final Predicate<Change> COMMIT_MSG_CHANGE_PREDICATE = new Predicate<Change>() {
-        @Override
-        public boolean apply(Change change) {
-            String commitMsgFile = "/COMMIT_MSG";
-            ContentRevision afterRevision = change.getAfterRevision();
-            if (afterRevision != null) {
-                return commitMsgFile.equals(PathUtils.ensureSlashSeparators(afterRevision.getFile().getPath()));
-            }
-            ContentRevision beforeRevision = change.getBeforeRevision();
-            if (beforeRevision != null) {
-                return commitMsgFile.equals(PathUtils.ensureSlashSeparators(beforeRevision.getFile().getPath()));
-            }
-            throw new IllegalStateException("Change should have at least one ContentRevision set.");
+    private static final Predicate<Change> COMMIT_MSG_CHANGE_PREDICATE = change -> {
+        String commitMsgFile = "/COMMIT_MSG";
+        ContentRevision afterRevision = change.getAfterRevision();
+        if (afterRevision != null) {
+            return commitMsgFile.equals(PathUtils.ensureSlashSeparators(afterRevision.getFile().getPath()));
         }
+        ContentRevision beforeRevision = change.getBeforeRevision();
+        if (beforeRevision != null) {
+            return commitMsgFile.equals(PathUtils.ensureSlashSeparators(beforeRevision.getFile().getPath()));
+        }
+        throw new IllegalStateException("Change should have at least one ContentRevision set.");
     };
 
     private final Project project;
@@ -81,14 +77,14 @@ public class CommitDiffBuilder {
     }
 
     private Change buildCommitMsgChange() {
-        Change baseChange = Iterables.find(changesProvider.provide(base), COMMIT_MSG_CHANGE_PREDICATE);
+        Change baseChange = changesProvider.provide(base).stream().filter(COMMIT_MSG_CHANGE_PREDICATE).findFirst().get();
         ContentRevision baseRevision = baseChange.getAfterRevision();
-        Change change = Iterables.find(changesProvider.provide(commit), COMMIT_MSG_CHANGE_PREDICATE);
+        Change change = changesProvider.provide(commit).stream().filter(COMMIT_MSG_CHANGE_PREDICATE).findFirst().get();
         ContentRevision revision = change.getAfterRevision();
         return new Change(baseRevision, revision);
     }
 
-    public static interface ChangesProvider {
+    public interface ChangesProvider {
         Collection<Change> provide(GitCommit gitCommit);
     }
 

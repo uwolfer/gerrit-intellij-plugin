@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -35,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer
@@ -50,7 +50,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     private JBPopup popup;
     private AnAction selectOkAction;
     private JTextArea selectUserTextArea;
-    private Optional<User> value = Optional.absent();
+    private Optional<User> value = Optional.empty();
 
     public abstract String getActionLabel();
     public abstract String getQueryField();
@@ -61,7 +61,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                 new User("All", null),
                 new User("Me", "self")
         );
-        value = Optional.of(users.get(0));
+        value = java.util.Optional.of(users.get(0));
         return new UserPopupAction(project, getActionLabel());
     }
 
@@ -83,7 +83,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
 
         private User(String label, String forQuery) {
             this.label = label;
-            this.forQuery = Optional.fromNullable(forQuery);
+            this.forQuery = Optional.ofNullable(forQuery);
         }
     }
 
@@ -125,7 +125,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         }
 
         private void change(User user) {
-            value = Optional.of(user);
+            value = java.util.Optional.of(user);
             updateFilterValueLabel(user.label);
             setChanged();
             notifyObservers(project);

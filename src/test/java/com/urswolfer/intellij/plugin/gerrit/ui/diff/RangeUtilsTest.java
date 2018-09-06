@@ -25,7 +25,7 @@ public class RangeUtilsTest {
     public static final StringBuilder STRING = new StringBuilder("short text with\nline break");
 
     @Test
-    public void testTextOffsetToRangeSingleLine() throws Exception {
+    public void testTextOffsetToRangeSingleLine() {
         Comment.Range range = RangeUtils.textOffsetToRange(STRING, 22, 27); // word "break"
 
         Assert.assertEquals(2, range.startLine);
@@ -35,7 +35,7 @@ public class RangeUtilsTest {
     }
 
     @Test
-    public void testTextOffsetToRangeMultiLine() throws Exception {
+    public void testTextOffsetToRangeMultiLine() {
         Comment.Range range = RangeUtils.textOffsetToRange(STRING, 11, 20); // "with\nline"
 
         Assert.assertEquals(1, range.startLine);
@@ -45,7 +45,7 @@ public class RangeUtilsTest {
     }
 
     @Test
-    public void testRangeToTextOffsetSingleLine() throws Exception {
+    public void testRangeToTextOffsetSingleLine() {
         Comment.Range range = new Comment.Range();
         range.startLine = 2; // word "break"
         range.startCharacter = 6;
@@ -58,7 +58,7 @@ public class RangeUtilsTest {
     }
 
     @Test
-    public void testRangeToTextOffsetMultiLine() throws Exception {
+    public void testRangeToTextOffsetMultiLine() {
         Comment.Range range = new Comment.Range();
         range.startLine = 1; // "with\nline"
         range.startCharacter = 11;

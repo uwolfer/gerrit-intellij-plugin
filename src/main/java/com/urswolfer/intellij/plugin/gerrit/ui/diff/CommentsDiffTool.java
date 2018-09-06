@@ -16,10 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.Longs;
@@ -56,7 +52,6 @@ import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -67,9 +62,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
@@ -78,12 +74,7 @@ import java.util.Map;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
-    private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
-        @Override
-        public boolean apply(Comment comment) {
-            return comment.side == null || comment.side.equals(Side.REVISION);
-        }
-    };
+    private static final Predicate<Comment> REVISION_COMMENT = comment -> comment.side == null || comment.side.equals(Side.REVISION);
 
     private static final Ordering<Comment> COMMENT_ORDERING = new Ordering<Comment>() {
         @Override
@@ -113,7 +104,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     @SuppressWarnings("unchecked")
     @Override
     public List<Class<? extends DiffTool>> getSuppressedTools() {
-        return Lists.<Class<? extends DiffTool>>newArrayList(
+        return Lists.newArrayList(
             UnifiedDiffTool.INSTANCE.getClass(),
             SimpleDiffTool.INSTANCE.getClass()
         );
@@ -151,54 +142,46 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
 
         gerritUtil.getComments(changeInfo._number, selectedRevisionId, project, true, true,
-                new Consumer<Map<String, List<CommentInfo>>>() {
-                    @Override
-                    public void consume(Map<String, List<CommentInfo>> comments) {
-                        List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                        if (fileComments != null) {
-                            addCommentsGutter(
-                                    editor2,
-                                    relativeFilePath,
-                                    selectedRevisionId,
-                                    Iterables.filter(fileComments, REVISION_COMMENT),
-                                    changeInfo,
-                                    project
-                            );
-                            if (!baseRevision.isPresent()) {
-                                addCommentsGutter(
-                                        editor1,
-                                        relativeFilePath,
-                                        selectedRevisionId,
-                                        Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT)),
-                                        changeInfo,
-                                        project
-                                );
-                            }
-                        }
-                    }
-                }
-        );
-
-        if (baseRevision.isPresent()) {
-            gerritUtil.getComments(changeInfo._number, baseRevision.get().getFirst(), project, true, true,
-                    new Consumer<Map<String, List<CommentInfo>>>() {
-                @Override
-                public void consume(Map<String, List<CommentInfo>> comments) {
-                    List<CommentInfo> fileComments = comments.get(relativeFilePath);
-                    if (fileComments != null) {
-                        Collections.sort(fileComments, COMMENT_ORDERING);
+            comments -> {
+                List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                if (fileComments != null) {
+                    addCommentsGutter(
+                            editor2,
+                            relativeFilePath,
+                            selectedRevisionId,
+                        fileComments.stream().filter(REVISION_COMMENT).collect(Collectors.toList()),
+                            changeInfo,
+                            project
+                    );
+                    if (!baseRevision.isPresent()) {
                         addCommentsGutter(
                                 editor1,
                                 relativeFilePath,
-                                baseRevision.get().getFirst(),
-                                Iterables.filter(fileComments, REVISION_COMMENT),
+                                selectedRevisionId,
+                            fileComments.stream().filter(REVISION_COMMENT.negate()).collect(Collectors.toList()),
                                 changeInfo,
                                 project
                         );
                     }
                 }
-            });
-        }
+            }
+        );
+
+        baseRevision.ifPresent(stringRevisionInfoPair -> gerritUtil.getComments(changeInfo._number, stringRevisionInfoPair.getFirst(), project, true, true,
+            comments -> {
+                List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                if (fileComments != null) {
+                    fileComments.sort(COMMENT_ORDERING);
+                    addCommentsGutter(
+                        editor1,
+                        relativeFilePath,
+                        stringRevisionInfoPair.getFirst(),
+                        fileComments.stream().filter(REVISION_COMMENT).collect(Collectors.toList()),
+                        changeInfo,
+                        project
+                    );
+                }
+            }));
 
         gerritUtil.setReviewed(changeInfo._number, selectedRevisionId,
                 relativeFilePath, project);
@@ -325,7 +308,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
         TextAttributes attributes = new TextAttributes();
         attributes.setBackgroundColor(JBColor.YELLOW);
-        ArrayList<RangeHighlighter> highlighters = Lists.newArrayList();
+        ArrayList<RangeHighlighter> highlighters = new ArrayList<>();
         HighlightManager highlightManager = HighlightManager.getInstance(project);
         highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
         return highlighters.get(0);

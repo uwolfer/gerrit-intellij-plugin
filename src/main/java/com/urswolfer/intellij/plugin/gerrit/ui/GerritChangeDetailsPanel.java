@@ -18,7 +18,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -36,9 +35,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
-import javax.swing.event.HyperlinkListener;
 import java.awt.*;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -53,12 +52,7 @@ public class GerritChangeDetailsPanel {
     private static final String LOADING = "loading";
     private static final String DATA = "data";
     private static final String MULTIPLE_SELECTED = "multiple_selected";
-    private static final ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
-        @Override
-        protected DecimalFormat initialValue() {
-            return new DecimalFormat("+#;-#");
-        }
-    };
+    private static final ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("+#;-#"));
 
     private final JPanel panel;
 
@@ -80,12 +74,7 @@ public class GerritChangeDetailsPanel {
         jEditorPane.setPreferredSize(new Dimension(150, 100));
         jEditorPane.setEditable(false);
         jEditorPane.setBackground(UIUtil.getComboBoxDisabledBackground());
-        jEditorPane.addHyperlinkListener(new HyperlinkListener() {
-            @Override
-            public void hyperlinkUpdate(HyperlinkEvent e) {
-                GerritChangeDetailsPanel.this.handleHyperlinkEvent(e);
-            }
-        });
+        jEditorPane.addHyperlinkListener(GerritChangeDetailsPanel.this::handleHyperlinkEvent);
 
         final JBScrollPane tableScroll = new JBScrollPane(jEditorPane);
         tableScroll.setBorder(null);
@@ -182,9 +171,9 @@ public class GerritChangeDetailsPanel {
                     List<ApprovalInfo> all = labelInfoEntry.getValue().all;
                     if (ccAccounts == null) {
                         if (all != null) {
-                            ccAccounts = Lists.newArrayList(all);
+                            ccAccounts = new ArrayList<>(all);
                         } else {
-                            ccAccounts = Lists.newArrayList();
+                            ccAccounts = new ArrayList<>();
                         }
                     }
                     if (all != null) {

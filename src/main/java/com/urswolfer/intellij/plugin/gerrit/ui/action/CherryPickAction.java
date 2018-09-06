@@ -16,18 +16,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import icons.DvcsImplIcons;
 
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -54,18 +53,12 @@ public class CherryPickAction extends AbstractChangeAction {
         }
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
-        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(final ChangeInfo changeInfo) {
-                Callable<Void> successCallable = new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        gerritGitUtil.cherryPickChange(project, changeInfo, selectedRevisions.get(changeInfo));
-                        return null;
-                    }
-                };
-                fetchAction.fetchChange(selectedChange.get(), project, successCallable);
-            }
+        getChangeDetail(selectedChange.get(), project, changeInfo -> {
+            Callable<Void> successCallable = () -> {
+                gerritGitUtil.cherryPickChange(project, changeInfo, selectedRevisions.get(changeInfo));
+                return null;
+            };
+            fetchAction.fetchChange(selectedChange.get(), project, successCallable);
         });
     }
 

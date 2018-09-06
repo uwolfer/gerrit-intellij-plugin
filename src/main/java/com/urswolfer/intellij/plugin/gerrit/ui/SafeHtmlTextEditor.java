@@ -26,8 +26,6 @@ import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -64,15 +62,12 @@ public class SafeHtmlTextEditor extends JPanel {
         previewEditorPane.setEditable(false);
         tabbedPane.addTab("Preview", AllIcons.Actions.Preview, previewEditorPane);
 
-        tabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (((TabbedPaneImpl) e.getSource()).getSelectedComponent() == previewEditorPane) {
-                    String content = String.format("<html><head>%s</head><body>%s</body></html>",
-                            UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()),
-                            TextToHtml.textToHtml(messageField.getText()));
-                    previewEditorPane.setText(content);
-                }
+        tabbedPane.addChangeListener(e -> {
+            if (((TabbedPaneImpl) e.getSource()).getSelectedComponent() == previewEditorPane) {
+                String content = String.format("<html><head>%s</head><body>%s</body></html>",
+                        UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()),
+                        TextToHtml.textToHtml(messageField.getText()));
+                previewEditorPane.setText(content);
             }
         });
 

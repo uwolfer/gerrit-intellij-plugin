@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -27,7 +26,6 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
@@ -74,12 +72,7 @@ public class CommentDoneAction extends AnAction implements DumbAware {
 
         final Project project = e.getData(PlatformDataKeys.PROJECT);
         gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,
-                new Consumer<CommentInfo>() {
-                    @Override
-                    public void consume(CommentInfo commentInfo) {
-                        commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo);
-                    }
-                });
+            commentInfo -> commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo));
     }
 
     @Override

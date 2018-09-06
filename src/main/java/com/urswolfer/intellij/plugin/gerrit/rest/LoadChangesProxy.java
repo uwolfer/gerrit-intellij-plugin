@@ -17,12 +17,12 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -38,7 +38,7 @@ public class LoadChangesProxy {
     private final Project project;
     private String sortkey;
     private boolean hasMore = true;
-    private final List<ChangeInfo> changes = Lists.newArrayList();
+    private final List<ChangeInfo> changes = new ArrayList<>();
     private final Lock lock = new ReentrantLock();
 
     public LoadChangesProxy(Changes.QueryRequest queryRequest,
@@ -60,20 +60,17 @@ public class LoadChangesProxy {
             if (sortkey != null) {
                 myRequest.withSortkey(sortkey);
             }
-            Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
-                @Override
-                public void consume(List<ChangeInfo> changeInfos) {
-                    if (changeInfos != null && !changeInfos.isEmpty()) {
-                        ChangeInfo lastChangeInfo = Iterables.getLast(changeInfos);
-                        hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
-                        sortkey = lastChangeInfo._sortkey;
-                        changes.addAll(changeInfos);
-                    } else {
-                        hasMore = false;
-                    }
-                    consumer.consume(changeInfos);
-                    lock.unlock();
+            Consumer<List<ChangeInfo>> myConsumer = changeInfos -> {
+                if (changeInfos != null && !changeInfos.isEmpty()) {
+                    ChangeInfo lastChangeInfo = Iterables.getLast(changeInfos);
+                    hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
+                    sortkey = lastChangeInfo._sortkey;
+                    changes.addAll(changeInfos);
+                } else {
+                    hasMore = false;
                 }
+                consumer.consume(changeInfos);
+                lock.unlock();
             };
             gerritUtil.getChanges(myRequest, project, myConsumer);
         }

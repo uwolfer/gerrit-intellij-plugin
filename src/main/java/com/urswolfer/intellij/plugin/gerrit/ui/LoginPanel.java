@@ -19,12 +19,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
@@ -64,7 +64,7 @@ public class LoginPanel {
         loginTextField.getDocument().addDocumentListener(listener);
         passwordField.getDocument().addDocumentListener(listener);
         gerritLoginInfoTestField.setText(LOGIN_CREDENTIALS_INFO);
-        gerritLoginInfoTestField.setMargin(new Insets(5, 0, 0, 0));
+        gerritLoginInfoTestField.setMargin(JBUI.insetsTop(5));
         gerritLoginInfoTestField.setBackground(UIUtil.TRANSPARENT_COLOR);
     }
 

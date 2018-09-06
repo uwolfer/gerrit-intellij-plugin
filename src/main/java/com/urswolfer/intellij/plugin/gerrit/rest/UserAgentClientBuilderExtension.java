@@ -23,8 +23,6 @@ import org.apache.http.*;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 
-import java.io.IOException;
-
 /**
  * @author Urs Wolfer
  */
@@ -38,7 +36,7 @@ public class UserAgentClientBuilderExtension extends HttpClientBuilderExtension 
     }
 
     private static class UserAgentHttpRequestInterceptor implements HttpRequestInterceptor {
-        public void process(final HttpRequest request, final HttpContext context) throws HttpException, IOException {
+        public void process(final HttpRequest request, final HttpContext context) {
             Header existingUserAgent = request.getFirstHeader(HttpHeaders.USER_AGENT);
             String userAgent = String.format("gerrit-intellij-plugin/%s", Version.get());
             userAgent += " using " + existingUserAgent.getValue();

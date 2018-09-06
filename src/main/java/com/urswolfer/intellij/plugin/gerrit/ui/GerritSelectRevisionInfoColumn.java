@@ -19,8 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -44,6 +42,7 @@ import java.util.EventObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Class representing the column in the {@link com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel} to select
@@ -55,12 +54,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
     @Inject
     private SelectedRevisions selectedRevisions;
 
-    private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
-        @Override
-        public Pair<String, RevisionInfo> apply(Map.Entry<String, RevisionInfo> entry) {
-            return Pair.create(entry.getKey(), entry.getValue());
-        }
-    };
+    private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = entry -> Pair.create(entry.getKey(), entry.getValue());
 
     public GerritSelectRevisionInfoColumn() {
         super("Patch Set");
@@ -91,7 +85,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
             public void editingStopped(ChangeEvent e) {
                 ComboBoxTableRenderer cellEditor = (ComboBoxTableRenderer) e.getSource();
                 String value = (String) cellEditor.getCellEditorValue();
-                Iterable<Pair<String, RevisionInfo>> pairs = Iterables.transform(changeInfo.revisions.entrySet(), MAP_ENTRY_TO_PAIR);
+                Iterable<Pair<String, RevisionInfo>> pairs = changeInfo.revisions.entrySet().stream().map(MAP_ENTRY_TO_PAIR::apply).collect(Collectors.toList());
                 Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, getRevisionLabelFunction(changeInfo));
                 Pair<String, RevisionInfo> pair = map.get(value);
                 selectedRevisions.put(changeInfo.id, pair.getFirst());
@@ -148,25 +142,18 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         Set<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
                 RevisionInfos.MAP_ENTRY_COMPARATOR,
                 changeInfo.revisions.entrySet());
-        return Lists.newArrayList(Iterables.transform(
-                        revisions,
-                        Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)
-                )
-        );
+        return revisions.stream().map(Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)::apply).collect(Collectors.toList());
     }
 
     private Function<Pair<String, RevisionInfo>, String> getRevisionLabelFunction(final ChangeInfo changeInfo) {
-        return new Function<Pair<String, RevisionInfo>, String>() {
-            @Override
-            public String apply(Pair<String, RevisionInfo> revisionInfo) {
-                int size = changeInfo.revisions.size();
-                int number = revisionInfo.getSecond()._number;
-                String revision = revisionInfo.getFirst().substring(0, 7);
-                if (size < number) { // size not available in older Gerrit versions
-                    return String.format("%s: %s", number, revision);
-                }
-                return String.format("%s/%s: %s", number, size, revision);
+        return revisionInfo -> {
+            int size = changeInfo.revisions.size();
+            int number = revisionInfo.getSecond()._number;
+            String revision = revisionInfo.getFirst().substring(0, 7);
+            if (size < number) { // size not available in older Gerrit versions
+                return String.format("%s: %s", number, revision);
             }
+            return String.format("%s/%s: %s", number, size, revision);
         };
     }
 }

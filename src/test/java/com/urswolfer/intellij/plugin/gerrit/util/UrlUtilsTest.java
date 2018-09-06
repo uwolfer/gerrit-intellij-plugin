@@ -27,14 +27,14 @@ import java.net.URI;
 public class UrlUtilsTest {
 
     @Test
-    public void testUrlHasSameHost() throws Exception {
+    public void testUrlHasSameHost() {
         Assert.assertTrue(UrlUtils.urlHasSameHost("https://gerrit.example.com/test.git", "https://gerrit.example.com/"));
 
         Assert.assertFalse(UrlUtils.urlHasSameHost("https://git.example.com/test.git", "https://gerrit.example.com/"));
     }
 
     @Test
-    public void testCreateUriFromGitConfigString() throws Exception {
+    public void testCreateUriFromGitConfigString() {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("https://git.example.com/");
         Assert.assertEquals(uriFromGitConfigString.toString(), "https://git.example.com/");
 
@@ -43,7 +43,7 @@ public class UrlUtilsTest {
     }
 
     @Test
-    public void testUrlSpace() throws Exception {
+    public void testUrlSpace() {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("ssh://username@gerrit.example.com:39528/SDT Framework/act");
         Assert.assertEquals(uriFromGitConfigString.toString(), "ssh://username@gerrit.example.com:39528/SDT%20Framework/act");
     }

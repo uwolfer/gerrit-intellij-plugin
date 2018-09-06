@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -27,7 +26,6 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -40,6 +38,7 @@ import git4idea.validators.GitNewBranchNameValidator;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -62,60 +61,51 @@ public class CheckoutAction extends AbstractChangeAction {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
-        final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        final java.util.Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
         final Project project = anActionEvent.getRequiredData(PlatformDataKeys.PROJECT);
 
-        getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(final ChangeInfo changeDetails) {
-                Callable<Void> successCallable = new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
-                        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
-                                getRepositoryForGerritProject(project, changeDetails.project);
-                        if (!gitRepositoryOptional.isPresent()) {
-                            NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                                String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));
-                            notificationService.notifyError(notification);
-                            return null;
-                        }
-                        String branchName = buildBranchName(changeDetails);
-                        String checkedOutBranchName = branchName;
-                        final GitRepository repository = gitRepositoryOptional.get();
-                        List<GitRepository> gitRepositories = Collections.singletonList(repository);
-                        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
-                        final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
-                        if (!remote.isPresent()) {
-                            return null;
-                        }
-                        boolean validName = false;
-                        int i = 0;
-                        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
-                        while (!validName && i < 100) { // do not loop endless - stop after 100 tries because most probably something went wrong
-                            checkedOutBranchName = branchName + (i != 0 ? "_" + i : "");
-                            validName = newBranchNameValidator.checkInput(checkedOutBranchName);
-                            i++;
-                        }
-                        brancher.checkoutNewBranchStartingFrom(checkedOutBranchName, "FETCH_HEAD", gitRepositories, new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
-                                } catch (VcsException e) {
-                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
-                                    notificationService.notifyError(builder);
-                                }
-                            }
-                        });
-                        return null;
+        getChangeDetail(selectedChange.get(), project, changeDetails -> {
+            Callable<Void> successCallable = () -> {
+                GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
+                java.util.Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
+                    getRepositoryForGerritProject(project, changeDetails.project);
+                if (!gitRepositoryOptional.isPresent()) {
+                    NotificationBuilder notification = new NotificationBuilder(project, "Error",
+                        String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));
+                    notificationService.notifyError(notification);
+                    return null;
+                }
+                String branchName = buildBranchName(changeDetails);
+                String checkedOutBranchName = branchName;
+                final GitRepository repository = gitRepositoryOptional.get();
+                List<GitRepository> gitRepositories = Collections.singletonList(repository);
+                FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
+                final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
+                if (!remote.isPresent()) {
+                    return null;
+                }
+                boolean validName = false;
+                int i = 0;
+                GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
+                while (!validName && i < 100) { // do not loop endless - stop after 100 tries because most probably something went wrong
+                    checkedOutBranchName = branchName + (i != 0 ? "_" + i : "");
+                    validName = newBranchNameValidator.checkInput(checkedOutBranchName);
+                    i++;
+                }
+                brancher.checkoutNewBranchStartingFrom(checkedOutBranchName, "FETCH_HEAD", gitRepositories, () -> {
+                    try {
+                        gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
+                    } catch (VcsException e) {
+                        NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
+                        notificationService.notifyError(builder);
                     }
-                };
-                fetchAction.fetchChange(selectedChange.get(), project, successCallable);
-            }
+                });
+                return null;
+            };
+            fetchAction.fetchChange(selectedChange.get(), project, successCallable);
         });
     }
 

@@ -20,13 +20,8 @@ import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
-import org.apache.http.HttpException;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.protocol.HttpContext;
-
-import java.io.IOException;
 
 public class LoggerHttpClientBuilderExtension extends HttpClientBuilderExtension {
 
@@ -35,12 +30,9 @@ public class LoggerHttpClientBuilderExtension extends HttpClientBuilderExtension
 
     @Override
     public HttpClientBuilder extend(HttpClientBuilder httpClientBuilder, GerritAuthData authData) {
-        httpClientBuilder.addInterceptorFirst(new HttpRequestInterceptor() {
-            @Override
-            public void process(HttpRequest httpRequest, HttpContext httpContext) throws HttpException, IOException {
-                if (log.isDebugEnabled()) {
-                    log.debug(httpRequest.toString());
-                }
+        httpClientBuilder.addInterceptorFirst((HttpRequestInterceptor) (httpRequest, httpContext) -> {
+            if (log.isDebugEnabled()) {
+                log.debug(httpRequest.toString());
             }
         });
         return httpClientBuilder;

@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
@@ -24,10 +23,11 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer
@@ -63,14 +63,11 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
             return;
         }
         SubmitInput submitInput = new SubmitInput();
-        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project, new Consumer<Void>() {
-            @Override
-            public void consume(Void aVoid) {
-                NotificationBuilder notification = new NotificationBuilder(
-                        project, "Change submitted", getSuccessMessage(selectedChange.get())
-                ).hideBalloon();
-                notificationService.notifyInformation(notification);
-            }
+        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project, aVoid -> {
+            NotificationBuilder notification = new NotificationBuilder(
+                    project, "Change submitted", getSuccessMessage(selectedChange.get())
+            ).hideBalloon();
+            notificationService.notifyInformation(notification);
         });
     }
 

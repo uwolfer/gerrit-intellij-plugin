@@ -74,12 +74,7 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
 
     private DefaultActionGroup createActionGroup() {
         final DefaultActionGroup group = new DefaultActionGroup();
-        createActions(new Consumer<AnAction>() {
-            @Override
-            public void consume(AnAction anAction) {
-                group.add(anAction);
-            }
-        });
+        createActions(group::add);
         return group;
     }
 

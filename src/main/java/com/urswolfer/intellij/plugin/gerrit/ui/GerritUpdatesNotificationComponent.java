@@ -48,7 +48,7 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     private NotificationService notificationService;
 
     private Timer timer;
-    private Set<String> notifiedChanges = new HashSet<String>();
+    private Set<String> notifiedChanges = new HashSet<>();
     private Project project;
 
     @Override

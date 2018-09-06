@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.common.ActionInfo;
@@ -31,6 +30,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer

@@ -16,10 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -36,7 +34,6 @@ import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.spellchecker.ui.SpellCheckingEditorCustomization;
 import com.intellij.ui.EditorCustomization;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
@@ -51,6 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -133,12 +131,10 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                         }
                         for (SuggestedReviewerInfo suggestedReviewer : suggestedReviewers) {
                             Optional<LookupElementBuilder> lookupElementBuilderOptional = buildLookupElement(suggestedReviewer);
-                            if (lookupElementBuilderOptional.isPresent()) {
-                                result.addElement(lookupElementBuilderOptional.get());
-                            }
+                            lookupElementBuilderOptional.ifPresent(result::addElement);
                         }
                     } catch (RestApiException e) {
-                        throw Throwables.propagate(e);
+                        throw new RuntimeException(e);
                     }
                 }
             };
@@ -160,7 +156,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                 presentableText = String.format("%s (group)", suggestedReviewer.group.name);
                 reviewerName = suggestedReviewer.group.name;
             } else {
-                return Optional.absent();
+                return Optional.empty();
             }
             return Optional.of(LookupElementBuilder.create(reviewerName + ',').withPresentableText(presentableText));
         }

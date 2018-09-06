@@ -27,12 +27,7 @@ import java.util.Map;
  */
 public class RevisionInfos {
     public static final Comparator<Map.Entry<String, RevisionInfo>> MAP_ENTRY_COMPARATOR =
-            new Comparator<Map.Entry<String, RevisionInfo>>() {
-                @Override
-                public int compare(Map.Entry<String, RevisionInfo> o1, Map.Entry<String, RevisionInfo> o2) {
-                    return RevisionInfos.compare(o1.getValue(), o2.getValue());
-                }
-            };
+        (o1, o2) -> compare(o1.getValue(), o2.getValue());
 
     private RevisionInfos(){
     }

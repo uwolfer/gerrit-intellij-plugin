@@ -16,11 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationListener;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
+
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer
@@ -33,7 +34,7 @@ public final class NotificationBuilder {
     private final String message;
     private NotificationType type = NotificationType.INFORMATION;
 
-    private Optional<NotificationListener> listener = Optional.absent();
+    private Optional<NotificationListener> listener = Optional.empty();
     private boolean showBalloon = true;
 
     public NotificationBuilder(Project project, String title, String message) {
@@ -63,7 +64,7 @@ public final class NotificationBuilder {
     }
 
     protected Notification get() {
-        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type, listener.orNull());
+        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type, listener.orElse(null));
         if (!showBalloon) {
             notification.expire();
         }

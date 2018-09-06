@@ -75,9 +75,7 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
                     updateBranchTextField(myFireOnChangeAction);
                 }
             }
-        } catch (NoSuchFieldException e) {
-            LOG.error(e);
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             LOG.error(e);
         }
         updateBranch(branch);
@@ -96,9 +94,7 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
                     updateBranchTextField(myFireOnChangeAction);
                 }
             }
-        } catch (NoSuchFieldException e) {
-            LOG.error(e);
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             LOG.error(e);
         }
     }
@@ -112,9 +108,7 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
             fireOnChange();
 
             myFireOnChangeAction.run();
-        } catch (NoSuchFieldException e) {
-            LOG.error(e);
-        } catch (IllegalAccessException e) {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             LOG.error(e);
         }
     }

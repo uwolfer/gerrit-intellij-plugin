@@ -44,8 +44,6 @@ import git4idea.repo.GitRepository;
 
 import javax.swing.*;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 
 /**
  * @author Urs Wolfer
@@ -83,12 +81,7 @@ public class GerritToolWindow {
         detailsSplitter.setFirstComponent(changeListPanel);
 
         detailsPanel = new GerritChangeDetailsPanel(project);
-        changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeInfo) {
-                changeSelected(changeInfo, project);
-            }
-        });
+        changeListPanel.addListSelectionListener(changeInfo -> changeSelected(changeInfo, project));
         JPanel details = detailsPanel.getComponent();
         detailsSplitter.setSecondComponent(details);
 
@@ -112,22 +105,12 @@ public class GerritToolWindow {
     }
 
     private void registerVcsChangeListener(final Project project) {
-        VcsRepositoryMappingListener vcsListener = new VcsRepositoryMappingListener() {
-            @Override
-            public void mappingChanged() {
-                reloadChanges(project, false);
-            }
-        };
+        VcsRepositoryMappingListener vcsListener = () -> reloadChanges(project, false);
         project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
-            @Override
-            public void consume(ChangeInfo changeDetails) {
-                detailsPanel.setData(changeDetails);
-            }
-        });
+        gerritUtil.getChangeDetails(changeInfo._number, project, changeDetails -> detailsPanel.setData(changeDetails));
     }
 
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
@@ -162,12 +145,7 @@ public class GerritToolWindow {
         filterGroup.add(new Separator());
         group.add(filterGroup, Constraints.FIRST);
 
-        changesFilters.addObserver(new Observer() {
-            @Override
-            public void update(Observable observable, Object o) {
-                reloadChanges(project, true);
-            }
-        });
+        changesFilters.addObserver((observable, o) -> reloadChanges(project, true));
 
         return ActionManager.getInstance().createActionToolbar("Gerrit.Toolbar", group, true);
     }

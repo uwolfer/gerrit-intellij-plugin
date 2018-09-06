@@ -20,7 +20,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
@@ -36,7 +35,10 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Thomas Forrer
@@ -62,13 +64,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Inject
     public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
         this.selectedRevisions = selectedRevisions;
-        this.selectedRevisions.addObserver(new Observer() {
-            @Override
-            public void update(Observable o, Object arg) {
-                if (arg != null && arg instanceof String && selectedChange.id.equals(arg)) {
-                        comments = setupCommentsSupplier();
-                        drafts = setupDraftsSupplier();
-                }
+        this.selectedRevisions.addObserver((o, arg) -> {
+            if (arg != null && arg instanceof String && selectedChange.id.equals(arg)) {
+                    comments = setupCommentsSupplier();
+                    drafts = setupDraftsSupplier();
             }
         });
     }
@@ -107,7 +106,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private String getNodeSuffix(Project project, String affectedFilePath) {
         String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
         fileName = PathUtils.ensureSlashSeparators(fileName);
-        List<String> parts = Lists.newArrayList();
+        List<String> parts = new ArrayList<>();
 
         Map<String, List<CommentInfo>> commentsMap = comments.get();
         List<CommentInfo> commentsForFile = commentsMap.get(fileName);
@@ -129,38 +128,32 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private Supplier<Map<String, List<CommentInfo>>> setupCommentsSupplier() {
-        return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
-            @Override
-            public Map<String, List<CommentInfo>> get() {
-                try {
-                    return gerritApi.changes()
-                            .id(selectedChange.id)
-                            .revision(getSelectedRevisionId())
-                            .comments();
-                } catch (RestApiException e) {
-                    log.warn(e);
-                    return Collections.emptyMap();
-                }
+        return Suppliers.memoize(() -> {
+            try {
+                return gerritApi.changes()
+                        .id(selectedChange.id)
+                        .revision(getSelectedRevisionId())
+                        .comments();
+            } catch (RestApiException e) {
+                log.warn(e);
+                return Collections.emptyMap();
             }
         });
     }
 
     private Supplier<Map<String, List<CommentInfo>>> setupDraftsSupplier() {
-        return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
-            @Override
-            public Map<String, List<CommentInfo>> get() {
-                if (!gerritSettings.isLoginAndPasswordAvailable()) {
-                    return Collections.emptyMap();
-                }
-                try {
-                    return gerritApi.changes()
-                            .id(selectedChange.id)
-                            .revision(getSelectedRevisionId())
-                            .drafts();
-                } catch (RestApiException e) {
-                    log.warn(e);
-                    return Collections.emptyMap();
-                }
+        return Suppliers.memoize(() -> {
+            if (!gerritSettings.isLoginAndPasswordAvailable()) {
+                return Collections.emptyMap();
+            }
+            try {
+                return gerritApi.changes()
+                        .id(selectedChange.id)
+                        .revision(getSelectedRevisionId())
+                        .drafts();
+            } catch (RestApiException e) {
+                log.warn(e);
+                return Collections.emptyMap();
             }
         });
     }

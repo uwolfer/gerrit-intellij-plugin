@@ -41,12 +41,7 @@ import org.easymock.EasyMock;
  */
 public class GerritTestModule extends GerritModule {
 
-    protected static final Supplier<Injector> injector = Suppliers.memoize(new Supplier<Injector>() {
-        @Override
-        public Injector get() {
-            return Guice.createInjector(new GerritTestModule());
-        }
-    });
+    protected static final Supplier<Injector> injector = Suppliers.memoize(() -> Guice.createInjector(new GerritTestModule()));
 
     public static <T> T getInstance(Class<T> type) {
         return injector.get().getInstance(type);

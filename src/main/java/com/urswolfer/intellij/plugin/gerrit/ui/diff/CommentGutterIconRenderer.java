@@ -91,9 +91,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
         CommentGutterIconRenderer that = (CommentGutterIconRenderer) o;
 
-        if (!CommentHelper.equals(fileComment, that.fileComment)) return false;
-
-        return true;
+        return CommentHelper.equals(fileComment, that.fileComment);
     }
 
     @Override

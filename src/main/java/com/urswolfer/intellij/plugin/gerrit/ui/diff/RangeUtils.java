@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.common.base.Throwables;
 import com.google.gerrit.extensions.client.Comment;
 import com.intellij.util.text.CharSequenceReader;
 
@@ -35,8 +34,7 @@ public final class RangeUtils {
         int startOffset = -1;
         int endLine = 1;
         int endOffset = -1;
-        CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence);
-        try {
+        try (CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence)) {
             BufferedReader reader = new BufferedReader(charSequenceReader);
             String lineString;
             int currentCharCount = 0;
@@ -58,9 +56,7 @@ public final class RangeUtils {
                 }
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
-        } finally {
-            charSequenceReader.close();
+            throw new RuntimeException(e);
         }
 
         Comment.Range range = new Comment.Range();
@@ -74,8 +70,7 @@ public final class RangeUtils {
     public static Offset rangeToTextOffset(CharSequence charsSequence, Comment.Range range) {
         int startOffset = 0;
         int endOffset = 0;
-        CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence);
-        try {
+        try (CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence)) {
             BufferedReader reader = new BufferedReader(charSequenceReader);
             String line;
             int textLineCount = 1;
@@ -93,9 +88,7 @@ public final class RangeUtils {
                 textLineCount++;
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
-        } finally {
-            charSequenceReader.close();
+            throw new RuntimeException(e);
         }
         startOffset += range.startCharacter;
         endOffset += range.endCharacter;

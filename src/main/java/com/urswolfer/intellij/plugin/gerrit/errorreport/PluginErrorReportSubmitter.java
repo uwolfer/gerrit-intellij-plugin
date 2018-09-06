@@ -17,7 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ex.ApplicationInfoEx;
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter;
@@ -83,21 +82,16 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
     }
 
     private void postError(String json) {
-        try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            try {
-                HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
-                httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
-                CloseableHttpResponse response = httpClient.execute(httpPost);
-                if (response.getStatusLine().getStatusCode() == 406) {
-                    String reasonPhrase = response.getStatusLine().getReasonPhrase();
-                    Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
-                }
-            } finally {
-                httpClient.close();
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
+            httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
+            CloseableHttpResponse response = httpClient.execute(httpPost);
+            if (response.getStatusLine().getStatusCode() == 406) {
+                String reasonPhrase = response.getStatusLine().getReasonPhrase();
+                Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 }

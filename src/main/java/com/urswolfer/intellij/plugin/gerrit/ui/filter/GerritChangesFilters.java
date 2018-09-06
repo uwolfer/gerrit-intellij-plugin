@@ -16,15 +16,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Thomas Forrer
@@ -48,15 +47,10 @@ public class GerritChangesFilters extends Observable implements Observer {
 
     public String getQuery() {
         return Joiner.on("+").skipNulls()
-                .join(Iterables.transform(filters, new Function<AbstractChangesFilter, String>() {
-            @Override
-            public String apply(AbstractChangesFilter abstractChangesFilter) {
-                return abstractChangesFilter.getSearchQueryPart();
-            }
-        }));
+                .join(filters.stream().map(ChangesFilter::getSearchQueryPart).collect(Collectors.toList()));
     }
 
     public Iterable<ChangesFilter> getFilters() {
-        return ImmutableList.<ChangesFilter>copyOf(filters);
+        return ImmutableList.copyOf(filters);
     }
 }

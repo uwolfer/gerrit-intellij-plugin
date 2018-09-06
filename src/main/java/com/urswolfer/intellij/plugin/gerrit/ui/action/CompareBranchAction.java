@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
@@ -33,6 +32,7 @@ import git4idea.ui.branch.GitCompareBranchesDialog;
 import git4idea.util.GitCommitCompareInfo;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -58,12 +58,9 @@ public class CompareBranchAction extends AbstractChangeAction {
             return;
         }
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
-        Callable<Void> successCallable = new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                diffChange(project, selectedChange.get());
-                return null;
-            }
+        Callable<Void> successCallable = () -> {
+            diffChange(project, selectedChange.get());
+            return null;
         };
         fetchAction.fetchChange(selectedChange.get(), project, successCallable);
     }

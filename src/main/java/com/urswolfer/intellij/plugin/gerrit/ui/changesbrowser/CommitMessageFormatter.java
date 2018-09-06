@@ -43,14 +43,11 @@ import java.util.TimeZone;
 public class CommitMessageFormatter {
     private static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss Z";
 
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = new ThreadLocal<SimpleDateFormat>() {
-        @Override
-        protected SimpleDateFormat initialValue() {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_PATTERN);
-            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-            return dateFormat;
-        }
-    };
+    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT = ThreadLocal.withInitial(() -> {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_PATTERN);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat;
+    });
     private static final String PARENT_PATTERN = "Parent:     %s\n";
     private static final String MERGE_PATTERN =
             "Merge Of:   %s\n";

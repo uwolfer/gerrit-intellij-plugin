@@ -26,7 +26,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -68,11 +67,6 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
     public void actionPerformed(AnActionEvent e) {
         final Project project = e.getData(PlatformDataKeys.PROJECT);
         gerritUtil.deleteDraftComment(changeInfo._number, revisionId, comment.id, project,
-                new Consumer<Void>() {
-                    @Override
-                    public void consume(Void aVoid) {
-                        commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
-                    }
-                });
+            aVoid -> commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter));
     }
 }

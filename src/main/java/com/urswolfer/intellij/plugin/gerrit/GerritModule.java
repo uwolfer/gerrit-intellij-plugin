@@ -43,12 +43,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.UtilsModule;
  */
 public class GerritModule extends AbstractModule {
 
-    protected static final Supplier<Injector> injector = Suppliers.memoize(new Supplier<Injector>() {
-        @Override
-        public Injector get() {
-            return Guice.createInjector(new GerritModule());
-        }
-    });
+    protected static final Supplier<Injector> injector = Suppliers.memoize(() -> Guice.createInjector(new GerritModule()));
 
     public static <T> T getInstance(Class<T> type) {
         return injector.get().getInstance(type);
@@ -81,14 +76,11 @@ public class GerritModule extends AbstractModule {
     }
 
     protected void setupSettingsProvider() {
-        Provider<GerritSettings> settingsProvider = new Provider<GerritSettings>() {
-            @Override
-            public GerritSettings get() {
-                // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
-                GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
-                gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
-                return gerritSettings;
-            }
+        Provider<GerritSettings> settingsProvider = () -> {
+            // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
+            GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
+            gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
+            return gerritSettings;
         };
         bind(GerritSettings.class).toProvider(settingsProvider).in(Singleton.class);
         bind(GerritAuthData.class).toProvider(settingsProvider).in(Singleton.class);

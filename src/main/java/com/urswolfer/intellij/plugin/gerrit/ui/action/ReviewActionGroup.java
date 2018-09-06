@@ -22,11 +22,8 @@ import static com.intellij.icons.AllIcons.Actions.Forward;
 import static com.intellij.icons.AllIcons.Actions.MoveDown;
 import static com.intellij.icons.AllIcons.Actions.MoveUp;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
@@ -39,10 +36,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer
@@ -84,13 +83,13 @@ public class ReviewActionGroup extends ActionGroup {
             return new AnAction[0];
         }
         Map<String, Collection<String>> permittedLabels = selectedChange.get().permittedLabels;
-        List<AnAction> labels = Lists.newArrayList();
+        List<AnAction> labels = new ArrayList<>();
         if (permittedLabels != null) {
             for (Map.Entry<String, Collection<String>> entry : permittedLabels.entrySet()) {
                 labels.add(createLabelGroup(entry));
             }
         }
-        return labels.toArray(new AnAction[labels.size()]);
+        return labels.toArray(new AnAction[0]);
     }
 
     private ActionGroup createLabelGroup(final Map.Entry<String, Collection<String>> entry) {
@@ -98,16 +97,13 @@ public class ReviewActionGroup extends ActionGroup {
             @NotNull
             @Override
             public AnAction[] getChildren(@Nullable AnActionEvent anActionEvent) {
-                List<AnAction> valueActions = Lists.newArrayList();
+                List<AnAction> valueActions = new ArrayList<>();
                 Collection<String> values = entry.getValue();
-                List<Integer> intValues = Lists.newArrayList(Collections2.transform(
-                    values, new Function<String, Integer>() {
-                        @Override
-                        public Integer apply(String v) {
-                            v = v.trim();
-                            if (v.charAt(0) == '+') v = v.substring(1); // required for Java 6 support
-                            return Integer.valueOf(v);
-                        }
+                List<Integer> intValues = new ArrayList<>(Collections2.transform(
+                    values, v -> {
+                        v = v.trim();
+                        if (v.charAt(0) == '+') v = v.substring(1); // required for Java 6 support
+                        return Integer.valueOf(v);
                     }));
                 Collections.sort(intValues);
                 Collections.reverse(intValues);
@@ -115,7 +111,7 @@ public class ReviewActionGroup extends ActionGroup {
                     valueActions.add(reviewActionFactory.get(entry.getKey(), value, ICONS.get(value), false));
                     valueActions.add(reviewActionFactory.get(entry.getKey(), value, ICONS.get(value), true));
                 }
-                return valueActions.toArray(new AnAction[valueActions.size()]);
+                return valueActions.toArray(new AnAction[0]);
             }
         };
     }

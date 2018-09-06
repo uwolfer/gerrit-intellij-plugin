@@ -19,8 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -31,6 +29,8 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +52,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField topicTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
-    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = new HashMap<>();
     private boolean initialized = false;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
@@ -88,11 +88,7 @@ public class GerritPushExtensionPanel extends JPanel {
         }
 
         // force a deferred update (changes are monitored only after full construction of dialog)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                initDestinationBranch();
-            }
-        });
+        SwingUtilities.invokeLater(this::initDestinationBranch);
     }
 
     private void createLayout() {
@@ -200,7 +196,7 @@ public class GerritPushExtensionPanel extends JPanel {
             } else {
                 ref += "%s";
             }
-            List<String> gerritSpecs = Lists.newArrayList();
+            List<String> gerritSpecs = new ArrayList<>();
             if (submitChangeCheckBox.isSelected()) {
                 gerritSpecs.add("submit");
             }

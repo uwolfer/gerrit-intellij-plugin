@@ -17,10 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.changes.NotifyHandling;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -28,7 +25,6 @@ import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -37,8 +33,11 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer
@@ -83,9 +82,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         }
         final ChangeInfo changeDetails = selectedChange.get();
         gerritUtil.getComments(changeDetails._number, selectedRevisions.get(changeDetails), project, false, true,
-                new Consumer<Map<String, List<CommentInfo>>>() {
-            @Override
-            public void consume(Map<String, List<CommentInfo>> draftComments) {
+            draftComments -> {
                 final ReviewInput reviewInput = new ReviewInput();
                 reviewInput.label(label, rating);
 
@@ -118,35 +115,31 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                         selectedRevisions.get(changeDetails),
                         reviewInput,
                         project,
-                        new Consumer<Void>() {
-                            @Override
-                            public void consume(Void result) {
-                                NotificationBuilder notification = new NotificationBuilder(
-                                        project, "Review posted",
-                                        buildSuccessMessage(changeDetails, reviewInput))
-                                        .hideBalloon();
-                                notificationService.notifyInformation(notification);
-                                if (finalSubmitChange) {
-                                    submitAction.actionPerformed(anActionEvent);
-                                }
-                            }
+                    result -> {
+                        NotificationBuilder notification = new NotificationBuilder(
+                            project, "Review posted",
+                            buildSuccessMessage(changeDetails, reviewInput))
+                            .hideBalloon();
+                        notificationService.notifyInformation(notification);
+                        if (finalSubmitChange) {
+                            submitAction.actionPerformed(anActionEvent);
                         }
+                    }
                 );
-            }
-        });
+            });
     }
 
     private void addComment(ReviewInput reviewInput, String path, CommentInfo comment) {
         List<ReviewInput.CommentInput> commentInputs;
         Map<String, List<ReviewInput.CommentInput>> comments = reviewInput.comments;
         if (comments == null) {
-            comments = Maps.newHashMap();
+            comments = new HashMap<>();
             reviewInput.comments = comments;
         }
         if (comments.containsKey(path)) {
             commentInputs = comments.get(path);
         } else {
-            commentInputs = Lists.newArrayList();
+            commentInputs = new ArrayList<>();
             comments.put(path, commentInputs);
         }
 

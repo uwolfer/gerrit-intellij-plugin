@@ -23,15 +23,13 @@ import static com.intellij.icons.AllIcons.Actions.MoveDown;
 import static com.intellij.icons.AllIcons.Actions.MoveUp;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
@@ -54,18 +52,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A table with the list of changes.
@@ -98,9 +92,9 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.gerritSettings = gerritSettings;
         this.showSettingsUtil = showSettingsUtil;
-        this.changes = Lists.newArrayList();
+        this.changes = new ArrayList<>();
 
-        this.table = new TableView<ChangeInfo>();
+        this.table = new TableView<>();
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
@@ -110,24 +104,16 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
 
         setLayout(new BorderLayout());
         scrollPane = ScrollPaneFactory.createScrollPane(table);
-        scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
-            @Override
-            public void adjustmentValueChanged(AdjustmentEvent e) {
-                if (!loadingMoreChanges && loadChangesProxy != null) {
-                    loadingMoreChanges = true;
-                    try {
-                        int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
-                        if (lowerEnd == e.getAdjustable().getMaximum()) {
-                            loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
-                                @Override
-                                public void consume(List<ChangeInfo> changeInfos) {
-                                    addChanges(changeInfos);
-                                }
-                            });
-                        }
-                    } finally {
-                        loadingMoreChanges = false;
+        scrollPane.getVerticalScrollBar().addAdjustmentListener(e -> {
+            if (!loadingMoreChanges && loadChangesProxy != null) {
+                loadingMoreChanges = true;
+                try {
+                    int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
+                    if (lowerEnd == e.getAdjustable().getMaximum()) {
+                        loadChangesProxy.getNextPage(this::addChanges);
                     }
+                } finally {
+                    loadingMoreChanges = false;
                 }
             }
         });
@@ -141,12 +127,9 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     @Override
     public void consume(LoadChangesProxy proxy) {
         loadChangesProxy = proxy;
-        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
-            @Override
-            public void consume(List<ChangeInfo> changeInfos) {
-                setChanges(changeInfos);
-                setupEmptyTableHint();
-            }
+        proxy.getNextPage(changeInfos -> {
+            setChanges(changeInfos);
+            setupEmptyTableHint();
         });
     }
 
@@ -158,12 +141,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
             "If you expect changes, there might be a configuration issue. " +
             "Click "
         );
-        emptyText.appendText("here", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty");
-            }
-        });
+        emptyText.appendText("here", SimpleTextAttributes.LINK_ATTRIBUTES, actionEvent -> BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty"));
         emptyText.appendText(" for hints.");
     }
 
@@ -171,12 +149,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         if (!gerritSettings.isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
             emptyText.appendText("Open ");
-            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent actionEvent) {
-                    showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
-                }
-            });
+            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, actionEvent -> showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME));
             emptyText.appendText(" to configure this plugin and press the refresh button afterwards.");
         }
     }
@@ -185,13 +158,11 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
      * Adds a listener that would be called once user selects a change in the table.
      */
     public void addListSelectionListener(final @NotNull Consumer<ChangeInfo> listener) {
-        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            public void valueChanged(final ListSelectionEvent e) {
-                ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-                int i = lsm.getMaxSelectionIndex();
-                if (i >= 0 && !e.getValueIsAdjusting()) {
-                    listener.consume(changes.get(i));
-                }
+        table.getSelectionModel().addListSelectionListener(e -> {
+            ListSelectionModel lsm = (ListSelectionModel) e.getSource();
+            int i = lsm.getMaxSelectionIndex();
+            if (i >= 0 && !e.getValueIsAdjusting()) {
+                listener.consume(changes.get(i));
             }
         });
     }
@@ -215,7 +186,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     }
 
     private void initModel() {
-        table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
+        table.setModelAndUpdateColumns(new ListTableModel<>(generateColumnsInfo(changes), changes, 0));
     }
 
     private void updateModel(List<ChangeInfo> changes) {
@@ -233,7 +204,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         ItemAndWidth projectName = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
-        Set<String> availableLabels = Sets.newTreeSet();
+        Set<String> availableLabels = new TreeSet<>();
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
@@ -245,13 +216,11 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
             branch = getMax(branch, getBranch(change));
             time = getMax(time, getTime(change));
             if (change.labels != null) {
-                for (String label : change.labels.keySet()) {
-                    availableLabels.add(label);
-                }
+                availableLabels.addAll(change.labels.keySet());
             }
         }
 
-        List<ColumnInfo> columnList = Lists.newArrayList();
+        List<ColumnInfo> columnList = new ArrayList<>();
         columnList.add(new GerritChangeColumnStarredInfo());
         boolean showChangeNumberColumn = gerritSettings.getShowChangeNumberColumn();
         if (showChangeNumberColumn) {
@@ -376,7 +345,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         }
         columnList.add(selectRevisionInfoColumn);
 
-        return columnList.toArray(new ColumnInfo[columnList.size()]);
+        return columnList.toArray(new ColumnInfo[0]);
     }
 
     private boolean hasProjectMultipleRepos() {

@@ -17,14 +17,9 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.api.changes.Changes;
@@ -42,8 +37,6 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -73,6 +66,7 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.HyperlinkEvent;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -81,6 +75,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubUtil
@@ -107,8 +103,8 @@ public class GerritUtil {
 
     public <T> T accessToGerritWithModalProgress(Project project,
                                                  final ThrowableComputable<T, Exception> computable) {
-        final AtomicReference<T> result = new AtomicReference<T>();
-        final AtomicReference<Exception> exception = new AtomicReference<Exception>();
+        final AtomicReference<T> result = new AtomicReference<>();
+        final AtomicReference<Exception> exception = new AtomicReference<>();
         ProgressManager.getInstance().run(new Task.Modal(project, "Access to Gerrit", true) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
@@ -122,7 +118,7 @@ public class GerritUtil {
         if (exception.get() == null) {
             return result.get();
         }
-        throw Throwables.propagate(exception.get());
+        throw new RuntimeException(exception.get());
     }
 
     public void postReview(final String changeId,
@@ -130,15 +126,12 @@ public class GerritUtil {
                            final ReviewInput reviewInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, consumer, project, "Failed to post Gerrit review");
@@ -148,15 +141,12 @@ public class GerritUtil {
                            final SubmitInput submitInput,
                            final Project project,
                            final Consumer<Void> consumer) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).current().submit(submitInput);
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).current().submit(submitInput);
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, consumer, project, "Failed to submit Gerrit change");
@@ -165,15 +155,12 @@ public class GerritUtil {
     @SuppressWarnings("unchecked")
     public void postPublish(final String changeId,
                             final Project project) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).publish();
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).publish();
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change");
@@ -182,15 +169,12 @@ public class GerritUtil {
     @SuppressWarnings("unchecked")
     public void delete(final String changeId,
                        final Project project) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).delete();
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).delete();
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change");
@@ -200,15 +184,12 @@ public class GerritUtil {
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
                             final Project project) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).abandon(abandonInput);
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).abandon(abandonInput);
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change");
@@ -218,15 +199,12 @@ public class GerritUtil {
     public void addReviewer(final String changeId,
                             final String reviewerName,
                             final Project project) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeId).addReviewer(reviewerName);
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeId).addReviewer(reviewerName);
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer");
@@ -239,19 +217,16 @@ public class GerritUtil {
     public void changeStarredStatus(final String id,
                                     final boolean starred,
                                     final Project project) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    if (starred) {
-                        gerritClient.accounts().self().starChange(id);
-                    } else {
-                        gerritClient.accounts().self().unstarChange(id);
-                    }
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+        Supplier<Void> supplier = () -> {
+            try {
+                if (starred) {
+                    gerritClient.accounts().self().starChange(id);
+                } else {
+                    gerritClient.accounts().self().unstarChange(id);
                 }
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change " +
@@ -266,15 +241,12 @@ public class GerritUtil {
         if (!gerritSettings.isLoginAndPasswordAvailable()) {
             return;
         }
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeNr).revision(revision).setReviewed(filePath, true);
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeNr).revision(revision).setReviewed(filePath, true);
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change");
@@ -294,61 +266,55 @@ public class GerritUtil {
     }
 
     public void getChanges(final String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
-        Supplier<LoadChangesProxy> supplier = new Supplier<LoadChangesProxy>() {
-            @Override
-            public LoadChangesProxy get() {
-                    Changes.QueryRequest queryRequest = gerritClient.changes().query(query)
-                            .withOptions(EnumSet.of(
-                                ListChangesOption.ALL_REVISIONS,
-                                ListChangesOption.DETAILED_ACCOUNTS,
-                                ListChangesOption.CHANGE_ACTIONS,
-                                ListChangesOption.CURRENT_ACTIONS,
-                                ListChangesOption.DETAILED_LABELS,
-                                ListChangesOption.LABELS
-                            ));
-                    return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
-            }
+        Supplier<LoadChangesProxy> supplier = () -> {
+                Changes.QueryRequest queryRequest = gerritClient.changes().query(query)
+                        .withOptions(EnumSet.of(
+                            ListChangesOption.ALL_REVISIONS,
+                            ListChangesOption.DETAILED_ACCOUNTS,
+                            ListChangesOption.CHANGE_ACTIONS,
+                            ListChangesOption.CURRENT_ACTIONS,
+                            ListChangesOption.DETAILED_LABELS,
+                            ListChangesOption.LABELS
+                        ));
+                return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
         };
         accessGerrit(supplier, consumer, project);
     }
 
     public void getChanges(final Changes.QueryRequest queryRequest, final Project project, Consumer<List<ChangeInfo>> consumer) {
-        Supplier<List<ChangeInfo>> supplier = new Supplier<List<ChangeInfo>>() {
-            @Override
-            public List<ChangeInfo> get() {
-                try {
-                    return queryRequest.get();
-                } catch (RestApiException e) {
-                    // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
-                    if (e instanceof HttpStatusException) {
-                        HttpStatusException httpStatusException = (HttpStatusException) e;
-                        if (httpStatusException.getStatusCode() == 400) {
-                            boolean tryFallback = false;
-                            String message = httpStatusException.getMessage();
-                            if (message.matches(".*Content:.*\"-S\".*")) {
-                                tryFallback = true;
-                                queryRequest.withStart(0); // remove start, trust that sortkey is set
-                            }
-                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
-                                tryFallback = true;
-                                EnumSet<ListChangesOption> options = queryRequest.getOptions();
-                                options.remove(ListChangesOption.CHANGE_ACTIONS);
-                                options.remove(ListChangesOption.CURRENT_ACTIONS);
-                                queryRequest.withOptions(options);
-                            }
-                            if (tryFallback) {
-                                try {
-                                    return queryRequest.get();
-                                } catch (RestApiException ex) {
-                                    notifyError(ex, "Failed to get Gerrit changes.", project);
-                                    return Collections.emptyList();
-                                }
+        Supplier<List<ChangeInfo>> supplier = () -> {
+            try {
+                return queryRequest.get();
+            } catch (RestApiException e) {
+                // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
+                if (e instanceof HttpStatusException) {
+                    HttpStatusException httpStatusException = (HttpStatusException) e;
+                    if (httpStatusException.getStatusCode() == 400) {
+                        boolean tryFallback = false;
+                        String message = httpStatusException.getMessage();
+                        if (message.matches(".*Content:.*\"-S\".*")) {
+                            tryFallback = true;
+                            queryRequest.withStart(0); // remove start, trust that sortkey is set
+                        }
+                        if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
+                            tryFallback = true;
+                            EnumSet<ListChangesOption> options = queryRequest.getOptions();
+                            options.remove(ListChangesOption.CHANGE_ACTIONS);
+                            options.remove(ListChangesOption.CURRENT_ACTIONS);
+                            queryRequest.withOptions(options);
+                        }
+                        if (tryFallback) {
+                            try {
+                                return queryRequest.get();
+                            } catch (RestApiException ex) {
+                                notifyError(ex, "Failed to get Gerrit changes.", project);
+                                return Collections.emptyList();
                             }
                         }
                     }
-                    notifyError(e, "Failed to get Gerrit changes.", project);
-                    return Collections.emptyList();
                 }
+                notifyError(e, "Failed to get Gerrit changes.", project);
+                return Collections.emptyList();
             }
         };
         accessGerrit(supplier, consumer, project);
@@ -367,17 +333,12 @@ public class GerritUtil {
             return "";
         }
 
-        List<GitRemote> remotes = Lists.newArrayList();
+        List<GitRemote> remotes = new ArrayList<>();
         for (GitRepository repository : repositories) {
             remotes.addAll(repository.getRemotes());
         }
         List<String> projectNames = getProjectNames(remotes);
-        Iterable<String> projectNamesWithQueryPrefix = Iterables.transform(projectNames, new Function<String, String>() {
-            @Override
-            public String apply(String input) {
-                return "project:" + input;
-            }
-        });
+        Iterable<String> projectNamesWithQueryPrefix = projectNames.stream().map(input -> "project:" + input).collect(Collectors.toList());
 
         if (Iterables.isEmpty(projectNamesWithQueryPrefix)) {
             return "";
@@ -386,7 +347,7 @@ public class GerritUtil {
     }
 
     public List<String> getProjectNames(Collection<GitRemote> remotes) {
-        List<String> projectNames = Lists.newArrayList();
+        List<String> projectNames = new ArrayList<>();
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
                 remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
@@ -427,43 +388,37 @@ public class GerritUtil {
     public void showAddGitRepositoryNotification(final Project project) {
         NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
                 "Please configure a Git repository.<br/><a href='vcs'>Open Settings</a>")
-                .listener(new NotificationListener() {
-                    @Override
-                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED && event.getDescription().equals("vcs")) {
-                            ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
-                        }
+                .listener((n, event) -> {
+                    if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED && event.getDescription().equals("vcs")) {
+                        ShowSettingsUtil.getInstance().showSettingsDialog(project, ActionsBundle.message("group.VcsGroup.text"));
                     }
                 });
         notificationService.notifyWarning(notification);
     }
 
     public void getChangeDetails(final int changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
-        Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
-            @Override
-            public ChangeInfo get() {
+        Supplier<ChangeInfo> supplier = () -> {
+            try {
+                EnumSet<ListChangesOption> options = EnumSet.of(
+                        ListChangesOption.ALL_REVISIONS,
+                        ListChangesOption.MESSAGES,
+                        ListChangesOption.DETAILED_ACCOUNTS,
+                        ListChangesOption.LABELS,
+                        ListChangesOption.DETAILED_LABELS);
                 try {
-                    EnumSet<ListChangesOption> options = EnumSet.of(
-                            ListChangesOption.ALL_REVISIONS,
-                            ListChangesOption.MESSAGES,
-                            ListChangesOption.DETAILED_ACCOUNTS,
-                            ListChangesOption.LABELS,
-                            ListChangesOption.DETAILED_LABELS);
-                    try {
+                    return gerritClient.changes().id(changeNr).get(options);
+                } catch (HttpStatusException e) {
+                    // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
+                    if (e.getStatusCode() == 400) {
+                        options.remove(ListChangesOption.MESSAGES);
                         return gerritClient.changes().id(changeNr).get(options);
-                    } catch (HttpStatusException e) {
-                        // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
-                        if (e.getStatusCode() == 400) {
-                            options.remove(ListChangesOption.MESSAGES);
-                            return gerritClient.changes().id(changeNr).get(options);
-                        } else {
-                            throw e;
-                        }
+                    } else {
+                        throw e;
                     }
-                } catch (RestApiException e) {
-                    notifyError(e, "Failed to get Gerrit change.", project);
-                    return new ChangeInfo();
                 }
+            } catch (RestApiException e) {
+                notifyError(e, "Failed to get Gerrit change.", project);
+                return new ChangeInfo();
             }
         };
         accessGerrit(supplier, consumer, project);
@@ -479,41 +434,38 @@ public class GerritUtil {
                             final boolean includeDraftComments,
                             final Consumer<Map<String, List<CommentInfo>>> consumer) {
 
-        Supplier<Map<String, List<CommentInfo>>> supplier = new Supplier<Map<String, List<CommentInfo>>>() {
-            @Override
-            public Map<String, List<CommentInfo>> get() {
-                try {
-                    Map<String, List<CommentInfo>> comments;
-                    if (includePublishedComments) {
-                        comments = gerritClient.changes().id(changeNr).revision(revision).comments();
-                    } else {
-                        comments = Maps.newHashMap();
-                    }
-
-                    Map<String, List<CommentInfo>> drafts;
-                    if (includeDraftComments && gerritSettings.isLoginAndPasswordAvailable()) {
-                        drafts = gerritClient.changes().id(changeNr).revision(revision).drafts();
-                    } else {
-                        drafts = Maps.newHashMap();
-                    }
-
-                    HashMap<String, List<CommentInfo>> allComments = new HashMap<String, List<CommentInfo>>(drafts);
-                    for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-                        List<CommentInfo> commentInfos = allComments.get(entry.getKey());
-                        if (commentInfos != null) {
-                            commentInfos.addAll(entry.getValue());
-                        } else {
-                            allComments.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    return allComments;
-                } catch (RestApiException e) {
-                    // remove check once we drop Gerrit < 2.7 support and fail in any case
-                    if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
-                        notifyError(e, "Failed to get Gerrit comments.", project);
-                    }
-                    return new TreeMap<String, List<CommentInfo>>();
+        Supplier<Map<String, List<CommentInfo>>> supplier = () -> {
+            try {
+                Map<String, List<CommentInfo>> comments;
+                if (includePublishedComments) {
+                    comments = gerritClient.changes().id(changeNr).revision(revision).comments();
+                } else {
+                    comments = new HashMap<>();
                 }
+
+                Map<String, List<CommentInfo>> drafts;
+                if (includeDraftComments && gerritSettings.isLoginAndPasswordAvailable()) {
+                    drafts = gerritClient.changes().id(changeNr).revision(revision).drafts();
+                } else {
+                    drafts = new HashMap<>();
+                }
+
+                HashMap<String, List<CommentInfo>> allComments = new HashMap<>(drafts);
+                for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
+                    List<CommentInfo> commentInfos = allComments.get(entry.getKey());
+                    if (commentInfos != null) {
+                        commentInfos.addAll(entry.getValue());
+                    } else {
+                        allComments.put(entry.getKey(), entry.getValue());
+                    }
+                }
+                return allComments;
+            } catch (RestApiException e) {
+                // remove check once we drop Gerrit < 2.7 support and fail in any case
+                if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
+                    notifyError(e, "Failed to get Gerrit comments.", project);
+                }
+                return new TreeMap<>();
             }
         };
         accessGerrit(supplier, consumer, project);
@@ -524,23 +476,20 @@ public class GerritUtil {
                                  final DraftInput draftInput,
                                  final Project project,
                                  final Consumer<CommentInfo> consumer) {
-        Supplier<CommentInfo> supplier = new Supplier<CommentInfo>() {
-            @Override
-            public CommentInfo get() {
-                try {
-                    CommentInfo commentInfo;
-                    if (draftInput.id != null) {
-                        commentInfo = gerritClient.changes().id(changeNr).revision(revision)
-                                .draft(draftInput.id).update(draftInput);
-                    } else {
-                        DraftApi draftApi = gerritClient.changes().id(changeNr).revision(revision)
-                                .createDraft(draftInput);
-                        commentInfo = draftApi.get();
-                    }
-                    return commentInfo;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+        Supplier<CommentInfo> supplier = () -> {
+            try {
+                CommentInfo commentInfo;
+                if (draftInput.id != null) {
+                    commentInfo = gerritClient.changes().id(changeNr).revision(revision)
+                            .draft(draftInput.id).update(draftInput);
+                } else {
+                    DraftApi draftApi = gerritClient.changes().id(changeNr).revision(revision)
+                            .createDraft(draftInput);
+                    commentInfo = draftApi.get();
                 }
+                return commentInfo;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, consumer, project, "Failed to save draft comment");
@@ -551,15 +500,12 @@ public class GerritUtil {
                                    final String draftCommentId,
                                    final Project project,
                                    final Consumer<Void> consumer) {
-        Supplier<Void> supplier = new Supplier<Void>() {
-            @Override
-            public Void get() {
-                try {
-                    gerritClient.changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
-                    return null;
-                } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
-                }
+        Supplier<Void> supplier = () -> {
+            try {
+                gerritClient.changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
+                return null;
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
             }
         };
         accessGerrit(supplier, consumer, project, "Failed to delete draft comment");
@@ -597,12 +543,9 @@ public class GerritUtil {
         if (Strings.isNullOrEmpty(gerritAuthData.getHost())) {
             return false;
         }
-        Boolean result = accessToGerritWithModalProgress(project, new ThrowableComputable<Boolean, Exception>() {
-            @Override
-            public Boolean compute() throws Exception {
-                ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
-                return testConnection(gerritAuthData);
-            }
+        Boolean result = accessToGerritWithModalProgress(project, () -> {
+            ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
+            return testConnection(gerritAuthData);
         });
         return result == null ? false : result;
     }
@@ -619,12 +562,9 @@ public class GerritUtil {
             }
         }
         // Otherwise our credentials are valid and they are successfully stored in settings
-        return accessToGerritWithModalProgress(project, new ThrowableComputable<List<ProjectInfo>, Exception>() {
-            @Override
-            public List<ProjectInfo> compute() throws Exception {
-                ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
-                return gerritClient.projects().list().get();
-            }
+        return accessToGerritWithModalProgress(project, () -> {
+            ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
+            return gerritClient.projects().list().get();
         });
     }
 
@@ -684,41 +624,35 @@ public class GerritUtil {
                               final Consumer<T> consumer,
                               final Project project,
                               final String errorMessage) {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                if (project.isDisposed()) {
-                    return;
-                }
-                Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        if (project.isDisposed()) {
-                            return;
-                        }
-                        try {
-                            final T result = supplier.get();
-                            ApplicationManager.getApplication().invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (project.isDisposed()) {
-                                        return;
-                                    }
-                                    //noinspection unchecked
-                                    consumer.consume(result);
-                                }
-                            });
-                        } catch (RuntimeException e) {
-                            if (errorMessage != null) {
-                                notifyError(e, errorMessage, project);
-                            } else {
-                                throw e;
+        ApplicationManager.getApplication().invokeLater(() -> {
+            if (project.isDisposed()) {
+                return;
+            }
+            Task.Backgroundable backgroundTask = new Task.Backgroundable(project, "Accessing Gerrit", true) {
+                public void run(@NotNull ProgressIndicator indicator) {
+                    if (project.isDisposed()) {
+                        return;
+                    }
+                    try {
+                        final T result = supplier.get();
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            if (project.isDisposed()) {
+                                return;
                             }
+                            //noinspection unchecked
+                            consumer.consume(result);
+                        });
+                    } catch (RuntimeException e) {
+                        if (errorMessage != null) {
+                            notifyError(e, errorMessage, project);
+                        } else {
+                            throw e;
                         }
                     }
-                };
-                if (gerritSettings.preloadPassword()) {
-                    backgroundTask.queue();
                 }
+            };
+            if (gerritSettings.preloadPassword()) {
+                backgroundTask.queue();
             }
         });
     }

@@ -17,10 +17,8 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
@@ -29,6 +27,8 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -43,20 +43,15 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("Drafts", "draft")
     );
 
-    private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {
-        @Override
-        public String get() {
-            Set<String> queryForAll = Sets.newHashSet();
-            for (Status status : STATUSES) {
-                if (status.forQuery.isPresent()) {
-                    queryForAll.add(String.format("is:%s", status.forQuery.get()));
-                }
-            }
-            return String.format("(%s)", Joiner.on("+OR+").join(queryForAll));
+    private static final Supplier<String> QUERY_FOR_ALL = () -> {
+        Set<String> queryForAll = new HashSet<>();
+        for (Status status : STATUSES) {
+            status.forQuery.ifPresent(s -> queryForAll.add(String.format("is:%s", s)));
         }
+        return String.format("(%s)", Joiner.on("+OR+").join(queryForAll));
     };
 
-    private Optional<Status> value = Optional.absent();
+    private Optional<Status> value;
 
     public StatusFilter() {
         value = Optional.of(STATUSES.get(1));
@@ -87,7 +82,7 @@ public class StatusFilter extends AbstractChangesFilter {
 
         private Status(String label, String forQuery) {
             this.label = label;
-            this.forQuery = Optional.fromNullable(forQuery);
+            this.forQuery = Optional.ofNullable(forQuery);
         }
     }
 

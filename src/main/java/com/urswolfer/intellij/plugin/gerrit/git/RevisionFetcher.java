@@ -18,10 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.project.Project;
@@ -30,6 +26,8 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -46,8 +44,8 @@ public class RevisionFetcher {
     private final Project project;
     private final GitRepository gitRepository;
 
-    private final Map<String, RevisionInfo> revisionInfoList = Maps.newLinkedHashMap();
-    private final List<FetchCallback> fetchCallbacks = Lists.newArrayList();
+    private final Map<String, RevisionInfo> revisionInfoList = new LinkedHashMap<>();
+    private final List<FetchCallback> fetchCallbacks = new ArrayList<>();
 
     public RevisionFetcher(GerritUtil gerritUtil,
                            GerritGitUtil gerritGitUtil,
@@ -117,12 +115,7 @@ public class RevisionFetcher {
         }
 
         private synchronized boolean allFetchCallbacksReturned() {
-            return Iterables.all(fetchCallbacks, new Predicate<FetchCallback>() {
-                @Override
-                public boolean apply(FetchCallback fetchCallback) {
-                    return fetchCallback.returned;
-                }
-            });
+            return fetchCallbacks.stream().allMatch(fetchCallback -> fetchCallback.returned);
         }
     }
 }

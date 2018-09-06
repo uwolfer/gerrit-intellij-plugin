@@ -55,9 +55,7 @@ public class GerritPushExtension implements ApplicationComponent {
             copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
-        } catch (Exception e) {
-            log.error("Failed to inject Gerrit push UI.", e);
-        } catch (Error e) {
+        } catch (Exception | Error e) {
             log.error("Failed to inject Gerrit push UI.", e);
         }
     }
@@ -89,9 +87,7 @@ public class GerritPushExtension implements ApplicationComponent {
 
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
-        } catch (CannotCompileException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
-        } catch (NotFoundException e) {
+        } catch (CannotCompileException | NotFoundException e) {
             log.error("Failed to inject Gerrit push UI.", e);
         }
     }
@@ -112,9 +108,7 @@ public class GerritPushExtension implements ApplicationComponent {
             CtClass loadedClass = classPool.get(className);
             loadedClass.toClass(targetClassLoader, GitPushOperation.class.getProtectionDomain());
             loadedClass.detach();
-        } catch (CannotCompileException e) {
-            log.error("Failed to load class required for Gerrit push UI injections.", e);
-        } catch (NotFoundException e) {
+        } catch (CannotCompileException | NotFoundException e) {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
         }
     }

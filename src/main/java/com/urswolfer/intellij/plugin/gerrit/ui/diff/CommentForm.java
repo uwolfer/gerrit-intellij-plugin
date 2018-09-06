@@ -34,9 +34,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 
 /**
  * @author Urs Wolfer
@@ -97,23 +94,13 @@ public class CommentForm extends JPanel {
 
         JButton saveButton = new JButton("Save");
         buttonPanel.add(saveButton);
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                createCommentAndClose();
-            }
-        });
+        saveButton.addActionListener(actionEvent -> createCommentAndClose());
 
         buttonPanel.add(Box.createHorizontalGlue());
 
         JButton cancelButton = new JButton("Cancel");
         buttonPanel.add(cancelButton);
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                balloon.cancel();
-            }
-        });
+        cancelButton.addActionListener(actionEvent -> balloon.cancel());
 
         add(buttonPanel, BorderLayout.SOUTH);
     }

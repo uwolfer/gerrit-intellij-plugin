@@ -34,6 +34,8 @@ import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Parts based on org.jetbrains.plugins.github.GithubSettings
  *
@@ -78,6 +80,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private String cloneBaseUrl = "";
 
     private Optional<String> preloadedPassword;
+    private AtomicInteger passwordDialogShowLimit = new AtomicInteger(3);
 
     private Logger log;
 
@@ -175,6 +178,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
         if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
+            if (passwordDialogShowLimit.decrementAndGet() <= 0) {
+                return false;
+            }
             password = Messages.showPasswordDialog(
                 String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
                 "Gerrit Password");

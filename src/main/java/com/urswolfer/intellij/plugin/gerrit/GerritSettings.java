@@ -160,7 +160,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
             }
         } else {
-            preloadPassword();
+            if (!preloadPassword()) {
+                return "";
+            }
         }
         return preloadedPassword.or("");
     }

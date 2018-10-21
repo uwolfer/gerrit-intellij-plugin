@@ -83,6 +83,9 @@ There are two workarounds for this issue:
 * allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
 * use a recent Java setup (> 1.6)
 
+### Error-message when loading changes: "Bad Request. Status-Code: 400. Content: too many terms in query."
+Open plugin settings and enable the option "List all Gerrit changes (instead of changes from currently open project only)".
+
 ### Checking out from VCS with Gerrit plugin does not work
 Checking out directly with the Gerrit plugin does not work for some authentication methods. If you get an authentication
 error or checking out does not properly finish, you can try to:

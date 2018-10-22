@@ -21,9 +21,11 @@ import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
+import org.apache.commons.lang.StringUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -31,8 +33,12 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * @author Urs Wolfer
@@ -40,6 +46,7 @@ import java.util.Map;
 public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
+    private static final String GITREVIEW_FILENAME = ".gitreview";
 
     private final boolean pushToGerritByDefault;
 
@@ -84,7 +91,25 @@ public class GerritPushExtensionPanel extends JPanel {
         initialized = true;
 
         if (gerritPushTargetPanels.size() == 1) {
-            branchTextField.setText(gerritPushTargetPanels.values().iterator().next());
+            String branchName;
+
+            try {
+                String gitReviewFilePath = StringUtils.join(
+                    new String[]{ProjectManager.getInstance().getOpenProjects()[0].getBasePath(), GITREVIEW_FILENAME}, File.separator);
+
+                Properties properties = new Properties();
+                properties.load(new FileInputStream(gitReviewFilePath));
+
+                branchName = properties.getProperty("defaultbranch");
+            } catch (IOException e) {
+                branchName = gerritPushTargetPanels.values().iterator().next();
+            }
+
+            if (branchName == null) {
+                branchName = gerritPushTargetPanels.values().iterator().next();
+            }
+
+            branchTextField.setText(branchName);
         }
 
         // force a deferred update (changes are monitored only after full construction of dialog)

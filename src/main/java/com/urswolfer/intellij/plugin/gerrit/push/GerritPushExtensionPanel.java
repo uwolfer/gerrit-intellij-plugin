@@ -91,25 +91,11 @@ public class GerritPushExtensionPanel extends JPanel {
         initialized = true;
 
         if (gerritPushTargetPanels.size() == 1) {
-            String branchName;
+            String branchName = gerritPushTargetPanels.values().iterator().next();
 
-            try {
-                String gitReviewFilePath = StringUtils.join(
-                    new String[]{ProjectManager.getInstance().getOpenProjects()[0].getBasePath(), GITREVIEW_FILENAME}, File.separator);
+            String gitReviewBranchName = getGitReviewBranchName();
 
-                Properties properties = new Properties();
-                properties.load(new FileInputStream(gitReviewFilePath));
-
-                branchName = properties.getProperty("defaultbranch");
-            } catch (IOException e) {
-                branchName = gerritPushTargetPanels.values().iterator().next();
-            }
-
-            if (branchName == null) {
-                branchName = gerritPushTargetPanels.values().iterator().next();
-            }
-
-            branchTextField.setText(branchName);
+            branchTextField.setText(gitReviewBranchName == null ? branchName : gitReviewBranchName);
         }
 
         // force a deferred update (changes are monitored only after full construction of dialog)
@@ -118,6 +104,29 @@ public class GerritPushExtensionPanel extends JPanel {
                 initDestinationBranch();
             }
         });
+    }
+
+    private String getGitReviewBranchName() {
+        String branchName = null;
+
+        String gitReviewFilePath = StringUtils.join(
+            new String[]{ProjectManager.getInstance().getOpenProjects()[0].getBasePath(), GITREVIEW_FILENAME}, File.separator);
+
+        File gitReviewFile = new File(gitReviewFilePath);
+        if (gitReviewFile.exists() && gitReviewFile.isFile()) {
+            try {
+                FileInputStream fileInputStream = new FileInputStream(gitReviewFilePath);
+
+                Properties properties = new Properties();
+                properties.load(fileInputStream);
+                branchName = properties.getProperty("defaultbranch");
+
+                fileInputStream.close();
+            } catch (IOException e) {
+            }
+        }
+
+        return branchName;
     }
 
     private void createLayout() {

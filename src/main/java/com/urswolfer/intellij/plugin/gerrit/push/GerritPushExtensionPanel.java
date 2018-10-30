@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -25,7 +26,6 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
-import org.apache.commons.lang.StringUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -93,9 +93,9 @@ public class GerritPushExtensionPanel extends JPanel {
         if (gerritPushTargetPanels.size() == 1) {
             String branchName = gerritPushTargetPanels.values().iterator().next();
 
-            String gitReviewBranchName = getGitReviewBranchName();
+            Optional<String> gitReviewBranchName = getGitReviewBranchName();
 
-            branchTextField.setText(gitReviewBranchName == null ? branchName : gitReviewBranchName);
+            branchTextField.setText(gitReviewBranchName.or(branchName));
         }
 
         // force a deferred update (changes are monitored only after full construction of dialog)
@@ -106,23 +106,31 @@ public class GerritPushExtensionPanel extends JPanel {
         });
     }
 
-    private String getGitReviewBranchName() {
-        String branchName = null;
+    private Optional<String> getGitReviewBranchName() {
+        Optional<String> branchName = Optional.absent();
 
-        String gitReviewFilePath = StringUtils.join(
-            new String[]{ProjectManager.getInstance().getOpenProjects()[0].getBasePath(), GITREVIEW_FILENAME}, File.separator);
+        String gitReviewFilePath = Joiner.on(File.separator).join(
+            ProjectManager.getInstance().getOpenProjects()[0].getBasePath(), GITREVIEW_FILENAME);
 
         File gitReviewFile = new File(gitReviewFilePath);
         if (gitReviewFile.exists() && gitReviewFile.isFile()) {
+            FileInputStream fileInputStream = null;
             try {
-                FileInputStream fileInputStream = new FileInputStream(gitReviewFilePath);
+                fileInputStream = new FileInputStream(gitReviewFilePath);
 
                 Properties properties = new Properties();
                 properties.load(fileInputStream);
-                branchName = properties.getProperty("defaultbranch");
-
-                fileInputStream.close();
+                branchName = Optional.fromNullable(properties.getProperty("defaultbranch"));
             } catch (IOException e) {
+                //no need to handle as branch name is already absent and ready to be returned
+            } finally {
+                if (fileInputStream != null) {
+                    try {
+                        fileInputStream.close();
+                    } catch (IOException e) {
+                        //no need to handle as branch name is already absent and ready to be returned
+                    }
+                }
             }
         }
 

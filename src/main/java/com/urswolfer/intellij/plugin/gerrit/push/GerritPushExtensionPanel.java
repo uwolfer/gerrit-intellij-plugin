@@ -17,10 +17,15 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -31,8 +36,12 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * @author Urs Wolfer
@@ -40,6 +49,7 @@ import java.util.Map;
 public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
+    private static final String GITREVIEW_FILENAME = ".gitreview";
 
     private final boolean pushToGerritByDefault;
 
@@ -84,7 +94,11 @@ public class GerritPushExtensionPanel extends JPanel {
         initialized = true;
 
         if (gerritPushTargetPanels.size() == 1) {
-            branchTextField.setText(gerritPushTargetPanels.values().iterator().next());
+            String branchName = gerritPushTargetPanels.values().iterator().next();
+
+            Optional<String> gitReviewBranchName = getGitReviewBranchName();
+
+            branchTextField.setText(gitReviewBranchName.or(branchName));
         }
 
         // force a deferred update (changes are monitored only after full construction of dialog)
@@ -93,6 +107,42 @@ public class GerritPushExtensionPanel extends JPanel {
                 initDestinationBranch();
             }
         });
+    }
+
+    private Optional<String> getGitReviewBranchName() {
+        Optional<String> branchName = Optional.absent();
+
+        DataContext dataContext = DataManager.getInstance().getDataContextFromFocus().getResult();
+        Optional<Project> openedProject = Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext));
+
+        if (openedProject.isPresent()) {
+            String gitReviewFilePath = Joiner.on(File.separator).join(
+                openedProject.get().getBasePath(), GITREVIEW_FILENAME);
+
+            File gitReviewFile = new File(gitReviewFilePath);
+            if (gitReviewFile.exists() && gitReviewFile.isFile()) {
+                FileInputStream fileInputStream = null;
+                try {
+                    fileInputStream = new FileInputStream(gitReviewFilePath);
+
+                    Properties properties = new Properties();
+                    properties.load(fileInputStream);
+                    branchName = Optional.fromNullable(properties.getProperty("defaultbranch"));
+                } catch (IOException e) {
+                    //no need to handle as branch name is already absent and ready to be returned
+                } finally {
+                    if (fileInputStream != null) {
+                        try {
+                            fileInputStream.close();
+                        } catch (IOException e) {
+                            //no need to handle as branch name is already absent and ready to be returned
+                        }
+                    }
+                }
+            }
+        }
+
+        return branchName;
     }
 
     private void createLayout() {

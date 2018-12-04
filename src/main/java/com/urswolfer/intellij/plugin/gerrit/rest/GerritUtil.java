@@ -1,6 +1,6 @@
 /*
  * Copyright 2000-2011 JetBrains s.r.o.
- * Copyright 2013-2016 Urs Wolfer
+ * Copyright 2013-2018 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@ import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.client.ListChangesOption;
-import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
@@ -101,7 +100,13 @@ public class GerritUtil {
     @Inject
     private GerritRestApiFactory gerritRestApiFactory;
     @Inject
+    private CertificateManagerClientBuilderExtension certificateManagerClientBuilderExtension;
+    @Inject
+    private LoggerHttpClientBuilderExtension loggerHttpClientBuilderExtension;
+    @Inject
     private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
+    @Inject
+    private UserAgentClientBuilderExtension userAgentClientBuilderExtension;
     @Inject
     private SelectedRevisions selectedRevisions;
 
@@ -570,13 +575,12 @@ public class GerritUtil {
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
         // we need to test with a temporary client with probably new (unsaved) credentials
         GerritApi tempClient = createClientWithCustomAuthData(gerritAuthData);
+        Changes.QueryRequest query = tempClient.changes().query();
         if (gerritAuthData.isLoginAndPasswordAvailable()) {
-            AccountInfo user = tempClient.accounts().self().get();
-            return user != null;
-        } else {
-            tempClient.changes().query().withLimit(1).get();
-            return true;
+            query.withQuery("reviewer:self");
         }
+        query.withLimit(1).get();
+        return true;
     }
 
     /**
@@ -731,6 +735,11 @@ public class GerritUtil {
     }
 
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {
-        return gerritRestApiFactory.create(gerritAuthData, proxyHttpClientBuilderExtension);
+        return gerritRestApiFactory.create(
+            gerritAuthData,
+            certificateManagerClientBuilderExtension,
+            loggerHttpClientBuilderExtension,
+            proxyHttpClientBuilderExtension,
+            userAgentClientBuilderExtension);
     }
 }

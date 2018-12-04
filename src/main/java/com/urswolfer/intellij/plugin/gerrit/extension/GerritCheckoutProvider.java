@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
@@ -138,12 +139,15 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     }
 
     /**
-     * Try to determinate Git clone url by fetching a random change and processing its fetch url. If it fails, falling
-     * back to Gerrit host url config.
+     * If set, return the clone base url from the preferences. Otherwise, try to determine the Git clone url by
+     * fetching a random change and processing its fetch url. If it fails, fall back to Gerrit host url config.
      *
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
     private String getCloneBaseUrl() {
+        if (!Strings.isNullOrEmpty(gerritSettings.getCloneBaseUrl())) {
+            return gerritSettings.getCloneBaseUrl();
+        }
         String url = gerritSettings.getHost();
         try {
             List<ChangeInfo> changeInfos = gerritApi.changes().query()

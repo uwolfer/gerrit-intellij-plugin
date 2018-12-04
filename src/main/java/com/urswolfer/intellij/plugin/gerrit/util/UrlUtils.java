@@ -36,6 +36,7 @@ public class UrlUtils {
             gitConfigUrl = "git://" + gitConfigUrl;
         }
         gitConfigUrl = gitConfigUrl.replace(" ", "%20");
+        gitConfigUrl = gitConfigUrl.replace("\\", "/");
         return URI.create(gitConfigUrl);
     }
 

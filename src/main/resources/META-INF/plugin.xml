@@ -89,6 +89,14 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.1.0</li>
+          <ul>
+            <li>add support for Gerrit 2.15+ push options (wip, private, publish-comments, hashtag)</li>
+            <li>get branch name from .gitreview file with fallback to local branch</li>
+            <li>allow to specify the clone base URL</li>
+            <li>improve connection test in settings</li>
+            <li>many minor fixes and improvements</li>
+          </ul>
           <li>1.0.7</li>
           <ul>
             <li>fix for issues like: "IllegalArgumentException: expected one element but was..."</li>

@@ -33,6 +33,8 @@ import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Parts based on org.jetbrains.plugins.github.GithubSettings
  *
@@ -54,6 +56,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
     private static final String SHOW_TOPIC_COLUMN = "ShowTopicColumn";
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
+    private static final String CLONE_BASE_URL = "CloneBaseUrl";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
     private String login = "";
@@ -67,8 +70,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showChangeIdColumn = false;
     private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
+    private String cloneBaseUrl = "";
 
     private Optional<String> preloadedPassword;
+    private AtomicInteger passwordDialogShowLimit = new AtomicInteger(3);
 
     private Logger log;
 
@@ -85,6 +90,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(SHOW_CHANGE_ID_COLUMN, Boolean.toString(getShowChangeIdColumn()));
         element.setAttribute(SHOW_TOPIC_COLUMN, Boolean.toString(getShowTopicColumn()));
         element.setAttribute(SHOW_PROJECT_COLUMN, getShowProjectColumn().name());
+        element.setAttribute(CLONE_BASE_URL, (getCloneBaseUrl() != null ? getCloneBaseUrl() : ""));
         return element;
     }
 
@@ -103,6 +109,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
             setShowTopicColumn(getBooleanValue(element, SHOW_TOPIC_COLUMN));
             setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
+            setCloneBaseUrl(element.getAttributeValue(CLONE_BASE_URL));
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
         }
@@ -149,7 +156,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
             }
         } else {
-            preloadPassword();
+            if (!preloadPassword()) {
+                return "";
+            }
         }
         return preloadedPassword.or("");
     }
@@ -162,6 +171,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
         if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
+            if (passwordDialogShowLimit.decrementAndGet() <= 0) {
+                return false;
+            }
             password = Messages.showPasswordDialog(
                 String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
                 "Gerrit Password");
@@ -283,6 +295,15 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     public void setShowTopicColumn(boolean showTopicColumn) {
         this.showTopicColumn = showTopicColumn;
     }
+
+    public void setCloneBaseUrl(String cloneBaseUrl) {
+        this.cloneBaseUrl = cloneBaseUrl;
+    }
+
+    public String getCloneBaseUrl() {
+        return cloneBaseUrl;
+    }
+
 
     public void setLog(Logger log) {
         this.log = log;

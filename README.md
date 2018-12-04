@@ -38,7 +38,7 @@ Installation
   - Download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
   matching your IntelliJ version and install it manually using
   <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Install plugin from disk...</kbd>
-  
+
 Restart your IDE.
 
 ###### Pre-Releases
@@ -64,7 +64,8 @@ Troubleshooting
 By default, you will only see changes to Git repositories that are configured in the current project of your IntelliJ IDE.
 * Make sure that Git repositories are configured in the 'Version Control' settings.
 * Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings. Or:
-* Add a remote whose name equals the Gerrit project name with Gerrit as remote url.
+* Set the 'Clone Base URL' if it differs from the Gerrit web url. Or:
+* Add a remote whose name equals the Gerrit project name with Gerrit web url as remote url.
 
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
 In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.
@@ -81,6 +82,9 @@ When installing Gerrit 2.8 (or newer) from scratch (rather than using the update
 There are two workarounds for this issue:
 * allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
 * use a recent Java setup (> 1.6)
+
+### Error-message when loading changes: "Bad Request. Status-Code: 400. Content: too many terms in query."
+Open plugin settings and enable the option "List all Gerrit changes (instead of changes from currently open project only)".
 
 ### Checking out from VCS with Gerrit plugin does not work
 Checking out directly with the Gerrit plugin does not work for some authentication methods. If you get an authentication

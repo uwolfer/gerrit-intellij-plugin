@@ -47,4 +47,10 @@ public class UrlUtilsTest {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("ssh://username@gerrit.example.com:39528/SDT Framework/act");
         Assert.assertEquals(uriFromGitConfigString.toString(), "ssh://username@gerrit.example.com:39528/SDT%20Framework/act");
     }
+
+    @Test
+    public void testWindowsPath() throws Exception {
+        URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("\\\\server\\folder\\clone\\");
+        Assert.assertEquals(uriFromGitConfigString.toString(), "git:////server/folder/clone/");
+    }
 }

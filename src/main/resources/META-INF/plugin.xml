@@ -89,6 +89,10 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.1.1</li>
+          <ul>
+            <li>fix for push dialog which did not appear in some situations (fix for a recent change which is included in last release)</li>
+          </ul>
           <li>1.1.0</li>
           <ul>
             <li>add support for Gerrit 2.15+ push options (wip, private, publish-comments, hashtag)</li>

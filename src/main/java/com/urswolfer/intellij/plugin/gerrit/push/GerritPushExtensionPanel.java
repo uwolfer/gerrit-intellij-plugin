@@ -97,17 +97,14 @@ public class GerritPushExtensionPanel extends JPanel {
     public void initialized() {
         initialized = true;
 
-        if (gerritPushTargetPanels.size() == 1) {
-            String branchName = gerritPushTargetPanels.values().iterator().next();
-
-            Optional<String> gitReviewBranchName = getGitReviewBranchName();
-
-            branchTextField.setText(gitReviewBranchName.or(branchName));
-        }
-
         // force a deferred update (changes are monitored only after full construction of dialog)
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
+                if (gerritPushTargetPanels.size() == 1) {
+                    String branchName = gerritPushTargetPanels.values().iterator().next();
+                    Optional<String> gitReviewBranchName = getGitReviewBranchName();
+                    branchTextField.setText(gitReviewBranchName.or(branchName));
+                }
                 initDestinationBranch();
             }
         });
@@ -117,7 +114,8 @@ public class GerritPushExtensionPanel extends JPanel {
         Optional<String> branchName = Optional.absent();
 
         DataContext dataContext = DataManager.getInstance().getDataContextFromFocus().getResult();
-        Optional<Project> openedProject = Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext));
+        Optional<Project> openedProject = dataContext != null ?
+            Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.<Project>absent();
 
         if (openedProject.isPresent()) {
             String gitReviewFilePath = Joiner.on(File.separator).join(

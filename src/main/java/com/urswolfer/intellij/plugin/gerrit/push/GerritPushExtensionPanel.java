@@ -131,7 +131,7 @@ public class GerritPushExtensionPanel extends JPanel {
                     properties.load(fileInputStream);
                     branchName = Optional.fromNullable(properties.getProperty("defaultbranch"));
 
-                    if (branchName.isPresent() && branchName.get().isEmpty()) {
+                    if (branchName.isPresent() && Strings.isNullOrEmpty(branchName.get())) {
                         return Optional.absent();
                     }
                 } catch (IOException e) {

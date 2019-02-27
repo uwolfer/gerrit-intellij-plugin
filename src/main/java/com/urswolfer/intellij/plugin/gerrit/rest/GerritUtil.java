@@ -39,6 +39,7 @@ import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
+import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.idea.ActionsBundle;
 import com.intellij.notification.Notification;
@@ -380,7 +381,7 @@ public class GerritUtil {
         Iterable<String> projectNamesWithQueryPrefix = Iterables.transform(projectNames, new Function<String, String>() {
             @Override
             public String apply(String input) {
-                return "project:" + input;
+                return "project:" + Url.encode(input);
             }
         });
 

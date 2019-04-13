@@ -113,7 +113,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private Optional<String> getGitReviewBranchName() {
         Optional<String> branchName = Optional.absent();
 
-        DataContext dataContext = DataManager.getInstance().getDataContextFromFocus().getResult();
+        DataContext dataContext = DataManager.getInstance().getDataContext(this);
         Optional<Project> openedProject = dataContext != null ?
             Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.<Project>absent();
 
@@ -129,7 +129,7 @@ public class GerritPushExtensionPanel extends JPanel {
 
                     Properties properties = new Properties();
                     properties.load(fileInputStream);
-                    branchName = Optional.fromNullable(properties.getProperty("defaultbranch"));
+                    branchName = Optional.fromNullable(Strings.emptyToNull(properties.getProperty("defaultbranch")));
                 } catch (IOException e) {
                     //no need to handle as branch name is already absent and ready to be returned
                 } finally {

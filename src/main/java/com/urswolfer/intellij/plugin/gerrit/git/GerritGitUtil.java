@@ -137,7 +137,7 @@ public class GerritGitUtil {
             repositoryUrls.addAll(remote.getPushUrls());
             for (String repositoryUrl : repositoryUrls) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getHost())) {
+                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getCloneBaseUrlOrHost())) {
                     return Optional.of(remote);
                 }
             }

@@ -89,6 +89,10 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.1.2.1</li>
+          <ul>
+            <li>fix compatibility with IntelliJ 2019.3</li>
+          </ul>
           <li>1.1.2</li>
           <ul>
             <li>fix push dialog extension for Java 11 JRE</li>

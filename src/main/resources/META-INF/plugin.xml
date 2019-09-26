@@ -89,6 +89,13 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.2.0</li>
+          <ul>
+            <li>add review filter for assignee</li>
+            <li>fix for use case when a different git clone URL is configured</li>
+            <li>fix compatibility with recent IntelliJ EAP</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.1.2.1</li>
           <ul>
             <li>fix compatibility with IntelliJ 2019.3</li>

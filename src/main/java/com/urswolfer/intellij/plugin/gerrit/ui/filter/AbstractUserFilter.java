@@ -27,7 +27,9 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupAdapter;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
@@ -111,15 +113,18 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
             actionConsumer.consume(new DumbAwareAction("Select...") {
                 @Override
                 public void actionPerformed(AnActionEvent e) {
-                    if (popup != null) {
-                        selectOkAction.unregisterCustomShortcutSet(popup.getContent());
-                    }
                     popup = buildBalloon(selectUserTextArea);
                     Point point = new Point(0, 0);
                     SwingUtilities.convertPointToScreen(point, getFilterValueLabel());
                     popup.showInScreenCoordinates(getFilterValueLabel(), point);
-                    JComponent content = popup.getContent();
+                    final JComponent content = popup.getContent();
                     selectOkAction.registerCustomShortcutSet(CommonShortcuts.CTRL_ENTER, content);
+                    popup.addListener(new JBPopupAdapter() {
+                        @Override
+                        public void onClosed(LightweightWindowEvent event) {
+                            selectOkAction.unregisterCustomShortcutSet(content);
+                        }
+                    });
                 }
             });
         }

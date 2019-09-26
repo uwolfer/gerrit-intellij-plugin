@@ -304,8 +304,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return cloneBaseUrl;
     }
 
-
     public void setLog(Logger log) {
         this.log = log;
+    }
+
+    public String getCloneBaseUrlOrHost() {
+        return Strings.isNullOrEmpty(cloneBaseUrl) ? host : cloneBaseUrl;
     }
 }

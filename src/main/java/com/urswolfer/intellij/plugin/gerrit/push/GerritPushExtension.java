@@ -81,11 +81,20 @@ public class GerritPushExtension implements ApplicationComponent {
             );
 
             CtMethod createTargetPanelMethod = gitPushSupportClass.getDeclaredMethod("createTargetPanel");
-            createTargetPanelMethod.setBody(
-                "{" +
-                    "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $2, gerritPushOptionsPanel);" +
-                "}"
-            );
+            // GitPushSupport#createTargetPanel signature change in: https://github.com/JetBrains/intellij-community/commit/1ab27885afa82e46eba4715829c88f0de494b652
+            if (createTargetPanelMethod.getLongName().equals("git4idea.push.GitPushSupport.createTargetPanel(git4idea.repo.GitRepository,git4idea.push.GitPushTarget)")) {
+                createTargetPanelMethod.setBody(
+                    "{" +
+                        "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $2, gerritPushOptionsPanel);" +
+                    "}"
+                );
+            } else if (createTargetPanelMethod.getLongName().equals("git4idea.push.GitPushSupport.createTargetPanel(git4idea.repo.GitRepository,git4idea.push.GitPushSource,git4idea.push.GitPushTarget)")) {
+                createTargetPanelMethod.setBody(
+                    "{" +
+                        "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $3, gerritPushOptionsPanel);" +
+                    "}"
+                );
+            }
 
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();

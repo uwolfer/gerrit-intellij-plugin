@@ -35,7 +35,7 @@ import java.util.Map;
 public class PublishAction extends AbstractLoggedInChangeAction {
 
     public PublishAction() {
-        super("Publish Draft", "Publish Draft Change", AllIcons.Actions.Nextfile);
+        super("Publish Draft", "Publish Draft Change", AllIcons.Actions.Forward);
     }
 
     @Override

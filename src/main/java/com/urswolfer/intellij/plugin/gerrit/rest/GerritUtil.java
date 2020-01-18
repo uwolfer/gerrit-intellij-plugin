@@ -54,6 +54,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
+import com.intellij.util.EmptyConsumer;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
@@ -182,7 +183,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to publish Gerrit change");
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed to publish Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -199,7 +200,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to delete Gerrit change");
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed to delete Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -217,7 +218,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to abandon Gerrit change");
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed to abandon Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -235,7 +236,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to add reviewer");
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed to add reviewer");
     }
 
     /**
@@ -260,7 +261,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed to star Gerrit change " +
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed to star Gerrit change " +
                 "(not supported for Gerrit versions older than 2.8)");
     }
 
@@ -283,7 +284,7 @@ public class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, Consumer.EMPTY_CONSUMER, project, "Failed set file review status for Gerrit change");
+        accessGerrit(supplier, EmptyConsumer.getInstance(), project, "Failed set file review status for Gerrit change");
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {

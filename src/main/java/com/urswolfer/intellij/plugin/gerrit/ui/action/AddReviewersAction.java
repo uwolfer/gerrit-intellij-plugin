@@ -41,7 +41,6 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
-import com.intellij.util.containers.ContainerUtil;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import org.jetbrains.annotations.NotNull;
@@ -49,6 +48,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -97,7 +97,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             setOKButtonText("Add Reviewers");
 
             EditorTextFieldProvider service = ServiceManager.getService(project, EditorTextFieldProvider.class);
-            Set<EditorCustomization> editorFeatures = ContainerUtil.newHashSet();
+            Set<EditorCustomization> editorFeatures = new HashSet<EditorCustomization>();
             editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
             editorFeatures.add(SpellCheckingEditorCustomization.DISABLED);
             reviewTextField = service.getEditorField(FileTypes.PLAIN_TEXT.getLanguage(), project, editorFeatures);

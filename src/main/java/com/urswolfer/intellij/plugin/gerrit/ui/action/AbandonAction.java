@@ -39,7 +39,7 @@ import javax.swing.*;
 public class AbandonAction extends AbstractLoggedInChangeAction {
 
     public AbandonAction() {
-        super("Abandon", "Abandon Change", AllIcons.Actions.Delete);
+        super("Abandon", "Abandon Change", AllIcons.Actions.Cancel);
     }
 
     @Override

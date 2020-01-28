@@ -48,7 +48,7 @@ public class CompareBranchAction extends AbstractChangeAction {
     private NotificationService notificationService;
 
     public CompareBranchAction() {
-        super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.DiffWithCurrent);
+        super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.Diff);
     }
 
     @Override

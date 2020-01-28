@@ -125,11 +125,11 @@ public class CheckoutAction extends AbstractChangeAction {
         if (topic == null) {
             topic = Integer.toString(changeDetails._number);
         }
-        String branchName = "review/" + changeDetails.owner.name.toLowerCase().replace(" ", "_").replace("?", "_") + '/' + topic;
+        String branchName = "review/" + changeDetails.owner.name.toLowerCase() + '/' + topic;
         if (revisionInfo._number != changeDetails.revisions.size()) {
             branchName += "-patch" + revisionInfo._number;
         }
-        return branchName;
+        return branchName.replace(" ", "_").replace("?", "_");
     }
 
     public static class Proxy extends CheckoutAction {

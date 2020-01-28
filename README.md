@@ -99,6 +99,14 @@ Diff viewing is based on Git operations (i.e. it fetches the commit from the Ger
 takes a lot of time, you can run a local "[git gc](https://www.kernel.org/pub/software/scm/git/docs/git-gc.html)"
 and ask your Gerrit administrator to do run a "[gerrit gc](https://gerrit-review.googlesource.com/Documentation/cmd-gc.html)".
 
+### Authenticate against *-review.googlesource.com
+It's a bit of manual work to do:
+<kbd>Settings</kbd> -> <kbd>HTTP Credentials</kbd> -> <kbd>Obtain password</kbd>
+
+Then search for the line in the text area starting with `*-review.googlesource.com` (e.g. `gerrit-review.googlesource.com`) and extract username and password:
+
+gerrit-review.googlesource.com,FALSE,/,TRUE,12345678,o,**git-username.gmail.com**=**password-until-end-of-line**
+
 Architecture
 ------------
 ### IntelliJ Integration

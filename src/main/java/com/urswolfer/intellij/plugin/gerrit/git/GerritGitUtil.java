@@ -21,7 +21,6 @@ import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLIC
 import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
@@ -154,7 +153,7 @@ public class GerritGitUtil {
                         successCallable.call();
                     }
                 } catch (Exception e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
 

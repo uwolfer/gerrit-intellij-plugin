@@ -155,7 +155,7 @@ public class GerritChangeDetailsPanel {
         }
 
         private void addMetaData(ChangeInfo changeInfo, StringBuilder sb) {
-            final String comment = IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.subject);
+            String comment = changeInfo.subject != null ? IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.subject) : "-";
             sb.append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
                     .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")

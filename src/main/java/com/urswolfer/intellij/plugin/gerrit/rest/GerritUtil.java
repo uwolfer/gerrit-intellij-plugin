@@ -21,7 +21,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -128,7 +127,7 @@ public class GerritUtil {
         if (exception.get() == null) {
             return result.get();
         }
-        throw Throwables.propagate(exception.get());
+        throw new RuntimeException(exception.get());
     }
 
     public void postReview(final String changeId,
@@ -143,7 +142,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).revision(revision).review(reviewInput);
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -161,7 +160,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).current().submit(submitInput);
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -178,7 +177,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).publish();
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -195,7 +194,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).delete();
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -213,7 +212,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).abandon(abandonInput);
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -231,7 +230,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeId).addReviewer(reviewerName);
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -256,7 +255,7 @@ public class GerritUtil {
                     }
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -279,7 +278,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeNr).revision(revision).setReviewed(filePath, true);
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -547,7 +546,7 @@ public class GerritUtil {
                     }
                     return commentInfo;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -566,7 +565,7 @@ public class GerritUtil {
                     gerritClient.changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
                     return null;
                 } catch (RestApiException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         };

@@ -17,7 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ex.ApplicationInfoEx;
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter;
@@ -97,7 +96,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
                 httpClient.close();
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 }

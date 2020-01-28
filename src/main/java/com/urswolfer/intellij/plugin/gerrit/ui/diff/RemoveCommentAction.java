@@ -52,7 +52,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware {
                                String revisionId,
                                RangeHighlighter lineHighlighter,
                                RangeHighlighter rangeHighlighter) {
-        super("Remove", "Remove selected comment", AllIcons.Actions.Delete);
+        super("Remove", "Remove selected comment", AllIcons.Actions.Cancel);
 
         this.commentsDiffTool = commentsDiffTool;
         this.comment = comment;

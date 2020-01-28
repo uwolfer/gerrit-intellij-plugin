@@ -38,7 +38,7 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     private NotificationService notificationService;
 
     public SubmitAction() {
-        super("Submit", "Submit Change", AllIcons.Actions.Export);
+        super("Submit", "Submit Change", AllIcons.ToolbarDecorator.Export);
     }
 
     @Override

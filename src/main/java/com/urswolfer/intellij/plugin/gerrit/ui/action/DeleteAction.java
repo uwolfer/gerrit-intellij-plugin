@@ -33,7 +33,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 public class DeleteAction extends AbstractLoggedInChangeAction {
 
     public DeleteAction() {
-        super("Delete Draft", "Delete Draft Change", AllIcons.Actions.Delete);
+        super("Delete Draft", "Delete Draft Change", AllIcons.Actions.Cancel);
     }
 
     @Override

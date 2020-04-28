@@ -28,11 +28,11 @@ public class GerritUiModule extends AbstractModule {
     protected void configure() {
         install(new GerritFilterModule());
         bind(GerritSelectRevisionInfoColumn.class);
-        Multibinder<GerritChangeNodeDecorator> decorators = Multibinder.newSetBinder(binder(), GerritChangeNodeDecorator.class);
-        decorators.addBinding().to(GerritCommentCountChangeNodeDecorator.class);
+        Multibinder<GerritChangeNodeDecoratorProvider> decoratorProviders = Multibinder.newSetBinder(binder(), GerritChangeNodeDecoratorProvider.class);
+        decoratorProviders.addBinding().to(GerritCommentCountChangeNodeDecorator.Provider.class);
         bind(RepositoryChangesBrowserProvider.class);
-        bind(SettingsPanel.class);
-        bind(GerritSettingsConfigurable.class);
+        bind(SettingsPanel.Factory.class);
+        bind(GerritSettingsConfigurableProvider.class);
         bind(GerritUpdatesNotificationComponent.class).asEagerSingleton();
         bind(GerritChangeListPanel.class);
     }

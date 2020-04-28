@@ -32,11 +32,16 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
-
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * @author Thomas Forrer
@@ -44,14 +49,11 @@ import java.util.*;
 public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator {
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
-    @Inject
-    private GerritRestApi gerritApi;
-    @Inject
-    private PathUtils pathUtils;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
+    private final Project project;
+    private final GerritRestApi gerritApi;
+    private final PathUtils pathUtils;
+    private final GerritProjectSettings gerritSettings;
+    private final Logger log;
 
     private final SelectedRevisions selectedRevisions;
 
@@ -59,8 +61,12 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
     private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
 
-    @Inject
-    public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
+    private GerritCommentCountChangeNodeDecorator(Project project, GerritApiProvider gerritApiProvider, PathUtils pathUtils, GerritSettings gerritSettings, Logger log, SelectedRevisions selectedRevisions) {
+        this.project = project;
+        this.gerritApi = gerritApiProvider.get(project);
+        this.pathUtils = pathUtils;
+        this.gerritSettings = gerritSettings.forProject(project);
+        this.log = log;
         this.selectedRevisions = selectedRevisions;
         this.selectedRevisions.addObserver(new Observer() {
             @Override
@@ -74,7 +80,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     @Override
-    public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
+    public void decorate(Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
         String affectedFilePath = getAffectedFilePath(change);
         if (affectedFilePath != null) {
             String text = getNodeSuffix(project, affectedFilePath);
@@ -86,7 +92,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     @Override
-    public void onChangeSelected(Project project, ChangeInfo selectedChange) {
+    public void onChangeSelected(ChangeInfo selectedChange) {
         this.selectedChange = selectedChange;
         comments = setupCommentsSupplier();
         drafts = setupDraftsSupplier();
@@ -167,5 +173,29 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private String getSelectedRevisionId() {
         return selectedRevisions.get(selectedChange);
+    }
+
+    public static class Provider implements GerritChangeNodeDecoratorProvider {
+
+        @Inject
+        private PathUtils pathUtils;
+        @Inject
+        private GerritSettings gerritSettings;
+        @Inject
+        private GerritApiProvider gerritApiProvider;
+        @Inject
+        private Logger log;
+
+        private final SelectedRevisions selectedRevisions;
+
+        @Inject
+        Provider(SelectedRevisions selectedRevisions) {
+            this.selectedRevisions = selectedRevisions;
+        }
+
+        @Override
+        public GerritChangeNodeDecorator get(Project project) {
+            return new GerritCommentCountChangeNodeDecorator(project, gerritApiProvider, pathUtils, gerritSettings, log, selectedRevisions);
+        }
     }
 }

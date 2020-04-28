@@ -21,9 +21,10 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 
 /**
  * @author Urs Wolfer
@@ -43,12 +44,12 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        String urlToOpen = getUrl(selectedChange.get());
+        String urlToOpen = getUrl(anActionEvent.getProject(), selectedChange.get());
         BrowserUtil.browse(urlToOpen);
     }
 
-    private String getUrl(ChangeInfo change) {
-        String url = gerritSettings.getHost();
+    private String getUrl(Project project, ChangeInfo change) {
+        String url = gerritSettings.forProject(project).getHost();
         int changeNumber = change._number;
         return String.format("%s/%s", url, changeNumber);
     }

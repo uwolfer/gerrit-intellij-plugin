@@ -21,7 +21,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -50,9 +51,10 @@ public class LoginDialog extends DialogWrapper {
         this.project = project;
         this.log = log;
         loginPanel = new LoginPanel(this);
-        loginPanel.setHost(gerritSettings.getHost());
-        loginPanel.setLogin(gerritSettings.getLogin());
-        loginPanel.setPassword(gerritSettings.getPassword());
+        GerritProjectSettings projectSettings = gerritSettings.forProject(project);
+        loginPanel.setHost(projectSettings.getHost());
+        loginPanel.setLogin(projectSettings.getLogin());
+        loginPanel.setPassword(projectSettings.getPassword());
         setTitle("Login to Gerrit");
         setOKButtonText("Login");
         init();
@@ -88,9 +90,8 @@ public class LoginDialog extends DialogWrapper {
         try {
             boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {
-                gerritSettings.setLogin(login);
-                gerritSettings.setPassword(password);
-                gerritSettings.setHost(host);
+                gerritSettings.forProject(project).setCredentials(host, login, password);
+
                 super.doOKAction();
             } else {
                 setErrorText("Can't login with given credentials");

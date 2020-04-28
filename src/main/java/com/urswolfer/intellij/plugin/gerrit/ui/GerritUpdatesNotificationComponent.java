@@ -23,7 +23,8 @@ import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -87,8 +88,9 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
             return;
         }
 
-        if (Strings.isNullOrEmpty(gerritSettings.getHost())
-                || Strings.isNullOrEmpty(gerritSettings.getLogin())) {
+        GerritProjectSettings projectSettings = gerritSettings.forProject(project);
+        if (Strings.isNullOrEmpty(projectSettings.getHost())
+                || Strings.isNullOrEmpty(projectSettings.getLogin())) {
             return;
         }
 

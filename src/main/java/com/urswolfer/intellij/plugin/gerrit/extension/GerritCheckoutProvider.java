@@ -37,9 +37,10 @@ import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -82,7 +83,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     @Inject
     private NotificationService notificationService;
     @Inject
-    private GerritRestApi gerritApi;
+    private GerritApiProvider gerritApiProvider;
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -107,7 +108,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         ImmutableSortedSet<ProjectInfo> orderedProjects =
             ImmutableSortedSet.orderedBy(ID_REVERSE_ORDERING).addAll(availableProjects).build();
 
-        String url = getCloneBaseUrl();
+        String url = getCloneBaseUrl(project);
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
         for (ProjectInfo projectInfo : orderedProjects) {
@@ -144,13 +145,14 @@ public class GerritCheckoutProvider implements CheckoutProvider {
      *
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
-    private String getCloneBaseUrl() {
-        if (!Strings.isNullOrEmpty(gerritSettings.getCloneBaseUrl())) {
-            return gerritSettings.getCloneBaseUrl();
+    private String getCloneBaseUrl(Project project) {
+        GerritProjectSettings projectSettings = gerritSettings.forProject(project);
+        if (!Strings.isNullOrEmpty(projectSettings.getCloneBaseUrl())) {
+            return projectSettings.getCloneBaseUrl();
         }
-        String url = gerritSettings.getHost();
+        String url = projectSettings.getHost();
         try {
-            List<ChangeInfo> changeInfos = gerritApi.changes().query()
+            List<ChangeInfo> changeInfos = gerritApiProvider.get(project).changes().query()
                 .withLimit(1)
                 .withOption(ListChangesOption.CURRENT_REVISION)
                 .get();
@@ -193,7 +195,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            InputStream commitMessageHook = gerritApi.tools().getCommitMessageHook();
+            InputStream commitMessageHook = gerritApiProvider.get(project).tools().getCommitMessageHook();
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             ByteStreams.copy(commitMessageHook, new FileOutputStream(targetFile));
             //noinspection ResultOfMethodCallIgnored

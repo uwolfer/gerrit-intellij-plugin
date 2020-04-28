@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
@@ -27,16 +28,23 @@ import com.intellij.ui.EnumComboBoxModel;
 import com.intellij.ui.GuiUtils;
 import com.intellij.ui.components.JBTextField;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsPanel
@@ -66,14 +74,10 @@ public class SettingsPanel {
 
     private boolean passwordModified;
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private Logger log;
-
-    public SettingsPanel() {
+    private SettingsPanel(final Project project,
+                          final GerritSettings gerritSettings,
+                          final GerritUtil gerritUtil,
+                          final Logger log) {
         hostTextField.getEmptyText().setText("https://review.example.org");
 
         gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
@@ -81,7 +85,7 @@ public class SettingsPanel {
         testButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
+                String password = isPasswordModified() ? getPassword() : gerritSettings.forProject(project).getPassword();
                 String host = getHost();
                 if (Strings.isNullOrEmpty(host)) {
                     Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
@@ -276,5 +280,19 @@ public class SettingsPanel {
         return cloneBaseUrlTextField.getText().trim();
     }
 
+    public static class Factory {
+
+        @Inject
+        private GerritSettings gerritSettings;
+        @Inject
+        private GerritUtil gerritUtil;
+        @Inject
+        private Logger log;
+
+        public SettingsPanel build(Project project) {
+            return new SettingsPanel(project, gerritSettings, gerritUtil, log);
+        }
+
+    }
 }
 

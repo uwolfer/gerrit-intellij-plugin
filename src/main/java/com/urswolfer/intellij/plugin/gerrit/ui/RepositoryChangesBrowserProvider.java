@@ -57,6 +57,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitCommit;
 import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
+import java.util.HashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,7 +83,7 @@ public class RepositoryChangesBrowserProvider {
     @Inject
     private Logger log;
     @Inject
-    private Set<GerritChangeNodeDecorator> changeNodeDecorators;
+    private Set<GerritChangeNodeDecoratorProvider> changeNodeDecoratorProviders;
     @Inject
     private SelectedRevisions selectedRevisions;
 
@@ -110,7 +111,8 @@ public class RepositoryChangesBrowserProvider {
     private final class GerritRepositoryChangesBrowser extends RepositoryChangesBrowser {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.absent();
-        private Project project;
+        private final Project project;
+        private Set<GerritChangeNodeDecorator> changeNodeDecorators;
 
         public GerritRepositoryChangesBrowser(Project project) {
             super(project, Collections.<CommittedChangeList>emptyList(), Collections.<Change>emptyList(), null);
@@ -130,6 +132,10 @@ public class RepositoryChangesBrowserProvider {
                     }
                 }
             });
+            changeNodeDecorators = new HashSet<GerritChangeNodeDecorator>();
+            for(GerritChangeNodeDecoratorProvider decoratorProvider: changeNodeDecoratorProviders){
+                changeNodeDecorators.add(decoratorProvider.get(project));
+            }
         }
 
         @Override
@@ -155,7 +161,7 @@ public class RepositoryChangesBrowserProvider {
                         baseRevision = Optional.absent();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
                         for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
-                            decorator.onChangeSelected(project, selectedChange);
+                            decorator.onChangeSelected(selectedChange);
                         }
                         updateChangesBrowser();
                     }
@@ -231,7 +237,7 @@ public class RepositoryChangesBrowserProvider {
                 @Override
                 public void decorate(Change change, SimpleColoredComponent component, boolean isShowFlatten) {
                     for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
-                        decorator.decorate(project, change, component, selectedChange);
+                        decorator.decorate(change, component, selectedChange);
                     }
                 }
 

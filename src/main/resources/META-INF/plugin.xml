@@ -466,9 +466,11 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider$Proxy"/>
-    <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
-                        serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
-    <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable$Proxy"/>
+    <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings"
+                        serviceImplementation="com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings"/>
+    <projectService serviceInterface="com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings"
+                    serviceImplementation="com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings"/>
+    <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurableProvider$Proxy"/>
 
     <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>

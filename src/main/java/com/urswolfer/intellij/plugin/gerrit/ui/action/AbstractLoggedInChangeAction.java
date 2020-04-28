@@ -18,7 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 
 import javax.swing.*;
 
@@ -38,6 +38,6 @@ public abstract class AbstractLoggedInChangeAction extends AbstractChangeAction 
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(gerritSettings.forProject(e.getProject()).isLoginAndPasswordAvailable());
     }
 }

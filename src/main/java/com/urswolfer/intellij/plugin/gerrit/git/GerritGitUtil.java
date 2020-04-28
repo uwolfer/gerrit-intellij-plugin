@@ -46,7 +46,8 @@ import com.intellij.vcs.log.VcsUser;
 import com.intellij.vcs.log.impl.HashImpl;
 import com.intellij.vcs.log.impl.VcsShortCommitDetailsImpl;
 import com.intellij.vcs.log.impl.VcsUserImpl;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
@@ -125,9 +126,10 @@ public class GerritGitUtil {
             List<String> repositoryUrls = new ArrayList<String>();
             repositoryUrls.addAll(remote.getUrls());
             repositoryUrls.addAll(remote.getPushUrls());
+            GerritProjectSettings projectSettings = gerritSettings.forProject(project);
             for (String repositoryUrl : repositoryUrls) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getCloneBaseUrlOrHost())) {
+                    || UrlUtils.urlHasSameHost(repositoryUrl, projectSettings.getCloneBaseUrlOrHost())) {
                     return Optional.of(remote);
                 }
             }

@@ -17,15 +17,15 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.inject.Inject;
-import com.google.inject.Provider;
+import com.intellij.openapi.project.Project;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 
 /**
  * @author Urs Wolfer
  */
-public class GerritApiProvider implements Provider<GerritRestApi> {
+public class GerritApiProvider {
 
     @Inject
     private GerritSettings gerritSettings;
@@ -40,10 +40,9 @@ public class GerritApiProvider implements Provider<GerritRestApi> {
     @Inject
     private GerritRestApiFactory gerritRestApiFactory;
 
-    @Override
-    public GerritRestApi get() {
+    public GerritRestApi get(Project project) {
         return gerritRestApiFactory.create(
-            gerritSettings,
+            gerritSettings.forProject(project),
             certificateManagerClientBuilderExtension,
             loggerHttpClientBuilderExtension,
             proxyHttpClientBuilderExtension,

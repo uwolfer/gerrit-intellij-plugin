@@ -35,8 +35,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
 
 /**
  * @author Urs Wolfer
@@ -52,6 +50,7 @@ public class CommentForm extends JPanel {
     private final String filePath;
     private final Side commentSide;
     private final Comment commentToEdit;
+    private final JCheckBox resolvedCheckBox;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
@@ -73,6 +72,8 @@ public class CommentForm extends JPanel {
         reviewTextField = safeHtmlTextEditor.getMessageField();
         add(safeHtmlTextEditor);
 
+        resolvedCheckBox = new JCheckBox("Resolved");
+
         addButtons();
 
         reviewTextField.setPreferredSize(new Dimension(BALLOON_WIDTH, BALLOON_HEIGHT));
@@ -88,6 +89,7 @@ public class CommentForm extends JPanel {
 
         if (commentToEdit != null) {
             reviewTextField.setText(commentToEdit.message);
+            resolvedCheckBox.setSelected(!commentToEdit.unresolved);
         }
     }
 
@@ -103,6 +105,8 @@ public class CommentForm extends JPanel {
                 createCommentAndClose();
             }
         });
+
+        buttonPanel.add(resolvedCheckBox);
 
         buttonPanel.add(Box.createHorizontalGlue());
 
@@ -129,6 +133,7 @@ public class CommentForm extends JPanel {
         comment.message = getText();
         comment.path = PathUtils.ensureSlashSeparators(filePath);
         comment.side = commentSide;
+        comment.unresolved = !resolvedCheckBox.isSelected();
 
         SelectionModel selectionModel = editor.getSelectionModel();
         if (selectionModel.hasSelection()) {

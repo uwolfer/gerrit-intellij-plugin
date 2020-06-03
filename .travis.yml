@@ -1,5 +1,5 @@
+os: linux
 dist: trusty
-sudo: false
 language: java
 jdk:
   - oraclejdk8
@@ -11,10 +11,7 @@ cache:
     - $HOME/.gradle/wrapper/
 deploy:
   provider: releases
-  api_key:
-    secure: "${GITHUB_KEY}"
-  skip_cleanup: true
-  file_glob: true
+  edge: true
   file: "build/distributions/gerrit-intellij-plugin-*.zip"
   on:
     tags: true

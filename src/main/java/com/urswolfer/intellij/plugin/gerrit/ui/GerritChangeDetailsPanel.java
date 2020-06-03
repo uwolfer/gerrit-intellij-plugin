@@ -18,6 +18,9 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 
+import static java.lang.Boolean.TRUE;
+import static javax.swing.JEditorPane.HONOR_DISPLAY_PROPERTIES;
+
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
@@ -52,7 +55,6 @@ public class GerritChangeDetailsPanel {
     private static final String NOTHING_SELECTED = "nothingSelected";
     private static final String LOADING = "loading";
     private static final String DATA = "data";
-    private static final String MULTIPLE_SELECTED = "multiple_selected";
     private static final ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
         protected DecimalFormat initialValue() {
@@ -70,16 +72,17 @@ public class GerritChangeDetailsPanel {
         panel = new JPanel(new CardLayout());
         panel.add(UIVcsUtil.errorPanel("Nothing selected", false), NOTHING_SELECTED);
         panel.add(UIVcsUtil.errorPanel("Loading...", false), LOADING);
-        panel.add(UIVcsUtil.errorPanel("Several commits selected", false), MULTIPLE_SELECTED);
 
         presentationData = new MyPresentationData(project);
 
         final JPanel wrapper = new JPanel(new BorderLayout());
 
+        // could be ported to com.intellij.util.ui.HtmlPanel once minimal IntelliJ version is bumped
         jEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
         jEditorPane.setPreferredSize(new Dimension(150, 100));
         jEditorPane.setEditable(false);
-        jEditorPane.setBackground(UIUtil.getComboBoxDisabledBackground());
+        jEditorPane.setOpaque(false);
+        jEditorPane.putClientProperty(HONOR_DISPLAY_PROPERTIES, TRUE);
         jEditorPane.addHyperlinkListener(new HyperlinkListener() {
             @Override
             public void hyperlinkUpdate(HyperlinkEvent e) {
@@ -89,17 +92,10 @@ public class GerritChangeDetailsPanel {
 
         final JBScrollPane tableScroll = new JBScrollPane(jEditorPane);
         tableScroll.setBorder(null);
-        jEditorPane.setBorder(null);
         wrapper.add(tableScroll, SwingConstants.CENTER);
-        jEditorPane.setBackground(UIUtil.getTableBackground());
-        wrapper.setBackground(UIUtil.getTableBackground());
 
         panel.add(wrapper, DATA);
-        ((CardLayout) panel.getLayout()).show(panel, NOTHING_SELECTED);
-    }
-
-    public void severalSelected() {
-        ((CardLayout) panel.getLayout()).show(panel, MULTIPLE_SELECTED);
+        nothingSelected();
     }
 
     public void nothingSelected() {

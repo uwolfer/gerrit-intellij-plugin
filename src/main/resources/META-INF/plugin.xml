@@ -89,6 +89,13 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.2.2</li>
+          <ul>
+            <li>add support for setting "resolved" flag in comments</li>
+            <li>fix authentication issues against GerritHub</li>
+            <li>fix change detail panel font color in Darcula color schema</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.2.1</li>
           <ul>
             <li>fix compatibility with new IntelliJ APIs</li>

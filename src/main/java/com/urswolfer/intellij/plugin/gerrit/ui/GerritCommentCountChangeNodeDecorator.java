@@ -58,6 +58,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private ChangeInfo selectedChange;
     private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
     private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
+    private Supplier<Set<String>> reviewed = setupReviewedSupplier();
 
     @Inject
     public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
@@ -65,9 +66,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         this.selectedRevisions.addObserver(new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                if (arg != null && arg instanceof String && selectedChange.id.equals(arg)) {
+                if (arg instanceof String && selectedChange.id.equals(arg)) {
                         comments = setupCommentsSupplier();
                         drafts = setupDraftsSupplier();
+                        reviewed = setupReviewedSupplier();
                 }
             }
         });
@@ -121,6 +123,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
             parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
         }
 
+        if(reviewed.get().contains(fileName)) {
+            parts.add("reviewed");
+        }
+
         return SUFFIX_JOINER.join(parts);
     }
 
@@ -160,6 +166,26 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                 } catch (RestApiException e) {
                     log.warn(e);
                     return Collections.emptyMap();
+                }
+            }
+        });
+    }
+
+    private Supplier<Set<String>> setupReviewedSupplier() {
+        return Suppliers.memoize(new Supplier<Set<String>>() {
+            @Override
+            public Set<String> get() {
+                if (!gerritSettings.isLoginAndPasswordAvailable()) {
+                    return Collections.emptySet();
+                }
+                try {
+                    return gerritApi.changes()
+                            .id(selectedChange.id)
+                            .revision(getSelectedRevisionId())
+                            .reviewed();
+                } catch (RestApiException e) {
+                    log.warn(e);
+                    return Collections.emptySet();
                 }
             }
         });

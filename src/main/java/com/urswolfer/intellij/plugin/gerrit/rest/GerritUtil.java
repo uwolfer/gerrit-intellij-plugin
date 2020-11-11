@@ -78,6 +78,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -336,7 +337,7 @@ public class GerritUtil {
                             }
                             if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
                                 tryFallback = true;
-                                EnumSet<ListChangesOption> options = queryRequest.getOptions();
+                                Set<ListChangesOption> options = queryRequest.getOptions();
                                 options.remove(ListChangesOption.CHANGE_ACTIONS);
                                 options.remove(ListChangesOption.CURRENT_ACTIONS);
                                 queryRequest.withOptions(options);

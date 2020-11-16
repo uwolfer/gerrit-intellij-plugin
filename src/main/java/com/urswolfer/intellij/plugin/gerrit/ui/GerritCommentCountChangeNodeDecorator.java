@@ -66,13 +66,17 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         this.selectedRevisions.addObserver(new Observer() {
             @Override
             public void update(Observable o, Object arg) {
-                if (arg instanceof String && selectedChange.id.equals(arg)) {
-                        comments = setupCommentsSupplier();
-                        drafts = setupDraftsSupplier();
-                        reviewed = setupReviewedSupplier();
+                if (arg instanceof String && selectedChange != null && selectedChange.id.equals(arg)) {
+                    refreshSuppliers();
                 }
             }
         });
+    }
+
+    private void refreshSuppliers() {
+        comments = setupCommentsSupplier();
+        drafts = setupDraftsSupplier();
+        reviewed = setupReviewedSupplier();
     }
 
     @Override
@@ -90,8 +94,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Override
     public void onChangeSelected(Project project, ChangeInfo selectedChange) {
         this.selectedChange = selectedChange;
-        comments = setupCommentsSupplier();
-        drafts = setupDraftsSupplier();
+        refreshSuppliers();
     }
 
     private String getAffectedFilePath(Change change) {

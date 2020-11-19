@@ -126,7 +126,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
             parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
         }
 
-        if(reviewed.get().contains(fileName)) {
+        if (reviewed.get().contains(fileName)) {
             parts.add("reviewed");
         }
 

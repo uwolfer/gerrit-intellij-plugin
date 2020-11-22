@@ -27,17 +27,23 @@ import java.net.URI;
 public class UrlUtilsTest {
 
     @Test
-    public void testUrlHasSameHost() throws Exception {
+    public void testUrlHasSameHostTrue() throws Exception {
         Assert.assertTrue(UrlUtils.urlHasSameHost("https://gerrit.example.com/test.git", "https://gerrit.example.com/"));
+    }
 
+    @Test
+    public void testUrlHasSameHostFalse() throws Exception {
         Assert.assertFalse(UrlUtils.urlHasSameHost("https://git.example.com/test.git", "https://gerrit.example.com/"));
     }
 
     @Test
-    public void testCreateUriFromGitConfigString() throws Exception {
+    public void testCreateUriFromGitConfigStringWithProtocol() throws Exception {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("https://git.example.com/");
         Assert.assertEquals(uriFromGitConfigString.toString(), "https://git.example.com/");
+    }
 
+    @Test
+    public void testCreateUriFromGitConfigStringWithoutProtocol() throws Exception {
         URI uriFromGitConfigStringWithoutProtocol = UrlUtils.createUriFromGitConfigString("git.example.com/");
         Assert.assertEquals(uriFromGitConfigStringWithoutProtocol.toString(), "git://git.example.com/");
     }

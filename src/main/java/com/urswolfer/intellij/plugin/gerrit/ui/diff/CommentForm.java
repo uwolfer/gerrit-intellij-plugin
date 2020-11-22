@@ -36,6 +36,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import static java.lang.Boolean.TRUE;
+
 /**
  * @author Urs Wolfer
  *
@@ -89,7 +91,7 @@ public class CommentForm extends JPanel {
 
         if (commentToEdit != null) {
             reviewTextField.setText(commentToEdit.message);
-            resolvedCheckBox.setSelected(!commentToEdit.unresolved);
+            resolvedCheckBox.setSelected(!commentToEdit.unresolved == TRUE);
         }
     }
 

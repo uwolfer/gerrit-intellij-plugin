@@ -15,7 +15,7 @@
  */
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.4.15'
+    id 'org.jetbrains.intellij' version '0.6.3'
 }
 
 apply plugin: 'java'
@@ -41,22 +41,22 @@ repositories {
 }
 
 dependencies {
-    compile ('com.google.inject:guice:4.1') {
+    implementation ('com.google.inject:guice:4.1') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.google.inject.extensions:guice-multibindings:4.1.0') {
+    implementation ('com.google.inject.extensions:guice-multibindings:4.1.0') {
         exclude group: 'com.google.guava', module: 'guava'
     }
-    compile ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.9.2') {
+    implementation ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.9.3') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    compile 'org.javassist:javassist:3.24.1-GA'
+    implementation 'org.javassist:javassist:3.27.0-GA'
 
-    testCompile 'org.testng:testng:6.8.21'
-    testCompile 'org.easymock:easymock:3.4'
+    testImplementation 'org.testng:testng:7.3.0'
+    testImplementation 'org.easymock:easymock:4.2'
 }
 
 intellij {

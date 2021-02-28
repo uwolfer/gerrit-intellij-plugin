@@ -95,8 +95,6 @@ public class GerritGitUtil {
     @Inject
     private GitPlatformFacade platformFacade;
     @Inject
-    private FileDocumentManager fileDocumentManager;
-    @Inject
     private Application application;
     @Inject
     private VirtualFileManager virtualFileManager;
@@ -195,7 +193,7 @@ public class GerritGitUtil {
     }
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
-        fileDocumentManager.saveAllDocuments();
+        FileDocumentManager.getInstance().saveAllDocuments();
         platformFacade.getChangeListManager(project).blockModalNotifications();
 
         new Task.Backgroundable(project, "Cherry-picking...", false) {

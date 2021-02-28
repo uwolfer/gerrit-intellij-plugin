@@ -51,7 +51,6 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitCommit;
-import git4idea.GitExecutionException;
 import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
@@ -397,7 +396,7 @@ public class GerritGitUtil {
             branchToHead = GitHistoryUtils.history(project, repository.getRoot(), branchName + "..");
         } catch (VcsException e) {
             // we treat it as critical and report an error
-            throw new GitExecutionException("Couldn't get [git log .." + branchName + "] on repository [" + repository.getRoot() + "]", e);
+            throw new RuntimeException("Couldn't get [git log .." + branchName + "] on repository [" + repository.getRoot() + "]", e);
         }
         return Pair.create(headToBranch, branchToHead);
     }

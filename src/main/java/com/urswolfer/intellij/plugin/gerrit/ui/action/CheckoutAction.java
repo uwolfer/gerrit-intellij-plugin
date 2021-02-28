@@ -24,7 +24,10 @@ import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.Consumer;
@@ -33,10 +36,12 @@ import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import git4idea.GitVcs;
 import git4idea.branch.GitBrancher;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.validators.GitNewBranchNameValidator;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -71,10 +76,10 @@ public class CheckoutAction extends AbstractChangeAction {
         getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(final ChangeInfo changeDetails) {
-                Callable<Void> successCallable = new Callable<Void>() {
+                Callable<Void> fetchCallback = new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
+                        final GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
                         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
                                 getRepositoryForGerritProject(project, changeDetails.project);
                         if (!gitRepositoryOptional.isPresent()) {
@@ -86,7 +91,7 @@ public class CheckoutAction extends AbstractChangeAction {
                         String branchName = buildBranchName(changeDetails);
                         String checkedOutBranchName = branchName;
                         final GitRepository repository = gitRepositoryOptional.get();
-                        List<GitRepository> gitRepositories = Collections.singletonList(repository);
+                        final List<GitRepository> gitRepositories = Collections.singletonList(repository);
                         FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
                         final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
                         if (!remote.isPresent()) {
@@ -100,21 +105,33 @@ public class CheckoutAction extends AbstractChangeAction {
                             validName = newBranchNameValidator.checkInput(checkedOutBranchName);
                             i++;
                         }
-                        brancher.checkoutNewBranchStartingFrom(checkedOutBranchName, "FETCH_HEAD", gitRepositories, new Runnable() {
+                        final String finalCheckedOutBranchName = checkedOutBranchName;
+                        ApplicationManager.getApplication().invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                try {
-                                    gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
-                                } catch (VcsException e) {
-                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
-                                    notificationService.notifyError(builder);
-                                }
+                                brancher.checkoutNewBranchStartingFrom(finalCheckedOutBranchName, "FETCH_HEAD", gitRepositories, new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
+                                            @Override
+                                            public void run(@NotNull ProgressIndicator indicator) {
+                                                try {
+                                                    gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
+                                                } catch (VcsException e) {
+                                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
+                                                    notificationService.notifyError(builder);
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
                             }
-                        });
+                        }
+                        );
                         return null;
                     }
                 };
-                fetchAction.fetchChange(selectedChange.get(), project, successCallable);
+                fetchAction.fetchChange(selectedChange.get(), project, fetchCallback);
             }
         });
     }

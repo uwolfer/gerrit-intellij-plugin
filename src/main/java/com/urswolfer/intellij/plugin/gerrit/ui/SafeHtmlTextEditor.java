@@ -43,7 +43,7 @@ public class SafeHtmlTextEditor extends JPanel {
         TabbedPaneImpl tabbedPane = new TabbedPaneImpl(SwingConstants.TOP);
         tabbedPane.setKeyboardNavigation(TabbedPaneImpl.DEFAULT_PREV_NEXT_SHORTCUTS);
 
-        messageField = CommitMessage.createCommitTextEditor(project, false);
+        messageField = new CommitMessage(project).getEditorField();
         messageField.setBorder(BorderFactory.createEmptyBorder());
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);

@@ -44,7 +44,7 @@ public class FetchAction {
     @Inject
     private SelectedRevisions selectedRevisions;
 
-    public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> successCallable) {
+    public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> fetchCallback) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
@@ -63,7 +63,7 @@ public class FetchAction {
                 if (firstFetchInfo == null) {
                     return;
                 }
-                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, successCallable);
+                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, fetchCallback);
             }
         });
     }

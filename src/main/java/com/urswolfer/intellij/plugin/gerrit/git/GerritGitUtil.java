@@ -51,7 +51,6 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitCommit;
-import git4idea.GitExecutionException;
 import git4idea.GitPlatformFacade;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
@@ -94,8 +93,6 @@ public class GerritGitUtil {
     private Git git;
     @Inject
     private GitPlatformFacade platformFacade;
-    @Inject
-    private FileDocumentManager fileDocumentManager;
     @Inject
     private Application application;
     @Inject
@@ -152,20 +149,8 @@ public class GerritGitUtil {
                             final GitRepository gitRepository,
                             final FetchInfo fetchInfo,
                             final String commitHash,
-                            @Nullable final Callable<Void> successCallable) {
+                            @Nullable final Callable<Void> fetchCallback) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
-            @Override
-            public void onSuccess() {
-                super.onSuccess();
-                try {
-                    if (successCallable != null) {
-                        successCallable.call();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 GitRemote remote;
@@ -190,12 +175,20 @@ public class GerritGitUtil {
                 if (!result.isSuccess()) {
                     GitFetcher.displayFetchResult(project, result, null, result.getErrors());
                 }
+
+                try {
+                    if (fetchCallback != null) {
+                        fetchCallback.call();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                 }
             }
         });
     }
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
-        fileDocumentManager.saveAllDocuments();
+        FileDocumentManager.getInstance().saveAllDocuments();
         platformFacade.getChangeListManager(project).blockModalNotifications();
 
         new Task.Backgroundable(project, "Cherry-picking...", false) {
@@ -399,7 +392,7 @@ public class GerritGitUtil {
             branchToHead = GitHistoryUtils.history(project, repository.getRoot(), branchName + "..");
         } catch (VcsException e) {
             // we treat it as critical and report an error
-            throw new GitExecutionException("Couldn't get [git log .." + branchName + "] on repository [" + repository.getRoot() + "]", e);
+            throw new RuntimeException("Couldn't get [git log .." + branchName + "] on repository [" + repository.getRoot() + "]", e);
         }
         return Pair.create(headToBranch, branchToHead);
     }

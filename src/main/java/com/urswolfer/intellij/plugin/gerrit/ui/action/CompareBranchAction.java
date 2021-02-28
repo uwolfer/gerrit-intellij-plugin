@@ -22,6 +22,7 @@ import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -68,7 +69,7 @@ public class CompareBranchAction extends AbstractChangeAction {
         fetchAction.fetchChange(selectedChange.get(), project, successCallable);
     }
 
-    private void diffChange(Project project, ChangeInfo changeInfo) {
+    private void diffChange(final Project project, ChangeInfo changeInfo) {
         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
         if (!gitRepositoryOptional.isPresent()) {
             NotificationBuilder notification = new NotificationBuilder(project, "Error",
@@ -76,7 +77,7 @@ public class CompareBranchAction extends AbstractChangeAction {
             notificationService.notifyError(notification);
             return;
         }
-        GitRepository gitRepository = gitRepositoryOptional.get();
+        final GitRepository gitRepository = gitRepositoryOptional.get();
 
         final String branchName = "FETCH_HEAD";
         GitLocalBranch currentBranch = gitRepository.getCurrentBranch();
@@ -88,9 +89,14 @@ public class CompareBranchAction extends AbstractChangeAction {
         }
         assert currentBranchName != null : "Current branch is neither a named branch nor a revision";
 
-        GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(
+        final GitCommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(
             Collections.singletonList(gitRepository), branchName, project);
-        new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new GitCompareBranchesDialog(project, branchName, currentBranchName, compareInfo, gitRepository).show();
+            }
+        });
     }
 
     public static class Proxy extends CompareBranchAction {

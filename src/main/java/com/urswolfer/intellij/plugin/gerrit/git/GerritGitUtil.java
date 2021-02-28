@@ -149,20 +149,8 @@ public class GerritGitUtil {
                             final GitRepository gitRepository,
                             final FetchInfo fetchInfo,
                             final String commitHash,
-                            @Nullable final Callable<Void> successCallable) {
+                            @Nullable final Callable<Void> fetchCallback) {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
-            @Override
-            public void onSuccess() {
-                super.onSuccess();
-                try {
-                    if (successCallable != null) {
-                        successCallable.call();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 GitRemote remote;
@@ -187,6 +175,14 @@ public class GerritGitUtil {
                 if (!result.isSuccess()) {
                     GitFetcher.displayFetchResult(project, result, null, result.getErrors());
                 }
+
+                try {
+                    if (fetchCallback != null) {
+                        fetchCallback.call();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                 }
             }
         });
     }

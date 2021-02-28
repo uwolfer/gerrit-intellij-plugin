@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
@@ -57,14 +58,19 @@ public class CherryPickAction extends AbstractChangeAction {
         getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(final ChangeInfo changeInfo) {
-                Callable<Void> successCallable = new Callable<Void>() {
+                Callable<Void> fetchCallback = new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        gerritGitUtil.cherryPickChange(project, changeInfo, selectedRevisions.get(changeInfo));
+                        ApplicationManager.getApplication().invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                gerritGitUtil.cherryPickChange(project, changeInfo, selectedRevisions.get(changeInfo));
+                            }
+                        });
                         return null;
                     }
                 };
-                fetchAction.fetchChange(selectedChange.get(), project, successCallable);
+                fetchAction.fetchChange(selectedChange.get(), project, fetchCallback);
             }
         });
     }

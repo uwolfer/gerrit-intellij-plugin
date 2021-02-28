@@ -29,7 +29,7 @@ import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.ui.popup.JBPopupAdapter;
+import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -108,7 +108,10 @@ public class AddCommentAction extends AnAction implements DumbAware {
 
         final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
-        balloon.addListener(new JBPopupAdapter() {
+        balloon.addListener(new JBPopupListener() {
+            @Override
+            public void beforeShown(LightweightWindowEvent lightweightWindowEvent) {}
+
             @Override
             public void onClosed(LightweightWindowEvent event) {
                 DraftInput comment = commentForm.getComment();

@@ -20,11 +20,10 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.intellij.diff.DiffManager;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.diff.DiffManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -61,7 +60,6 @@ public class GerritTestModule extends GerritModule {
         bindMock(LocalFileSystem.class);
 
         bindMock(Git.class);
-        bindMock(FileDocumentManager.class);
         bindMock(VirtualFileManager.class);
 
         bindMock(ShowSettingsUtil.class);

@@ -48,7 +48,6 @@ public class OpenIdeDependenciesModule extends AbstractModule {
         bind(LocalFileSystem.class).toInstance(LocalFileSystem.getInstance());
 
         bind(Git.class).toInstance(ServiceManager.getService(Git.class));
-        bind(FileDocumentManager.class).toInstance(FileDocumentManager.getInstance());
         bind(VirtualFileManager.class).toInstance(VirtualFileManager.getInstance());
 
         bind(ShowSettingsUtil.class).toInstance(ShowSettingsUtil.getInstance());

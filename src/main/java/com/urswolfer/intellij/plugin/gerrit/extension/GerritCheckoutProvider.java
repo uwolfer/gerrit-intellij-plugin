@@ -32,6 +32,7 @@ import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
@@ -43,7 +44,6 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
-import git4idea.actions.BasicAction;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
@@ -89,7 +89,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         if (!gerritUtil.testGitExecutable(project)) {
             return;
         }
-        BasicAction.saveAll();
+        FileDocumentManager.getInstance().saveAllDocuments();
         List<ProjectInfo> availableProjects = null;
         try {
             availableProjects = gerritUtil.getAvailableProjects(project);

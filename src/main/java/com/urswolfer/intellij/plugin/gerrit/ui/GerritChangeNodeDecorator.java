@@ -32,12 +32,12 @@ import com.intellij.ui.SimpleColoredComponent;
  */
 public interface GerritChangeNodeDecorator {
     /**
-     * Decorate the {@code component} on the provided {@code change} in the provided {@code project}
+     * Decorate the {@code component} on the provided {@code change}
      */
-    void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange);
+    void decorate(Change change, SimpleColoredComponent component, ChangeInfo selectedChange);
 
     /**
      * This method is called, when a new change is selected in the changes list panel
      */
-    void onChangeSelected(Project project, ChangeInfo selectedChange);
+    void onChangeSelected(ChangeInfo selectedChange);
 }

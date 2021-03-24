@@ -34,7 +34,7 @@ import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
@@ -135,7 +135,7 @@ public class GerritToolWindow {
     }
 
     private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
-        String apiUrl = gerritSettings.getHost();
+        String apiUrl = gerritSettings.forProject(project).getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil, log);

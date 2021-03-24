@@ -21,7 +21,8 @@ import com.google.inject.Inject;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritProjectSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,20 +41,22 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
     @Nullable
     @Override
     public AuthData getAuthData(@NotNull String url) {
-        if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
+        GerritProjectSettings projectSettings = gerritSettings.forFocusedProject();
+        if (!projectSettings.getHost().equalsIgnoreCase(url)) {
             return null;
         }
-        String password = gerritSettings.getPassword();
-        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(password)) {
+        String password = projectSettings.getPassword();
+        if (StringUtil.isEmptyOrSpaces(projectSettings.getLogin()) || StringUtil.isEmptyOrSpaces(password)) {
             return null;
         }
-        return new AuthData(gerritSettings.getLogin(), password);
+        return new AuthData(projectSettings.getLogin(), password);
     }
 
     @Override
     public void forgetPassword(@NotNull String url) {
-        if (gerritSettings.getHost().equalsIgnoreCase(url)) {
-            gerritSettings.forgetPassword();
+        GerritProjectSettings projectSettings = gerritSettings.forFocusedProject();
+        if (projectSettings.getHost().equalsIgnoreCase(url)) {
+            projectSettings.forgetPassword();
         }
     }
 

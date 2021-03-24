@@ -125,7 +125,7 @@ public class BranchFilter extends AbstractChangesFilter {
     }
 
     private String getNameForRepository(GitRepository repository) {
-        return Iterables.getFirst(gerritUtil.getProjectNames(repository.getRemotes()), "");
+        return Iterables.getFirst(gerritUtil.getProjectNames(repository.getProject(), repository.getRemotes()), "");
     }
 
     private final class BranchDescriptor {

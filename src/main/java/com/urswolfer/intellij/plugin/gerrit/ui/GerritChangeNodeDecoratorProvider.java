@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2020 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.rest;
+package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.inject.AbstractModule;
-import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
+import com.intellij.openapi.project.Project;
 
 /**
- * @author Thomas Forrer
+ * @author Réda Housni Alaoui
  */
-public class GerritRestModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(CertificateManagerClientBuilderExtension.class);
-        bind(ProxyHttpClientBuilderExtension.class);
-        bind(UserAgentClientBuilderExtension.class);
-        bind(GerritRestApiFactory.class);
-        bind(GerritApiProvider.class);
-    }
+public interface GerritChangeNodeDecoratorProvider {
+    GerritChangeNodeDecorator get(Project project);
 }

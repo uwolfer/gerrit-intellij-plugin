@@ -24,13 +24,13 @@ import com.google.inject.Injector;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import com.intellij.openapi.components.ServiceManager;
-import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritRestModule;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUiModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.GerritActionsModule;
@@ -91,7 +91,6 @@ public class GerritModule extends AbstractModule {
             }
         };
         bind(GerritSettings.class).toProvider(settingsProvider).in(Singleton.class);
-        bind(GerritAuthData.class).toProvider(settingsProvider).in(Singleton.class);
     }
 
     protected void installOpenIdeDependenciesModule() {

@@ -20,7 +20,7 @@ import com.google.inject.Inject;
 import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import git4idea.push.GitPushOperation;
 import javassist.*;
 import org.jetbrains.annotations.NotNull;

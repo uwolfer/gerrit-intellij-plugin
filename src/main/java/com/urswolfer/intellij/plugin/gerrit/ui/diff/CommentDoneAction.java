@@ -28,7 +28,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -84,6 +84,6 @@ public class CommentDoneAction extends AnAction implements DumbAware {
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(gerritSettings.forProject(e.getProject()).isLoginAndPasswordAvailable());
     }
 }

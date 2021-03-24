@@ -6,7 +6,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;

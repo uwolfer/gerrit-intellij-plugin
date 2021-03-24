@@ -44,7 +44,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.settings.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import git4idea.GitUtil;
@@ -168,7 +168,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     }
 
     public void showSetupHintWhenRequired(final Project project) {
-        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+        if (!gerritSettings.forProject(project).isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
             emptyText.appendText("Open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {

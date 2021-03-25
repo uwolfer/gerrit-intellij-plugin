@@ -147,7 +147,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                     if (newText.isEmpty()) {
                         return;
                     }
-                    if (!Comparing.equal(newText, getFilterValueLabel().getText())) {
+                    if (!Comparing.equal(newText, getFilterValueLabel().getText(), true)) {
                         User user = new User(newText, newText);
                         change(user);
                     }

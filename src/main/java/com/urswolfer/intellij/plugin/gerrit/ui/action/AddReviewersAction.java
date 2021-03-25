@@ -35,7 +35,6 @@ import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.spellchecker.ui.SpellCheckingEditorCustomization;
 import com.intellij.ui.EditorCustomization;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;

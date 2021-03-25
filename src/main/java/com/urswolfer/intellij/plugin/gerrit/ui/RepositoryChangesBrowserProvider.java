@@ -23,8 +23,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DataKey;
-import com.intellij.openapi.actionSystem.DataSink;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;

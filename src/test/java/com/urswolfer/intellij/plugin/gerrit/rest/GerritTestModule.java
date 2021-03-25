@@ -23,7 +23,6 @@ import com.google.inject.Injector;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.diff.DiffManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -56,7 +55,6 @@ public class GerritTestModule extends GerritModule {
         bind(Logger.class).toInstance(OpenIdeDependenciesModule.LOG);
         bindMock(Application.class);
 
-        bindMock(DiffManager.class);
         bindMock(LocalFileSystem.class);
 
         bindMock(Git.class);

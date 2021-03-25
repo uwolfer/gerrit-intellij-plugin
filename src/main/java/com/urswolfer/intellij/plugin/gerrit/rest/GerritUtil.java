@@ -658,13 +658,13 @@ public class GerritUtil {
         try {
             version = GitVersion.identifyVersion(executable);
         } catch (Exception e) {
-            Messages.showErrorDialog(project, e.getMessage(), GitBundle.getString("find.git.error.title"));
+            Messages.showErrorDialog(project, e.getMessage(), GitBundle.message("find.git.error.title"));
             return false;
         }
 
         if (!version.isSupported()) {
             Messages.showWarningDialog(project, GitBundle.message("find.git.unsupported.message", version.toString(), GitVersion.MIN),
-                    GitBundle.getString("find.git.success.title"));
+                    GitBundle.message("find.git.success.title"));
             return false;
         }
         return true;

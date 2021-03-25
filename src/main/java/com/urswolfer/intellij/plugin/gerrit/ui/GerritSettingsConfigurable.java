@@ -66,9 +66,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     }
 
     public boolean isModified() {
-        return settingsPane != null && (!Comparing.equal(gerritSettings.getLogin(), settingsPane.getLogin()) ||
+        return settingsPane != null && (!Comparing.equal(gerritSettings.getLogin(), settingsPane.getLogin(), true) ||
                 isPasswordModified() ||
-                !Comparing.equal(gerritSettings.getHost(), settingsPane.getHost()) ||
+                !Comparing.equal(gerritSettings.getHost(), settingsPane.getHost(), true) ||
                 !Comparing.equal(gerritSettings.getAutomaticRefresh(), settingsPane.getAutomaticRefresh()) ||
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
@@ -78,7 +78,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
                 !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
                 !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()) ||
-                !Comparing.equal(gerritSettings.getCloneBaseUrl(), settingsPane.getCloneBaseUrl()));
+                !Comparing.equal(gerritSettings.getCloneBaseUrl(), settingsPane.getCloneBaseUrl(), true));
     }
 
     private boolean isPasswordModified() {

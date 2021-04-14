@@ -88,7 +88,12 @@ public class SettingsPanel {
                     return;
                 }
                 try {
-                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password);
+                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password) {
+                        @Override
+                        public boolean isLoginAndPasswordAvailable() {
+                            return !Strings.isNullOrEmpty(getLogin());
+                        }
+                    };
                     if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
                         Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {

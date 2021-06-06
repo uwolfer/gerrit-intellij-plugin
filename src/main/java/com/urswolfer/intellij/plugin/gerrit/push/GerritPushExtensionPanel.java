@@ -57,6 +57,7 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private JCheckBox pushToGerritCheckBox;
     private JCheckBox privateCheckBox;
+    private JCheckBox unmarkPrivateCheckBox;
     private JCheckBox publishDraftCommentsCheckBox;
     private JCheckBox wipCheckBox;
     private JCheckBox draftChangeCheckBox;
@@ -155,55 +156,59 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel(new GridLayoutManager(11, 2));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(12, 2));
 
         privateCheckBox = new JCheckBox("Private (Gerrit 2.15+)");
         privateCheckBox.setToolTipText("Push a private change or to turn a change private.");
         indentedSettingPanel.add(privateCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
+        unmarkPrivateCheckBox = new JCheckBox("Unmark Private (Gerrit 2.15+)");
+        unmarkPrivateCheckBox.setToolTipText("Unmark an existing change private.");
+        indentedSettingPanel.add(unmarkPrivateCheckBox, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+
         wipCheckBox = new JCheckBox("WIP (Work-In-Progress Changes) (Gerrit 2.15+)");
         wipCheckBox.setToolTipText("Push a wip change or to turn a change to wip.");
-        indentedSettingPanel.add(wipCheckBox, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(wipCheckBox, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         publishDraftCommentsCheckBox = new JCheckBox("Publish Draft Comments (Gerrit 2.15+)");
         publishDraftCommentsCheckBox.setToolTipText("If you have draft comments on the change(s) that are updated by the push, the publish-comments option will cause them to be published.");
-        indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         draftChangeCheckBox = new JCheckBox("Draft-Change (Gerrit older than 2.15)");
         draftChangeCheckBox.setToolTipText("Publish change as draft (reviewers cannot submit change).");
-        indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         submitChangeCheckBox = new JCheckBox("Submit Change");
         submitChangeCheckBox.setToolTipText("Changes can be directly submitted on push. This is primarily useful for " +
                 "teams that don't want to do code review but want to use Gerrit’s submit strategies to handle " +
                 "contention on busy branches. Using submit creates a change and submits it immediately, if the caller " +
                 "has submit permission.");
-        indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         branchTextField = addTextField(
                 "Branch:",
                 "The push destination branch.",
-                6);
+                7);
 
         topicTextField = addTextField(
                 "Topic:",
                 "A short topic associated with all of the changes in the same group, such as the local topic branch name.",
-                7);
+                8);
 
         hashTagTextField = addTextField(
                 "Hashtag (Gerrit 2.15+):",
                 "Include a hashtag associated with all of the changes in the same group.",
-                8);
+                9);
 
         reviewersTextField = addTextField(
                 "Reviewers (user names, comma separated):",
                 "Users which will be added as reviewers.",
-                9);
+                10);
 
         ccTextField = addTextField(
                 "CC (user names, comma separated):",
                 "Users which will receive carbon copies of the notification message.",
-                10);
+                11);
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -247,6 +252,7 @@ public class GerritPushExtensionPanel extends JPanel {
         ChangeActionListener gerritPushChangeListener = new ChangeActionListener();
         pushToGerritCheckBox.addActionListener(gerritPushChangeListener);
         privateCheckBox.addActionListener(gerritPushChangeListener);
+        unmarkPrivateCheckBox.addActionListener(gerritPushChangeListener);
         wipCheckBox.addActionListener(gerritPushChangeListener);
         publishDraftCommentsCheckBox.addActionListener(gerritPushChangeListener);
         draftChangeCheckBox.addActionListener(gerritPushChangeListener);
@@ -276,6 +282,8 @@ public class GerritPushExtensionPanel extends JPanel {
             List<String> gerritSpecs = Lists.newArrayList();
             if (privateCheckBox.isSelected()) {
                 gerritSpecs.add("private");
+            } else if (unmarkPrivateCheckBox.isSelected()) {
+                gerritSpecs.add("remove-private");
             }
             if (wipCheckBox.isSelected()) {
                 gerritSpecs.add("wip");
@@ -302,6 +310,11 @@ public class GerritPushExtensionPanel extends JPanel {
         return ref;
     }
 
+    private void handlePrivateCheckBoxExclusive() {
+        privateCheckBox.setEnabled(!unmarkPrivateCheckBox.isSelected());
+        unmarkPrivateCheckBox.setEnabled(!privateCheckBox.isSelected());
+    }
+
     private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
         Iterable<String> items = COMMA_SPLITTER.split(textField.getText());
         for (String item : items) {
@@ -323,6 +336,9 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private void setSettingsEnabled(boolean enabled) {
         UIUtil.setEnabled(indentedSettingPanel, enabled, true);
+        if (enabled) {
+            handlePrivateCheckBoxExclusive();
+        }
     }
 
     /**
@@ -332,6 +348,7 @@ public class GerritPushExtensionPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             updateDestinationBranch();
+            handlePrivateCheckBoxExclusive();
         }
     }
 

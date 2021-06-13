@@ -89,6 +89,13 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.2.5</li>
+          <ul>
+            <li>add "Unmark Private" to push dialog</li>
+            <li>add "Attention" filter</li>
+            <li>add support for recent IntelliJ 2021.2 builds</li>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.2.4</li>
           <ul>
             <li>fix assertion error in logs when running some Git operations</li>

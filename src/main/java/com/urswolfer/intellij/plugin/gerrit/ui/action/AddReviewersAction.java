@@ -95,7 +95,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             setTitle("Add Reviewers to Change");
             setOKButtonText("Add Reviewers");
 
-            EditorTextFieldProvider service = ServiceManager.getService(project, EditorTextFieldProvider.class);
+            EditorTextFieldProvider service = ServiceManager.getService(EditorTextFieldProvider.class);
             Set<EditorCustomization> editorFeatures = new HashSet<EditorCustomization>();
             editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
             editorFeatures.add(SpellCheckingEditorCustomizationProvider.getInstance().getDisabledCustomization());

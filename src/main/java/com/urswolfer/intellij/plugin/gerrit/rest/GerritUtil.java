@@ -65,6 +65,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
+import git4idea.config.GitExecutableManager;
 import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
@@ -653,11 +654,9 @@ public class GerritUtil {
 
     @SuppressWarnings("UnresolvedPropertyKey")
     public boolean testGitExecutable(final Project project) {
-        final GitVcsApplicationSettings settings = GitVcsApplicationSettings.getInstance();
-        final String executable = settings.getPathToGit();
         final GitVersion version;
         try {
-            version = GitVersion.identifyVersion(executable);
+            version = GitExecutableManager.getInstance().getVersion(project);
         } catch (Exception e) {
             Messages.showErrorDialog(project, e.getMessage(), GitBundle.message("find.git.error.title"));
             return false;

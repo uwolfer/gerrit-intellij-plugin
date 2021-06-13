@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.intellij.ide.plugins.PluginManager;
+import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.extensions.PluginId;
 
 /**
@@ -24,7 +24,7 @@ import com.intellij.openapi.extensions.PluginId;
  */
 public final class Version {
 
-    private static final String PLUGIN_VERSION = PluginManager.getPlugin(PluginId.getId("com.urswolfer.intellij.plugin.gerrit")).getVersion();
+    private static final String PLUGIN_VERSION = PluginManagerCore.getPlugin(PluginId.getId("com.urswolfer.intellij.plugin.gerrit")).getVersion();
 
     private Version() {}
     public static String get() {

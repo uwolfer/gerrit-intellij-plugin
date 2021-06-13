@@ -31,6 +31,7 @@ public class GerritFilterModule extends AbstractModule {
         filters.addBinding().to(BranchFilter.class);
         filters.addBinding().to(AssigneeFilter.class);
         filters.addBinding().to(ReviewerFilter.class);
+        filters.addBinding().to(AttentionFilter.class);
         filters.addBinding().to(OwnerFilter.class);
         filters.addBinding().to(IsStarredFilter.class);
 

@@ -30,6 +30,7 @@ import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -49,7 +50,6 @@ import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepositoryManager;
-import icons.Git4ideaIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -613,7 +613,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                     JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     if (changeInfo.starred != null && changeInfo.starred) {
-                        label.setIcon(Git4ideaIcons.Star);
+                        label.setIcon(AllIcons.Nodes.Favorite);
                     }
                     label.setHorizontalAlignment(CENTER);
                     label.setVerticalAlignment(CENTER);
@@ -624,7 +624,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
 
         @Override
         public int getWidth(JTable table) {
-            return Git4ideaIcons.Star.getIconWidth();
+            return AllIcons.Nodes.Favorite.getIconWidth();
         }
     }
 }

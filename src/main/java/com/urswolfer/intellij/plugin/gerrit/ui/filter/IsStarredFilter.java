@@ -16,12 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import icons.Git4ideaIcons;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -49,7 +49,7 @@ public class IsStarredFilter extends AbstractChangesFilter {
 
     public final class IsStarredAction extends ToggleAction implements DumbAware {
         public IsStarredAction() {
-            super("Starred changes", "Show only starred changes", Git4ideaIcons.Star);
+            super("Starred changes", "Show only starred changes", AllIcons.Nodes.Favorite);
         }
 
         @Override

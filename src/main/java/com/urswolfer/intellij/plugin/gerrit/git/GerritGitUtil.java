@@ -24,8 +24,8 @@ import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
+import com.intellij.dvcs.util.CommitCompareInfo;
 import com.intellij.openapi.application.Application;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -60,14 +60,13 @@ import git4idea.commands.GitLineHandler;
 import git4idea.commands.GitLineHandlerListener;
 import git4idea.commands.GitSimpleEventDetector;
 import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
+import git4idea.fetch.GitFetchResult;
+import git4idea.fetch.GitFetchSupport;
 import git4idea.history.GitHistoryUtils;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
-import git4idea.update.GitFetchResult;
-import git4idea.update.GitFetcher;
-import git4idea.util.GitCommitCompareInfo;
 import git4idea.util.GitUntrackedFilesHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -159,10 +158,8 @@ public class GerritGitUtil {
                     }
                     fetch = fetchInfo.ref;
                 }
-                GitFetchResult result = fetchNatively(gitRepository, remote, fetch);
-                if (!result.isSuccess()) {
-                    GitFetcher.displayFetchResult(project, result, null, result.getErrors());
-                }
+                GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote, fetch);
+                result.showNotificationIfFailed();
 
                 try {
                     if (fetchCallback != null) {
@@ -220,12 +217,12 @@ public class GerritGitUtil {
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = git.cherryPick(repository, commit.getId().asString(), false,
+        GitCommandResult result = git.cherryPick(repository, commit.getId().asString(), false, true,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
-            return new CherryPickConflictResolver(project, git, repository.getRoot(),
+            return new CherryPickConflictResolver(project, repository.getRoot(),
                     commit.getId().toShortString(), commit.getAuthor().getName(),
                     commit.getSubject()).merge();
         } else if (untrackedFilesDetector.wasMessageDetected()) {
@@ -253,9 +250,9 @@ public class GerritGitUtil {
      */
     private static class CherryPickConflictResolver extends GitConflictResolver {
 
-        public CherryPickConflictResolver(@NotNull Project project, @NotNull Git git, @NotNull VirtualFile root,
+        public CherryPickConflictResolver(@NotNull Project project, @NotNull VirtualFile root,
                                           @NotNull String commitHash, @NotNull String commitAuthor, @NotNull String commitMessage) {
-            super(project, git, Collections.singleton(root), makeParams(commitHash, commitAuthor, commitMessage));
+            super(project, Collections.singleton(root), makeParams(commitHash, commitAuthor, commitMessage));
         }
 
         private static Params makeParams(String commitHash, String commitAuthor, String commitMessage) {
@@ -304,29 +301,6 @@ public class GerritGitUtil {
         }
     }
 
-    /**
-     * Almost a copy of git4idea.update.GitFetcher#fetchNatively().
-     * Modifications:
-     * * removal of GitFetchPruneDetector
-     * * do not prepend "refs/heads/..." (with getFetchSpecForBranch).
-     */
-    @NotNull
-    private static GitFetchResult fetchNatively(@NotNull GitRepository repository, @NotNull GitRemote remote, @Nullable String branch) {
-        Git git = ServiceManager.getService(Git.class);
-        GitCommandResult result = git.fetch(repository, remote,
-            Collections.<GitLineHandlerListener>emptyList(), new String[]{branch});
-
-        GitFetchResult fetchResult;
-        if (result.success()) {
-            fetchResult = GitFetchResult.success();
-        } else if (result.cancelled()) {
-            fetchResult = GitFetchResult.cancel();
-        } else {
-            fetchResult = GitFetchResult.error(result.getErrorOutputAsJoinedString());
-        }
-        return fetchResult;
-    }
-
     public boolean checkIfCommitIsFetched(GitRepository repository, String commitHash) {
         FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
         final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.SHOW);
@@ -349,7 +323,7 @@ public class GerritGitUtil {
     }
 
     @NotNull
-    public Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {
+    private Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {
         final List<GitCommit> headToBranch;
         final List<GitCommit> branchToHead;
         try {
@@ -363,11 +337,11 @@ public class GerritGitUtil {
     }
 
     @NotNull
-    public GitCommitCompareInfo loadCommitsToCompare(Collection<GitRepository> repositories, String branchName, @NotNull final Project project) {
-        GitCommitCompareInfo compareInfo = new GitCommitCompareInfo();
+    public CommitCompareInfo loadCommitsToCompare(Collection<GitRepository> repositories, String branchName, @NotNull final Project project) {
+        CommitCompareInfo compareInfo = new CommitCompareInfo();
         for (GitRepository repository : repositories) {
-            compareInfo.put(repository, loadCommitsToCompare(repository, branchName, project));
-//            compareInfo.put(repository, loadTotalDiff(repository, branchName));
+            Pair<List<GitCommit>, List<GitCommit>> listListPair = loadCommitsToCompare(repository, branchName, project);
+            compareInfo.put(repository, listListPair.first, listListPair.second);
         }
         return compareInfo;
     }

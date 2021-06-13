@@ -31,6 +31,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
     }
 
     @Override
-    public boolean submit(IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<SubmittedReportInfo> consumer) {
+    public boolean submit(@NotNull IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<? super SubmittedReportInfo> consumer) {
         if (Strings.isNullOrEmpty(additionalInfo) || !additionalInfo.contains("@")) {
             String emailAddress = Messages.showInputDialog(
                 "It seems you have not included your email address.\n" +

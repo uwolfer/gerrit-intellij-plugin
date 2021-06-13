@@ -27,14 +27,11 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.ui.Messages;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubSettings
@@ -80,7 +77,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private String cloneBaseUrl = "";
 
     private Optional<String> preloadedPassword;
-    private AtomicInteger passwordDialogShowLimit = new AtomicInteger(3);
 
     private Logger log;
 
@@ -163,33 +159,19 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
                 throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
             }
         } else {
-            if (!preloadPassword()) {
-                return "";
-            }
+            preloadPassword();
         }
         return preloadedPassword.or("");
     }
 
-    public boolean preloadPassword() {
+    public void preloadPassword() {
         String password = null;
         try {
             password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
         } catch (PasswordSafeException e) {
             log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
         }
-        if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
-            if (passwordDialogShowLimit.decrementAndGet() <= 0) {
-                return false;
-            }
-            password = Messages.showPasswordDialog(
-                String.format("Password for accessing Gerrit required (Login: %s, URL: %s).", getLogin(), getHost()),
-                "Gerrit Password");
-            if (password == null) {
-                return false;
-            }
-        }
         preloadedPassword = Optional.fromNullable(password);
-        return true;
     }
 
     @Override

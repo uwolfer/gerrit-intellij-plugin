@@ -432,7 +432,7 @@
   </change-notes>
 
   <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
-  <idea-version since-build="146.939" until-build="203.4818.26"/>
+  <idea-version since-build="203.4818.26"/>
   <!--
     IntelliJ IDEA 2020.3
     ================

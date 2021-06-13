@@ -32,7 +32,7 @@ import com.google.gerrit.extensions.common.LabelInfo;
 import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;

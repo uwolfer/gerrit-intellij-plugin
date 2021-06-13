@@ -66,7 +66,6 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
 import git4idea.config.GitExecutableManager;
-import git4idea.config.GitVcsApplicationSettings;
 import git4idea.config.GitVersion;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;

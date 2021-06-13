@@ -31,7 +31,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
-import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;

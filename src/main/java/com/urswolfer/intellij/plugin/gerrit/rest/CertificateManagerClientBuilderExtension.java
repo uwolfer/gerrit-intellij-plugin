@@ -29,7 +29,7 @@ public class CertificateManagerClientBuilderExtension extends HttpClientBuilderE
     @Override
     public HttpClientBuilder extend(HttpClientBuilder httpClientBuilder, GerritAuthData authData) {
         HttpClientBuilder builder = super.extend(httpClientBuilder, authData);
-        builder.setSslcontext(CertificateManager.getInstance().getSslContext());
+        builder.setSSLContext(CertificateManager.getInstance().getSslContext());
         return builder;
     }
 }

@@ -19,8 +19,9 @@ package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.ide.passwordSafe.PasswordSafeException;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -58,6 +59,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String CLONE_BASE_URL = "CloneBaseUrl";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
+    private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(GerritSettings.class.getName(), GERRIT_SETTINGS_PASSWORD_KEY);
 
     private String login = "";
     private String host = "";
@@ -164,12 +166,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean preloadPassword() {
-        String password = null;
-        try {
-            password = PasswordSafe.getInstance().getPassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
-        } catch (PasswordSafeException e) {
-            log.info("Couldn't get password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-        }
+        Credentials credentials = PasswordSafe.getInstance().get(CREDENTIAL_ATTRIBUTES);
+        String password = credentials != null ? credentials.getPasswordAsString() : null;
         if (Strings.isNullOrEmpty(password) && !Strings.isNullOrEmpty(getLogin())) {
             if (passwordDialogShowLimit.decrementAndGet() <= 0) {
                 return false;
@@ -225,19 +223,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void setPassword(final String password) {
-        try {
-            PasswordSafe.getInstance().storePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY, password != null ? password : "");
-        } catch (PasswordSafeException e) {
-            log.info("Couldn't set password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-        }
+        PasswordSafe.getInstance().set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
     }
 
     public void forgetPassword() {
-        try {
-            PasswordSafe.getInstance().removePassword(null, GerritSettings.class, GERRIT_SETTINGS_PASSWORD_KEY);
-        } catch (PasswordSafeException e) {
-            log.info("Couldn't forget password for key [" + GERRIT_SETTINGS_PASSWORD_KEY + "]", e);
-        }
+        PasswordSafe.getInstance().set(CREDENTIAL_ATTRIBUTES, null);
     }
 
     public void setHost(final String host) {

@@ -30,6 +30,7 @@ import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
+import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
 import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
@@ -76,7 +77,7 @@ public class GerritToolWindow {
         toolbar.setTargetComponent(changeListPanel);
         panel.setToolbar(toolbar.getComponent());
 
-        RepositoryChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel);
+        CommittedChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel);
 
         JBSplitter detailsSplitter = new OnePixelSplitter(true, 0.6f);
         detailsSplitter.setSplitterProportionKey("Gerrit.ListDetailSplitter.Proportion");

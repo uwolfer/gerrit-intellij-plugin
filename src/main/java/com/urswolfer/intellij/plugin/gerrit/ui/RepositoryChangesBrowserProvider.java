@@ -22,8 +22,9 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
+import com.intellij.diff.chains.DiffRequestChain;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
-import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -31,17 +32,16 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
-import com.intellij.openapi.vcs.changes.actions.diff.ShowDiffContext;
-import com.intellij.openapi.vcs.changes.committed.RepositoryChangesBrowser;
+import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
 import com.intellij.openapi.vcs.changes.ui.ChangeNodeDecorator;
 import com.intellij.openapi.vcs.changes.ui.ChangesBrowserNodeRenderer;
-import com.intellij.openapi.vcs.versionBrowser.CommittedChangeList;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.SideBorder;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
+import com.intellij.util.containers.ContainerUtil;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
@@ -56,7 +56,6 @@ import git4idea.GitCommit;
 import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -86,7 +85,7 @@ public class RepositoryChangesBrowserProvider {
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
-    public RepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
+    public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
         selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();
@@ -94,7 +93,7 @@ public class RepositoryChangesBrowserProvider {
         final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project);
         changesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
         changesBrowser.getViewerScrollPane().setBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
-        changesBrowser.getViewer().setChangeDecorator(changesBrowser.getChangeNodeDecorator());
+        changesBrowser.setChangeNodeDecorator(changesBrowser.getChangeNodeDecorator());
 
         changeListPanel.addListSelectionListener(new Consumer<ChangeInfo>() {
             @Override
@@ -105,13 +104,13 @@ public class RepositoryChangesBrowserProvider {
         return changesBrowser;
     }
 
-    private final class GerritRepositoryChangesBrowser extends RepositoryChangesBrowser {
+    private final class GerritRepositoryChangesBrowser extends CommittedChangesBrowser {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.absent();
         private Project project;
 
         public GerritRepositoryChangesBrowser(Project project) {
-            super(project, Collections.<CommittedChangeList>emptyList(), Collections.<Change>emptyList(), null);
+            super(project);
             this.project = project;
             selectBaseRevisionAction.addRevisionSelectedListener(new SelectBaseRevisionAction.Listener() {
                 @Override
@@ -131,16 +130,15 @@ public class RepositoryChangesBrowserProvider {
         }
 
         @Override
-        protected void updateDiffContext(@NotNull ShowDiffContext context) {
-            context.putChainContext(GerritUserDataKeys.CHANGE, selectedChange);
-            context.putChainContext(GerritUserDataKeys.BASE_REVISION, baseRevision);
+        protected void updateDiffContext(@NotNull DiffRequestChain chain) {
+            super.updateDiffContext(chain);
+            chain.putUserData(GerritUserDataKeys.CHANGE, selectedChange);
+            chain.putUserData(GerritUserDataKeys.BASE_REVISION, baseRevision);
         }
 
         @Override
-        protected void buildToolBar(DefaultActionGroup toolBarGroup) {
-            toolBarGroup.add(selectBaseRevisionAction);
-            toolBarGroup.add(new Separator());
-            super.buildToolBar(toolBarGroup);
+        protected @NotNull List<AnAction> createToolbarActions() {
+            return ContainerUtil.prepend(super.createToolbarActions(), selectBaseRevisionAction, new Separator());
         }
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
@@ -231,12 +229,6 @@ public class RepositoryChangesBrowserProvider {
                     for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
                         decorator.decorate(project, change, component, selectedChange);
                     }
-                }
-
-                @Nullable
-                @Override
-                public List<Pair<String, Stress>> stressPartsOfFileName(Change change, String parentPath) {
-                    return null;
                 }
 
                 @Override

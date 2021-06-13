@@ -18,37 +18,37 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.intellij.dvcs.push.VcsPushOptionValue;
 import com.intellij.dvcs.push.VcsPushOptionsPanel;
+import git4idea.push.GitPushOptionsPanel;
 import git4idea.push.GitPushTagMode;
-import git4idea.push.GitPushTagPanel;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 
 /**
- * Wraps IntelliJ's GitPushTagPanel and Gerrit plugin push extension into one VcsPushOptionsPanel.
+ * Wraps IntelliJ's GitPushOptionsPanel and Gerrit plugin push extension into one VcsPushOptionsPanel.
  *
  * @author Urs Wolfer
  */
 public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
     private final GerritPushExtensionPanel gerritPushExtensionPanel;
-    private GitPushTagPanel gitPushTagPanel;
+    private GitPushOptionsPanel gitPushOptionsPanel;
 
     public GerritPushOptionsPanel(boolean pushToGerrit) {
         gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit);
     }
 
     @SuppressWarnings("UnusedDeclaration") // javassist call
-    public void initPanel(@Nullable GitPushTagMode defaultMode, boolean followTagsSupported) {
+    public void initPanel(@Nullable GitPushTagMode defaultMode, boolean followTagsSupported, boolean showSkipHookOption) {
         removeAll();
-        gitPushTagPanel = new GitPushTagPanel(defaultMode, followTagsSupported);
+        gitPushOptionsPanel = new GitPushOptionsPanel(defaultMode, followTagsSupported, showSkipHookOption);
 
         JPanel mainContainer = new JPanel();
         mainContainer.setLayout(new BoxLayout(mainContainer, BoxLayout.PAGE_AXIS));
 
         mainContainer.add(gerritPushExtensionPanel);
         mainContainer.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainContainer.add(gitPushTagPanel);
+        mainContainer.add(gitPushOptionsPanel);
 
         add(mainContainer, BorderLayout.CENTER);
 
@@ -56,7 +56,7 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
     }
 
     public VcsPushOptionValue getValue() {
-        return gitPushTagPanel.getValue();
+        return gitPushOptionsPanel.getValue();
     }
 
     public GerritPushExtensionPanel getGerritPushExtensionPanel() {

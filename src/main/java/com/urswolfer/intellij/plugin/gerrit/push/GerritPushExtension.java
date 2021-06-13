@@ -128,8 +128,6 @@ public class GerritPushExtension implements ApplicationComponent {
         }
     }
 
-    public void disposeComponent() {}
-
     @NotNull
     public String getComponentName() {
         return "GerritPushExtension";
@@ -146,11 +144,6 @@ public class GerritPushExtension implements ApplicationComponent {
         @Override
         public void initComponent() {
             delegate.initComponent();
-        }
-
-        @Override
-        public void disposeComponent() {
-            delegate.disposeComponent();
         }
 
         @NotNull

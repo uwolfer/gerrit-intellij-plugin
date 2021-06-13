@@ -63,14 +63,6 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
         notifiedChanges.clear();
     }
 
-    @Override
-    public void initComponent() {
-    }
-
-    @Override
-    public void disposeComponent() {
-    }
-
     @NotNull
     @Override
     public String getComponentName() {
@@ -180,16 +172,6 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
         @Override
         public void projectClosed() {
             delegate.projectClosed();
-        }
-
-        @Override
-        public void initComponent() {
-            delegate.initComponent();
-        }
-
-        @Override
-        public void disposeComponent() {
-            delegate.disposeComponent();
         }
 
         @NotNull

@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
 import com.google.inject.Inject;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
@@ -37,9 +38,8 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
     @Inject
     private GerritSettings gerritSettings;
 
-    @Nullable
     @Override
-    public AuthData getAuthData(@NotNull String url) {
+    public @Nullable AuthData getAuthData(@NotNull Project project, @NotNull String url) {
         if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
             return null;
         }
@@ -51,7 +51,7 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
     }
 
     @Override
-    public void forgetPassword(@NotNull String url) {
+    public void forgetPassword(@NotNull Project project, @NotNull String url, @NotNull AuthData authData) {
         if (gerritSettings.getHost().equalsIgnoreCase(url)) {
             gerritSettings.forgetPassword();
         }
@@ -66,13 +66,18 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
         @Nullable
         @Override
-        public AuthData getAuthData(@NotNull String url) {
-            return delegate.getAuthData(url);
+        public AuthData getAuthData(@NotNull Project project, @NotNull String url) {
+            return delegate.getAuthData(project, url);
         }
 
         @Override
-        public void forgetPassword(@NotNull String url) {
-            delegate.forgetPassword(url);
+        public @Nullable AuthData getAuthData(@NotNull Project project, @NotNull String url, @NotNull String login) {
+            return delegate.getAuthData(project, url, login);
+        }
+
+        @Override
+        public void forgetPassword(@NotNull Project project, @NotNull String url, @NotNull AuthData authData) {
+            delegate.forgetPassword(project, url, authData);
         }
     }
 }

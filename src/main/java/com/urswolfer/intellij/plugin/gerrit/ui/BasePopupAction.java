@@ -90,7 +90,7 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
     }
 
     @Override
-    public JComponent createCustomComponent(Presentation presentation) {
+    public @NotNull JComponent createCustomComponent(@NotNull Presentation presentation, @NotNull String place) {
         return myPanel;
     }
 

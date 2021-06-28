@@ -110,6 +110,11 @@ public class GerritGitUtil {
     public Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
         final Iterable<GitRepository> repositoriesFromRoots = getRepositories(project);
         for (GitRepository repository : repositoriesFromRoots) {
+            if (repository.getRoot().equals(project.getBaseDir())) {
+                return Optional.of(repository);
+            }
+        }
+        for (GitRepository repository : repositoriesFromRoots) {
             for (GitRemote remote : repository.getRemotes()) {
                 if (remote.getName().equals(gerritProjectName)) {
                     return Optional.of(repository);

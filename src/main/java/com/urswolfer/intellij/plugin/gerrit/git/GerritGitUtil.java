@@ -41,6 +41,7 @@ import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.Hash;
+import com.intellij.vcs.log.VcsFullCommitDetails;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcs.log.VcsUser;
 import com.intellij.vcs.log.impl.HashImpl;
@@ -424,6 +425,15 @@ public class GerritGitUtil {
         if (!gitCommandResult.success()) {
             throw new VcsException(listener.getHtmlMessage());
         }
+    }
+
+    public Optional<VcsFullCommitDetails> loadGitCommitInfo(Project project, GitRepository gitRepository, ChangeInfo changeInfo) throws VcsException {
+        List<GitCommit> history = GitHistoryUtils.history(project, gitRepository.getRoot(), changeInfo.id);
+        if(history.isEmpty()){
+            return Optional.absent();
+        }
+        // I expect there to be only 1 commit, since that's all we requested from the git history
+        return Optional.of((VcsFullCommitDetails) history.get(0));
     }
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {

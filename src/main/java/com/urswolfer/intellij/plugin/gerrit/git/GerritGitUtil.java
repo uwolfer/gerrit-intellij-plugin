@@ -429,10 +429,13 @@ public class GerritGitUtil {
 
     public Optional<VcsFullCommitDetails> loadGitCommitInfo(Project project, GitRepository gitRepository, ChangeInfo changeInfo) throws VcsException {
         List<GitCommit> history = GitHistoryUtils.history(project, gitRepository.getRoot(), changeInfo.id);
-        if(history.isEmpty()){
+        if (history.isEmpty()){
             return Optional.absent();
         }
         // I expect there to be only 1 commit, since that's all we requested from the git history
+        if (history.size() > 1){
+            throw new IllegalStateException("Unexpectedly found "+history.size()+" commits matching "+changeInfo.id+", but required exactly 1");
+        }
         return Optional.of((VcsFullCommitDetails) history.get(0));
     }
 

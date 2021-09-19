@@ -506,7 +506,7 @@
     </action>
     <action id="Gerrit.Reset" text="Reset Current Branch to Here..."
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ResetAction$Proxy">
-        <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPick"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPick"/>
     </action>
     <action id="Gerrit.Star" text="Star"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.StarAction$Proxy">

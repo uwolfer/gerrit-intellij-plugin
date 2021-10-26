@@ -64,6 +64,8 @@ public class FulltextFilter extends AbstractChangesFilter {
      */
     public static String specialEncodeFulltextQuery(String query) {
         return query
+                .replace("{", "%7B")
+                .replace("}", "%7D")
                 .replace("+", "%2B")
                 .replace(' ', '+')
                 .replace("\"", "%22")

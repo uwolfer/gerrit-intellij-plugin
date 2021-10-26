@@ -91,7 +91,7 @@ public class CommentForm extends JPanel {
 
         if (commentToEdit != null) {
             reviewTextField.setText(commentToEdit.message);
-            resolvedCheckBox.setSelected(!commentToEdit.unresolved == TRUE);
+            resolvedCheckBox.setSelected(!TRUE.equals(commentToEdit.unresolved));
         }
     }
 

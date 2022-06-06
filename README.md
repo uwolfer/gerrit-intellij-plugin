@@ -1,7 +1,7 @@
 gerrit-intellij-plugin
 ======================
 
-[![Build Status](https://travis-ci.org/uwolfer/gerrit-intellij-plugin.svg)](https://travis-ci.org/uwolfer/gerrit-intellij-plugin)
+[![Build Status](https://app.travis-ci.com/uwolfer/gerrit-intellij-plugin.svg?branch=intellij2016.2)](https://app.travis-ci.com/github/uwolfer/gerrit-intellij-plugin)
 [![Version](http://phpstorm.espend.de/badge/7272/version)](https://plugins.jetbrains.com/plugin/7272)
 [![Downloads](http://phpstorm.espend.de/badge/7272/downloads)](https://plugins.jetbrains.com/plugin/7272)
 

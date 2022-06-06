@@ -55,7 +55,7 @@ dependencies {
     }
     implementation 'org.javassist:javassist:3.29.0-GA'
 
-    testImplementation 'org.testng:testng:7.3.0'
+    testImplementation 'org.testng:testng:7.5'
     testImplementation 'org.easymock:easymock:4.3'
 }
 

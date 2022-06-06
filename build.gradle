@@ -53,7 +53,7 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    implementation 'org.javassist:javassist:3.27.0-GA'
+    implementation 'org.javassist:javassist:3.29.0-GA'
 
     testImplementation 'org.testng:testng:7.3.0'
     testImplementation 'org.easymock:easymock:4.3'

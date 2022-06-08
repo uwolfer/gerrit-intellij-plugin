@@ -89,6 +89,10 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.2.6</li>
+          <ul>
+            <li>minor fixes and improvements</li>
+          </ul>
           <li>1.2.5</li>
           <ul>
             <li>add "Unmark Private" to push dialog</li>

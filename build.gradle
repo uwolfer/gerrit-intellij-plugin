@@ -15,7 +15,7 @@
  */
 
 plugins {
-    id 'org.jetbrains.intellij' version '0.7.2'
+    id 'org.jetbrains.intellij' version '1.1.2'
 }
 
 apply plugin: 'java'
@@ -28,7 +28,6 @@ tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
 sourceSets {
     main {
         java.srcDir 'src/main/java'
-        resources.srcDir 'src/main/resources'
     }
     test {
         java.srcDir 'src/test/java'
@@ -53,22 +52,24 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    implementation 'org.javassist:javassist:3.27.0-GA'
+    implementation 'org.javassist:javassist:3.29.0-GA'
 
-    testImplementation 'org.testng:testng:7.3.0'
-    testImplementation 'org.easymock:easymock:4.2'
+    testImplementation 'org.testng:testng:7.5'
+    testImplementation 'org.easymock:easymock:4.3'
 }
 
 intellij {
-    version ideaVersion
-    pluginName 'gerrit-intellij-plugin'
-    updateSinceUntilBuild false
-    downloadSources Boolean.valueOf(downloadIdeaSources)
-    plugins 'git4idea'
+    version = ideaVersion
+    pluginName = 'gerrit-intellij-plugin'
+    updateSinceUntilBuild = false
+    downloadSources = Boolean.valueOf(downloadIdeaSources)
+    plugins = ['git4idea']
 
     publishPlugin {
-        channels ijPluginRepoChannel
-        token System.getenv('IJ_REPO_TOKEN')
+        channels = [ijPluginRepoChannel]
+        token = provider {
+            System.getenv('IJ_REPO_TOKEN')
+        }
     }
 }
 

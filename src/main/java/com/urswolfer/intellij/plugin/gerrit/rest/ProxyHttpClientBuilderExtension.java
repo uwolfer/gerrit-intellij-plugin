@@ -58,7 +58,7 @@ public class ProxyHttpClientBuilderExtension extends HttpClientBuilderExtension 
 
                 // Here we use the single username/password that we got from IDEA's settings. It feels kinda strange
                 // to use these credential but it's probably what the user expects.
-                if (proxySettings.PROXY_AUTHENTICATION) {
+                if (proxySettings.PROXY_AUTHENTICATION && proxySettings.getProxyLogin() != null) {
                     AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
                     UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.getProxyLogin(), proxySettings.getPlainProxyPassword());
                     credentialsProvider.setCredentials(authScope, credentials);

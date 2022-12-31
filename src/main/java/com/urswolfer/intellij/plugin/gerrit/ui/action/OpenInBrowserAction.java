@@ -21,9 +21,9 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.util.IconLoader;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import icons.MyIcons;
 
 /**
  * @author Urs Wolfer
@@ -34,7 +34,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
     private GerritSettings gerritSettings;
 
     public OpenInBrowserAction() {
-        super("Open in Gerrit", "Open corresponding link in browser", IconLoader.getIcon("/icons/gerrit.png", OpenInBrowserAction.class));
+        super("Open in Gerrit", "Open corresponding link in browser", MyIcons.Gerrit);
     }
 
     @Override

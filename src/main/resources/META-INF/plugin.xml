@@ -502,7 +502,7 @@
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable$Proxy"/>
 
-    <toolWindow id="Gerrit" icon="/icons/gerrit_13x13.png" anchor="bottom"
+    <toolWindow id="Gerrit" icon="MyIcons.Gerrit" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
     <projectService serviceInterface="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService"
                     serviceImplementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService" />

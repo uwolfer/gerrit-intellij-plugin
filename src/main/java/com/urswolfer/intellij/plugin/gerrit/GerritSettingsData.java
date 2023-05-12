@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class GerritSettingsData {
+    private static final String NAME = "name";
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
     private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
@@ -190,8 +191,8 @@ public class GerritSettingsData {
         this.logger = log;
     }
 
-    public Element getAsElement(String elementName){
-        final Element element = new Element(elementName);
+    public Element fillElement(Element element, String elementName){
+        element.setAttribute(NAME, elementName);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
         element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
         element.setAttribute(LIST_ALL_CHANGES, Boolean.toString(getListAllChanges()));

@@ -69,7 +69,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     public Element getState() {
         // Handle global settings separately for backwards compatibility
         GerritSettingsData globalSettings = projectSettings.get(GERRIT_SETTINGS_TAG);
-        final Element element = globalSettings.getAsElement(GERRIT_SETTINGS_TAG);
+        final Element mainElement = new Element(GERRIT_SETTINGS_TAG);
+        globalSettings.fillElement(mainElement,GERRIT_SETTINGS_TAG);
 
         // If we don't have project settings yet, default to global settings.
         String currentProjectName = getCurrentProjectName();
@@ -82,13 +83,13 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         Element projects = new Element("Projects");
         projectSettings.forEach((projectName, settings) -> {
             if(projectName!=null && !projectName.equals(GERRIT_SETTINGS_TAG)) {
-                final Element projectElement = settings.getAsElement(projectName);
-                projects.addContent(projectElement);
+                Element project = new Element("project");
+                projects.addContent(settings.fillElement(project,projectName));
             }
         });
-        element.addContent(projects);
+        mainElement.addContent(projects);
 
-        return element;
+        return mainElement;
     }
 
     public void loadState(@NotNull final Element element) {
@@ -101,8 +102,8 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             if(projectDom != null) {
                 List<Element> projectSettingsElements = projectDom.getChildren();
                 for (Element projectSettingsElement : projectSettingsElements) {
-                    String projectName = projectSettingsElement.getName();
-                    if (!projectName.isEmpty()) {
+                    String projectName = projectSettingsElement.getAttributeValue("name");
+                    if (!Strings.isNullOrEmpty(projectName)) {
                         projectSettings.put(projectName, new GerritSettingsData(projectSettingsElement, log));
                     }
                 }
@@ -136,7 +137,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private void addProjectSettingsFromDefault(String projectName){
         // Default to global settings
-        Element globalSettings = getDefaultSettings().getAsElement(GERRIT_SETTINGS_TAG);
+        Element globalSettings = getDefaultSettings().fillElement(new Element(GERRIT_SETTINGS_TAG),GERRIT_SETTINGS_TAG);
         projectSettings.put(projectName, new GerritSettingsData(globalSettings, log));
         setPassword(getDefaultPassword());
     }
@@ -148,6 +149,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     public <T> T getForCurrentProject(Function<GerritSettingsData, T> method) {
         String projectName = getCurrentProjectName();
         if(!projectName.isEmpty()) {
+            if(!projectSettings.containsKey(projectName)) {
+                addProjectSettingsFromDefault(projectName);
+            }
             GerritSettingsData settings = projectSettings.get(projectName);
             if(settings != null) {
                 return method.apply(settings);
@@ -158,6 +162,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     public void setForCurrentProject(Consumer<GerritSettingsData> method) {
         String projectName = getCurrentProjectName();
         if(!projectName.isEmpty()) {
+            if(!projectSettings.containsKey(projectName)) {
+                addProjectSettingsFromDefault(projectName);
+            }
             GerritSettingsData settings = projectSettings.get(projectName);
             if(settings != null) {
                 method.accept(settings);

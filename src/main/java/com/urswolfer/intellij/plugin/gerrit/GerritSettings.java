@@ -33,9 +33,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
+import org.apache.commons.lang.BooleanUtils;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.roaringbitmap.longlong.IntegerUtil;
 
 import java.util.Base64;
 import java.util.HashMap;
@@ -95,11 +97,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             // Load global settings
             projectSettings.put(GERRIT_SETTINGS_TAG, new GerritSettingsData(element, log));
 
-            List<Element> projectSettingsElements = element.getChild("Projects").getChildren();
-            for (Element projectSettingsElement : projectSettingsElements) {
-                String projectName = projectSettingsElement.getAttributeValue("name");
-                if(!projectName.isEmpty()) {
-                    projectSettings.put(projectName, new GerritSettingsData(projectSettingsElement, log));
+            Element projectDom = element.getChild("Projects");
+            if(projectDom != null) {
+                List<Element> projectSettingsElements = projectDom.getChildren();
+                for (Element projectSettingsElement : projectSettingsElements) {
+                    String projectName = projectSettingsElement.getName();
+                    if (!projectName.isEmpty()) {
+                        projectSettings.put(projectName, new GerritSettingsData(projectSettingsElement, log));
+                    }
                 }
             }
 
@@ -144,7 +149,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         String projectName = getCurrentProjectName();
         if(!projectName.isEmpty()) {
             GerritSettingsData settings = projectSettings.get(projectName);
-            return method.apply(settings);
+            if(settings != null) {
+                return method.apply(settings);
+            }
         }
         return null;
     }
@@ -152,15 +159,18 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         String projectName = getCurrentProjectName();
         if(!projectName.isEmpty()) {
             GerritSettingsData settings = projectSettings.get(projectName);
-            method.accept(settings);
+            if(settings != null) {
+                method.accept(settings);
+            }
         }
     }
 
     private CredentialAttributes getProjectCredentialAttributes() {
         String projectName = getCurrentProjectName();
         if(!projectName.isEmpty()) {
-            String passwordKey = GERRIT_SETTINGS_PASSWORD_KEY + "_" +Base64.getEncoder().encodeToString(projectName.getBytes());
-            return new CredentialAttributes(GerritSettings.class.getName(), passwordKey);
+            String passwordKey = Base64.getEncoder().encodeToString(projectName.getBytes()).replace("=", "");
+            // Can't use the same service name or PasswordSafe will overwrite the password.
+            return new CredentialAttributes(passwordKey, passwordKey);
         }
         return null;
     }
@@ -221,7 +231,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getListAllChanges() {
-        return getForCurrentProject(GerritSettingsData::getListAllChanges);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getListAllChanges));
     }
 
     public void setListAllChanges(boolean listAllChanges) {
@@ -231,15 +241,16 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getAutomaticRefresh() {
-        return getForCurrentProject(GerritSettingsData::getAutomaticRefresh);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getAutomaticRefresh));
     }
 
     public int getRefreshTimeout() {
-        return getForCurrentProject(GerritSettingsData::getRefreshTimeout);
+        Integer timeout = getForCurrentProject(GerritSettingsData::getRefreshTimeout);
+        return timeout != null ? timeout : 0;
     }
 
     public boolean getReviewNotifications() {
-        return getForCurrentProject(GerritSettingsData::getReviewNotifications);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getReviewNotifications));
     }
 
     public void setLogin(final String login) {
@@ -292,11 +303,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getPushToGerrit() {
-        return getForCurrentProject(GerritSettingsData::getPushToGerrit);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getPushToGerrit));
     }
 
     public boolean getShowChangeNumberColumn() {
-        return getForCurrentProject(GerritSettingsData::getShowChangeNumberColumn);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getShowChangeNumberColumn));
     }
 
     public void setShowChangeNumberColumn(boolean showChangeNumberColumn) {
@@ -306,7 +317,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getShowChangeIdColumn() {
-        return getForCurrentProject(GerritSettingsData::getShowChangeIdColumn);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getShowChangeIdColumn));
     }
 
     public void setShowChangeIdColumn(boolean showChangeIdColumn) {
@@ -316,11 +327,12 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public boolean getShowTopicColumn() {
-        return getForCurrentProject(GerritSettingsData::getShowTopicColumn);
+        return BooleanUtils.isTrue(getForCurrentProject(GerritSettingsData::getShowTopicColumn));
     }
 
     public ShowProjectColumn getShowProjectColumn() {
-        return getForCurrentProject(GerritSettingsData::getShowProjectColumn);
+        ShowProjectColumn showProjectColumn = getForCurrentProject(GerritSettingsData::getShowProjectColumn);
+        return showProjectColumn != null ? showProjectColumn : ShowProjectColumn.AUTO;
     }
 
     public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
@@ -354,6 +366,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public String getCloneBaseUrlOrHost() {
-        return getForCurrentProject(GerritSettingsData::getCloneBaseUrlOrHost);
+        String urlOrHost = getForCurrentProject(GerritSettingsData::getCloneBaseUrlOrHost);
+        return urlOrHost != null ? urlOrHost : "";
     }
 }

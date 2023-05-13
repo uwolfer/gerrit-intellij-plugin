@@ -56,6 +56,8 @@ import java.util.function.Function;
 public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
 
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
+    private static final String PROJECT_LIST_TAG = "projects";
+    private static final String PROJECT_TAG = "project";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(GerritSettings.class.getName(), GERRIT_SETTINGS_PASSWORD_KEY);
 
@@ -80,10 +82,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             }
         }
 
-        Element projects = new Element("Projects");
+        Element projects = new Element(PROJECT_LIST_TAG);
         projectSettings.forEach((projectName, settings) -> {
             if(projectName!=null && !projectName.equals(GERRIT_SETTINGS_TAG)) {
-                Element project = new Element("project");
+                Element project = new Element(PROJECT_TAG);
                 projects.addContent(settings.fillElement(project,projectName));
             }
         });
@@ -98,11 +100,11 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             // Load global settings
             projectSettings.put(GERRIT_SETTINGS_TAG, new GerritSettingsData(element, log));
 
-            Element projectDom = element.getChild("Projects");
+            Element projectDom = element.getChild(PROJECT_LIST_TAG);
             if(projectDom != null) {
                 List<Element> projectSettingsElements = projectDom.getChildren();
                 for (Element projectSettingsElement : projectSettingsElements) {
-                    String projectName = projectSettingsElement.getAttributeValue("name");
+                    String projectName = projectSettingsElement.getAttributeValue(GerritSettingsData.NAME);
                     if (!Strings.isNullOrEmpty(projectName)) {
                         projectSettings.put(projectName, new GerritSettingsData(projectSettingsElement, log));
                     }

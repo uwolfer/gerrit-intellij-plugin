@@ -8,7 +8,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class GerritSettingsData {
-    private static final String NAME = "name";
+    public static final String NAME = "name";
+
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
     private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";

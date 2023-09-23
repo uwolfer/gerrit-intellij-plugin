@@ -16,12 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import icons.Git4ideaIcons;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -49,7 +49,7 @@ public class ShowWIPFilter extends AbstractChangesFilter {
 
     public final class ShowWIPActionFilter extends ToggleAction implements DumbAware {
         public ShowWIPActionFilter() {
-            super("WIP changes", "WIP changes", Git4ideaIcons.DeepCompare);
+            super("WIP Changes", "Display WIP changes", AllIcons.Actions.Profile);
         }
 
         @Override

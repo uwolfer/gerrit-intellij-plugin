@@ -15,6 +15,7 @@
 -->
 <!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
 <idea-plugin>
+  <!-- do NOT change the id, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/13362061756050-Plugin-ID-specified-in-plugin-xml-should-not-contain-intellij-   -->
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
   <!-- element "version" set by gradle-intellij-plugin -->
@@ -66,7 +67,7 @@
         If you like this plugin, you can support it:
         <ul>
           <li>Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)</li>
-          <li>Vote for it: Write your review and vote for it at the <a href="http://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
+          <li>Vote for it: Write your review and vote for it at the <a href="https://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
           <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin">Star it at GitHub</a>. GitHub account required.</li>
           <li>Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!</li>
           <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin#donations">README</a> file.</li>
@@ -442,7 +443,7 @@
       ]]>
   </change-notes>
 
-  <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Build+Number+Ranges for description -->
+  <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
   <idea-version since-build="146.939" until-build="203.4818.26"/>
   <!--
     IntelliJ IDEA 2020.3
@@ -478,7 +479,7 @@
     Follows: appcode/130.826, idea/130.827, idea/130.828, phpstorm/130.830, pycharm/130.829, rubymine/130.832, webstorm/130.831
   -->
 
-  <!-- please see http://confluence.jetbrains.net/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+  <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
        on how to target different products -->
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>

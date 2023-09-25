@@ -25,7 +25,7 @@ Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
 * Rider
 * MPS
 
-*Compiled with Java 1.6*
+*Compiled with Java 11*
 
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 

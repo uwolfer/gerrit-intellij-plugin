@@ -17,6 +17,8 @@
 package com.urswolfer.intellij.plugin.gerrit.util;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Urs Wolfer
@@ -42,5 +44,12 @@ public class UrlUtils {
 
     public static String stripGitExtension(String url) {
         return url.replace(".git", ""); // some repositories end their name with ".git"
+    }
+
+    public static String encodePatchSetDescription(String text) {
+        return URLEncoder.encode(text, StandardCharsets.UTF_8)
+            .replaceAll("\\.", "%2E")
+            .replaceAll("-", "%96")
+            .replaceAll("_", "%5E");
     }
 }

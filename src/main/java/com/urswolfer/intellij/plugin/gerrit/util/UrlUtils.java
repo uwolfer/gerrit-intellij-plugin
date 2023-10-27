@@ -47,9 +47,11 @@ public class UrlUtils {
     }
 
     public static String encodePatchSetDescription(String text) {
+        // According to https://gerrit-review.googlesource.com/Documentation/user-upload.html#patch_set_description,
+        // at least the chars %^@.~-+_:/! must be percent-encoded and the space character must be encoded as '+'
         return URLEncoder.encode(text, StandardCharsets.UTF_8)
-            .replaceAll("\\.", "%2E")
-            .replaceAll("-", "%96")
-            .replaceAll("_", "%5E");
+            .replace(".", "%2E")
+            .replace("-", "%96")
+            .replace("_", "%5E");
     }
 }

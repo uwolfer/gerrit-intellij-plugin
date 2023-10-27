@@ -59,4 +59,10 @@ public class UrlUtilsTest {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("\\\\server\\folder\\clone\\");
         Assert.assertEquals(uriFromGitConfigString.toString(), "git:////server/folder/clone/");
     }
+
+    @Test
+    public void testPatchSetDescriptionEncoding() throws Exception {
+        String encoded = UrlUtils.encodePatchSetDescription("Abc %^@.~-+_:/!");
+        Assert.assertEquals(encoded, "Abc+%25%5E%40%2E%7E%96%2B%5E%3A%2F%21");
+    }
 }

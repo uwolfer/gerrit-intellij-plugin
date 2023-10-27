@@ -29,6 +29,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -68,6 +69,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField hashTagTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
+    private JTextField patchsetDescriptionTextField;
     private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
     private boolean initialized = false;
 
@@ -157,7 +159,7 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel(new GridLayoutManager(12, 2));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(13, 2));
 
         privateCheckBox = new JCheckBox("Private (Gerrit 2.15+)");
         privateCheckBox.setToolTipText("Push a private change or to turn a change private.");
@@ -204,6 +206,11 @@ public class GerritPushExtensionPanel extends JPanel {
                 "Hashtag (Gerrit 2.15+):",
                 "Include a hashtag associated with all of the changes in the same group.",
                 9);
+
+        patchsetDescriptionTextField = addTextField(
+                "Patch Set Description (Gerrit 3.4+):",
+                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed.",
+                10);
 
         reviewersTextField = addTextField(
                 "Reviewers (user names, comma separated):",
@@ -268,6 +275,7 @@ public class GerritPushExtensionPanel extends JPanel {
         branchTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         hashTagTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
+        patchsetDescriptionTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
@@ -307,6 +315,9 @@ public class GerritPushExtensionPanel extends JPanel {
             }
             if (!hashTagTextField.getText().isEmpty()) {
                 gerritSpecs.add("hashtag=" + hashTagTextField.getText());
+            }
+            if (!patchsetDescriptionTextField.getText().isEmpty()) {
+                gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescriptionTextField.getText()));
             }
             handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
             handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");

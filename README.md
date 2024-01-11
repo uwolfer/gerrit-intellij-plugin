@@ -8,7 +8,7 @@ gerrit-intellij-plugin
 Introduction
 -----------
 
-Unofficial [IntelliJ Platform](http://www.jetbrains.com/idea/) plugin for the
+Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for the
 [Gerrit Code Review](https://www.gerritcodereview.com/) tool. It supports any product based on the IntelliJ platform:
 * IntelliJ IDEA
 * IntelliJ IDEA CE
@@ -32,28 +32,20 @@ Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older ve
 Installation
 ------------
 - Using IDE built-in plugin system (suggested: you'll get notified when an update is available):
-  - <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Browse repositories...</kbd> >
-  <kbd>Search for "Gerrit"</kbd> > <kbd>Install Plugin</kbd>
+  - <kbd>Settings...</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> >
+  <kbd>Search for "Gerrit"</kbd> > <kbd>Install</kbd>
 - Manually:
   - Download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
   matching your IntelliJ version and install it manually using
-  <kbd>Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Install plugin from disk...</kbd>
+  <kbd>Settings...</kbd> > <kbd>Plugins</kbd> > <kbd>Gear icon</kbd> > <kbd>Install Plugin from Disk</kbd>
 
 Restart your IDE.
-
-###### Pre-Releases
-If you want to get new releases earlier, you can subscribe to the release-candidate plugin channel:
-
-1. Copy the following URL: https://plugins.jetbrains.com/plugins/rc/7272
-2. Use the copied URL as the [Custom Plugin Repository](https://www.jetbrains.com/idea/help/managing-enterprise-plugin-repositories.html)
-3. Reload the list of plugins
-4. Search for the 'Gerrit' plugin in the plugin manager and install it
 
 Your Support
 ------------
 If you like this plugin, you can support it:
 * Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even encourage them to use these fantastic products!)
-* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository](http://plugins.jetbrains.com/plugin/7272).
+* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository](https://plugins.jetbrains.com/plugin/7272-gerrit).
 * Star it: [Star it at GitHub](https://github.com/uwolfer/gerrit-intellij-plugin). GitHub account required.
 * Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!
 * Donate: You can find donation-possibilities at the bottom of this file.
@@ -110,7 +102,7 @@ gerrit-review.googlesource.com,FALSE,/,TRUE,12345678,o,**git-username.gmail.com*
 Architecture
 ------------
 ### IntelliJ Integration
-The plugin is integrated into the IntelliJ IDE with a [tool window](http://confluence.jetbrains.com/display/IDEADEV/IntelliJ+IDEA+Tool+Windows).
+The plugin is integrated into the IntelliJ IDE with a [tool window](https://plugins.jetbrains.com/docs/intellij/tool-windows.html?from=jetbrains.org).
 See package <code>com.urswolfer.intellij.plugin.gerrit.ui</code>.
 
 ### REST API
@@ -120,7 +112,7 @@ See package <code>com.urswolfer.intellij.plugin.gerrit.rest</code>.
 
 ### Git
 Some actions like comparing and listing files are based on Git operations.
-[IntelliJ Git4Idea](http://git.jetbrains.org/?p=idea/community.git;a=tree;f=plugins/git4idea) is used for these operations.
+[IntelliJ Git4Idea](https://github.com/JetBrains/intellij-community/tree/master/plugins/git4idea) is used for these operations.
 See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
 
 
@@ -167,7 +159,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this work except in compliance with the License.
 You may obtain a copy of the License in the LICENSE file, or at:
 
-  [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+  [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,

@@ -215,12 +215,12 @@ public class GerritPushExtensionPanel extends JPanel {
         reviewersTextField = addTextField(
                 "Reviewers (user names, comma separated):",
                 "Users which will be added as reviewers.",
-                10);
+                11);
 
         ccTextField = addTextField(
                 "CC (user names, comma separated):",
                 "Users which will receive carbon copies of the notification message.",
-                11);
+                12);
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);

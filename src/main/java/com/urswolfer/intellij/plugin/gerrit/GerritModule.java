@@ -23,7 +23,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
-import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.application.ApplicationManager;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider;
 import com.urswolfer.intellij.plugin.gerrit.extension.GerritHttpAuthDataProvider;
@@ -85,7 +85,7 @@ public class GerritModule extends AbstractModule {
             @Override
             public GerritSettings get() {
                 // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
-                GerritSettings gerritSettings = ServiceManager.getService(GerritSettings.class);
+                GerritSettings gerritSettings = ApplicationManager.getApplication().getService(GerritSettings.class);
                 gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
                 return gerritSettings;
             }

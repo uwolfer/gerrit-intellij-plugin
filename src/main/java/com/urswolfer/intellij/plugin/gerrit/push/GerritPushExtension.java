@@ -17,7 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.inject.Inject;
-import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.components.NamedComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -36,13 +36,14 @@ import org.jetbrains.annotations.NotNull;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritPushExtension implements ApplicationComponent {
+public class GerritPushExtension implements NamedComponent {
 
     @Inject
     private GerritSettings gerritSettings;
     @Inject
     private Logger log;
 
+    @Inject
     public void initComponent() {
         try {
             ClassPool classPool = ClassPool.getDefault();
@@ -135,16 +136,11 @@ public class GerritPushExtension implements ApplicationComponent {
     }
 
 
-    public static final class Proxy implements ApplicationComponent {
+    public static final class Proxy implements NamedComponent {
         private final GerritPushExtension delegate;
 
         public Proxy() {
             delegate = GerritModule.getInstance(GerritPushExtension.class);
-        }
-
-        @Override
-        public void initComponent() {
-            delegate.initComponent();
         }
 
         @NotNull

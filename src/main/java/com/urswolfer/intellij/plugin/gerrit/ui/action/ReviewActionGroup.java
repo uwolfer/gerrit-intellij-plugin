@@ -71,11 +71,6 @@ public class ReviewActionGroup extends ActionGroup {
         e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
     }
 
-    @Override
-    public boolean isPopup() {
-        return true;
-    }
-
     @NotNull
     @Override
     public AnAction[] getChildren(@Nullable AnActionEvent anActionEvent) {
@@ -125,11 +120,6 @@ public class ReviewActionGroup extends ActionGroup {
 
         public Proxy() {
             delegate = GerritModule.getInstance(ReviewActionGroup.class);
-        }
-
-        @Override
-        public boolean isPopup() {
-            return delegate.isPopup();
         }
 
         @Override

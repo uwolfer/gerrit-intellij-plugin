@@ -152,14 +152,13 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
     }
 
     private void setDefaultForeground() {
-        myFilterNameLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getInactiveTextColor());
-        myFilterValueLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() :
-            UIUtil.getInactiveTextColor().darker().darker());
+        myFilterNameLabel.setForeground(UIUtil.getLabelForeground());
+        myFilterValueLabel.setForeground(UIUtil.getLabelForeground());
     }
 
     private void setOnHoverForeground() {
-        myFilterNameLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getTextAreaForeground());
-        myFilterValueLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getTextFieldForeground());
+        myFilterNameLabel.setForeground(UIUtil.getLabelForeground());
+        myFilterValueLabel.setForeground(UIUtil.getLabelForeground());
     }
 
 

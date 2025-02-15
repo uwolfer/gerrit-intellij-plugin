@@ -25,6 +25,8 @@ import com.google.common.collect.Maps;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
@@ -113,39 +115,34 @@ public class GerritPushExtensionPanel extends JPanel {
     public void initialized() {
         initialized = true;
 
-        // force update in background because the force default branch does some IO
-        SwingWorker<Optional<String>, Void> worker = new SwingWorker<>() {
+        Task task = new Task.Backgroundable(repository.getProject(), "Get default branch name", false) {
             @Override
-            protected Optional<String> doInBackground() {
+            public void run(@NotNull ProgressIndicator progressIndicator) {
+                Optional<String> branchName = Optional.absent();
                 if (forceDefaultBranch) {
-                    Optional<String> branchName = getGitReviewBranchName();
-                    if (branchName.isPresent()) {
-                        return branchName;
+                    Optional<String> gitReviewBranchName = getGitReviewBranchName();
+                    if (gitReviewBranchName.isPresent()) {
+                        branchName = gitReviewBranchName;
+                    } else {
+                        branchName = findDefaultRemoteBranch();
                     }
-                    return findDefaultRemoteBranch();
                 } else if (gerritPushTargetPanels.size() == 1) {
-                    Optional<String> branchName = Optional.of(gerritPushTargetPanels.values().iterator().next());
-                    return getGitReviewBranchName().or(branchName);
+                    Optional<String> pushTargetBranchName = Optional.of(gerritPushTargetPanels.values().iterator().next());
+                    branchName = getGitReviewBranchName().or(pushTargetBranchName);
                 }
-                return Optional.absent();
-            }
 
-            @Override
-            protected void done() {
-                try {
-                    Optional<String> branchName = get();
-                    if (branchName.isPresent()) {
-                        branchTextField.setText(branchName.get());
+                Optional<String> finalBranchName = branchName;
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        if(finalBranchName.isPresent()) {
+                            branchTextField.setText(finalBranchName.get());
+                        }
+                        initDestinationBranch();
                     }
-                    initDestinationBranch();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
+                });
             }
         };
-        worker.execute();
+        task.queue();
     }
 
     private Optional<String> getGitReviewBranchName() {

@@ -115,6 +115,7 @@ public class GerritPushExtensionPanel extends JPanel {
     public void initialized() {
         initialized = true;
 
+        // force a deferred update (changes are monitored only after full construction of dialog)
         Task task = new Task.Backgroundable(repository.getProject(), "Get default branch name", false) {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {

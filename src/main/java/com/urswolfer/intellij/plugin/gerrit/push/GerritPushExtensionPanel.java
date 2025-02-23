@@ -25,11 +25,18 @@ import com.google.common.collect.Maps;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitLineHandler;
+import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -43,6 +50,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 /**
  * @author Urs Wolfer
@@ -51,8 +60,10 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
     private static final String GITREVIEW_FILENAME = ".gitreview";
+    private static final Pattern REMOTE_HEAD_NAME = Pattern.compile(".*HEAD.*: (.+)");
 
     private final boolean pushToGerritByDefault;
+    private final boolean forceDefaultBranch;
 
     private JPanel indentedSettingPanel;
 
@@ -70,11 +81,13 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField reviewersTextField;
     private JTextField ccTextField;
     private JTextField patchsetDescriptionTextField;
-    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private final Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private GitRepository repository;
     private boolean initialized = false;
 
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault, boolean forceDefaultBranch) {
         this.pushToGerritByDefault = pushToGerritByDefault;
+        this.forceDefaultBranch = forceDefaultBranch;
         createLayout();
 
         pushToGerritCheckBox.setSelected(pushToGerritByDefault);
@@ -84,11 +97,12 @@ public class GerritPushExtensionPanel extends JPanel {
         addChangeListener();
     }
 
-    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
+    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch, @NotNull GitRepository gitRepository) {
         if (initialized) { // a new dialog gets initialized; start again
             initialized = false;
             gerritPushTargetPanels.clear();
         }
+        repository = gitRepository;
 
         if (branch != null) {
             branch = branch.replaceAll("^refs/(for|drafts)/", "");
@@ -102,24 +116,41 @@ public class GerritPushExtensionPanel extends JPanel {
         initialized = true;
 
         // force a deferred update (changes are monitored only after full construction of dialog)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                if (gerritPushTargetPanels.size() == 1) {
-                    String branchName = gerritPushTargetPanels.values().iterator().next();
+        Task task = new Task.Backgroundable(repository.getProject(), "Get default branch name", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator progressIndicator) {
+                Optional<String> branchName = Optional.absent();
+                if (forceDefaultBranch) {
                     Optional<String> gitReviewBranchName = getGitReviewBranchName();
-                    branchTextField.setText(gitReviewBranchName.or(branchName));
+                    if (gitReviewBranchName.isPresent()) {
+                        branchName = gitReviewBranchName;
+                    } else {
+                        branchName = findDefaultRemoteBranch();
+                    }
+                } else if (gerritPushTargetPanels.size() == 1) {
+                    Optional<String> pushTargetBranchName = Optional.of(gerritPushTargetPanels.values().iterator().next());
+                    branchName = getGitReviewBranchName().or(pushTargetBranchName);
                 }
-                initDestinationBranch();
+
+                Optional<String> finalBranchName = branchName;
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        if(finalBranchName.isPresent()) {
+                            branchTextField.setText(finalBranchName.get());
+                        }
+                        initDestinationBranch();
+                    }
+                });
             }
-        });
+        };
+        task.queue();
     }
 
     private Optional<String> getGitReviewBranchName() {
         Optional<String> branchName = Optional.absent();
 
         DataContext dataContext = DataManager.getInstance().getDataContext(this);
-        Optional<Project> openedProject = dataContext != null ?
-            Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.<Project>absent();
+        Optional<Project> openedProject = Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext));
 
         if (openedProject.isPresent()) {
             String gitReviewFilePath = Joiner.on(File.separator).join(
@@ -127,28 +158,43 @@ public class GerritPushExtensionPanel extends JPanel {
 
             File gitReviewFile = new File(gitReviewFilePath);
             if (gitReviewFile.exists() && gitReviewFile.isFile()) {
-                FileInputStream fileInputStream = null;
-                try {
-                    fileInputStream = new FileInputStream(gitReviewFilePath);
+                try (FileInputStream fileInputStream = new FileInputStream(gitReviewFilePath)) {
 
                     Properties properties = new Properties();
                     properties.load(fileInputStream);
                     branchName = Optional.fromNullable(Strings.emptyToNull(properties.getProperty("defaultbranch")));
                 } catch (IOException e) {
                     //no need to handle as branch name is already absent and ready to be returned
-                } finally {
-                    if (fileInputStream != null) {
-                        try {
-                            fileInputStream.close();
-                        } catch (IOException e) {
-                            //no need to handle as branch name is already absent and ready to be returned
-                        }
-                    }
                 }
+                //no need to handle as branch name is already absent and ready to be returned
             }
         }
 
         return branchName;
+    }
+
+    /**
+     * Use Git CLI to find default remote branch name.
+     * This command calls the remote URLs.
+     */
+    public Optional<String> findDefaultRemoteBranch() {
+        final Git git = Git.getInstance();
+
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.REMOTE);
+        h.addParameters("show", "origin");
+
+        List<String> output = git.runCommand(h).getOutput();
+
+        Optional<String> defaultBranch = Optional.absent();
+        for (String line : output) {
+            var matcher = REMOTE_HEAD_NAME.matcher(line);
+            if (matcher.find()) {
+                defaultBranch = Optional.of(matcher.group(1));
+                break;
+            }
+        }
+
+        return defaultBranch;
     }
 
     private void createLayout() {

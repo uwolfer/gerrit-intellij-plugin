@@ -55,6 +55,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_TOPIC_COLUMN = "ShowTopicColumn";
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String CLONE_BASE_URL = "CloneBaseUrl";
+    private static final String FORCE_DEFAULT_BRANCH = "ForceDefaultBranch";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(GerritSettings.class.getName(), GERRIT_SETTINGS_PASSWORD_KEY);
 
@@ -70,6 +71,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private boolean showTopicColumn = false;
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
     private String cloneBaseUrl = "";
+    private boolean forceDefaultBranch = false;
 
     private Optional<String> preloadedPassword;
 
@@ -89,6 +91,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         element.setAttribute(SHOW_TOPIC_COLUMN, Boolean.toString(getShowTopicColumn()));
         element.setAttribute(SHOW_PROJECT_COLUMN, getShowProjectColumn().name());
         element.setAttribute(CLONE_BASE_URL, (getCloneBaseUrl() != null ? getCloneBaseUrl() : ""));
+        element.setAttribute(FORCE_DEFAULT_BRANCH, Boolean.toString(getForceDefaultBranch()));
         return element;
     }
 
@@ -108,6 +111,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setShowTopicColumn(getBooleanValue(element, SHOW_TOPIC_COLUMN));
             setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
             setCloneBaseUrl(element.getAttributeValue(CLONE_BASE_URL));
+            setForceDefaultBranch(getBooleanValue(element, FORCE_DEFAULT_BRANCH));
         } catch (Exception e) {
             log.error("Error happened while loading gerrit settings: " + e);
         }
@@ -274,6 +278,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public String getCloneBaseUrl() {
         return cloneBaseUrl;
+    }
+
+    public void setForceDefaultBranch(boolean forceDefaultBranch) {
+        this.forceDefaultBranch = forceDefaultBranch;
+    }
+
+    public boolean getForceDefaultBranch() {
+         return this.forceDefaultBranch;
     }
 
     public void setLog(Logger log) {

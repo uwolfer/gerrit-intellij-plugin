@@ -30,7 +30,7 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
@@ -95,7 +95,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             setTitle("Add Reviewers to Change");
             setOKButtonText("Add Reviewers");
 
-            EditorTextFieldProvider service = ServiceManager.getService(EditorTextFieldProvider.class);
+            EditorTextFieldProvider service = ApplicationManager.getApplication().getService(EditorTextFieldProvider.class);
             Set<EditorCustomization> editorFeatures = new HashSet<EditorCustomization>();
             editorFeatures.add(SoftWrapsEditorCustomization.ENABLED);
             editorFeatures.add(SpellCheckingEditorCustomizationProvider.getInstance().getDisabledCustomization());

@@ -366,6 +366,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
         return getForCurrentProject(GerritSettingsData::getCloneBaseUrl);
     }
 
+    public void setForceDefaultBranch(boolean forceDefaultBranch) {
+        this.forceDefaultBranch = forceDefaultBranch;
+    }
+
+    public boolean getForceDefaultBranch() {
+         return this.forceDefaultBranch;
+    }
+
     public void setLog(Logger log) {
         // Set for both here and the current project
         this.log = log;

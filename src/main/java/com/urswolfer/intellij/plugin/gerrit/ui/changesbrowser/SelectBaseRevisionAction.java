@@ -26,12 +26,15 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAwareAction;
+import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -79,7 +82,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
 
     @Override
     protected void createActions(Consumer<AnAction> anActionConsumer) {
-        anActionConsumer.consume(new DumbAwareAction("Base") {
+        anActionConsumer.consume(new DumbAwareUpdateInBackgroundAction("Base") {
             @Override
             public void actionPerformed(AnActionEvent e) {
                 removeSelectedValue();
@@ -109,7 +112,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     private DumbAwareAction getActionForRevision(final String commitHash, final RevisionInfo revisionInfo) {
         final Pair<String, RevisionInfo> infoPair = Pair.create(commitHash, revisionInfo);
         String actionLabel = REVISION_LABEL_FUNCTION.apply(infoPair);
-        return new DumbAwareAction(actionLabel) {
+        return new DumbAwareUpdateInBackgroundAction(actionLabel) {
             @Override
             public void actionPerformed(AnActionEvent e) {
                 updateSelectedValue(infoPair);
@@ -149,5 +152,11 @@ public class SelectBaseRevisionAction extends BasePopupAction {
 
     public static interface Listener {
         void revisionSelected(Optional<Pair<String, RevisionInfo>> revisionInfo);
+    }
+
+    private abstract class DumbAwareUpdateInBackgroundAction extends DumbAwareAction implements UpdateInBackground {
+        protected DumbAwareUpdateInBackgroundAction(@Nullable @NlsActions.ActionText String text) {
+            super(text);
+        }
     }
 }

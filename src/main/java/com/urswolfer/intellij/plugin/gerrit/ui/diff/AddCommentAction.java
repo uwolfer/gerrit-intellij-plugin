@@ -24,6 +24,7 @@ import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
@@ -44,7 +45,7 @@ import javax.swing.*;
  * https://github.com/ktisha/Crucible4IDEA
  */
 @SuppressWarnings("ComponentNotRegistered") // added with code
-public class AddCommentAction extends AnAction implements DumbAware {
+public class AddCommentAction extends AnAction implements DumbAware, UpdateInBackground {
 
     private final Editor editor;
     private final CommentsDiffTool commentsDiffTool;

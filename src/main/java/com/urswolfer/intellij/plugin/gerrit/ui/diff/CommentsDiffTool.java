@@ -230,7 +230,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                 .get();
         addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
         group.add(addCommentAction);
-        PopupHandler.installUnknownPopupHandler(editor.getContentComponent(), group);
+        PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
     }
 
     private void addCommentsGutter(Editor editor,

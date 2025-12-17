@@ -17,7 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.inject.Inject;
-import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.components.NamedComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -36,13 +36,14 @@ import org.jetbrains.annotations.NotNull;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritPushExtension implements ApplicationComponent {
+public class GerritPushExtension implements NamedComponent {
 
     @Inject
     private GerritSettings gerritSettings;
     @Inject
     private Logger log;
 
+    @Inject
     public void initComponent() {
         try {
             ClassPool classPool = ClassPool.getDefault();
@@ -65,12 +66,13 @@ public class GerritPushExtension implements ApplicationComponent {
     private void modifyGitBranchPanel(ClassPool classPool, ClassLoader classLoader) {
         try {
             boolean pushToGerrit = gerritSettings.getPushToGerrit();
+            boolean forceDefaultBranch = gerritSettings.getForceDefaultBranch();
 
             CtClass gitPushSupportClass = classPool.get("git4idea.push.GitPushSupport");
             CtClass gerritPushOptionsPanelClass = classPool.get("com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
 
             gitPushSupportClass.addField(new CtField(gerritPushOptionsPanelClass, "gerritPushOptionsPanel", gitPushSupportClass),
-                    "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ");");
+                    "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + "," + forceDefaultBranch + ");");
 
             CtMethod createOptionsPanelMethod = gitPushSupportClass.getDeclaredMethod("createOptionsPanel");
             createOptionsPanelMethod.setBody(
@@ -111,9 +113,11 @@ public class GerritPushExtension implements ApplicationComponent {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel$1");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$1");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$1$1");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeTextActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$SettingsStateActionListener");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.util.UrlUtils");
     }
 
     private void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {
@@ -134,16 +138,11 @@ public class GerritPushExtension implements ApplicationComponent {
     }
 
 
-    public static final class Proxy implements ApplicationComponent {
+    public static final class Proxy implements NamedComponent {
         private final GerritPushExtension delegate;
 
         public Proxy() {
             delegate = GerritModule.getInstance(GerritPushExtension.class);
-        }
-
-        @Override
-        public void initComponent() {
-            delegate.initComponent();
         }
 
         @NotNull

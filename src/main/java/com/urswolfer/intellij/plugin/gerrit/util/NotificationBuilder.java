@@ -63,7 +63,10 @@ public final class NotificationBuilder {
     }
 
     protected Notification get() {
-        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type, listener.orNull());
+        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type);
+        if (listener.isPresent()) {
+            notification.setListener(listener.get());
+        }
         if (!showBalloon) {
             notification.expire();
         }

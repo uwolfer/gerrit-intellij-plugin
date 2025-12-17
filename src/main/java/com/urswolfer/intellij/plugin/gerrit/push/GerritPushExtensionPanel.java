@@ -25,10 +25,18 @@ import com.google.common.collect.Maps;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitLineHandler;
+import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -42,6 +50,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 /**
  * @author Urs Wolfer
@@ -50,8 +60,10 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
     private static final String GITREVIEW_FILENAME = ".gitreview";
+    private static final Pattern REMOTE_HEAD_NAME = Pattern.compile(".*HEAD.*: (.+)");
 
     private final boolean pushToGerritByDefault;
+    private final boolean forceDefaultBranch;
 
     private JPanel indentedSettingPanel;
 
@@ -62,16 +74,20 @@ public class GerritPushExtensionPanel extends JPanel {
     private JCheckBox wipCheckBox;
     private JCheckBox draftChangeCheckBox;
     private JCheckBox submitChangeCheckBox;
+    private JCheckBox readyCheckBox;
     private JTextField branchTextField;
     private JTextField topicTextField;
     private JTextField hashTagTextField;
     private JTextField reviewersTextField;
     private JTextField ccTextField;
-    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private JTextField patchsetDescriptionTextField;
+    private final Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private GitRepository repository;
     private boolean initialized = false;
 
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault, boolean forceDefaultBranch) {
         this.pushToGerritByDefault = pushToGerritByDefault;
+        this.forceDefaultBranch = forceDefaultBranch;
         createLayout();
 
         pushToGerritCheckBox.setSelected(pushToGerritByDefault);
@@ -81,11 +97,12 @@ public class GerritPushExtensionPanel extends JPanel {
         addChangeListener();
     }
 
-    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
+    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch, @NotNull GitRepository gitRepository) {
         if (initialized) { // a new dialog gets initialized; start again
             initialized = false;
             gerritPushTargetPanels.clear();
         }
+        repository = gitRepository;
 
         if (branch != null) {
             branch = branch.replaceAll("^refs/(for|drafts)/", "");
@@ -99,24 +116,41 @@ public class GerritPushExtensionPanel extends JPanel {
         initialized = true;
 
         // force a deferred update (changes are monitored only after full construction of dialog)
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                if (gerritPushTargetPanels.size() == 1) {
-                    String branchName = gerritPushTargetPanels.values().iterator().next();
+        Task task = new Task.Backgroundable(repository.getProject(), "Get default branch name", false) {
+            @Override
+            public void run(@NotNull ProgressIndicator progressIndicator) {
+                Optional<String> branchName = Optional.absent();
+                if (forceDefaultBranch) {
                     Optional<String> gitReviewBranchName = getGitReviewBranchName();
-                    branchTextField.setText(gitReviewBranchName.or(branchName));
+                    if (gitReviewBranchName.isPresent()) {
+                        branchName = gitReviewBranchName;
+                    } else {
+                        branchName = findDefaultRemoteBranch();
+                    }
+                } else if (gerritPushTargetPanels.size() == 1) {
+                    Optional<String> pushTargetBranchName = Optional.of(gerritPushTargetPanels.values().iterator().next());
+                    branchName = getGitReviewBranchName().or(pushTargetBranchName);
                 }
-                initDestinationBranch();
+
+                Optional<String> finalBranchName = branchName;
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        if(finalBranchName.isPresent()) {
+                            branchTextField.setText(finalBranchName.get());
+                        }
+                        initDestinationBranch();
+                    }
+                });
             }
-        });
+        };
+        task.queue();
     }
 
     private Optional<String> getGitReviewBranchName() {
         Optional<String> branchName = Optional.absent();
 
         DataContext dataContext = DataManager.getInstance().getDataContext(this);
-        Optional<Project> openedProject = dataContext != null ?
-            Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.<Project>absent();
+        Optional<Project> openedProject = Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext));
 
         if (openedProject.isPresent()) {
             String gitReviewFilePath = Joiner.on(File.separator).join(
@@ -124,28 +158,43 @@ public class GerritPushExtensionPanel extends JPanel {
 
             File gitReviewFile = new File(gitReviewFilePath);
             if (gitReviewFile.exists() && gitReviewFile.isFile()) {
-                FileInputStream fileInputStream = null;
-                try {
-                    fileInputStream = new FileInputStream(gitReviewFilePath);
+                try (FileInputStream fileInputStream = new FileInputStream(gitReviewFilePath)) {
 
                     Properties properties = new Properties();
                     properties.load(fileInputStream);
                     branchName = Optional.fromNullable(Strings.emptyToNull(properties.getProperty("defaultbranch")));
                 } catch (IOException e) {
                     //no need to handle as branch name is already absent and ready to be returned
-                } finally {
-                    if (fileInputStream != null) {
-                        try {
-                            fileInputStream.close();
-                        } catch (IOException e) {
-                            //no need to handle as branch name is already absent and ready to be returned
-                        }
-                    }
                 }
+                //no need to handle as branch name is already absent and ready to be returned
             }
         }
 
         return branchName;
+    }
+
+    /**
+     * Use Git CLI to find default remote branch name.
+     * This command calls the remote URLs.
+     */
+    public Optional<String> findDefaultRemoteBranch() {
+        final Git git = Git.getInstance();
+
+        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.REMOTE);
+        h.addParameters("show", "origin");
+
+        List<String> output = git.runCommand(h).getOutput();
+
+        Optional<String> defaultBranch = Optional.absent();
+        for (String line : output) {
+            var matcher = REMOTE_HEAD_NAME.matcher(line);
+            if (matcher.find()) {
+                defaultBranch = Optional.of(matcher.group(1));
+                break;
+            }
+        }
+
+        return defaultBranch;
     }
 
     private void createLayout() {
@@ -156,7 +205,7 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel(new GridLayoutManager(12, 2));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(13, 2));
 
         privateCheckBox = new JCheckBox("Private (Gerrit 2.15+)");
         privateCheckBox.setToolTipText("Push a private change or to turn a change private.");
@@ -170,20 +219,24 @@ public class GerritPushExtensionPanel extends JPanel {
         wipCheckBox.setToolTipText("Push a wip change or to turn a change to wip.");
         indentedSettingPanel.add(wipCheckBox, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
+        readyCheckBox = new JCheckBox("Ready (Gerrit 2.15+)");
+        readyCheckBox.setToolTipText("Mark a Work-In-Progress Change as Ready for review");
+        indentedSettingPanel.add(readyCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+
         publishDraftCommentsCheckBox = new JCheckBox("Publish Draft Comments (Gerrit 2.15+)");
         publishDraftCommentsCheckBox.setToolTipText("If you have draft comments on the change(s) that are updated by the push, the publish-comments option will cause them to be published.");
-        indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         draftChangeCheckBox = new JCheckBox("Draft-Change (Gerrit older than 2.15)");
         draftChangeCheckBox.setToolTipText("Publish change as draft (reviewers cannot submit change).");
-        indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         submitChangeCheckBox = new JCheckBox("Submit Change");
         submitChangeCheckBox.setToolTipText("Changes can be directly submitted on push. This is primarily useful for " +
                 "teams that don't want to do code review but want to use Gerrit’s submit strategies to handle " +
                 "contention on busy branches. Using submit creates a change and submits it immediately, if the caller " +
                 "has submit permission.");
-        indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
+        indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         branchTextField = addTextField(
                 "Branch:",
@@ -200,15 +253,20 @@ public class GerritPushExtensionPanel extends JPanel {
                 "Include a hashtag associated with all of the changes in the same group.",
                 9);
 
+        patchsetDescriptionTextField = addTextField(
+                "Patch Set Description (Gerrit 3.4+):",
+                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed.",
+                10);
+
         reviewersTextField = addTextField(
                 "Reviewers (user names, comma separated):",
                 "Users which will be added as reviewers.",
-                10);
+                11);
 
         ccTextField = addTextField(
                 "CC (user names, comma separated):",
                 "Users which will receive carbon copies of the notification message.",
-                11);
+                12);
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -257,11 +315,13 @@ public class GerritPushExtensionPanel extends JPanel {
         publishDraftCommentsCheckBox.addActionListener(gerritPushChangeListener);
         draftChangeCheckBox.addActionListener(gerritPushChangeListener);
         submitChangeCheckBox.addActionListener(gerritPushChangeListener);
+        readyCheckBox.addActionListener(gerritPushChangeListener);
 
         ChangeTextActionListener gerritPushTextChangeListener = new ChangeTextActionListener();
         branchTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         hashTagTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
+        patchsetDescriptionTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
@@ -287,6 +347,8 @@ public class GerritPushExtensionPanel extends JPanel {
             }
             if (wipCheckBox.isSelected()) {
                 gerritSpecs.add("wip");
+            } else if (readyCheckBox.isSelected()) {
+                gerritSpecs.add("ready");
             }
             if (publishDraftCommentsCheckBox.isSelected()) {
                 gerritSpecs.add("publish-comments");
@@ -300,6 +362,9 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!hashTagTextField.getText().isEmpty()) {
                 gerritSpecs.add("hashtag=" + hashTagTextField.getText());
             }
+            if (!patchsetDescriptionTextField.getText().isEmpty()) {
+                gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescriptionTextField.getText()));
+            }
             handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
             handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
             String gerritSpec = Joiner.on(',').join(gerritSpecs);
@@ -310,9 +375,11 @@ public class GerritPushExtensionPanel extends JPanel {
         return ref;
     }
 
-    private void handlePrivateCheckBoxExclusive() {
+    private void handleExclusiveCheckBoxes() {
         privateCheckBox.setEnabled(!unmarkPrivateCheckBox.isSelected());
         unmarkPrivateCheckBox.setEnabled(!privateCheckBox.isSelected());
+        wipCheckBox.setEnabled(!readyCheckBox.isSelected());
+        readyCheckBox.setEnabled(!wipCheckBox.isSelected());
     }
 
     private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
@@ -337,7 +404,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private void setSettingsEnabled(boolean enabled) {
         UIUtil.setEnabled(indentedSettingPanel, enabled, true);
         if (enabled) {
-            handlePrivateCheckBoxExclusive();
+            handleExclusiveCheckBoxes();
         }
     }
 
@@ -348,7 +415,7 @@ public class GerritPushExtensionPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             updateDestinationBranch();
-            handlePrivateCheckBoxExclusive();
+            handleExclusiveCheckBoxes();
         }
     }
 

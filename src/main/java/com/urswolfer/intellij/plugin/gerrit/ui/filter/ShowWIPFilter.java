@@ -26,14 +26,14 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * @author Thomas Forrer
+ * @author Guilherme Rodriguero
  */
-public class IsStarredFilter extends AbstractChangesFilter {
-    private boolean value = false;
+public class ShowWIPFilter extends AbstractChangesFilter {
+    private boolean value = true;
 
     @Override
     public AnAction getAction(Project project) {
-        return new IsStarredAction();
+        return new ShowWIPActionFilter();
     }
 
     private void setValue(boolean value) {
@@ -45,12 +45,12 @@ public class IsStarredFilter extends AbstractChangesFilter {
     @Nullable
     @Override
     public String getSearchQueryPart() {
-        return value ? "is:starred" : null;
+        return value ? null : "-is:wip";
     }
 
-    public final class IsStarredAction extends ToggleAction implements DumbAware, UpdateInBackground {
-        public IsStarredAction() {
-            super("Starred changes", "Show only starred changes", AllIcons.Nodes.Favorite);
+    public final class ShowWIPActionFilter extends ToggleAction implements DumbAware, UpdateInBackground {
+        public ShowWIPActionFilter() {
+            super("WIP Changes", "Display WIP changes", AllIcons.Actions.Profile);
         }
 
         @Override
@@ -63,5 +63,4 @@ public class IsStarredFilter extends AbstractChangesFilter {
             setValue(state);
         }
     }
-
 }

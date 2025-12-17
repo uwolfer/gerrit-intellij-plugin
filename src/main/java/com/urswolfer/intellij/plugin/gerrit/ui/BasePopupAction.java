@@ -22,6 +22,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.actionSystem.ex.CustomComponentAction;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -39,7 +40,7 @@ import java.awt.event.*;
 /**
  * Merge of original BasePopupAction (IntelliJ < 14) and com.intellij.vcs.log.ui.filter.FilterPopupComponent.
  */
-public abstract class BasePopupAction extends DumbAwareAction implements CustomComponentAction {
+public abstract class BasePopupAction extends DumbAwareAction implements CustomComponentAction, UpdateInBackground {
     private static final int GAP_BEFORE_ARROW = 3;
     private static final int BORDER_SIZE = 2;
     private static final Border INNER_MARGIN_BORDER = BorderFactory.createEmptyBorder(2, 2, 2, 2);
@@ -152,14 +153,13 @@ public abstract class BasePopupAction extends DumbAwareAction implements CustomC
     }
 
     private void setDefaultForeground() {
-        myFilterNameLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getInactiveTextColor());
-        myFilterValueLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() :
-            UIUtil.getInactiveTextColor().darker().darker());
+        myFilterNameLabel.setForeground(UIUtil.getLabelForeground());
+        myFilterValueLabel.setForeground(UIUtil.getLabelForeground());
     }
 
     private void setOnHoverForeground() {
-        myFilterNameLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getTextAreaForeground());
-        myFilterValueLabel.setForeground(UIUtil.isUnderDarcula() ? UIUtil.getLabelForeground() : UIUtil.getTextFieldForeground());
+        myFilterNameLabel.setForeground(UIUtil.getLabelForeground());
+        myFilterValueLabel.setForeground(UIUtil.getLabelForeground());
     }
 
 

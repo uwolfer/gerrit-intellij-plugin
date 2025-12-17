@@ -22,6 +22,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
@@ -33,7 +34,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // added with code
-public class RemoveCommentAction extends AnAction implements DumbAware {
+public class RemoveCommentAction extends AnAction implements DumbAware, UpdateInBackground {
 
     private final CommentsDiffTool commentsDiffTool;
     private final Editor editor;

@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
@@ -31,7 +32,7 @@ import javax.swing.*;
 /**
  * @author Urs Wolfer
  */
-public abstract class AbstractChangeAction extends AnAction implements DumbAware {
+public abstract class AbstractChangeAction extends AnAction implements DumbAware, UpdateInBackground {
     @Inject
     protected GerritUtil gerritUtil;
 

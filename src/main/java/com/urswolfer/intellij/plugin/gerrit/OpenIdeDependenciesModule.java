@@ -20,7 +20,6 @@ import com.google.inject.AbstractModule;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -46,7 +45,7 @@ public class OpenIdeDependenciesModule extends AbstractModule {
 
         bind(LocalFileSystem.class).toInstance(LocalFileSystem.getInstance());
 
-        bind(Git.class).toInstance(ServiceManager.getService(Git.class));
+        bind(Git.class).toInstance(ApplicationManager.getApplication().getService(Git.class));
         bind(VirtualFileManager.class).toInstance(VirtualFileManager.getInstance());
 
         bind(ShowSettingsUtil.class).toInstance(ShowSettingsUtil.getInstance());

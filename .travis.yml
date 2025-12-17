@@ -14,7 +14,8 @@ cache:
     - $HOME/.gradle/wrapper/
 deploy:
   provider: releases
-  edge: true
+  edge:
+      branch: v2.0.3-beta.4
   file: "build/distributions/gerrit-intellij-plugin-*.zip"
   on:
     tags: true

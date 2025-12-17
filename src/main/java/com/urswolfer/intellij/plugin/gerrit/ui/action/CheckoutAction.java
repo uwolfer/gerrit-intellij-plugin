@@ -25,7 +25,6 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
@@ -79,7 +78,7 @@ public class CheckoutAction extends AbstractChangeAction {
                 Callable<Void> fetchCallback = new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        final GitBrancher brancher = ServiceManager.getService(project, GitBrancher.class);
+                        final GitBrancher brancher = project.getService(GitBrancher.class);
                         Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.
                                 getRepositoryForGerritProject(project, changeDetails.project);
                         if (!gitRepositoryOptional.isPresent()) {

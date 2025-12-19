@@ -186,6 +186,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
      */
     public void addListSelectionListener(final @NotNull Consumer<ChangeInfo> listener) {
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();

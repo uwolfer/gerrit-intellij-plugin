@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
 <idea-plugin>
   <!-- do NOT change the id, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/13362061756050-Plugin-ID-specified-in-plugin-xml-should-not-contain-intellij-   -->
   <id>com.urswolfer.intellij.plugin.gerrit</id>

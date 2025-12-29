@@ -22,9 +22,6 @@
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
-            <clientProperties>
-              <BorderFactoryClass class="java.lang.String" value="com.intellij.ui.IdeBorderFactory$PlainSmallWithIndent"/>
-            </clientProperties>
             <border type="etched" title="Login"/>
             <children>
               <component id="e76ec" class="javax.swing.JTextField" binding="loginTextField">
@@ -106,9 +103,6 @@
               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
-            <clientProperties>
-              <BorderFactoryClass class="java.lang.String" value="com.intellij.ui.IdeBorderFactory$PlainSmallWithIndent"/>
-            </clientProperties>
             <border type="etched" title="Settings"/>
             <children>
               <grid id="19e05" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -293,7 +287,7 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="c19df" class="javax.swing.JCheckBox" binding="forceDefaultBranchCheckBox">
+                  <component id="c19df" class="javax.swing.JCheckBox" binding="forceDefaultBranchCheckbox">
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>

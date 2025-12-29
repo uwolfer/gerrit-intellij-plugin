@@ -66,6 +66,7 @@ public class SettingsPanel {
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
     private JTextField cloneBaseUrlTextField;
+    private JCheckBox forceDefaultBranchCheckbox;
 
     private boolean passwordModified;
 
@@ -131,6 +132,7 @@ public class SettingsPanel {
                 defaultSettings.setShowTopicColumn(getShowTopicColumn());
                 defaultSettings.setShowProjectColumn(getShowProjectColumn());
                 defaultSettings.setCloneBaseUrl(getCloneBaseUrl());
+                defaultSettings.setForceDefaultBranch(getForceDefaultBranch());
                 Messages.showInfoMessage(pane, "Default settings updated", "Success");
             }
         });
@@ -153,6 +155,7 @@ public class SettingsPanel {
                 showTopicColumnCheckBox.setSelected(defaultSettings.getShowTopicColumn());
                 showProjectColumnComboBox.setSelectedItem(defaultSettings.getShowProjectColumn());
                 cloneBaseUrlTextField.setText(defaultSettings.getCloneBaseUrl());
+                forceDefaultBranchCheckbox.setSelected(defaultSettings.getForceDefaultBranch());
                 Messages.showInfoMessage(pane, "Reset project settings to match default", "Success");
             }
         });
@@ -330,5 +333,8 @@ public class SettingsPanel {
         return cloneBaseUrlTextField.getText().trim();
     }
 
+    public void setForceDefaultBranch(final boolean forceDefaultBranch) {forceDefaultBranchCheckbox.setSelected(forceDefaultBranch);}
+
+    public boolean getForceDefaultBranch() {return forceDefaultBranchCheckbox.isSelected();}
 }
 

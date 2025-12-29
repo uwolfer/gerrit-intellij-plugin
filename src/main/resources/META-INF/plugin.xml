@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-<!DOCTYPE idea-plugin PUBLIC "Plugin/DTD" "http://plugins.jetbrains.com/plugin.dtd">
 <idea-plugin>
   <!-- do NOT change the id, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/13362061756050-Plugin-ID-specified-in-plugin-xml-should-not-contain-intellij-   -->
   <id>com.urswolfer.intellij.plugin.gerrit</id>
@@ -90,6 +89,15 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>1.3.3</li>
+          <ul>
+            <li>fix "Push to Gerrit by default", which was broken in newer IntelliJ releases (this reverts "add force branch name settings")</li>
+            <li>fix layout issue in settings</li>
+          </ul>
+          <li>1.3.2</li>
+          <ul>
+            <li>add force branch name settings</li>
+          </ul>
           <li>1.3.1</li>
           <ul>
             <li>improve compatiblity with IntelliJ 2024.1</li>

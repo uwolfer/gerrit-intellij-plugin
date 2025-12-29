@@ -43,7 +43,7 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         if (defaultTarget != null) {
             initialBranch = defaultTarget.getBranch().getNameForRemoteOperations();
         }
-        gerritPushOptionsPanel.getGerritPushExtensionPanel().registerGerritPushTargetPanel(this, initialBranch, repository);
+        gerritPushOptionsPanel.getGerritPushExtensionPanel().registerGerritPushTargetPanel(this, initialBranch);
     }
 
     public void initBranch(final String branch, boolean pushToGerritByDefault) {

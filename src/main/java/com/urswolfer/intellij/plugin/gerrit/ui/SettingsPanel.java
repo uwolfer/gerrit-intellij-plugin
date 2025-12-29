@@ -66,7 +66,6 @@ public class SettingsPanel {
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
     private JTextField cloneBaseUrlTextField;
-    private JCheckBox forceDefaultBranchCheckBox;
 
     private boolean passwordModified;
 
@@ -329,14 +328,6 @@ public class SettingsPanel {
 
     public String getCloneBaseUrl() {
         return cloneBaseUrlTextField.getText().trim();
-    }
-
-    public void setForceDefaultBranch(final boolean forceDefaultBranch) {
-        forceDefaultBranchCheckBox.setSelected(forceDefaultBranch);
-    }
-
-    public boolean getForceDefaultBranch() {
-        return forceDefaultBranchCheckBox.isSelected();
     }
 
 }

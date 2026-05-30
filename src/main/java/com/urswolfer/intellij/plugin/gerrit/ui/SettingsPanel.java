@@ -28,6 +28,7 @@ import com.intellij.ui.GuiUtils;
 import com.intellij.ui.components.JBTextField;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritSettingsData;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
@@ -50,6 +51,8 @@ public class SettingsPanel {
     private JTextPane gerritLoginInfoTextField;
     private JPanel loginPane;
     private JButton testButton;
+    private JButton setDefaultsButton;
+    private JButton loadDefaultsButton;
     private JBTextField hostTextField;
     private JSpinner refreshTimeoutSpinner;
     private JPanel settingsPane;
@@ -63,6 +66,7 @@ public class SettingsPanel {
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
     private JTextField cloneBaseUrlTextField;
+    private JCheckBox forceDefaultBranchCheckbox;
 
     private boolean passwordModified;
 
@@ -105,6 +109,54 @@ public class SettingsPanel {
                             "Login Failure");
                 }
                 setPassword(password);
+            }
+        });
+
+        setDefaultsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // TODO add confirmation dialog?
+                // Save these settings as the default settings
+                GerritSettingsData defaultSettings = gerritSettings.getDefaultSettings();
+                String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
+                gerritSettings.setDefaultPassword(password);
+                defaultSettings.setLogin(getLogin());
+                defaultSettings.setHost(getHost());
+                defaultSettings.setRefreshTimeout(getRefreshTimeout());
+                defaultSettings.setReviewNotifications(getReviewNotifications());
+                defaultSettings.setAutomaticRefresh(getAutomaticRefresh());
+                defaultSettings.setListAllChanges(getListAllChanges());
+                defaultSettings.setPushToGerrit(getPushToGerrit());
+                defaultSettings.setShowChangeNumberColumn(getShowChangeNumberColumn());
+                defaultSettings.setShowChangeIdColumn(getShowChangeIdColumn());
+                defaultSettings.setShowTopicColumn(getShowTopicColumn());
+                defaultSettings.setShowProjectColumn(getShowProjectColumn());
+                defaultSettings.setCloneBaseUrl(getCloneBaseUrl());
+                defaultSettings.setForceDefaultBranch(getForceDefaultBranch());
+                Messages.showInfoMessage(pane, "Default settings updated", "Success");
+            }
+        });
+        loadDefaultsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // TODO add confirmation dialog?
+                // Load default settings
+                GerritSettingsData defaultSettings = gerritSettings.getDefaultSettings();
+                loginTextField.setText(defaultSettings.getLogin());
+                passwordField.setText(gerritSettings.getDefaultPassword());
+                hostTextField.setText(defaultSettings.getHost());
+                refreshTimeoutSpinner.setValue(defaultSettings.getRefreshTimeout());
+                notificationOnNewReviewsCheckbox.setSelected(defaultSettings.getReviewNotifications());
+                automaticRefreshCheckbox.setSelected(defaultSettings.getAutomaticRefresh());
+                listAllChangesCheckbox.setSelected(defaultSettings.getListAllChanges());
+                pushToGerritCheckbox.setSelected(defaultSettings.getPushToGerrit());
+                showChangeNumberColumnCheckBox.setSelected(defaultSettings.getShowChangeNumberColumn());
+                showChangeIdColumnCheckBox.setSelected(defaultSettings.getShowChangeIdColumn());
+                showTopicColumnCheckBox.setSelected(defaultSettings.getShowTopicColumn());
+                showProjectColumnComboBox.setSelectedItem(defaultSettings.getShowProjectColumn());
+                cloneBaseUrlTextField.setText(defaultSettings.getCloneBaseUrl());
+                forceDefaultBranchCheckbox.setSelected(defaultSettings.getForceDefaultBranch());
+                Messages.showInfoMessage(pane, "Reset project settings to match default", "Success");
             }
         });
 
@@ -281,5 +333,8 @@ public class SettingsPanel {
         return cloneBaseUrlTextField.getText().trim();
     }
 
+    public void setForceDefaultBranch(final boolean forceDefaultBranch) {forceDefaultBranchCheckbox.setSelected(forceDefaultBranch);}
+
+    public boolean getForceDefaultBranch() {return forceDefaultBranchCheckbox.isSelected();}
 }
 

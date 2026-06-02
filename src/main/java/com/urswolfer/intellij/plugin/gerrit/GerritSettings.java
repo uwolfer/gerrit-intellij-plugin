@@ -20,6 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
@@ -56,7 +57,12 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
     private static final String CLONE_BASE_URL = "CloneBaseUrl";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
-    private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(GerritSettings.class.getName(), GERRIT_SETTINGS_PASSWORD_KEY);
+    private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(
+            CredentialAttributesKt.generateServiceName("Gerrit", GERRIT_SETTINGS_PASSWORD_KEY),
+            GERRIT_SETTINGS_PASSWORD_KEY);
+    private static final CredentialAttributes LEGACY_CREDENTIAL_ATTRIBUTES = new CredentialAttributes(
+            GerritSettings.class.getName(),
+            GERRIT_SETTINGS_PASSWORD_KEY);
 
     private String login = "";
     private String host = "";
@@ -160,7 +166,14 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void preloadPassword() {
-        Credentials credentials = PasswordSafe.getInstance().get(CREDENTIAL_ATTRIBUTES);
+        PasswordSafe passwordSafe = PasswordSafe.getInstance();
+        Credentials credentials = passwordSafe.get(CREDENTIAL_ATTRIBUTES);
+        if (credentials == null) {
+            credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
+            if (credentials != null) {
+                passwordSafe.set(CREDENTIAL_ATTRIBUTES, credentials);
+            }
+        }
         String password = credentials != null ? credentials.getPasswordAsString() : null;
         preloadedPassword = Optional.fromNullable(password);
     }
@@ -209,7 +222,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void forgetPassword() {
-        PasswordSafe.getInstance().set(CREDENTIAL_ATTRIBUTES, null);
+        PasswordSafe passwordSafe = PasswordSafe.getInstance();
+        passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
+        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
     }
 
     public void setHost(final String host) {

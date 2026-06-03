@@ -35,11 +35,11 @@ public class GerritSettingsTest {
     }
 
     private static String serviceName(CredentialAttributes attributes) throws Exception {
-        return (String) credentialAttributesMethod("getServiceName").invoke(attributes);
+        return attributes.getServiceName();
     }
 
     private static String userName(CredentialAttributes attributes) throws Exception {
-        return (String) credentialAttributesMethod("getUserName").invoke(attributes);
+        return attributes.getUserName();
     }
 
     private static Method credentialAttributesMethod(String name) throws Exception {

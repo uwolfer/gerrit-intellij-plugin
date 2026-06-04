@@ -6,7 +6,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
 public class GerritSettingsTest {
 
@@ -40,9 +39,5 @@ public class GerritSettingsTest {
 
     private static String userName(CredentialAttributes attributes) throws Exception {
         return attributes.getUserName();
-    }
-
-    private static Method credentialAttributesMethod(String name) throws Exception {
-        return CredentialAttributes.class.getMethod(name);
     }
 }

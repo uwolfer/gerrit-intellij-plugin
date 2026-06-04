@@ -219,7 +219,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
     }
 
     public void setPassword(final String password) {
-        PasswordSafe.getInstance().set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
+        PasswordSafe passwordSafe = PasswordSafe.getInstance();
+        passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
+        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
     }
 
     public void forgetPassword() {

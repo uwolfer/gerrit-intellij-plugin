@@ -70,6 +70,7 @@ import git4idea.repo.GitRepositoryManager;
 import git4idea.util.GitUntrackedFilesHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -143,22 +144,20 @@ public class GerritGitUtil {
         GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                GitRemote remote;
-                String fetch;
                 boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
-                if (commitIsFetched) {
-                    // 'git fetch' works with a local path instead of a remote -> this way FETCH_HEAD is set
-                    remote = new GitRemote(gitRepository.getRoot().getPath(),
-                        Collections.<String>emptyList(), Collections.<String>emptySet(), Collections.<String>emptyList(), Collections.<String>emptyList());
-                    fetch = commitHash;
-                } else {
-                    remote = getRemoteForChange(project, gitRepository, fetchInfo).orNull();
-                    if (remote == null) {
-                        return;
-                    }
-                    fetch = fetchInfo.ref;
+                Optional<Pair<GitRemote, String>> fetchTarget = determineFetchTarget(
+                    project,
+                    gitRepository,
+                    fetchInfo,
+                    commitHash,
+                    commitIsFetched
+                );
+                if (!fetchTarget.isPresent()) {
+                    return;
                 }
-                GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote, fetch);
+
+                Pair<GitRemote, String> target = fetchTarget.get();
+                GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, target.first, target.second);
                 result.showNotificationIfFailed();
 
                 try {
@@ -170,6 +169,36 @@ public class GerritGitUtil {
                  }
             }
         });
+    }
+
+    @VisibleForTesting
+    Optional<Pair<GitRemote, String>> determineFetchTarget(
+        Project project,
+        GitRepository gitRepository,
+        FetchInfo fetchInfo,
+        String commitHash,
+        boolean commitIsFetched
+    ) {
+        if (commitIsFetched) {
+            return Optional.of(Pair.create(createSelfFetchRemote(), commitHash));
+        }
+
+        return getRemoteForChange(project, gitRepository, fetchInfo).transform(remote -> Pair.create(remote, fetchInfo.ref));
+    }
+
+    private static GitRemote createSelfFetchRemote() {
+        // fetch from "." (the repo's own working directory) instead of an absolute path: under WSL2,
+        // IntelliJ's absolute path is a Windows UNC path that's meaningless to git running inside the
+        // Linux subsystem, while "." always resolves correctly since it's relative to the process's cwd
+        String workingDirectory = ".";
+
+        return new GitRemote(
+            workingDirectory,
+            Collections.emptyList(),
+            Collections.emptySet(),
+            Collections.emptyList(),
+            Collections.emptyList()
+        );
     }
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {

@@ -35,7 +35,7 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsException;
-import com.intellij.openapi.vcs.changes.ChangeListManagerImpl;
+import com.intellij.openapi.vcs.changes.ChangeListManagerEx;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -174,7 +174,7 @@ public class GerritGitUtil {
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
         FileDocumentManager.getInstance().saveAllDocuments();
-        ChangeListManagerImpl.getInstanceImpl(project).blockModalNotifications();
+        ChangeListManagerEx.getInstanceEx(project).blockModalNotifications();
 
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
@@ -200,7 +200,7 @@ public class GerritGitUtil {
                     application.invokeLater(new Runnable() {
                         public void run() {
                             virtualFileManager.syncRefresh();
-                            ChangeListManagerImpl.getInstanceImpl(project).unblockModalNotifications();
+                            ChangeListManagerEx.getInstanceEx(project).unblockModalNotifications();
                         }
                     });
                 }

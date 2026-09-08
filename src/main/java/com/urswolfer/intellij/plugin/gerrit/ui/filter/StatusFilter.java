@@ -39,8 +39,7 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("All", null),
             new Status("Open", "open"),
             new Status("Merged", "merged"),
-            new Status("Abandoned", "abandoned"),
-            new Status("Drafts", "draft")
+            new Status("Abandoned", "abandoned")
     );
 
     private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {

@@ -18,7 +18,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
@@ -45,8 +44,6 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     private static final String POPUP_TEXT = String.format("%s to search",
         KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
-    @Inject
-    private JBPopupFactory jbPopupFactory;
 
     private ImmutableList<User> users;
     private JBPopup popup;
@@ -152,7 +149,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         }
 
         private JBPopup buildBalloon(JTextArea textArea) {
-            ComponentPopupBuilder builder = jbPopupFactory.
+            ComponentPopupBuilder builder = JBPopupFactory.getInstance().
                 createComponentPopupBuilder(textArea, textArea);
             builder.setAdText(POPUP_TEXT);
             builder.setResizable(true);

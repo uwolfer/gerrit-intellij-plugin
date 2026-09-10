@@ -78,7 +78,6 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
-    private final ShowSettingsUtil showSettingsUtil;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
@@ -92,12 +91,10 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     @Inject
     public GerritChangeListPanel(SelectedRevisions selectedRevisions,
                                  GerritSelectRevisionInfoColumn selectRevisionInfoColumn,
-                                 GerritSettings gerritSettings,
-                                 ShowSettingsUtil showSettingsUtil) {
+                                 GerritSettings gerritSettings) {
         this.selectedRevisions = selectedRevisions;
         this.selectRevisionInfoColumn = selectRevisionInfoColumn;
         this.gerritSettings = gerritSettings;
-        this.showSettingsUtil = showSettingsUtil;
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>();
@@ -174,7 +171,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
-                    showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
                 }
             });
             emptyText.appendText(" to configure this plugin and press the refresh button afterwards.");

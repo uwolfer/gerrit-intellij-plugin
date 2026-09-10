@@ -72,8 +72,6 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION).reverse();
 
     @Inject
-    private LocalFileSystem localFileSystem;
-    @Inject
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
@@ -118,7 +116,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             return;
         }
         dialog.rememberSettings();
-        final VirtualFile destinationParent = localFileSystem.findFileByIoFile(new File(dialog.getParentDirectory()));
+        final VirtualFile destinationParent = LocalFileSystem.getInstance().findFileByIoFile(new File(dialog.getParentDirectory()));
         if (destinationParent == null) {
             return;
         }

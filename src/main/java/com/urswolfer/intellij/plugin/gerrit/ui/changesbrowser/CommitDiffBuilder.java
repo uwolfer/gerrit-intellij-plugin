@@ -25,6 +25,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.vcs.log.VcsFullCommitDetails;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import git4idea.GitCommit;
 import git4idea.changes.GitChangeUtils;
@@ -95,7 +96,9 @@ public class CommitDiffBuilder {
     private static final class SimpleChangesProvider implements ChangesProvider {
         @Override
         public Collection<Change> provide(GitCommit gitCommit) {
-            return gitCommit.getChanges();
+            // through the published interface: VcsChangesLazilyParsedDetails is experimental API
+            VcsFullCommitDetails commitDetails = gitCommit;
+            return commitDetails.getChanges();
         }
     }
 }

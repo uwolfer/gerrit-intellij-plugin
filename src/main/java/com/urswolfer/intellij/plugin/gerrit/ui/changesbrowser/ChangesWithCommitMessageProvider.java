@@ -22,6 +22,7 @@ import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.RemoteFilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.SimpleContentRevision;
+import com.intellij.vcs.log.VcsFullCommitDetails;
 import git4idea.GitCommit;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,7 +39,9 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
     }
 
     private Collection<Change> getChangesWithCommitMessage(GitCommit gitCommit) {
-        Collection<Change> changes = gitCommit.getChanges();
+        // through the published interface: VcsChangesLazilyParsedDetails is experimental API
+        VcsFullCommitDetails commitDetails = gitCommit;
+        Collection<Change> changes = commitDetails.getChanges();
 
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         FilePath commitMsg = new RemoteFilePath("/COMMIT_MSG", false) {

@@ -19,15 +19,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.inject.Inject;
-import com.intellij.openapi.components.ProjectComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.List;
@@ -36,10 +33,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
+ * Driven by {@link GerritUpdatesNotificationStartupActivity}.
+ *
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritUpdatesNotificationComponent implements ProjectComponent, Consumer<List<ChangeInfo>> {
+public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>> {
     @Inject
     private GerritUtil gerritUtil;
     @Inject
@@ -51,22 +49,14 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
     private Set<String> notifiedChanges = new HashSet<String>();
     private Project project;
 
-    @Override
     public void projectOpened() {
         handleNotification();
         setupRefreshTask();
     }
 
-    @Override
     public void projectClosed() {
         cancelPendingNotificationTasks();
         notifiedChanges.clear();
-    }
-
-    @NotNull
-    @Override
-    public String getComponentName() {
-        return "GerritUpdatesNotificationComponent";
     }
 
     public void handleConfigurationChange() {
@@ -151,38 +141,6 @@ public class GerritUpdatesNotificationComponent implements ProjectComponent, Con
             if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
                 timer.schedule(new CheckReviewTask(), refreshTimeout * 60 * 1000);
             }
-        }
-    }
-
-    @SuppressWarnings("UnusedDeclaration")
-    private static class Proxy extends GerritUpdatesNotificationComponent {
-
-        private final GerritUpdatesNotificationComponent delegate;
-
-        public Proxy(Project project) {
-            delegate = GerritModule.getInstance(GerritUpdatesNotificationComponent.class);
-            delegate.setProject(project);
-        }
-
-        @Override
-        public void projectOpened() {
-            delegate.projectOpened();
-        }
-
-        @Override
-        public void projectClosed() {
-            delegate.projectClosed();
-        }
-
-        @NotNull
-        @Override
-        public String getComponentName() {
-            return delegate.getComponentName();
-        }
-
-        @Override
-        public void setProject(Project project) {
-            delegate.setProject(project);
         }
     }
 }

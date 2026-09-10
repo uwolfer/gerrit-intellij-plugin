@@ -17,13 +17,10 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.google.inject.Inject;
-import com.intellij.openapi.components.NamedComponent;
 import com.intellij.openapi.diagnostic.Logger;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
 import javassist.*;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Since there are no entry points for modifying the push dialog without copying a lot of source, some modifications
@@ -33,10 +30,12 @@ import org.jetbrains.annotations.NotNull;
  * * Some methods of GitPushSupport are overwritten in order to inject Gerrit push support.
  * * GerritPushExtensionPanel, GerritPushOptionsPanel and GerritPushTargetPanel get copied to the Git plugin class loader.
  *
+ * The byte-code modifications are triggered by instantiating this class, which {@link GerritPushExtensionStarter}
+ * does on application startup.
+ *
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
-public class GerritPushExtension implements NamedComponent {
+public class GerritPushExtension {
 
     @Inject
     private GerritSettings gerritSettings;
@@ -127,26 +126,6 @@ public class GerritPushExtension implements NamedComponent {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
         } catch (NotFoundException e) {
             log.error("Failed to load class required for Gerrit push UI injections.", e);
-        }
-    }
-
-    @NotNull
-    public String getComponentName() {
-        return "GerritPushExtension";
-    }
-
-
-    public static final class Proxy implements NamedComponent {
-        private final GerritPushExtension delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(GerritPushExtension.class);
-        }
-
-        @NotNull
-        @Override
-        public String getComponentName() {
-            return delegate.getComponentName();
         }
     }
 }

@@ -520,20 +520,13 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
-  <application-components>
-    <component>
-      <implementation-class>com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension$Proxy</implementation-class>
-    </component>
-  </application-components>
-
-  <project-components>
-    <component>
-      <interface-class>com.intellij.openapi.components.ProjectComponent</interface-class>
-      <implementation-class>com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent$Proxy</implementation-class>
-    </component>
-  </project-components>
+  <applicationListeners>
+    <listener class="com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionStarter"
+              topic="com.intellij.ide.AppLifecycleListener"/>
+  </applicationListeners>
 
   <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationStartupActivity"/>
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider$Proxy"/>
     <applicationService serviceInterface="com.urswolfer.intellij.plugin.gerrit.GerritSettings"
                         serviceImplementation="com.urswolfer.intellij.plugin.gerrit.GerritSettings"/>

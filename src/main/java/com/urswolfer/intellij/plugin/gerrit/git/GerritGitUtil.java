@@ -25,7 +25,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.inject.Inject;
 import com.intellij.dvcs.util.CommitCompareInfo;
-import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -82,12 +82,6 @@ import java.util.concurrent.Callable;
  * @author Urs Wolfer
  */
 public class GerritGitUtil {
-    @Inject
-    private Git git;
-    @Inject
-    private Application application;
-    @Inject
-    private VirtualFileManager virtualFileManager;
     @Inject
     private GerritSettings gerritSettings;
     @Inject
@@ -224,11 +218,11 @@ public class GerritGitUtil {
                     VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
                         HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
 
-                    cherryPick(gitRepository, gitCommit, git, project);
+                    cherryPick(gitRepository, gitCommit, project);
                 } finally {
-                    application.invokeLater(new Runnable() {
+                    ApplicationManager.getApplication().invokeLater(new Runnable() {
                         public void run() {
-                            virtualFileManager.syncRefresh();
+                            VirtualFileManager.getInstance().syncRefresh();
                             ChangeListManagerEx.getInstanceEx(project).unblockModalNotifications();
                         }
                     });
@@ -241,12 +235,12 @@ public class GerritGitUtil {
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
     private boolean cherryPick(@NotNull GitRepository repository, @NotNull VcsShortCommitDetails commit,
-                               @NotNull Git git, @NotNull Project project) {
+                               @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = git.cherryPick(repository, commit.getId().asString(), false, true,
+        GitCommandResult result = Git.getInstance().cherryPick(repository, commit.getId().asString(), false, true,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
@@ -339,7 +333,7 @@ public class GerritGitUtil {
         h.addParameters("--format=short");
         h.endOptions();
         h.addLineListener(listener);
-        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+        GitCommandResult gitCommandResult = Git.getInstance().runCommand(new Computable<GitLineHandler>() {
             @Override
             public GitLineHandler compute() {
                 return h;
@@ -383,7 +377,7 @@ public class GerritGitUtil {
         h.addParameters("-u", "remotes/" + remoteBranch);
         h.endOptions();
         h.addLineListener(listener);
-        GitCommandResult gitCommandResult = git.runCommand(new Computable<GitLineHandler>() {
+        GitCommandResult gitCommandResult = Git.getInstance().runCommand(new Computable<GitLineHandler>() {
             @Override
             public GitLineHandler compute() {
                 return h;

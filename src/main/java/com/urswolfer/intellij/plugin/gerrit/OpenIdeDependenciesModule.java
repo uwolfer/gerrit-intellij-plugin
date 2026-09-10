@@ -17,21 +17,13 @@
 package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.inject.AbstractModule;
-import com.intellij.ide.DataManager;
-import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ShowSettingsUtil;
-import com.intellij.openapi.ui.popup.JBPopupFactory;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import git4idea.commands.Git;
 
 /**
- * Bindings for all dependencies to required OpenIDE service instances.
+ * Binds the plugin's shared logger, which is the only OpenIDE instance still routed through Guice.
  *
- * If you want to avoid calls to #getInstance() register the required
- * idea service here and inject it in your own service.
+ * Do not add IDE services or components here: they expose a #getInstance() of their own, so call that
+ * where you need one.
  *
  * @author Thomas Forrer
  */
@@ -41,16 +33,5 @@ public class OpenIdeDependenciesModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(Logger.class).toInstance(LOG);
-        bind(Application.class).toInstance(ApplicationManager.getApplication());
-
-        bind(LocalFileSystem.class).toInstance(LocalFileSystem.getInstance());
-
-        bind(Git.class).toInstance(ApplicationManager.getApplication().getService(Git.class));
-        bind(VirtualFileManager.class).toInstance(VirtualFileManager.getInstance());
-
-        bind(ShowSettingsUtil.class).toInstance(ShowSettingsUtil.getInstance());
-        bind(DataManager.class).toInstance(DataManager.getInstance());
-
-        bind(JBPopupFactory.class).toInstance(JBPopupFactory.getInstance());
     }
 }

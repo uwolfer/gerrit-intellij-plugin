@@ -124,7 +124,7 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
             if (timer == null) {
                 timer = new Timer();
             }
-            timer.schedule(new CheckReviewTask(), refreshTimeout * 60 * 1000);
+            timer.schedule(new CheckReviewTask(timer), refreshTimeout * 60 * 1000);
         }
     }
 
@@ -132,18 +132,24 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
         this.project = project;
     }
 
-    /** No-op once the task has been cancelled, so a closed project does not resurrect its timer. */
-    private synchronized void rescheduleRefreshTask() {
-        if (timer != null) {
+    /** Ignores a task whose timer has been cancelled or replaced meanwhile, which would double the polling. */
+    private synchronized void rescheduleRefreshTask(Timer scheduledBy) {
+        if (timer == scheduledBy) {
             setupRefreshTask();
         }
     }
 
     private class CheckReviewTask extends TimerTask {
+        private final Timer scheduledBy;
+
+        private CheckReviewTask(Timer scheduledBy) {
+            this.scheduledBy = scheduledBy;
+        }
+
         @Override
         public void run() {
             handleNotification();
-            rescheduleRefreshTask();
+            rescheduleRefreshTask(scheduledBy);
         }
     }
 }

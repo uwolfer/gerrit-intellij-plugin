@@ -62,7 +62,12 @@ public class FulltextFilter extends AbstractChangesFilter {
                 .replace("}", "%7D")
                 .replace("+", "%2B")
                 .replace(' ', '+')
-                .replace("#", "%23");
+                .replace("\"", "%22")
+                .replace("\\", "%5C")
+                .replace("%", "%25")
+                .replace("<", "%3C")
+                .replace(">", "%3E")
+                .replace("^", "%5E");
     }
 
     /** Toolbar widget hosting the filter text field; the field drives the updates, the action itself does nothing. */

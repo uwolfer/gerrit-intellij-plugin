@@ -64,7 +64,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                 new User("Me", "self")
         );
         value = Optional.of(users.get(0));
-        return new UserPopupAction(project, getActionLabel());
+        return new UserPopupAction(getActionLabel());
     }
 
     @Override
@@ -90,11 +90,8 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     }
 
     public final class UserPopupAction extends BasePopupAction {
-        private final Project project;
-
-        public UserPopupAction(Project project, String labelText) {
+        public UserPopupAction(String labelText) {
             super(labelText);
-            this.project = project;
             updateFilterValueLabel(value.get().label);
         }
 
@@ -135,8 +132,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         private void change(User user) {
             value = Optional.of(user);
             updateFilterValueLabel(user.label);
-            setChanged();
-            notifyObservers(project);
+            fireFilterChanged();
         }
 
         private AnAction buildOkAction() {

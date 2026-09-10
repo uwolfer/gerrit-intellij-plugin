@@ -16,10 +16,25 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import java.util.Observable;
+import com.intellij.util.EventDispatcher;
+
+import java.util.EventListener;
 
 /**
  * @author Thomas Forrer
  */
-public abstract class AbstractChangesFilter extends Observable implements ChangesFilter  {
+public abstract class AbstractChangesFilter implements ChangesFilter  {
+    private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
+
+    public void addListener(Listener listener) {
+        eventDispatcher.addListener(listener);
+    }
+
+    protected void fireFilterChanged() {
+        eventDispatcher.getMulticaster().filterChanged();
+    }
+
+    public interface Listener extends EventListener {
+        void filterChanged();
+    }
 }

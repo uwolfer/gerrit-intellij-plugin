@@ -20,9 +20,11 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.intellij.util.EventDispatcher;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.EventListener;
 import java.util.Map;
-import java.util.Observable;
 import java.util.Set;
 
 /**
@@ -30,8 +32,13 @@ import java.util.Set;
  *
  * @author Thomas Forrer
  */
-public class SelectedRevisions extends Observable {
+public class SelectedRevisions {
     private final Map<String, String> map = Maps.newHashMap();
+    private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
+
+    public void addListener(Listener listener) {
+        eventDispatcher.addListener(listener);
+    }
 
     /**
      * @return the selected revision for the provided changeId, or {@link com.google.common.base.Optional#absent()} if
@@ -59,13 +66,19 @@ public class SelectedRevisions extends Observable {
 
     public void put(String changeId, String revisionHash) {
         map.put(changeId, revisionHash);
-        setChanged();
-        notifyObservers(changeId);
+        eventDispatcher.getMulticaster().selectedRevisionChanged(changeId);
     }
 
     public void clear() {
         map.clear();
-        setChanged();
-        notifyObservers();
+        eventDispatcher.getMulticaster().selectedRevisionChanged(null);
+    }
+
+    public interface Listener extends EventListener {
+        /**
+         * @param changeId the change for which the selected revision changed, or {@code null} if all selections were
+         *                 cleared
+         */
+        void selectedRevisionChanged(@Nullable String changeId);
     }
 }

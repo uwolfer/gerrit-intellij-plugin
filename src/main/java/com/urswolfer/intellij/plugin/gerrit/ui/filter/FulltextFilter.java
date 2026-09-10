@@ -37,8 +37,7 @@ public class FulltextFilter extends AbstractChangesFilter {
                 String newValue = getText().trim();
                 if (isNewValue(newValue)) {
                     value = newValue;
-                    setChanged();
-                    notifyObservers(project);
+                    fireFilterChanged();
                 }
             }
 

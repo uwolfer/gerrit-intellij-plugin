@@ -21,29 +21,33 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
+import com.intellij.util.EventDispatcher;
 
-import java.util.Observable;
-import java.util.Observer;
+import java.util.EventListener;
 import java.util.Set;
 
 /**
  * @author Thomas Forrer
  */
-public class GerritChangesFilters extends Observable implements Observer {
+public class GerritChangesFilters implements AbstractChangesFilter.Listener {
     private final Set<AbstractChangesFilter> filters;
+    private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
     @Inject
     public GerritChangesFilters(Set<AbstractChangesFilter> filters) {
         this.filters = filters;
         for (AbstractChangesFilter filter : this.filters) {
-            filter.addObserver(this);
+            filter.addListener(this);
         }
     }
 
+    public void addListener(Listener listener) {
+        eventDispatcher.addListener(listener);
+    }
+
     @Override
-    public void update(Observable observable, Object o) {
-        setChanged();
-        notifyObservers();
+    public void filterChanged() {
+        eventDispatcher.getMulticaster().filtersChanged();
     }
 
     public String getQuery() {
@@ -58,5 +62,9 @@ public class GerritChangesFilters extends Observable implements Observer {
 
     public Iterable<ChangesFilter> getFilters() {
         return ImmutableList.<ChangesFilter>copyOf(filters);
+    }
+
+    public interface Listener extends EventListener {
+        void filtersChanged();
     }
 }

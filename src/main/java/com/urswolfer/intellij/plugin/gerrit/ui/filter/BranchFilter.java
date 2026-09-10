@@ -81,8 +81,7 @@ public class BranchFilter extends AbstractChangesFilter {
                 public void actionPerformed(AnActionEvent e) {
                     value = Optional.absent();
                     updateFilterValueLabel("All");
-                    setChanged();
-                    notifyObservers(project);
+                    fireFilterChanged();
                 }
             });
             Iterable<GitRepository> repositories = gerritGitUtil.getRepositories(project);
@@ -94,8 +93,7 @@ public class BranchFilter extends AbstractChangesFilter {
                     public void actionPerformed(AnActionEvent e) {
                         value = Optional.of(new BranchDescriptor(repository));
                         updateFilterValueLabel(String.format("All (%s)", getNameForRepository(repository)));
-                        setChanged();
-                        notifyObservers(project);
+                        fireFilterChanged();
                     }
                 });
                 List<GitRemoteBranch> branches = Lists.newArrayList(repository.getBranches().getRemoteBranches());
@@ -113,8 +111,7 @@ public class BranchFilter extends AbstractChangesFilter {
                             public void actionPerformed(AnActionEvent e) {
                                 value = Optional.of(new BranchDescriptor(repository, branch));
                                 updateFilterValueLabel(String.format("%s (%s)", branch.getNameForRemoteOperations(), getNameForRepository(repository)));
-                                setChanged();
-                                notifyObservers(project);
+                                fireFilterChanged();
                             }
                         });
                     }

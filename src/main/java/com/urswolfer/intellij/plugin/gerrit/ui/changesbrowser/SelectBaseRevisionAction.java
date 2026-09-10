@@ -38,8 +38,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 
 /**
  * @author Thomas Forrer
@@ -65,11 +63,11 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions) {
         super("Diff against");
         this.selectedRevisions = selectedRevisions;
-        selectedRevisions.addObserver(new Observer() {
+        selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
-            public void update(Observable o, Object arg) {
-                if (arg != null && arg instanceof String && selectedValue.isPresent() ) {
-                    Optional<String> selectedRevision = selectedRevisions.get((String) arg);
+            public void selectedRevisionChanged(String changeId) {
+                if (changeId != null && selectedValue.isPresent()) {
+                    Optional<String> selectedRevision = selectedRevisions.get(changeId);
                     if (selectedRevision.isPresent() && selectedRevision.get().equals(selectedValue.get().getFirst())) {
                         removeSelectedValue();
                         updateLabel();

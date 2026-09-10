@@ -127,7 +127,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                                         .hideBalloon();
                                 notificationService.notifyInformation(notification);
                                 if (finalSubmitChange) {
-                                    submitAction.actionPerformed(anActionEvent);
+                                    submitAction.submit(anActionEvent);
                                 }
                             }
                         }

@@ -56,6 +56,11 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
+        submit(anActionEvent);
+    }
+
+    /** Entry point for other actions; {@code actionPerformed} is override-only and must not be invoked. */
+    public void submit(AnActionEvent anActionEvent) {
         final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
@@ -92,7 +97,12 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
 
         @Override
         public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
+            delegate.submit(e);
+        }
+
+        @Override
+        public void submit(AnActionEvent e) {
+            delegate.submit(e);
         }
     }
 }

@@ -49,7 +49,8 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
     private Set<String> notifiedChanges = new HashSet<String>();
     private volatile Project project;
 
-    public synchronized void projectOpened() {
+    public synchronized void projectOpened(Project project) {
+        this.project = project;
         handleNotification();
         setupRefreshTask();
     }
@@ -126,10 +127,6 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
             }
             timer.schedule(new CheckReviewTask(timer), refreshTimeout * 60 * 1000);
         }
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
     }
 
     /** Ignores a task whose timer has been cancelled or replaced meanwhile, which would double the polling. */

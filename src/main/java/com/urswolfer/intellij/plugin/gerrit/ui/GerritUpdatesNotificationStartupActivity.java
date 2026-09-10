@@ -32,8 +32,7 @@ public class GerritUpdatesNotificationStartupActivity implements StartupActivity
     public void runActivity(@NotNull Project project) {
         final GerritUpdatesNotificationComponent component =
                 GerritModule.getInstance(GerritUpdatesNotificationComponent.class);
-        component.setProject(project);
-        component.projectOpened();
+        component.projectOpened(project);
         Disposer.register(project, new Disposable() {
             @Override
             public void dispose() {

@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -34,9 +33,6 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponen
  */
 @SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class RefreshAction extends AnAction implements DumbAware, UpdateInBackground {
-    @Inject
-    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
-
     public RefreshAction() {
         super("Refresh", "Refresh changes list", AllIcons.Actions.Refresh);
     }
@@ -47,7 +43,7 @@ public class RefreshAction extends AnAction implements DumbAware, UpdateInBackgr
         GerritToolWindowFactory.ProjectService projectService = project.getService(GerritToolWindowFactory.ProjectService.class);
         GerritToolWindow gerritToolWindow = projectService.getGerritToolWindow();
         gerritToolWindow.reloadChanges(project, true);
-        gerritUpdatesNotificationComponent.handleNotification();
+        GerritUpdatesNotificationComponent.getInstance(project).handleNotification();
     }
 
     public static class Proxy extends RefreshAction {

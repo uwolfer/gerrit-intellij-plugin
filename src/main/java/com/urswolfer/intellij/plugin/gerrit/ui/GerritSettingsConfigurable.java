@@ -45,8 +45,6 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
 
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
 
     @NotNull
     public String getDisplayName() {
@@ -104,7 +102,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
             gerritSettings.setCloneBaseUrl(settingsPane.getCloneBaseUrl());
 
-            gerritUpdatesNotificationComponent.handleConfigurationChange();
+            GerritUpdatesNotificationComponent.configurationChanged();
         }
     }
 

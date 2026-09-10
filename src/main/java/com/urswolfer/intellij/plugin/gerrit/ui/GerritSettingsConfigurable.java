@@ -17,15 +17,14 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.inject.Inject;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsConfigurableProvider;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,10 +42,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     private static final String DEFAULT_PASSWORD_TEXT = "************";
     private SettingsPanel settingsPane;
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritUpdatesNotificationComponent gerritUpdatesNotificationComponent;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     @NotNull
     public String getDisplayName() {
@@ -60,7 +56,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
 
     public JComponent createComponent() {
         if (settingsPane == null) {
-            settingsPane = GerritModule.getInstance(SettingsPanel.class);
+            settingsPane = new SettingsPanel();
         }
         return settingsPane.getPanel();
     }
@@ -104,7 +100,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
             gerritSettings.setCloneBaseUrl(settingsPane.getCloneBaseUrl());
 
-            gerritUpdatesNotificationComponent.handleConfigurationChange();
+            for (Project openProject : ProjectManager.getInstance().getOpenProjects()) {
+                GerritUpdatesNotificationComponent.getInstance(openProject).handleConfigurationChange();
+            }
         }
     }
 
@@ -145,67 +143,5 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     @Override
     public Configurable getConfigurable(Project project) {
         return this;
-    }
-
-    public static class Proxy extends GerritSettingsConfigurable {
-        private GerritSettingsConfigurable delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(GerritSettingsConfigurable.class);
-        }
-
-        @Override
-        @NotNull
-        public String getDisplayName() {
-            return delegate.getDisplayName();
-        }
-
-        @Override
-        @NotNull
-        public String getHelpTopic() {
-            return delegate.getHelpTopic();
-        }
-
-        @Override
-        public JComponent createComponent() {
-            return delegate.createComponent();
-        }
-
-        @Override
-        public boolean isModified() {
-            return delegate.isModified();
-        }
-
-        @Override
-        public void apply() throws ConfigurationException {
-            delegate.apply();
-        }
-
-        @Override
-        public void reset() {
-            delegate.reset();
-        }
-
-        @Override
-        public void disposeUIResources() {
-            delegate.disposeUIResources();
-        }
-
-        @Override
-        @NotNull
-        public String getId() {
-            return delegate.getId();
-        }
-
-        @Override
-        public Runnable enableSearch(String option) {
-            return delegate.enableSearch(option);
-        }
-
-        @Nullable
-        @Override
-        public Configurable getConfigurable(Project project) {
-            return delegate.getConfigurable(project);
-        }
     }
 }

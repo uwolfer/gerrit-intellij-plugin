@@ -16,11 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
-import com.intellij.openapi.util.Disposer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -30,14 +27,7 @@ public class GerritUpdatesNotificationStartupActivity implements StartupActivity
 
     @Override
     public void runActivity(@NotNull Project project) {
-        final GerritUpdatesNotificationComponent component =
-                GerritModule.getInstance(GerritUpdatesNotificationComponent.class);
-        component.projectOpened(project);
-        Disposer.register(project, new Disposable() {
-            @Override
-            public void dispose() {
-                component.projectClosed();
-            }
-        });
+        // the component is a project service, so the project disposes it and cancels its refresh task
+        GerritUpdatesNotificationComponent.getInstance(project).projectOpened();
     }
 }

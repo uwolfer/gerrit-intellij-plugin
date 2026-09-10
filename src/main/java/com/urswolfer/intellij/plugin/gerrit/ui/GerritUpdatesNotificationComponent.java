@@ -18,7 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
+import com.intellij.openapi.Disposable;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -37,25 +38,31 @@ import java.util.TimerTask;
  *
  * @author Urs Wolfer
  */
-public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>> {
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private NotificationService notificationService;
+@Service(Service.Level.PROJECT)
+public final class GerritUpdatesNotificationComponent implements Disposable, Consumer<List<ChangeInfo>> {
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
+    private final Project project;
+    private final Set<String> notifiedChanges = new HashSet<String>();
     private Timer timer;
-    private Set<String> notifiedChanges = new HashSet<String>();
-    private volatile Project project;
 
-    public synchronized void projectOpened(Project project) {
+    public GerritUpdatesNotificationComponent(Project project) {
         this.project = project;
+    }
+
+    public static GerritUpdatesNotificationComponent getInstance(Project project) {
+        return project.getService(GerritUpdatesNotificationComponent.class);
+    }
+
+    public synchronized void projectOpened() {
         handleNotification();
         setupRefreshTask();
     }
 
-    public synchronized void projectClosed() {
+    @Override
+    public synchronized void dispose() {
         cancelPendingNotificationTasks();
         notifiedChanges.clear();
     }
@@ -112,41 +119,32 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
         }
     }
 
-    private synchronized void cancelPendingNotificationTasks() {
+    private void cancelPendingNotificationTasks() {
         if (timer != null) {
             timer.cancel();
             timer = null;
         }
     }
 
-    private synchronized void setupRefreshTask() {
+    private void setupRefreshTask() {
         long refreshTimeout = gerritSettings.getRefreshTimeout();
         if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
             if (timer == null) {
                 timer = new Timer();
             }
-            timer.schedule(new CheckReviewTask(timer), refreshTimeout * 60 * 1000);
-        }
-    }
-
-    /** Ignores a task whose timer has been cancelled or replaced meanwhile, which would double the polling. */
-    private synchronized void rescheduleRefreshTask(Timer scheduledBy) {
-        if (timer == scheduledBy) {
-            setupRefreshTask();
+            timer.schedule(new CheckReviewTask(), refreshTimeout * 60 * 1000);
         }
     }
 
     private class CheckReviewTask extends TimerTask {
-        private final Timer scheduledBy;
-
-        private CheckReviewTask(Timer scheduledBy) {
-            this.scheduledBy = scheduledBy;
-        }
-
         @Override
         public void run() {
             handleNotification();
-            rescheduleRefreshTask(scheduledBy);
+
+            long refreshTimeout = gerritSettings.getRefreshTimeout();
+            if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
+                timer.schedule(new CheckReviewTask(), refreshTimeout * 60 * 1000);
+            }
         }
     }
 }

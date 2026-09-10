@@ -18,7 +18,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
-import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -45,6 +44,8 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class SettingsPanel {
+    private static final Logger LOG = Logger.getInstance(SettingsPanel.class);
+
     private JTextField loginTextField;
     private JPasswordField passwordField;
     private JTextPane gerritLoginInfoTextField;
@@ -66,12 +67,8 @@ public class SettingsPanel {
 
     private boolean passwordModified;
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private Logger log;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
     public SettingsPanel() {
         hostTextField.getEmptyText().setText("https://review.example.org");
@@ -100,7 +97,7 @@ public class SettingsPanel {
                         Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
                     }
                 } catch (Exception ex) {
-                    log.info(ex);
+                    LOG.info(ex);
                     Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }

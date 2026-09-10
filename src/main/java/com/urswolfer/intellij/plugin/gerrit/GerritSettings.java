@@ -25,6 +25,7 @@ import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
@@ -40,8 +41,10 @@ import org.jetbrains.annotations.Nullable;
  * @author oleg
  * @author Urs Wolfer
  */
+@Service(Service.Level.APP)
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
-public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
+public final class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
+    private static final Logger LOG = Logger.getInstance(GerritSettings.class);
 
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
@@ -79,7 +82,9 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private Optional<String> preloadedPassword;
 
-    private Logger log;
+    public static GerritSettings getInstance() {
+        return ApplicationManager.getApplication().getService(GerritSettings.class);
+    }
 
     public Element getState() {
         final Element element = new Element(GERRIT_SETTINGS_TAG);
@@ -115,7 +120,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
             setCloneBaseUrl(element.getAttributeValue(CLONE_BASE_URL));
         } catch (Exception e) {
-            log.error("Error happened while loading gerrit settings: " + e);
+            LOG.error("Error happened while loading gerrit settings: " + e);
         }
     }
 
@@ -292,10 +297,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public String getCloneBaseUrl() {
         return cloneBaseUrl;
-    }
-
-    public void setLog(Logger log) {
-        this.log = log;
     }
 
     public String getCloneBaseUrlOrHost() {

@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -50,18 +49,13 @@ import java.util.List;
  * @author Konrad Dobrzynski
  */
 public class GerritToolWindow {
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritChangeListPanel changeListPanel;
-    @Inject
-    private Logger log;
-    @Inject
-    private GerritChangesFilters changesFilters;
-    @Inject
-    private RepositoryChangesBrowserProvider repositoryChangesBrowserProvider;
+    private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
+
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final GerritChangeListPanel changeListPanel = new GerritChangeListPanel();
+    private final GerritChangesFilters changesFilters = new GerritChangesFilters();
+    private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
     private GerritChangeDetailsPanel detailsPanel;
 
@@ -136,7 +130,7 @@ public class GerritToolWindow {
         String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil, log);
+                final LoginDialog dialog = new LoginDialog(project);
                 dialog.show();
                 if (!dialog.isOK()) {
                     return;

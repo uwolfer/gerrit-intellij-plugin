@@ -18,13 +18,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import icons.DvcsImplIcons;
@@ -34,14 +32,10 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class CherryPickAction extends AbstractChangeAction {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private FetchAction fetchAction;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final FetchAction fetchAction = new FetchAction();
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     public CherryPickAction() {
         super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", DvcsImplIcons.CherryPick);
@@ -75,16 +69,4 @@ public class CherryPickAction extends AbstractChangeAction {
         });
     }
 
-    public static class Proxy extends CherryPickAction {
-        private final CherryPickAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(CherryPickAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

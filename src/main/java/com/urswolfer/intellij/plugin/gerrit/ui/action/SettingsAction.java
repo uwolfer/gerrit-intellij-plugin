@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -25,17 +24,14 @@ import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurable;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SettingsAction extends AnAction implements DumbAware, UpdateInBackground {
 
-    @Inject
-    private ShowSettingsUtil showSettingsUtil;
+    private final ShowSettingsUtil showSettingsUtil = ShowSettingsUtil.getInstance();
 
     public SettingsAction() {
         super("Settings", "Open Gerrit Plugin Settings", AllIcons.General.Settings);
@@ -47,16 +43,4 @@ public class SettingsAction extends AnAction implements DumbAware, UpdateInBackg
         showSettingsUtil.showSettingsDialog(project, GerritSettingsConfigurable.NAME);
     }
 
-    public static class Proxy extends SettingsAction {
-        private final SettingsAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(SettingsAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

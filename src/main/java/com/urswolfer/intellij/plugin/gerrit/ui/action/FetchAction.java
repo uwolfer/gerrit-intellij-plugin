@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
-import com.google.inject.Inject;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -35,14 +34,10 @@ import java.util.concurrent.Callable;
  * @author Urs Wolfer
  */
 public class FetchAction {
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private NotificationService notificationService;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> fetchCallback) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {

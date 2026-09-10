@@ -17,11 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.google.inject.Inject;
 import com.intellij.diff.chains.DiffRequestChain;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
@@ -61,25 +61,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
  * @author Thomas Forrer
  */
 public class RepositoryChangesBrowserProvider {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private NotificationService notificationService;
-    @Inject
-    private Logger log;
-    @Inject
-    private Set<GerritChangeNodeDecorator> changeNodeDecorators;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private static final Logger LOG = Logger.getInstance(RepositoryChangesBrowserProvider.class);
+
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
+    private final List<GerritChangeNodeDecorator> changeNodeDecorators =
+        ImmutableList.<GerritChangeNodeDecorator>of(new GerritCommentCountChangeNodeDecorator());
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
@@ -191,7 +186,7 @@ public class RepositoryChangesBrowserProvider {
                             totalDiff = changesProvider.provide(currentCommit);
                         }
                     } catch (VcsException e) {
-                        log.warn("Error getting Git commit details.", e);
+                        LOG.warn("Error getting Git commit details.", e);
                         NotificationBuilder notification = new NotificationBuilder(
                                 project, "Cannot show change",
                                 "Git error occurred while getting commit. Please check if Gerrit is configured as remote " +

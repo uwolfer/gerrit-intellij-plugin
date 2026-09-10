@@ -24,7 +24,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -43,10 +42,8 @@ import org.jetbrains.annotations.Nullable;
  * @author Thomas Forrer
  */
 public class BranchFilter extends AbstractChangesFilter {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private GerritUtil gerritUtil;
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
     private Optional<BranchDescriptor> value = Optional.absent();
 

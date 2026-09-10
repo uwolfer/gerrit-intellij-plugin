@@ -16,7 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
-import com.google.inject.Inject;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
@@ -30,20 +31,18 @@ import javassist.*;
  * * Some methods of GitPushSupport are overwritten in order to inject Gerrit push support.
  * * GerritPushExtensionPanel, GerritPushOptionsPanel and GerritPushTargetPanel get copied to the Git plugin class loader.
  *
- * The byte-code modifications are triggered by instantiating this class, which {@link GerritPushExtensionStarter}
- * does on application startup.
- *
  * @author Urs Wolfer
  */
-public class GerritPushExtension {
+@Service(Service.Level.APP)
+public final class GerritPushExtension {
+    private static final Logger LOG = Logger.getInstance(GerritPushExtension.class);
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
-    @Inject
-    public void initComponent() {
+    /**
+     * Instantiating the service applies the push dialog modifications exactly once per IDE run.
+     */
+    public GerritPushExtension() {
         try {
             ClassPool classPool = ClassPool.getDefault();
 
@@ -56,9 +55,9 @@ public class GerritPushExtension {
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
         } catch (Exception e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (Error e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         }
     }
 
@@ -99,9 +98,9 @@ public class GerritPushExtension {
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
         } catch (CannotCompileException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (NotFoundException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         }
     }
 
@@ -123,9 +122,13 @@ public class GerritPushExtension {
             loadedClass.toClass(targetClassLoader, GitPushOperation.class.getProtectionDomain());
             loadedClass.detach();
         } catch (CannotCompileException e) {
-            log.error("Failed to load class required for Gerrit push UI injections.", e);
+            LOG.error("Failed to load class required for Gerrit push UI injections.", e);
         } catch (NotFoundException e) {
-            log.error("Failed to load class required for Gerrit push UI injections.", e);
+            LOG.error("Failed to load class required for Gerrit push UI injections.", e);
         }
+    }
+
+    public static GerritPushExtension getInstance() {
+        return ApplicationManager.getApplication().getService(GerritPushExtension.class);
     }
 }

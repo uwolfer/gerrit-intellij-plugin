@@ -29,7 +29,6 @@ import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
-import com.google.inject.Inject;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -38,16 +37,14 @@ import com.intellij.openapi.vcs.CheckoutProvider;
 import com.intellij.openapi.vcs.VcsKey;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.urswolfer.gerrit.client.rest.GerritRestApi;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.checkout.GitCheckoutProvider;
 import git4idea.checkout.GitCloneDialog;
 import git4idea.commands.Git;
-import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,6 +60,7 @@ import java.util.List;
  * @author Urs Wolfer
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
+    private static final Logger LOG = Logger.getInstance(GerritCheckoutProvider.class);
 
     private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
         public String apply(ProjectInfo from) {
@@ -71,18 +69,9 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     };
     private static final Ordering<ProjectInfo> ID_REVERSE_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION).reverse();
 
-    @Inject
-    private LocalFileSystem localFileSystem;
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
-    @Inject
-    private NotificationService notificationService;
-    @Inject
-    private GerritRestApi gerritApi;
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     @Override
     public void doCheckout(@NotNull final Project project, @Nullable final Listener listener) {
@@ -94,7 +83,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         try {
             availableProjects = gerritUtil.getAvailableProjects(project);
         } catch (Exception e) {
-            log.info(e);
+            LOG.info(e);
             NotificationBuilder notification = new NotificationBuilder(
                     project,
                     "Couldn't get the list of Gerrit repositories",
@@ -118,7 +107,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
             return;
         }
         dialog.rememberSettings();
-        final VirtualFile destinationParent = localFileSystem.findFileByIoFile(new File(dialog.getParentDirectory()));
+        final VirtualFile destinationParent = LocalFileSystem.getInstance().findFileByIoFile(new File(dialog.getParentDirectory()));
         if (destinationParent == null) {
             return;
         }
@@ -150,12 +139,12 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         }
         String url = gerritSettings.getHost();
         try {
-            List<ChangeInfo> changeInfos = gerritApi.changes().query()
+            List<ChangeInfo> changeInfos = GerritApiProvider.getInstance().get().changes().query()
                 .withLimit(1)
                 .withOption(ListChangesOption.CURRENT_REVISION)
                 .get();
             if (changeInfos.isEmpty()) {
-                log.info("ChangeInfo list is empty.");
+                LOG.info("ChangeInfo list is empty.");
                 return url;
             }
             ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
@@ -165,7 +154,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
             }
         } catch (RestApiException e) {
-            log.info(e);
+            LOG.info(e);
         }
         return url;
     }
@@ -193,7 +182,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
         try {
-            InputStream commitMessageHook = gerritApi.tools().getCommitMessageHook();
+            InputStream commitMessageHook = GerritApiProvider.getInstance().get().tools().getCommitMessageHook();
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             ByteStreams.copy(commitMessageHook, new FileOutputStream(targetFile));
             //noinspection ResultOfMethodCallIgnored
@@ -205,7 +194,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 "Commit-Message Hook has been set up.");
             notificationService.notify(notification);
         } catch (Exception e) {
-            log.info(e);
+            LOG.info(e);
             NotificationBuilder notification = new NotificationBuilder(
                     project,
                     "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
@@ -214,22 +203,4 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         }
     }
 
-    public static final class Proxy implements CheckoutProvider {
-        private final CheckoutProvider delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(GerritCheckoutProvider.class);
-        }
-
-        @Override
-        public void doCheckout(@NotNull Project project, @Nullable Listener listener) {
-            delegate.doCheckout(project, listener);
-        }
-
-        @Override
-        @NonNls
-        public String getVcsName() {
-            return delegate.getVcsName();
-        }
-    }
 }

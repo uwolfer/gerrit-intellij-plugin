@@ -16,37 +16,55 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
+import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 
 /**
+ * Creates {@link GerritRestApi} instances configured with all IDE specific client builder extensions.
+ *
  * @author Urs Wolfer
  */
-public class GerritApiProvider implements Provider<GerritRestApi> {
+@Service(Service.Level.APP)
+public final class GerritApiProvider {
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private CertificateManagerClientBuilderExtension certificateManagerClientBuilderExtension;
-    @Inject
-    private LoggerHttpClientBuilderExtension loggerHttpClientBuilderExtension;
-    @Inject
-    private ProxyHttpClientBuilderExtension proxyHttpClientBuilderExtension;
-    @Inject
-    private UserAgentClientBuilderExtension userAgentClientBuilderExtension;
-    @Inject
-    private GerritRestApiFactory gerritRestApiFactory;
+    private final GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
+    private final HttpClientBuilderExtension[] clientBuilderExtensions = {
+        new CertificateManagerClientBuilderExtension(),
+        new LoggerHttpClientBuilderExtension(),
+        new ProxyHttpClientBuilderExtension(),
+        new UserAgentClientBuilderExtension()
+    };
 
-    @Override
+    private volatile GerritRestApi gerritApi;
+
+    public static GerritApiProvider getInstance() {
+        return ApplicationManager.getApplication().getService(GerritApiProvider.class);
+    }
+
+    /**
+     * @return the shared api for the configured Gerrit instance; it is backed by the live {@link GerritSettings}, so
+     *         it keeps working after the user changed host or credentials.
+     */
     public GerritRestApi get() {
-        return gerritRestApiFactory.create(
-            gerritSettings,
-            certificateManagerClientBuilderExtension,
-            loggerHttpClientBuilderExtension,
-            proxyHttpClientBuilderExtension,
-            userAgentClientBuilderExtension);
+        GerritRestApi api = gerritApi;
+        if (api == null) {
+            synchronized (this) {
+                api = gerritApi;
+                if (api == null) {
+                    api = create(GerritSettings.getInstance());
+                    gerritApi = api;
+                }
+            }
+        }
+        return api;
+    }
+
+    public GerritRestApi create(GerritAuthData gerritAuthData) {
+        return gerritRestApiFactory.create(gerritAuthData, clientBuilderExtensions);
     }
 }

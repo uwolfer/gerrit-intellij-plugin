@@ -29,7 +29,6 @@ import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.ActionPlaces;
@@ -89,15 +88,11 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     private volatile boolean loadingMoreChanges = false;
     private final JScrollPane scrollPane;
 
-    @Inject
-    public GerritChangeListPanel(SelectedRevisions selectedRevisions,
-                                 GerritSelectRevisionInfoColumn selectRevisionInfoColumn,
-                                 GerritSettings gerritSettings,
-                                 ShowSettingsUtil showSettingsUtil) {
-        this.selectedRevisions = selectedRevisions;
-        this.selectRevisionInfoColumn = selectRevisionInfoColumn;
-        this.gerritSettings = gerritSettings;
-        this.showSettingsUtil = showSettingsUtil;
+    public GerritChangeListPanel() {
+        this.selectedRevisions = SelectedRevisions.getInstance();
+        this.selectRevisionInfoColumn = new GerritSelectRevisionInfoColumn();
+        this.gerritSettings = GerritSettings.getInstance();
+        this.showSettingsUtil = ShowSettingsUtil.getInstance();
         this.changes = Lists.newArrayList();
 
         this.table = new TableView<ChangeInfo>();

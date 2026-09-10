@@ -18,7 +18,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.dvcs.ui.CompareBranchesDialog;
 import com.intellij.dvcs.util.CommitCompareInfo;
 import com.intellij.icons.AllIcons;
@@ -26,7 +25,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -40,14 +38,10 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class CompareBranchAction extends AbstractChangeAction {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private FetchAction fetchAction;
-    @Inject
-    private NotificationService notificationService;
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final FetchAction fetchAction = new FetchAction();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.Diff);
@@ -99,18 +93,4 @@ public class CompareBranchAction extends AbstractChangeAction {
             }
         });
     }
-
-    public static class Proxy extends CompareBranchAction {
-        private final CompareBranchAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(CompareBranchAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
-
 }

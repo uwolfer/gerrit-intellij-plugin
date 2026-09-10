@@ -17,7 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.intellij.ide.AppLifecycleListener;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -32,6 +31,6 @@ public class GerritPushExtensionStarter implements AppLifecycleListener {
 
     @Override
     public void appFrameCreated(@NotNull List<String> commandLineArgs) {
-        GerritModule.getInstance(GerritPushExtension.class);
+        GerritPushExtension.getInstance();
     }
 }

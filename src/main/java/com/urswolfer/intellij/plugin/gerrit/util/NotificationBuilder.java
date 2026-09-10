@@ -16,11 +16,13 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationListener;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.project.Project;
+
+import java.util.List;
 
 /**
  * @author Thomas Forrer
@@ -33,7 +35,7 @@ public final class NotificationBuilder {
     private final String message;
     private NotificationType type = NotificationType.INFORMATION;
 
-    private Optional<NotificationListener> listener = Optional.absent();
+    private final List<AnAction> actions = Lists.newArrayList();
     private boolean showBalloon = true;
 
     public NotificationBuilder(Project project, String title, String message) {
@@ -42,8 +44,8 @@ public final class NotificationBuilder {
         this.message = message;
     }
 
-    public NotificationBuilder listener(NotificationListener listener) {
-        this.listener = Optional.of(listener);
+    public NotificationBuilder action(AnAction action) {
+        actions.add(action);
         return this;
     }
 
@@ -64,8 +66,8 @@ public final class NotificationBuilder {
 
     protected Notification get() {
         Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type);
-        if (listener.isPresent()) {
-            notification.setListener(listener.get());
+        for (AnAction action : actions) {
+            notification.addAction(action);
         }
         if (!showBalloon) {
             notification.expire();

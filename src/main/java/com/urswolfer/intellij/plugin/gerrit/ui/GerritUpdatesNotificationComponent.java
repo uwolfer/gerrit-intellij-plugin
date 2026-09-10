@@ -47,19 +47,19 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
 
     private Timer timer;
     private Set<String> notifiedChanges = new HashSet<String>();
-    private Project project;
+    private volatile Project project;
 
-    public void projectOpened() {
+    public synchronized void projectOpened() {
         handleNotification();
         setupRefreshTask();
     }
 
-    public void projectClosed() {
+    public synchronized void projectClosed() {
         cancelPendingNotificationTasks();
         notifiedChanges.clear();
     }
 
-    public void handleConfigurationChange() {
+    public synchronized void handleConfigurationChange() {
         cancelPendingNotificationTasks();
         setupRefreshTask();
     }
@@ -111,14 +111,14 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
         }
     }
 
-    private void cancelPendingNotificationTasks() {
+    private synchronized void cancelPendingNotificationTasks() {
         if (timer != null) {
             timer.cancel();
             timer = null;
         }
     }
 
-    private void setupRefreshTask() {
+    private synchronized void setupRefreshTask() {
         long refreshTimeout = gerritSettings.getRefreshTimeout();
         if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
             if (timer == null) {
@@ -132,15 +132,18 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
         this.project = project;
     }
 
+    /** No-op once the task has been cancelled, so a closed project does not resurrect its timer. */
+    private synchronized void rescheduleRefreshTask() {
+        if (timer != null) {
+            setupRefreshTask();
+        }
+    }
+
     private class CheckReviewTask extends TimerTask {
         @Override
         public void run() {
             handleNotification();
-
-            long refreshTimeout = gerritSettings.getRefreshTimeout();
-            if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
-                timer.schedule(new CheckReviewTask(), refreshTimeout * 60 * 1000);
-            }
+            rescheduleRefreshTask();
         }
     }
 }

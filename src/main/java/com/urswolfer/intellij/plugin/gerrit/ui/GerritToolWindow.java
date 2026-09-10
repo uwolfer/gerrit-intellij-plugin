@@ -50,14 +50,14 @@ import java.util.List;
  * @author Konrad Dobrzynski
  */
 public class GerritToolWindow {
+    private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
+
     @Inject
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
     @Inject
     private GerritChangeListPanel changeListPanel;
-    @Inject
-    private Logger log;
     @Inject
     private GerritChangesFilters changesFilters;
     @Inject
@@ -136,7 +136,7 @@ public class GerritToolWindow {
         String apiUrl = gerritSettings.getHost();
         if (Strings.isNullOrEmpty(apiUrl)) {
             if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil, log);
+                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
                 dialog.show();
                 if (!dialog.isOK()) {
                     return;

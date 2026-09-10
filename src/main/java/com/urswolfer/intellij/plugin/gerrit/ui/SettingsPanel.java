@@ -45,6 +45,8 @@ import java.awt.event.FocusEvent;
  * @author Urs Wolfer
  */
 public class SettingsPanel {
+    private static final Logger LOG = Logger.getInstance(SettingsPanel.class);
+
     private JTextField loginTextField;
     private JPasswordField passwordField;
     private JTextPane gerritLoginInfoTextField;
@@ -70,8 +72,6 @@ public class SettingsPanel {
     private GerritSettings gerritSettings;
     @Inject
     private GerritUtil gerritUtil;
-    @Inject
-    private Logger log;
 
     public SettingsPanel() {
         hostTextField.getEmptyText().setText("https://review.example.org");
@@ -100,7 +100,7 @@ public class SettingsPanel {
                         Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
                     }
                 } catch (Exception ex) {
-                    log.info(ex);
+                    LOG.info(ex);
                     Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }

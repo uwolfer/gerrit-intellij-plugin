@@ -87,11 +87,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Konrad Dobrzynski
  */
 public class GerritUtil {
+    private static final Logger LOG = Logger.getInstance(GerritUtil.class);
 
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
     @Inject
     private NotificationService notificationService;
     @Inject
@@ -592,7 +591,7 @@ public class GerritUtil {
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
-            log.info(e);
+            LOG.info(e);
             return false;
         }
     }
@@ -616,7 +615,7 @@ public class GerritUtil {
      */
     public List<ProjectInfo> getAvailableProjects(final Project project) {
         while (!checkCredentials(project)) {
-            final LoginDialog dialog = new LoginDialog(project, gerritSettings, this, log);
+            final LoginDialog dialog = new LoginDialog(project, gerritSettings, this);
             dialog.show();
             if (!dialog.isOK()) {
                 return null;
@@ -669,7 +668,7 @@ public class GerritUtil {
         String message = t.getMessage();
         if (message == null) {
             message = "(No exception message available)";
-            log.error(message, t);
+            LOG.error(message, t);
         }
         return message;
     }

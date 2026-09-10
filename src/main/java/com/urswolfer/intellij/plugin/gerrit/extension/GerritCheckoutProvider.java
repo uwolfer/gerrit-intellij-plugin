@@ -63,6 +63,7 @@ import java.util.List;
  * @author Urs Wolfer
  */
 public class GerritCheckoutProvider implements CheckoutProvider {
+    private static final Logger LOG = Logger.getInstance(GerritCheckoutProvider.class);
 
     private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
         public String apply(ProjectInfo from) {
@@ -75,8 +76,6 @@ public class GerritCheckoutProvider implements CheckoutProvider {
     private GerritUtil gerritUtil;
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
     @Inject
     private NotificationService notificationService;
     @Inject
@@ -92,7 +91,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         try {
             availableProjects = gerritUtil.getAvailableProjects(project);
         } catch (Exception e) {
-            log.info(e);
+            LOG.info(e);
             NotificationBuilder notification = new NotificationBuilder(
                     project,
                     "Couldn't get the list of Gerrit repositories",
@@ -153,7 +152,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 .withOption(ListChangesOption.CURRENT_REVISION)
                 .get();
             if (changeInfos.isEmpty()) {
-                log.info("ChangeInfo list is empty.");
+                LOG.info("ChangeInfo list is empty.");
                 return url;
             }
             ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
@@ -163,7 +162,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 url = fetchInfo.url.replaceAll("/" + projectName + "$", "");
             }
         } catch (RestApiException e) {
-            log.info(e);
+            LOG.info(e);
         }
         return url;
     }
@@ -203,7 +202,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 "Commit-Message Hook has been set up.");
             notificationService.notify(notification);
         } catch (Exception e) {
-            log.info(e);
+            LOG.info(e);
             NotificationBuilder notification = new NotificationBuilder(
                     project,
                     "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",

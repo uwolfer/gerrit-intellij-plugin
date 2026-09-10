@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
@@ -29,17 +28,15 @@ import org.apache.http.protocol.HttpContext;
 import java.io.IOException;
 
 public class LoggerHttpClientBuilderExtension extends HttpClientBuilderExtension {
-
-    @Inject
-    private Logger log;
+    private static final Logger LOG = Logger.getInstance(LoggerHttpClientBuilderExtension.class);
 
     @Override
     public HttpClientBuilder extend(HttpClientBuilder httpClientBuilder, GerritAuthData authData) {
         httpClientBuilder.addInterceptorFirst(new HttpRequestInterceptor() {
             @Override
             public void process(HttpRequest httpRequest, HttpContext httpContext) throws HttpException, IOException {
-                if (log.isDebugEnabled()) {
-                    log.debug(httpRequest.toString());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(httpRequest.toString());
                 }
             }
         });

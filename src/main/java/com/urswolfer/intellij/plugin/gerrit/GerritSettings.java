@@ -43,6 +43,8 @@ import org.jetbrains.annotations.Nullable;
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
 public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
 
+    private static final Logger LOG = Logger.getInstance(GerritSettings.class);
+
     private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
     private static final String LOGIN = "Login";
     private static final String HOST = "Host";
@@ -79,8 +81,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private Optional<String> preloadedPassword;
 
-    private Logger log;
-
     public Element getState() {
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
@@ -115,7 +115,7 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
             setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
             setCloneBaseUrl(element.getAttributeValue(CLONE_BASE_URL));
         } catch (Exception e) {
-            log.error("Error happened while loading gerrit settings: " + e);
+            LOG.error("Error happened while loading gerrit settings: " + e);
         }
     }
 
@@ -292,10 +292,6 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     public String getCloneBaseUrl() {
         return cloneBaseUrl;
-    }
-
-    public void setLog(Logger log) {
-        this.log = log;
     }
 
     public String getCloneBaseUrlOrHost() {

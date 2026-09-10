@@ -18,9 +18,17 @@ package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.ui.SearchFieldAction;
+import com.intellij.ui.SearchTextField;
+import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+import java.awt.event.KeyEvent;
 
 /**
  * @author Thomas Forrer
@@ -31,20 +39,7 @@ public class FulltextFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(final Project project) {
-        return new SearchFieldAction("Filter: ") {
-            @Override
-            public void actionPerformed(AnActionEvent event) {
-                String newValue = getText().trim();
-                if (isNewValue(newValue)) {
-                    value = newValue;
-                    fireFilterChanged();
-                }
-            }
-
-            private boolean isNewValue(String newValue) {
-                return !newValue.equals(value);
-            }
-        };
+        return new SearchFieldAction();
     }
 
     @Override
@@ -67,11 +62,63 @@ public class FulltextFilter extends AbstractChangesFilter {
                 .replace("}", "%7D")
                 .replace("+", "%2B")
                 .replace(' ', '+')
-                .replace("\"", "%22")
-                .replace("\\", "%5C")
-                .replace("%", "%25")
-                .replace("<", "%3C")
-                .replace(">", "%3E")
-                .replace("^", "%5E");
+                .replace("#", "%23");
+    }
+
+    /** Toolbar widget hosting the filter text field; the field drives the updates, the action itself does nothing. */
+    public final class SearchFieldAction extends AnAction implements CustomComponentAction {
+        private final SearchTextField field;
+        private final JPanel component;
+
+        public SearchFieldAction() {
+            super("Filter");
+            field = new SearchTextField(true) {
+                @Override
+                protected boolean preprocessEventForTextField(KeyEvent e) {
+                    if (KeyEvent.VK_ENTER == e.getKeyCode() || '\n' == e.getKeyChar()) {
+                        e.consume();
+                        addCurrentTextToHistory();
+                        apply();
+                    }
+                    return super.preprocessEventForTextField(e);
+                }
+
+                @Override
+                protected void onFocusLost() {
+                    super.onFocusLost();
+                    apply();
+                }
+
+                @Override
+                protected void onFieldCleared() {
+                    apply();
+                }
+            };
+            JLabel label = new JLabel("Filter: ");
+            label.setForeground(UIUtil.getInactiveTextColor());
+            label.setBorder(JBUI.Borders.emptyLeft(3));
+            component = new JPanel();
+            component.setLayout(new BoxLayout(component, BoxLayout.X_AXIS));
+            component.add(label);
+            component.add(field);
+        }
+
+        private void apply() {
+            String newValue = field.getText().trim();
+            if (!newValue.equals(value)) {
+                value = newValue;
+                fireFilterChanged();
+            }
+        }
+
+        @NotNull
+        @Override
+        public JComponent createCustomComponent(@NotNull Presentation presentation, @NotNull String place) {
+            return component;
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent event) {
+        }
     }
 }

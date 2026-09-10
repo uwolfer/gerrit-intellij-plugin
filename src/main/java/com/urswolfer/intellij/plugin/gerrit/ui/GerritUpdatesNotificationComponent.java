@@ -71,7 +71,7 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
 
     public synchronized void projectOpened() {
         handleNotification();
-        setupRefreshTask();
+        restartRefreshTask();
     }
 
     @Override
@@ -81,8 +81,7 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
     }
 
     public synchronized void handleConfigurationChange() {
-        cancelPendingNotificationTasks();
-        setupRefreshTask();
+        restartRefreshTask();
     }
 
     public void handleNotification() {
@@ -141,6 +140,12 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             timer.cancel();
             timer = null;
         }
+    }
+
+    /** Both entry points go through here, so an already running task is never left behind next to a new one. */
+    private synchronized void restartRefreshTask() {
+        cancelPendingNotificationTasks();
+        setupRefreshTask();
     }
 
     private synchronized void setupRefreshTask() {

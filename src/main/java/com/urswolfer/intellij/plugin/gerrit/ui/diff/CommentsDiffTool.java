@@ -47,15 +47,15 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.colors.EditorColors;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
@@ -79,6 +79,9 @@ import java.util.Map;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
+    private static final TextAttributesKey COMMENT_RANGE_ATTRIBUTES = TextAttributesKey.createTextAttributesKey(
+        "GERRIT_COMMENT_RANGE", EditorColors.SEARCH_RESULT_ATTRIBUTES);
+
     private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
         @Override
         public boolean apply(Comment comment) {
@@ -324,11 +327,9 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
         RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(charsSequence, range);
 
-        TextAttributes attributes = new TextAttributes();
-        attributes.setBackgroundColor(JBColor.YELLOW);
         ArrayList<RangeHighlighter> highlighters = Lists.newArrayList();
         HighlightManager highlightManager = HighlightManager.getInstance(project);
-        highlightManager.addRangeHighlight(editor, offset.start, offset.end, attributes, false, highlighters);
+        highlightManager.addRangeHighlight(editor, offset.start, offset.end, COMMENT_RANGE_ATTRIBUTES, false, highlighters);
         return highlighters.get(0);
     }
 

@@ -23,7 +23,6 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -70,7 +69,10 @@ public class CheckoutAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final Project project = anActionEvent.getRequiredData(PlatformDataKeys.PROJECT);
+        final Project project = anActionEvent.getProject();
+        if (project == null) {
+            return;
+        }
 
         getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override

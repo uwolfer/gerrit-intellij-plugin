@@ -44,8 +44,6 @@ import git4idea.repo.GitRepository;
 
 import javax.swing.*;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 
 /**
  * @author Urs Wolfer
@@ -162,9 +160,9 @@ public class GerritToolWindow {
         filterGroup.add(new Separator());
         group.add(filterGroup, Constraints.FIRST);
 
-        changesFilters.addObserver(new Observer() {
+        changesFilters.addListener(new GerritChangesFilters.Listener() {
             @Override
-            public void update(Observable observable, Object o) {
+            public void filtersChanged() {
                 reloadChanges(project, true);
             }
         });

@@ -61,8 +61,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -119,10 +117,10 @@ public class RepositoryChangesBrowserProvider {
                     updateChangesBrowser();
                 }
             });
-            selectedRevisions.addObserver(new Observer() {
+            selectedRevisions.addListener(new SelectedRevisions.Listener() {
                 @Override
-                public void update(Observable o, Object arg) {
-                    if (arg != null && arg instanceof String && selectedChange != null && selectedChange.id.equals(arg)) {
+                public void selectedRevisionChanged(String changeId) {
+                    if (changeId != null && selectedChange != null && selectedChange.id.equals(changeId)) {
                         updateChangesBrowser();
                     }
                 }

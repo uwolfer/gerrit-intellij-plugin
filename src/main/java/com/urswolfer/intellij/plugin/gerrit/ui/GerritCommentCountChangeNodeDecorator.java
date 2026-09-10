@@ -63,10 +63,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Inject
     public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
         this.selectedRevisions = selectedRevisions;
-        this.selectedRevisions.addObserver(new Observer() {
+        this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
-            public void update(Observable o, Object arg) {
-                if (arg instanceof String && selectedChange != null && selectedChange.id.equals(arg)) {
+            public void selectedRevisionChanged(String changeId) {
+                if (changeId != null && selectedChange != null && selectedChange.id.equals(changeId)) {
                     refreshSuppliers();
                 }
             }

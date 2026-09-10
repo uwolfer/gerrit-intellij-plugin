@@ -38,8 +38,7 @@ public class ShowWIPFilter extends AbstractChangesFilter {
 
     private void setValue(boolean value) {
         this.value = value;
-        setChanged();
-        notifyObservers();
+        fireFilterChanged();
     }
 
     @Nullable

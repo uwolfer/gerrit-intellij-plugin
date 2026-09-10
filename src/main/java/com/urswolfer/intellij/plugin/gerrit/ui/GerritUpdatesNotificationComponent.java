@@ -18,14 +18,17 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,39 +36,59 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Driven by {@link GerritUpdatesNotificationStartupActivity}.
+ * Project service, started by {@link GerritUpdatesNotificationStartupActivity} and disposed with its project.
  *
  * @author Urs Wolfer
  */
-public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>> {
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private NotificationService notificationService;
+public final class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>>, Disposable {
+    private final Project project;
+    private final GerritUtil gerritUtil;
+    private final GerritSettings gerritSettings;
+    private final NotificationService notificationService;
 
+    private final Set<String> notifiedChanges = Collections.synchronizedSet(new HashSet<String>());
     private Timer timer;
-    private Set<String> notifiedChanges = new HashSet<String>();
-    private volatile Project project;
 
-    public synchronized void projectOpened(Project project) {
+    public GerritUpdatesNotificationComponent(Project project) {
         this.project = project;
-        handleNotification();
-        setupRefreshTask();
+        gerritUtil = GerritModule.getInstance(GerritUtil.class);
+        gerritSettings = GerritModule.getInstance(GerritSettings.class);
+        notificationService = GerritModule.getInstance(NotificationService.class);
     }
 
-    public synchronized void projectClosed() {
+    public static GerritUpdatesNotificationComponent getInstance(Project project) {
+        return project.getService(GerritUpdatesNotificationComponent.class);
+    }
+
+    /** The settings are application wide, so every open project has to pick up a change. */
+    public static void configurationChanged() {
+        for (Project project : ProjectManager.getInstance().getOpenProjects()) {
+            if (!project.isDisposed()) {
+                getInstance(project).handleConfigurationChange();
+            }
+        }
+    }
+
+    public synchronized void projectOpened() {
+        handleNotification();
+        restartRefreshTask();
+    }
+
+    @Override
+    public void dispose() {
         cancelPendingNotificationTasks();
         notifiedChanges.clear();
     }
 
     public synchronized void handleConfigurationChange() {
-        cancelPendingNotificationTasks();
-        setupRefreshTask();
+        restartRefreshTask();
     }
 
     public void handleNotification() {
+        if (project.isDisposed()) {
+            return;
+        }
+
         if (!gerritSettings.getReviewNotifications()) {
             return;
         }
@@ -117,6 +140,12 @@ public class GerritUpdatesNotificationComponent implements Consumer<List<ChangeI
             timer.cancel();
             timer = null;
         }
+    }
+
+    /** Both entry points go through here, so an already running task is never left behind next to a new one. */
+    private synchronized void restartRefreshTask() {
+        cancelPendingNotificationTasks();
+        setupRefreshTask();
     }
 
     private synchronized void setupRefreshTask() {

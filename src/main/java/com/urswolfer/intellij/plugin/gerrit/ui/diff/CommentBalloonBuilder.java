@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
@@ -35,11 +34,9 @@ public class CommentBalloonBuilder {
         String.format("Hit %s to create a comment. It will be published once you post your review.",
             KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
-    @Inject
-    private JBPopupFactory jbPopupFactory;
 
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {
-        final ComponentPopupBuilder builder = jbPopupFactory.
+        final ComponentPopupBuilder builder = JBPopupFactory.getInstance().
                 createComponentPopupBuilder(balloonContent, balloonContent);
         builder.setAdText(POPUP_TEXT);
         builder.setTitle(title);

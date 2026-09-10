@@ -40,8 +40,7 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.inject.Inject;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationListener;
+import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -71,7 +70,6 @@ import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.event.HyperlinkEvent;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -434,16 +432,14 @@ public class GerritUtil {
 
     public void showAddGitRepositoryNotification(final Project project) {
         NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
-                "Please configure a Git repository.<br/><a href='vcs'>Open Settings</a>")
-                .listener(new NotificationListener() {
+                "Please configure a Git repository.")
+                .action(NotificationAction.createSimpleExpiring("Open Settings", new Runnable() {
                     @Override
-                    public void hyperlinkUpdate(@NotNull Notification notification, @NotNull HyperlinkEvent event) {
-                        if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED && event.getDescription().equals("vcs")) {
-                            ShowSettingsUtil.getInstance().showSettingsDialog(project,
-                                    VcsBundle.message("version.control.main.configurable.name"));
-                        }
+                    public void run() {
+                        ShowSettingsUtil.getInstance().showSettingsDialog(project,
+                                VcsBundle.message("version.control.main.configurable.name"));
                     }
-                });
+                }));
         notificationService.notifyWarning(notification);
     }
 

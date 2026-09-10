@@ -70,5 +70,4 @@ intellij {
 
 test {
     useTestNG()
-    exclude 'com/urswolfer/intellij/plugin/gerrit/rest/GerritUtilTest.*' // fails with java.lang.VerifyError at GerritUtilTest.java:34
 }

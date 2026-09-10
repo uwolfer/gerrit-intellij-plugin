@@ -31,37 +31,41 @@ public class GerritUtilTest {
 
     @BeforeMethod
     public void setup() {
-        gerritUtil = GerritTestModule.getInstance(GerritUtil.class);
+        gerritUtil = new GerritUtil();
     }
 
     @Test
     public void testProjectNames() throws Exception {
         final Method getProjectName = GerritUtil.class.getDeclaredMethod("getProjectName",
-                String.class, String.class);
+                String.class, String.class, String.class);
         getProjectName.setAccessible(true);
 
         // Default set - test trailing / behaviour
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
+                        "",
                         "http://gerrit.server/project"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
+                        "",
                         "http://gerrit.server/project"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
+                        "",
                         "http://gerrit.server/project/"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
+                        "",
                         "http://gerrit.server/project/"
                 ));
 
@@ -69,24 +73,28 @@ public class GerritUtilTest {
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
+                        "",
                         "http://gerrit.server/r/project"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
+                        "",
                         "http://gerrit.server/r/project"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
+                        "",
                         "http://gerrit.server/r/project/"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
+                        "",
                         "http://gerrit.server/r/project/"
                 ));
 
@@ -94,12 +102,14 @@ public class GerritUtilTest {
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
+                        "",
                         "http://gerrit.server/project.git"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/",
+                        "",
                         "http://gerrit.server/project.git"
                 ));
 
@@ -108,12 +118,14 @@ public class GerritUtilTest {
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
+                        "",
                         "http://gerrit.server/r/project.git"
                 ));
 
         Assert.assertEquals("project",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r/",
+                        "",
                         "http://gerrit.server/r/project.git"
                 ));
 
@@ -121,12 +133,14 @@ public class GerritUtilTest {
         Assert.assertEquals("project/blah/test",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
+                        "",
                         "http://gerrit.server/r/project/blah/test"
                 ));
 
         Assert.assertEquals("project/blah/test",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/r",
+                        "",
                         "http://gerrit.server/r/project/blah/test.git"
                 ));
 
@@ -134,6 +148,7 @@ public class GerritUtilTest {
         Assert.assertEquals("project/blah",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server/gerrit",
+                        "",
                         "ssh://git@gerrit.server:29418/project/blah"
                 ));
 
@@ -141,6 +156,7 @@ public class GerritUtilTest {
         Assert.assertEquals("",
                 getProjectName.invoke(gerritUtil,
                         "http://gerrit.server",
+                        "",
                         "http://gerrit.server"
                 ));
     }

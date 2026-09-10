@@ -58,8 +58,6 @@ public class GerritModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        installOpenIdeDependenciesModule();
-
         setupSettingsProvider();
 
         bind(NotificationService.class);
@@ -84,17 +82,10 @@ public class GerritModule extends AbstractModule {
         Provider<GerritSettings> settingsProvider = new Provider<GerritSettings>() {
             @Override
             public GerritSettings get() {
-                // GerritSettings instance needs to be retrieved from ServiceManager, need to inject the Logger manually...
-                GerritSettings gerritSettings = ApplicationManager.getApplication().getService(GerritSettings.class);
-                gerritSettings.setLog(OpenIdeDependenciesModule.LOG);
-                return gerritSettings;
+                return ApplicationManager.getApplication().getService(GerritSettings.class);
             }
         };
         bind(GerritSettings.class).toProvider(settingsProvider).in(Singleton.class);
         bind(GerritAuthData.class).toProvider(settingsProvider).in(Singleton.class);
-    }
-
-    protected void installOpenIdeDependenciesModule() {
-        install(new OpenIdeDependenciesModule());
     }
 }

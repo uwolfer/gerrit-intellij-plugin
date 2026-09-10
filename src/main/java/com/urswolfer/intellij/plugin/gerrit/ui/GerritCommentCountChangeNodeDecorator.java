@@ -42,6 +42,8 @@ import java.util.*;
  * @author Thomas Forrer
  */
 public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator {
+    private static final Logger LOG = Logger.getInstance(GerritCommentCountChangeNodeDecorator.class);
+
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
     @Inject
@@ -50,8 +52,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private PathUtils pathUtils;
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
 
     private final SelectedRevisions selectedRevisions;
 
@@ -147,7 +147,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                             .revision(getSelectedRevisionId())
                             .comments();
                 } catch (RestApiException e) {
-                    log.warn(e);
+                    LOG.warn(e);
                     return Collections.emptyMap();
                 }
             }
@@ -167,7 +167,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                             .revision(getSelectedRevisionId())
                             .drafts();
                 } catch (RestApiException e) {
-                    log.warn(e);
+                    LOG.warn(e);
                     return Collections.emptyMap();
                 }
             }
@@ -187,7 +187,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                             .revision(getSelectedRevisionId())
                             .reviewed();
                 } catch (RestApiException e) {
-                    log.warn(e);
+                    LOG.warn(e);
                     return Collections.emptySet();
                 }
             }

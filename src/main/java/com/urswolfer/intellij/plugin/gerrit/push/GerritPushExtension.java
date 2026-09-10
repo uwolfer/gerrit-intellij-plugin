@@ -36,11 +36,10 @@ import javassist.*;
  * @author Urs Wolfer
  */
 public class GerritPushExtension {
+    private static final Logger LOG = Logger.getInstance(GerritPushExtension.class);
 
     @Inject
     private GerritSettings gerritSettings;
-    @Inject
-    private Logger log;
 
     @Inject
     public void initComponent() {
@@ -56,9 +55,9 @@ public class GerritPushExtension {
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
         } catch (Exception e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (Error e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         }
     }
 
@@ -99,9 +98,9 @@ public class GerritPushExtension {
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
         } catch (CannotCompileException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (NotFoundException e) {
-            log.error("Failed to inject Gerrit push UI.", e);
+            LOG.error("Failed to inject Gerrit push UI.", e);
         }
     }
 
@@ -123,9 +122,9 @@ public class GerritPushExtension {
             loadedClass.toClass(targetClassLoader, GitPushOperation.class.getProtectionDomain());
             loadedClass.detach();
         } catch (CannotCompileException e) {
-            log.error("Failed to load class required for Gerrit push UI injections.", e);
+            LOG.error("Failed to load class required for Gerrit push UI injections.", e);
         } catch (NotFoundException e) {
-            log.error("Failed to load class required for Gerrit push UI injections.", e);
+            LOG.error("Failed to load class required for Gerrit push UI injections.", e);
         }
     }
 }

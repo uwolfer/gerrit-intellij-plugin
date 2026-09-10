@@ -68,14 +68,14 @@ import java.util.concurrent.Callable;
  * @author Thomas Forrer
  */
 public class RepositoryChangesBrowserProvider {
+    private static final Logger LOG = Logger.getInstance(RepositoryChangesBrowserProvider.class);
+
     @Inject
     private GerritGitUtil gerritGitUtil;
     @Inject
     private GerritUtil gerritUtil;
     @Inject
     private NotificationService notificationService;
-    @Inject
-    private Logger log;
     @Inject
     private Set<GerritChangeNodeDecorator> changeNodeDecorators;
     @Inject
@@ -191,7 +191,7 @@ public class RepositoryChangesBrowserProvider {
                             totalDiff = changesProvider.provide(currentCommit);
                         }
                     } catch (VcsException e) {
-                        log.warn("Error getting Git commit details.", e);
+                        LOG.warn("Error getting Git commit details.", e);
                         NotificationBuilder notification = new NotificationBuilder(
                                 project, "Cannot show change",
                                 "Git error occurred while getting commit. Please check if Gerrit is configured as remote " +

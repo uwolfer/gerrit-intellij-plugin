@@ -49,7 +49,6 @@ import java.util.concurrent.Callable;
 public class CheckoutAction extends AbstractChangeAction {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final FetchAction fetchAction = new FetchAction();
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public CheckoutAction() {
@@ -82,11 +81,11 @@ public class CheckoutAction extends AbstractChangeAction {
                             notificationService.notifyError(notification);
                             return null;
                         }
-                        String branchName = buildBranchName(changeDetails);
+                        String branchName = buildBranchName(project, changeDetails);
                         String checkedOutBranchName = branchName;
                         final GitRepository repository = gitRepositoryOptional.get();
                         final List<GitRepository> gitRepositories = Collections.singletonList(repository);
-                        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
+                        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
                         final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
                         if (!remote.isPresent()) {
                             return null;
@@ -130,8 +129,9 @@ public class CheckoutAction extends AbstractChangeAction {
         });
     }
 
-    private String buildBranchName(ChangeInfo changeDetails) {
-        RevisionInfo revisionInfo = changeDetails.revisions.get(selectedRevisions.get(changeDetails));
+    private String buildBranchName(Project project, ChangeInfo changeDetails) {
+        RevisionInfo revisionInfo = changeDetails.revisions.get(
+            SelectedRevisions.getInstance(project).get(changeDetails));
         String topic = changeDetails.topic;
         if (topic == null) {
             topic = Integer.toString(changeDetails._number);

@@ -37,7 +37,6 @@ public class FetchAction {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> fetchCallback) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
@@ -52,9 +51,9 @@ public class FetchAction {
                     return;
                 }
 
-                String commitHash = selectedRevisions.get(changeDetails);
+                String commitHash = SelectedRevisions.getInstance(project).get(changeDetails);
 
-                FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(changeDetails);
+                FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
                 if (firstFetchInfo == null) {
                     return;
                 }

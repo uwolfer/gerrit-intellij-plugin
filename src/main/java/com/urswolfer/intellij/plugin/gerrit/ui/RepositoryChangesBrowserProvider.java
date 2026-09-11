@@ -73,9 +73,8 @@ public class RepositoryChangesBrowserProvider {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
-
     private GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator;
+    private SelectedRevisions selectedRevisions;
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
     /**
@@ -86,7 +85,8 @@ public class RepositoryChangesBrowserProvider {
     }
 
     public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel, Disposable parent) {
-        commentCountChangeNodeDecorator = new GerritCommentCountChangeNodeDecorator(parent);
+        selectedRevisions = SelectedRevisions.getInstance(project);
+        commentCountChangeNodeDecorator = new GerritCommentCountChangeNodeDecorator(project, parent);
         selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions, parent);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();

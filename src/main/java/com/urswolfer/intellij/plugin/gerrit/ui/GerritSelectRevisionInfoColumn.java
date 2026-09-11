@@ -25,6 +25,7 @@ import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.ui.ComboBoxTableRenderer;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -51,7 +52,7 @@ import java.util.Set;
  * @author Thomas Forrer
  */
 public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, String> {
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
+    private final SelectedRevisions selectedRevisions;
 
     private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
         @Override
@@ -60,8 +61,9 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         }
     };
 
-    public GerritSelectRevisionInfoColumn() {
+    public GerritSelectRevisionInfoColumn(Project project) {
         super("Patch Set");
+        selectedRevisions = SelectedRevisions.getInstance(project);
     }
 
     @Nullable

@@ -21,8 +21,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.EventDispatcher;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,13 +35,13 @@ import java.util.Set;
  *
  * @author Thomas Forrer
  */
-@Service(Service.Level.APP)
+@Service(Service.Level.PROJECT)
 public final class SelectedRevisions {
     private final Map<String, String> map = Maps.newHashMap();
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
-    public static SelectedRevisions getInstance() {
-        return ApplicationManager.getApplication().getService(SelectedRevisions.class);
+    public static SelectedRevisions getInstance(Project project) {
+        return project.getService(SelectedRevisions.class);
     }
 
     /**

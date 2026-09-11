@@ -95,7 +95,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         ImmutableSortedSet<ProjectInfo> orderedProjects =
             ImmutableSortedSet.orderedBy(ID_REVERSE_ORDERING).addAll(availableProjects).build();
 
-        String url = getCloneBaseUrl();
+        String url = getCloneBaseUrl(project);
 
         final GitCloneDialog dialog = new GitCloneDialog(project);
         for (ProjectInfo projectInfo : orderedProjects) {
@@ -132,7 +132,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
      *
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
-    private String getCloneBaseUrl() {
+    private String getCloneBaseUrl(Project project) {
         if (!Strings.isNullOrEmpty(gerritSettings.getCloneBaseUrl())) {
             return gerritSettings.getCloneBaseUrl();
         }
@@ -147,7 +147,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
                 return url;
             }
             ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
-            FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(changeInfo);
+            FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(project, changeInfo);
             if (fetchInfo != null) {
                 String projectName = changeInfo.project;
                 url = fetchInfo.url.replaceAll("/" + projectName + "$", "");

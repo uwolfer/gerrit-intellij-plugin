@@ -54,7 +54,7 @@ public class GerritToolWindow implements Disposable {
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
-    private final GerritChangeListPanel changeListPanel = new GerritChangeListPanel();
+    private GerritChangeListPanel changeListPanel;
     private final GerritChangesFilters changesFilters = new GerritChangesFilters();
     private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
@@ -69,7 +69,7 @@ public class GerritToolWindow implements Disposable {
     }
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
-        changeListPanel.setProject(project);
+        changeListPanel = new GerritChangeListPanel(project);
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);
 

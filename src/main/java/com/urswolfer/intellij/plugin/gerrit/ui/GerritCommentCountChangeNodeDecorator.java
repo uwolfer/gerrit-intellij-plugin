@@ -55,8 +55,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
     private Supplier<Set<String>> reviewed = setupReviewedSupplier();
 
-    public GerritCommentCountChangeNodeDecorator(Disposable parent) {
-        this.selectedRevisions = SelectedRevisions.getInstance();
+    public GerritCommentCountChangeNodeDecorator(Project project, Disposable parent) {
+        this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
             public void selectedRevisionChanged(String changeId) {

@@ -98,7 +98,6 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final AddCommentActionBuilder addCommentActionBuilder = new AddCommentActionBuilder();
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     @NotNull
     @Override
@@ -281,7 +280,8 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                   @Nullable EditorEx editor1, EditorEx editor2) {
         ChangeInfo changeInfo = diffContext.getUserData(GerritUserDataKeys.CHANGE);
         Optional<Pair<String, RevisionInfo>> baseRevision = diffContext.getUserData(GerritUserDataKeys.BASE_REVISION);
-        String selectedRevisionId = changeInfo != null ? selectedRevisions.get(changeInfo) : null;
+        String selectedRevisionId = changeInfo != null
+            ? SelectedRevisions.getInstance(diffContext.getProject()).get(changeInfo) : null;
         Change change = diffRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY);
         handleComments(editor1, editor2, change, diffContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
     }

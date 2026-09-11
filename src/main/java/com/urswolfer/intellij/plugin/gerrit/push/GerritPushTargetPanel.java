@@ -26,6 +26,7 @@ import git4idea.push.GitPushSupport;
 import git4idea.push.GitPushTarget;
 import git4idea.push.GitPushTargetPanel;
 import git4idea.repo.GitRepository;
+import git4idea.validators.GitRefNameValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -105,9 +106,8 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
 
     private void updateBranchTextField(Runnable myFireOnChangeAction) {
         if (branch == null) {
-            // "branch" is only set to null for intermediate states which cannot be pushed (e.g. while the user is
-            // still typing a branch name like "release/"). Writing such a value into the push target field would
-            // make the IDE fail to parse the push target and log an error, so the last valid value is kept instead.
+            // no valid value available (yet); keep the last valid one instead of writing something which the IDE
+            // would not be able to parse (see setBranch)
             return;
         }
         try {
@@ -137,10 +137,9 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
             return;
         }
         String trimmedBranch = branch.trim();
-        if (trimmedBranch.isEmpty() || trimmedBranch.endsWith("/")) {
-            this.branch = null;
-            return;
-        }
-        this.branch = trimmedBranch;
+        // Values which are no valid ref names must not be set: the IDE rejects them when it builds the push target
+        // out of the text field content, which makes it log an error. Such values occur regularly while the user is
+        // still typing a branch name (e.g. "refs/for/release/" on the way to "refs/for/release/1.0").
+        this.branch = GitRefNameValidator.getInstance().checkInput(trimmedBranch) ? trimmedBranch : null;
     }
 }

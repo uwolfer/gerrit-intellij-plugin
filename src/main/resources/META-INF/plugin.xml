@@ -537,8 +537,6 @@
     <toolWindow id="Gerrit" icon="MyIcons.Gerrit" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
     <projectService serviceImplementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent"/>
-    <projectService serviceInterface="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService"
-                    serviceImplementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory$ProjectService" />
     <diff.DiffTool implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>

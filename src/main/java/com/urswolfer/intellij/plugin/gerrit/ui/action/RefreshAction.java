@@ -23,7 +23,6 @@ import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent;
 
 /**
@@ -35,10 +34,18 @@ public class RefreshAction extends AnAction implements DumbAware, UpdateInBackgr
     }
 
     @Override
+    public void update(AnActionEvent e) {
+        e.getPresentation().setEnabled(e.getProject() != null
+            && e.getData(GerritToolWindow.GERRIT_TOOL_WINDOW) != null);
+    }
+
+    @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getProject();
-        GerritToolWindowFactory.ProjectService projectService = project.getService(GerritToolWindowFactory.ProjectService.class);
-        GerritToolWindow gerritToolWindow = projectService.getGerritToolWindow();
+        GerritToolWindow gerritToolWindow = e.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
+        if (project == null || gerritToolWindow == null) {
+            return;
+        }
         gerritToolWindow.reloadChanges(project, true);
         GerritUpdatesNotificationComponent.getInstance(project).handleNotification();
     }

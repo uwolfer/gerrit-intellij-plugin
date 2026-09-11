@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 /**
- * Instantiating {@link GerritPushExtension} runs its byte-code modifications, which have to be applied before the Git
+ * {@link GerritPushExtension#install()} runs the byte-code modifications, which have to be applied before the Git
  * push dialog is built for the first time.
  *
  * @author Urs Wolfer
@@ -31,6 +31,6 @@ public class GerritPushExtensionStarter implements AppLifecycleListener {
 
     @Override
     public void appFrameCreated(@NotNull List<String> commandLineArgs) {
-        GerritPushExtension.getInstance();
+        GerritPushExtension.install();
     }
 }

@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -52,16 +51,11 @@ import java.util.List;
 public class GerritToolWindow {
     private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
 
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritChangeListPanel changeListPanel;
-    @Inject
-    private GerritChangesFilters changesFilters;
-    @Inject
-    private RepositoryChangesBrowserProvider repositoryChangesBrowserProvider;
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final GerritChangeListPanel changeListPanel = new GerritChangeListPanel();
+    private final GerritChangesFilters changesFilters = new GerritChangesFilters();
+    private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
     private GerritChangeDetailsPanel detailsPanel;
 

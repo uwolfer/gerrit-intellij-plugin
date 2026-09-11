@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.inject.Inject;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 
@@ -24,13 +23,11 @@ import javax.swing.*;
 
 /**
  * Actions which require a logged in user need to extend this class.
- * Important: if a proxy is used for Guice, make sure that your delegate the #update method.
  *
  * @author Urs Wolfer
  */
 public abstract class AbstractLoggedInChangeAction extends AbstractChangeAction {
-    @Inject
-    protected GerritSettings gerritSettings;
+    protected final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     public AbstractLoggedInChangeAction(String text, String description, Icon icon) {
         super(text, description, icon);

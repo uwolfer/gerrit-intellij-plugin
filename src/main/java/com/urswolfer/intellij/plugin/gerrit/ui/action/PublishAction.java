@@ -24,14 +24,12 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 import java.util.Map;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class PublishAction extends AbstractLoggedInChangeAction {
 
     public PublishAction() {
@@ -74,21 +72,4 @@ public class PublishAction extends AbstractLoggedInChangeAction {
         gerritUtil.postPublish(selectedChange.get().id, project);
     }
 
-    public static class Proxy extends PublishAction {
-        private final PublishAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(PublishAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

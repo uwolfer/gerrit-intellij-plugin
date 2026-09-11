@@ -19,23 +19,19 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class SubmitAction extends AbstractLoggedInChangeAction {
-    @Inject
-    private NotificationService notificationService;
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     public SubmitAction() {
         super("Submit", "Submit Change", AllIcons.ToolbarDecorator.Export);
@@ -83,26 +79,4 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
         return String.format("Change '%s' submitted successfully.", changeInfo.subject);
     }
 
-    public static class Proxy extends SubmitAction {
-        private final SubmitAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(SubmitAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.submit(e);
-        }
-
-        @Override
-        public void submit(AnActionEvent e) {
-            delegate.submit(e);
-        }
-    }
 }

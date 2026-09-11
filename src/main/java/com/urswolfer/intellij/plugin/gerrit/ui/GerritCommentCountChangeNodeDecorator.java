@@ -24,16 +24,15 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
-import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
 import java.util.*;
@@ -46,12 +45,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
-    @Inject
-    private GerritRestApi gerritApi;
-    @Inject
-    private PathUtils pathUtils;
-    @Inject
-    private GerritSettings gerritSettings;
+    private final PathUtils pathUtils = PathUtils.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     private final SelectedRevisions selectedRevisions;
 
@@ -60,9 +55,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
     private Supplier<Set<String>> reviewed = setupReviewedSupplier();
 
-    @Inject
-    public GerritCommentCountChangeNodeDecorator(SelectedRevisions selectedRevisions) {
-        this.selectedRevisions = selectedRevisions;
+    public GerritCommentCountChangeNodeDecorator() {
+        this.selectedRevisions = SelectedRevisions.getInstance();
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
             public void selectedRevisionChanged(String changeId) {
@@ -142,7 +136,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
             @Override
             public Map<String, List<CommentInfo>> get() {
                 try {
-                    return gerritApi.changes()
+                    return GerritApiProvider.getInstance().get().changes()
                             .id(selectedChange.id)
                             .revision(getSelectedRevisionId())
                             .comments();
@@ -162,7 +156,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     return Collections.emptyMap();
                 }
                 try {
-                    return gerritApi.changes()
+                    return GerritApiProvider.getInstance().get().changes()
                             .id(selectedChange.id)
                             .revision(getSelectedRevisionId())
                             .drafts();
@@ -182,7 +176,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     return Collections.emptySet();
                 }
                 try {
-                    return gerritApi.changes()
+                    return GerritApiProvider.getInstance().get().changes()
                             .id(selectedChange.id)
                             .revision(getSelectedRevisionId())
                             .reviewed();

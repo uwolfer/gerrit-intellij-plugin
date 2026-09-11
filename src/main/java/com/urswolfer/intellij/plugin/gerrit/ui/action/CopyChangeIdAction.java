@@ -18,13 +18,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
@@ -33,10 +31,8 @@ import java.awt.datatransfer.StringSelection;
 /**
  * @author Wurstmeister
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class CopyChangeIdAction extends AbstractChangeAction {
-    @Inject
-    private NotificationService notificationService;
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     public CopyChangeIdAction() {
         super("Copy", "Copy Change-ID", AllIcons.Actions.Copy);
@@ -56,16 +52,4 @@ public class CopyChangeIdAction extends AbstractChangeAction {
         notificationService.notify(builder);
     }
 
-    public static class Proxy extends CopyChangeIdAction {
-        private final CopyChangeIdAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(CopyChangeIdAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

@@ -81,6 +81,10 @@ public class GerritSettings implements PersistentStateComponent<Element>, Gerrit
 
     private Optional<String> preloadedPassword;
 
+    public static GerritSettings getInstance() {
+        return ApplicationManager.getApplication().getService(GerritSettings.class);
+    }
+
     public Element getState() {
         final Element element = new Element(GERRIT_SETTINGS_TAG);
         element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));

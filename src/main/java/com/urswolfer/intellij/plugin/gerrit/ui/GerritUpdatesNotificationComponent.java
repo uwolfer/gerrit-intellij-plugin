@@ -22,7 +22,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -42,18 +41,15 @@ import java.util.TimerTask;
  */
 public final class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>>, Disposable {
     private final Project project;
-    private final GerritUtil gerritUtil;
-    private final GerritSettings gerritSettings;
-    private final NotificationService notificationService;
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     private final Set<String> notifiedChanges = Collections.synchronizedSet(new HashSet<String>());
     private Timer timer;
 
     public GerritUpdatesNotificationComponent(Project project) {
         this.project = project;
-        gerritUtil = GerritModule.getInstance(GerritUtil.class);
-        gerritSettings = GerritModule.getInstance(GerritSettings.class);
-        notificationService = GerritModule.getInstance(NotificationService.class);
     }
 
     public static GerritUpdatesNotificationComponent getInstance(Project project) {

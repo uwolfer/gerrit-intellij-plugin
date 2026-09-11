@@ -19,7 +19,8 @@
 package com.urswolfer.intellij.plugin.gerrit.util;
 
 import com.google.common.base.Optional;
-import com.google.inject.Inject;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -31,12 +32,15 @@ import java.io.File;
 /**
  * @author Thomas Forrer
  */
-public class PathUtils {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
+@Service(Service.Level.APP)
+public final class PathUtils {
+
+    public static PathUtils getInstance() {
+        return ApplicationManager.getApplication().getService(PathUtils.class);
+    }
 
     public String getRelativePath(Project project, String absoluteFilePath, String gerritProjectName) {
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, gerritProjectName);
+        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
         VirtualFile root = repository.getRoot();

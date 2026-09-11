@@ -16,7 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
-import com.google.inject.Inject;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
@@ -35,14 +36,17 @@ import javassist.*;
  *
  * @author Urs Wolfer
  */
-public class GerritPushExtension {
+@Service(Service.Level.APP)
+public final class GerritPushExtension {
     private static final Logger LOG = Logger.getInstance(GerritPushExtension.class);
 
-    @Inject
-    private GerritSettings gerritSettings;
+    public static GerritPushExtension getInstance() {
+        return ApplicationManager.getApplication().getService(GerritPushExtension.class);
+    }
 
-    @Inject
-    public void initComponent() {
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+
+    public GerritPushExtension() {
         try {
             ClassPool classPool = ClassPool.getDefault();
 

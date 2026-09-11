@@ -17,13 +17,21 @@
 package com.urswolfer.intellij.plugin.gerrit.util;
 
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 
 /**
  * Easy access to open IDE's notification bus.
  *
  * @author Thomas Forrer
  */
-public class NotificationService {
+@Service(Service.Level.APP)
+public final class NotificationService {
+
+    public static NotificationService getInstance() {
+        return ApplicationManager.getApplication().getService(NotificationService.class);
+    }
+
     public void notifyError(NotificationBuilder notificationBuilder) {
         notify(notificationBuilder.type(NotificationType.ERROR));
     }

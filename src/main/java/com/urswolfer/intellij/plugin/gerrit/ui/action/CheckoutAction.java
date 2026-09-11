@@ -20,7 +20,6 @@ import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -29,7 +28,6 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -48,16 +46,11 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class CheckoutAction extends AbstractChangeAction {
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private FetchAction fetchAction;
-    @Inject
-    private SelectedRevisions selectedRevisions;
-    @Inject
-    private NotificationService notificationService;
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final FetchAction fetchAction = new FetchAction();
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     public CheckoutAction() {
         super("Checkout", "Checkout change", AllIcons.Actions.CheckOut);
@@ -150,16 +143,4 @@ public class CheckoutAction extends AbstractChangeAction {
         return branchName.replace(" ", "_").replace("?", "_");
     }
 
-    public static class Proxy extends CheckoutAction {
-        private final CheckoutAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(CheckoutAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

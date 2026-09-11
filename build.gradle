@@ -40,7 +40,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.inject:guice:7.0.0'
     implementation ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:0.9.8') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'

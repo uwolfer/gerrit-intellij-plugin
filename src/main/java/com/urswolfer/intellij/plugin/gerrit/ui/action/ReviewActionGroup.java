@@ -28,13 +28,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +46,6 @@ import java.util.Map;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class ReviewActionGroup extends ActionGroup implements UpdateInBackground {
     private static final ImmutableMap<Integer, Icon> ICONS = ImmutableMap.of(
         -2, Cancel,
@@ -58,10 +55,7 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
         2, Checked
     );
 
-    @Inject
-    private ReviewActionFactory reviewActionFactory;
-    @Inject
-    private GerritSettings gerritSettings;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     public ReviewActionGroup() {
         super("Review", "Review Change", AllIcons.Debugger.Watch);
@@ -108,31 +102,11 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
                 Collections.sort(intValues);
                 Collections.reverse(intValues);
                 for (Integer value : intValues) {
-                    valueActions.add(reviewActionFactory.get(entry.getKey(), value, ICONS.get(value), false));
-                    valueActions.add(reviewActionFactory.get(entry.getKey(), value, ICONS.get(value), true));
+                    valueActions.add(new ReviewAction(entry.getKey(), value, ICONS.get(value), false));
+                    valueActions.add(new ReviewAction(entry.getKey(), value, ICONS.get(value), true));
                 }
                 return valueActions.toArray(new AnAction[valueActions.size()]);
             }
         };
     }
-
-    public static class Proxy extends ReviewActionGroup {
-        private final ReviewActionGroup delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(ReviewActionGroup.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @NotNull
-        @Override
-        public AnAction[] getChildren(@Nullable AnActionEvent anActionEvent) {
-            return delegate.getChildren(anActionEvent);
-        }
-    }
-
 }

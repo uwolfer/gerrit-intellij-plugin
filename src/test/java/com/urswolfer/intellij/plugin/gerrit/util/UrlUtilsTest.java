@@ -20,6 +20,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Urs Wolfer
@@ -63,6 +65,7 @@ public class UrlUtilsTest {
     @Test
     public void testPatchSetDescriptionEncoding() throws Exception {
         String encoded = UrlUtils.encodePatchSetDescription("Abc %^@.~-+_:/!");
-        Assert.assertEquals(encoded, "Abc+%25%5E%40%2E%7E%96%2B%5E%3A%2F%21");
+        Assert.assertEquals(encoded, "Abc+%25%5E%40%2E%7E%2D%2B%5F%3A%2F%21");
+        Assert.assertEquals(URLDecoder.decode(encoded, StandardCharsets.UTF_8), "Abc %^@.~-+_:/!");
     }
 }

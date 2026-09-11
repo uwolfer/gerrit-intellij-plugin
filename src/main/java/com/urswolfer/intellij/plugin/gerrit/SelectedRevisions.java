@@ -20,6 +20,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.util.EventDispatcher;
@@ -43,8 +44,12 @@ public final class SelectedRevisions {
         return ApplicationManager.getApplication().getService(SelectedRevisions.class);
     }
 
-    public void addListener(Listener listener) {
-        eventDispatcher.addListener(listener);
+    /**
+     * @param parent disposed when the listener goes out of scope; this service outlives every listener it has, so
+     *               registering without one keeps the listener, and everything it holds, alive for the IDE session
+     */
+    public void addListener(Listener listener, Disposable parent) {
+        eventDispatcher.addListener(listener, parent);
     }
 
     /**

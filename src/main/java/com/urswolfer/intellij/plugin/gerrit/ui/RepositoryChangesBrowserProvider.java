@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.diff.chains.DiffRequestChain;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.actionSystem.Separator;
@@ -72,9 +73,9 @@ public class RepositoryChangesBrowserProvider {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
-    private final GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator = new GerritCommentCountChangeNodeDecorator();
     private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
+    private GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator;
     private SelectBaseRevisionAction selectBaseRevisionAction;
 
     /**
@@ -84,12 +85,13 @@ public class RepositoryChangesBrowserProvider {
         return ImmutableList.<GerritChangeNodeDecorator>of(commentCountChangeNodeDecorator);
     }
 
-    public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
-        selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions);
+    public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel, Disposable parent) {
+        commentCountChangeNodeDecorator = new GerritCommentCountChangeNodeDecorator(parent);
+        selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions, parent);
 
         TableView<ChangeInfo> table = changeListPanel.getTable();
 
-        final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project);
+        final GerritRepositoryChangesBrowser changesBrowser = new GerritRepositoryChangesBrowser(project, parent);
         changesBrowser.getDiffAction().registerCustomShortcutSet(CommonShortcuts.getDiff(), table);
         changesBrowser.getViewerScrollPane().setBorder(IdeBorderFactory.createBorder(SideBorder.LEFT | SideBorder.TOP));
         changesBrowser.setChangeNodeDecorator(changesBrowser.getChangeNodeDecorator());
@@ -108,7 +110,7 @@ public class RepositoryChangesBrowserProvider {
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.absent();
         private Project project;
 
-        public GerritRepositoryChangesBrowser(Project project) {
+        public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
             super(project);
             this.project = project;
             selectBaseRevisionAction.addRevisionSelectedListener(new SelectBaseRevisionAction.Listener() {
@@ -125,7 +127,7 @@ public class RepositoryChangesBrowserProvider {
                         updateChangesBrowser();
                     }
                 }
-            });
+            }, parent);
         }
 
         @Override

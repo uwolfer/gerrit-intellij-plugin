@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
@@ -60,7 +61,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.absent();
     private List<Listener> listeners = Lists.newArrayList();
 
-    public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions) {
+    public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions, Disposable parent) {
         super("Diff against");
         this.selectedRevisions = selectedRevisions;
         selectedRevisions.addListener(new SelectedRevisions.Listener() {
@@ -74,7 +75,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
                     }
                 }
             }
-        });
+        }, parent);
         updateLabel();
     }
 

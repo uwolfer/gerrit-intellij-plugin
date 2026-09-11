@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.Constraints;
@@ -48,7 +49,7 @@ import java.util.List;
  * @author Urs Wolfer
  * @author Konrad Dobrzynski
  */
-public class GerritToolWindow {
+public class GerritToolWindow implements Disposable {
     private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
@@ -59,6 +60,14 @@ public class GerritToolWindow {
 
     private GerritChangeDetailsPanel detailsPanel;
 
+    /**
+     * Nothing to release here: this is the parent the tool window content's listeners are registered against, and
+     * the platform disposes it with the content.
+     */
+    @Override
+    public void dispose() {
+    }
+
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel.setProject(project);
 
@@ -68,7 +77,7 @@ public class GerritToolWindow {
         toolbar.setTargetComponent(changeListPanel);
         panel.setToolbar(toolbar.getComponent());
 
-        CommittedChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel);
+        CommittedChangesBrowser repositoryChangesBrowser = repositoryChangesBrowserProvider.get(project, changeListPanel, this);
 
         JBSplitter detailsSplitter = new OnePixelSplitter(true, 0.6f);
         detailsSplitter.setSplitterProportionKey("Gerrit.ListDetailSplitter.Proportion");
@@ -110,7 +119,7 @@ public class GerritToolWindow {
                 reloadChanges(project, false);
             }
         };
-        project.getMessageBus().connect().subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
+        project.getMessageBus().connect(this).subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {

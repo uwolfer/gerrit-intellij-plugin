@@ -39,6 +39,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         ContentManager contentManager = toolWindow.getContentManager();
         Content content = contentManager.getFactory().createContent(toolWindowContent, "", false);
+        content.setDisposer(gerritToolWindow);
         contentManager.addContent(content);
         contentManager.setSelectedContent(content);
     }

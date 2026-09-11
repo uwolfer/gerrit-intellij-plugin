@@ -24,6 +24,7 @@ import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.Change;
@@ -55,7 +56,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
     private Supplier<Set<String>> reviewed = setupReviewedSupplier();
 
-    public GerritCommentCountChangeNodeDecorator() {
+    public GerritCommentCountChangeNodeDecorator(Disposable parent) {
         this.selectedRevisions = SelectedRevisions.getInstance();
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
@@ -64,7 +65,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     refreshSuppliers();
                 }
             }
-        });
+        }, parent);
     }
 
     private void refreshSuppliers() {

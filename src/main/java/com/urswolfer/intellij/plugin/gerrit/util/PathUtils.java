@@ -24,6 +24,7 @@ import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.File;
 
@@ -47,10 +48,24 @@ public final class PathUtils {
      */
     public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
         String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
-        if (relativePath == null || relativePath.contains(File.separator + "..")) {
+        if (relativePath == null || leavesRepositoryRoot(relativePath)) {
             return absoluteFilePath;
         }
         return relativePath;
+    }
+
+    /**
+     * A relative path which walks out of the repository root does not denote a file of the Gerrit project,
+     * so the absolute path has to be used for it. Note that such a path can also start with "..".
+     */
+    @VisibleForTesting
+    static boolean leavesRepositoryRoot(String relativePath) {
+        for (String pathSegment : ensureSlashSeparators(relativePath).split("/")) {
+            if ("..".equals(pathSegment)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

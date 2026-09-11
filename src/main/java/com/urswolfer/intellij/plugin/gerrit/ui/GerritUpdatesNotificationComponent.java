@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.util.Alarm;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -31,8 +32,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Project service, started by {@link GerritUpdatesNotificationStartupActivity} and disposed with its project.
@@ -46,7 +45,10 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
     private final NotificationService notificationService = NotificationService.getInstance();
 
     private final Set<String> notifiedChanges = Collections.synchronizedSet(new HashSet<String>());
-    private Timer timer;
+    /** Registered against this service, so the project disposing it also drops any pending poll. */
+    private final Alarm alarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, this);
+    /** Bumped whenever pending polls are dropped, so a poll already running does not schedule the next one. */
+    private long scheduleGeneration;
 
     public GerritUpdatesNotificationComponent(Project project) {
         this.project = project;
@@ -72,7 +74,6 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
 
     @Override
     public void dispose() {
-        cancelPendingNotificationTasks();
         notifiedChanges.clear();
     }
 
@@ -132,46 +133,36 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
     }
 
     private synchronized void cancelPendingNotificationTasks() {
-        if (timer != null) {
-            timer.cancel();
-            timer = null;
+        scheduleGeneration++;
+        if (!alarm.isDisposed()) {
+            alarm.cancelAllRequests();
         }
     }
 
-    /** Both entry points go through here, so an already running task is never left behind next to a new one. */
+    /** Both entry points go through here, so an already running poll is never left behind next to a new one. */
     private synchronized void restartRefreshTask() {
         cancelPendingNotificationTasks();
-        setupRefreshTask();
+        scheduleRefreshTask();
     }
 
-    private synchronized void setupRefreshTask() {
+    private synchronized void scheduleRefreshTask() {
         long refreshTimeout = gerritSettings.getRefreshTimeout();
-        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0) {
-            if (timer == null) {
-                timer = new Timer();
-            }
-            timer.schedule(new CheckReviewTask(timer), refreshTimeout * 60 * 1000);
+        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0 && !alarm.isDisposed()) {
+            final long generation = scheduleGeneration;
+            alarm.addRequest(new Runnable() {
+                @Override
+                public void run() {
+                    handleNotification();
+                    rescheduleRefreshTask(generation);
+                }
+            }, refreshTimeout * 60 * 1000);
         }
     }
 
-    /** Ignores a task whose timer has been cancelled or replaced meanwhile, which would double the polling. */
-    private synchronized void rescheduleRefreshTask(Timer scheduledBy) {
-        if (timer == scheduledBy) {
-            setupRefreshTask();
-        }
-    }
-
-    private class CheckReviewTask extends TimerTask {
-        private final Timer scheduledBy;
-
-        private CheckReviewTask(Timer scheduledBy) {
-            this.scheduledBy = scheduledBy;
-        }
-
-        @Override
-        public void run() {
-            handleNotification();
-            rescheduleRefreshTask(scheduledBy);
+    /** Ignores a poll cancelled or replaced while it was running, which would otherwise double the polling. */
+    private synchronized void rescheduleRefreshTask(long generation) {
+        if (generation == scheduleGeneration) {
+            scheduleRefreshTask();
         }
     }
 }

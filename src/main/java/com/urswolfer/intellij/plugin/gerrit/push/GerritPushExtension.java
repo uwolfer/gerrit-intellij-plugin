@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
@@ -31,22 +29,24 @@ import javassist.*;
  * * Some methods of GitPushSupport are overwritten in order to inject Gerrit push support.
  * * GerritPushExtensionPanel, GerritPushOptionsPanel and GerritPushTargetPanel get copied to the Git plugin class loader.
  *
- * The byte-code modifications are triggered by instantiating this class, which {@link GerritPushExtensionStarter}
- * does on application startup.
+ * The byte-code modifications are triggered by {@link #install()}, which {@link GerritPushExtensionStarter}
+ * calls on application startup. They are applied at most once per application.
  *
  * @author Urs Wolfer
  */
-@Service(Service.Level.APP)
 public final class GerritPushExtension {
     private static final Logger LOG = Logger.getInstance(GerritPushExtension.class);
 
-    public static GerritPushExtension getInstance() {
-        return ApplicationManager.getApplication().getService(GerritPushExtension.class);
+    private static boolean installed = false;
+
+    private GerritPushExtension() {
     }
 
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
-
-    public GerritPushExtension() {
+    public static synchronized void install() {
+        if (installed) {
+            return;
+        }
+        installed = true;
         try {
             ClassPool classPool = ClassPool.getDefault();
 
@@ -65,9 +65,9 @@ public final class GerritPushExtension {
         }
     }
 
-    private void modifyGitBranchPanel(ClassPool classPool, ClassLoader classLoader) {
+    private static void modifyGitBranchPanel(ClassPool classPool, ClassLoader classLoader) {
         try {
-            boolean pushToGerrit = gerritSettings.getPushToGerrit();
+            boolean pushToGerrit = GerritSettings.getInstance().getPushToGerrit();
 
             CtClass gitPushSupportClass = classPool.get("git4idea.push.GitPushSupport");
             CtClass gerritPushOptionsPanelClass = classPool.get("com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
@@ -108,7 +108,7 @@ public final class GerritPushExtension {
         }
     }
 
-    private void copyGerritPluginClassesToGitPlugin(ClassPool classPool, ClassLoader targetClassLoader) {
+    private static void copyGerritPluginClassesToGitPlugin(ClassPool classPool, ClassLoader targetClassLoader) {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel$1");
@@ -120,7 +120,7 @@ public final class GerritPushExtension {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.util.UrlUtils");
     }
 
-    private void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {
+    private static void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {
         try {
             CtClass loadedClass = classPool.get(className);
             loadedClass.toClass(targetClassLoader, GitPushOperation.class.getProtectionDomain());

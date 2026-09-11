@@ -43,9 +43,9 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcs.log.VcsUser;
+import com.intellij.vcs.log.VcsUserRegistry;
 import com.intellij.vcs.log.impl.HashImpl;
 import com.intellij.vcs.log.impl.VcsShortCommitDetailsImpl;
-import com.intellij.vcs.log.impl.VcsUserImpl;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -214,7 +214,7 @@ public class GerritGitUtil {
                     final VirtualFile virtualFile = gitRepository.getRoot();
 
                     final String notLoaded = "Not loaded";
-                    VcsUser notLoadedUser = new VcsUserImpl(notLoaded, notLoaded);
+                    VcsUser notLoadedUser = project.getService(VcsUserRegistry.class).createUser(notLoaded, notLoaded);
                     VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
                         HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
 

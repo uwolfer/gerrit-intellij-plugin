@@ -4,7 +4,6 @@ import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 
 /**
@@ -22,7 +21,7 @@ public class StarAction extends AbstractLoggedInChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        Project project = anActionEvent.getProject();
         ChangeInfo changeInfo = selectedChange.get();
         gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project);
     }

@@ -20,7 +20,6 @@ import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -47,7 +46,7 @@ public class CopyChangeIdAction extends AbstractChangeAction {
         ChangeInfo changeDetails = selectedChange.get();
         String stringToCopy = changeDetails.changeId;
         CopyPasteManager.getInstance().setContents(new StringSelection(stringToCopy));
-        Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        Project project = anActionEvent.getProject();
         NotificationBuilder builder = new NotificationBuilder(project, "Copy", "Copied Change-ID to clipboard.");
         notificationService.notify(builder);
     }

@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.DumbAware;
@@ -38,7 +37,7 @@ public class SettingsAction extends AnAction implements DumbAware, UpdateInBackg
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        final Project project = anActionEvent.getProject();
         ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
     }
 

@@ -98,7 +98,6 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final AddCommentActionBuilder addCommentActionBuilder = new AddCommentActionBuilder();
-    private final PathUtils pathUtils = PathUtils.getInstance();
     private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     @NotNull
@@ -312,7 +311,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo changeInfo) {
-        return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
+        return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
     }
 
     private static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {

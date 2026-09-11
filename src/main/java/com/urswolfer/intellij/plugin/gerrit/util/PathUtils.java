@@ -19,8 +19,6 @@
 package com.urswolfer.intellij.plugin.gerrit.util;
 
 import com.google.common.base.Optional;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -32,14 +30,11 @@ import java.io.File;
 /**
  * @author Thomas Forrer
  */
-@Service(Service.Level.APP)
 public final class PathUtils {
 
-    public static PathUtils getInstance() {
-        return ApplicationManager.getApplication().getService(PathUtils.class);
-    }
+    private PathUtils() {}
 
-    public String getRelativePath(Project project, String absoluteFilePath, String gerritProjectName) {
+    public static String getRelativePath(Project project, String absoluteFilePath, String gerritProjectName) {
         Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName);
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
@@ -50,7 +45,7 @@ public final class PathUtils {
     /**
      * @return a relative path for all files under the project root, or the absolute path for other files
      */
-    public String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
+    public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
         String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
         if (relativePath == null || relativePath.contains(File.separator + "..")) {
             return absoluteFilePath;

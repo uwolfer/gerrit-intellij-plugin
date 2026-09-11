@@ -23,7 +23,6 @@ import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
@@ -73,7 +72,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
         comment.side = fileComment.side;
         comment.range = fileComment.range;
 
-        final Project project = e.getData(PlatformDataKeys.PROJECT);
+        final Project project = e.getProject();
         gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,
                 new Consumer<CommentInfo>() {
                     @Override

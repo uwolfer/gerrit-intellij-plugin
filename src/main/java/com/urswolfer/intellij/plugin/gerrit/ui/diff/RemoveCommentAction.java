@@ -21,7 +21,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -67,7 +66,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware, UpdateIn
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        final Project project = e.getData(PlatformDataKeys.PROJECT);
+        final Project project = e.getProject();
         gerritUtil.deleteDraftComment(changeInfo._number, revisionId, comment.id, project,
                 new Consumer<Void>() {
                     @Override

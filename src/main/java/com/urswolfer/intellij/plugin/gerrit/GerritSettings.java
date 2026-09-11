@@ -25,6 +25,7 @@ import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
@@ -40,8 +41,9 @@ import org.jetbrains.annotations.Nullable;
  * @author oleg
  * @author Urs Wolfer
  */
+@Service(Service.Level.APP)
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
-public class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
+public final class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
 
     private static final Logger LOG = Logger.getInstance(GerritSettings.class);
 

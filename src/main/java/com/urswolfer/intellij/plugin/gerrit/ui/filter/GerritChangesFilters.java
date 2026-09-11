@@ -24,19 +24,36 @@ import com.google.inject.Inject;
 import com.intellij.util.EventDispatcher;
 
 import java.util.EventListener;
-import java.util.Set;
+import java.util.List;
 
 /**
  * @author Thomas Forrer
  */
 public class GerritChangesFilters implements AbstractChangesFilter.Listener {
-    private final Set<AbstractChangesFilter> filters;
+    private final List<AbstractChangesFilter> filters;
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
     @Inject
-    public GerritChangesFilters(Set<AbstractChangesFilter> filters) {
-        this.filters = filters;
-        for (AbstractChangesFilter filter : this.filters) {
+    public GerritChangesFilters(FulltextFilter fulltextFilter,
+                                StatusFilter statusFilter,
+                                BranchFilter branchFilter,
+                                AssigneeFilter assigneeFilter,
+                                ReviewerFilter reviewerFilter,
+                                AttentionFilter attentionFilter,
+                                OwnerFilter ownerFilter,
+                                IsStarredFilter isStarredFilter,
+                                ShowWIPFilter showWipFilter) {
+        filters = ImmutableList.<AbstractChangesFilter>of(
+                fulltextFilter,
+                statusFilter,
+                branchFilter,
+                assigneeFilter,
+                reviewerFilter,
+                attentionFilter,
+                ownerFilter,
+                isStarredFilter,
+                showWipFilter);
+        for (AbstractChangesFilter filter : filters) {
             filter.addListener(this);
         }
     }

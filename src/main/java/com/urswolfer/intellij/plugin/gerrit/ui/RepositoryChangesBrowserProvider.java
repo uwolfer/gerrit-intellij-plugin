@@ -17,6 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -61,7 +62,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
@@ -77,11 +77,18 @@ public class RepositoryChangesBrowserProvider {
     @Inject
     private NotificationService notificationService;
     @Inject
-    private Set<GerritChangeNodeDecorator> changeNodeDecorators;
+    private GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator;
     @Inject
     private SelectedRevisions selectedRevisions;
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
+
+    /**
+     * @return the decorators applied to every change node, in the order they are applied
+     */
+    private List<GerritChangeNodeDecorator> changeNodeDecorators() {
+        return ImmutableList.<GerritChangeNodeDecorator>of(commentCountChangeNodeDecorator);
+    }
 
     public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel) {
         selectBaseRevisionAction = new SelectBaseRevisionAction(selectedRevisions);
@@ -148,7 +155,7 @@ public class RepositoryChangesBrowserProvider {
                         selectedChange = changeDetails;
                         baseRevision = Optional.absent();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
-                        for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
+                        for (GerritChangeNodeDecorator decorator : changeNodeDecorators()) {
                             decorator.onChangeSelected(project, selectedChange);
                         }
                         updateChangesBrowser();
@@ -224,7 +231,7 @@ public class RepositoryChangesBrowserProvider {
             return new ChangeNodeDecorator() {
                 @Override
                 public void decorate(Change change, SimpleColoredComponent component, boolean isShowFlatten) {
-                    for (GerritChangeNodeDecorator decorator : changeNodeDecorators) {
+                    for (GerritChangeNodeDecorator decorator : changeNodeDecorators()) {
                         decorator.decorate(project, change, component, selectedChange);
                     }
                 }

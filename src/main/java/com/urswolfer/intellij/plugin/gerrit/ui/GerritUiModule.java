@@ -17,8 +17,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
-import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritFilterModule;
+import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 
 /**
  * @author Thomas Forrer
@@ -26,10 +25,8 @@ import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritFilterModule;
 public class GerritUiModule extends AbstractModule {
     @Override
     protected void configure() {
-        install(new GerritFilterModule());
+        bind(GerritChangesFilters.class);
         bind(GerritSelectRevisionInfoColumn.class);
-        Multibinder<GerritChangeNodeDecorator> decorators = Multibinder.newSetBinder(binder(), GerritChangeNodeDecorator.class);
-        decorators.addBinding().to(GerritCommentCountChangeNodeDecorator.class);
         bind(RepositoryChangesBrowserProvider.class);
         bind(SettingsPanel.class);
         bind(GerritSettingsConfigurable.class);

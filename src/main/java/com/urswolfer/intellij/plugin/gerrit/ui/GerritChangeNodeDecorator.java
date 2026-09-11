@@ -25,8 +25,8 @@ import com.intellij.ui.SimpleColoredComponent;
  * Interface for node decorators in this plugin's
  * {@link com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser}.
  *
- * Implementations might be added to the corresponding {@link com.google.inject.multibindings.Multibinder} in
- * {@link com.urswolfer.intellij.plugin.gerrit.ui.GerritUiModule}.
+ * Implementations need to be added to the decorator list in
+ * {@link com.urswolfer.intellij.plugin.gerrit.ui.RepositoryChangesBrowserProvider}.
  *
  * @author Thomas Forrer
  */

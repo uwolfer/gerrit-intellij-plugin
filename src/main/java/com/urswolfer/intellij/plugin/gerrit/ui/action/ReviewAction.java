@@ -29,9 +29,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -43,34 +41,21 @@ import java.util.Map;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // needs to be setup with correct parameters (ctor); see corresponding factory
+@SuppressWarnings("ComponentNotRegistered") // created per label and rating by ReviewActionGroup
 public class ReviewAction extends AbstractLoggedInChangeAction {
-    private final SelectedRevisions selectedRevisions;
-    private final SubmitAction submitAction;
-    private final NotificationService notificationService;
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
+    private final SubmitAction submitAction = new SubmitAction();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
     private String label;
     private int rating;
     private boolean showDialog;
 
-    public ReviewAction(String label,
-                        int rating,
-                        Icon icon,
-                        boolean showDialog,
-                        SelectedRevisions selectedRevisions,
-                        GerritUtil gerritUtil,
-                        SubmitAction submitAction,
-                        NotificationService notificationService,
-                        GerritSettings gerritSettings) {
+    public ReviewAction(String label, int rating, Icon icon, boolean showDialog) {
         super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
-        this.gerritSettings = gerritSettings;
-        this.gerritUtil = gerritUtil;
-        this.selectedRevisions = selectedRevisions;
-        this.submitAction = submitAction;
-        this.notificationService = notificationService;
     }
 
     @Override

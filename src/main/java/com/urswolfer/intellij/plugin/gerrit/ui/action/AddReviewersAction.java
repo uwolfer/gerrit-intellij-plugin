@@ -24,7 +24,6 @@ import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.SuggestedReviewerInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.google.inject.Inject;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
@@ -40,8 +39,7 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
-import com.urswolfer.gerrit.client.rest.GerritRestApi;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,11 +52,7 @@ import java.util.Set;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class AddReviewersAction extends AbstractLoggedInChangeAction {
-    @Inject
-    private GerritRestApi gerritApi;
-
     public AddReviewersAction() {
         super("Add Reviewers", "Add Reviewers to Change", AllIcons.Toolwindows.ToolWindowTodo);
     }
@@ -72,7 +66,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
 
-        AddReviewersDialog dialog = new AddReviewersDialog(project, true, gerritApi, selectedChange.get());
+        AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(), selectedChange.get());
         dialog.show();
         if (!dialog.isOK()) {
             return;
@@ -175,21 +169,4 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
         }
     }
 
-    public static class Proxy extends AddReviewersAction {
-        private final AddReviewersAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(AddReviewersAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

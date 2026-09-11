@@ -22,7 +22,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.google.inject.Inject;
 import com.intellij.diff.chains.DiffRequestChain;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
@@ -70,16 +69,11 @@ import java.util.concurrent.Callable;
 public class RepositoryChangesBrowserProvider {
     private static final Logger LOG = Logger.getInstance(RepositoryChangesBrowserProvider.class);
 
-    @Inject
-    private GerritGitUtil gerritGitUtil;
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private NotificationService notificationService;
-    @Inject
-    private GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
+    private final GerritCommentCountChangeNodeDecorator commentCountChangeNodeDecorator = new GerritCommentCountChangeNodeDecorator();
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     private SelectBaseRevisionAction selectBaseRevisionAction;
 

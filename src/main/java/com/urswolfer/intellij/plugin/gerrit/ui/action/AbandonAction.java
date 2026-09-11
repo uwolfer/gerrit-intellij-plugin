@@ -26,7 +26,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,7 +34,6 @@ import javax.swing.*;
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class AbandonAction extends AbstractLoggedInChangeAction {
 
     public AbandonAction() {
@@ -110,21 +108,4 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
         }
     }
 
-    public static class Proxy extends AbandonAction {
-        private final AbandonAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(AbandonAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

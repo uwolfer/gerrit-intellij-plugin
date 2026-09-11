@@ -24,12 +24,10 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class DeleteAction extends AbstractLoggedInChangeAction {
 
     public DeleteAction() {
@@ -75,21 +73,4 @@ public class DeleteAction extends AbstractLoggedInChangeAction {
         gerritUtil.delete(selectedChange.get().id, project);
     }
 
-    public static class Proxy extends DeleteAction {
-        private final DeleteAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(DeleteAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

@@ -28,7 +28,6 @@ import com.google.gerrit.extensions.client.Side;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.google.inject.Inject;
 import com.intellij.codeInsight.highlighting.HighlightManager;
 import com.intellij.diff.DiffContext;
 import com.intellij.diff.DiffTool;
@@ -58,7 +57,6 @@ import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -97,16 +95,11 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         }
     };
 
-    @Inject
-    private GerritUtil gerritUtil;
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private AddCommentActionBuilder addCommentActionBuilder;
-    @Inject
-    private PathUtils pathUtils;
-    @Inject
-    private SelectedRevisions selectedRevisions;
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final AddCommentActionBuilder addCommentActionBuilder = new AddCommentActionBuilder();
+    private final PathUtils pathUtils = PathUtils.getInstance();
+    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
 
     @NotNull
     @Override
@@ -333,43 +326,4 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         return highlighters.get(0);
     }
 
-    public static class Proxy extends CommentsDiffTool {
-        private CommentsDiffTool delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(CommentsDiffTool.class);
-        }
-
-        @NotNull
-        @Override
-        public String getName() {
-            return delegate.getName();
-        }
-
-        @Override
-        public List<Class<? extends DiffTool>> getSuppressedTools() {
-            return delegate.getSuppressedTools();
-        }
-
-        @Override
-        public boolean canShow(@NotNull DiffContext context, @NotNull DiffRequest request) {
-            return delegate.canShow(context, request);
-        }
-
-        @NotNull
-        @Override
-        public DiffViewer createComponent(@NotNull DiffContext context, @NotNull DiffRequest request) {
-            return delegate.createComponent(context, request);
-        }
-
-        @Override
-        public void addComment(Editor editor, ChangeInfo changeInfo, String revisionId, Project project, Comment comment) {
-            delegate.addComment(editor, changeInfo, revisionId, project, comment);
-        }
-
-        @Override
-        public void removeComment(Project project, Editor editor, RangeHighlighter lineHighlighter, RangeHighlighter rangeHighlighter) {
-            delegate.removeComment(project, editor, lineHighlighter, rangeHighlighter);
-        }
-    }
 }

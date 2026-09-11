@@ -18,20 +18,16 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.inject.Inject;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import icons.MyIcons;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class OpenInBrowserAction extends AbstractChangeAction {
-    @Inject
-    private GerritSettings gerritSettings;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     public OpenInBrowserAction() {
         super("Open in Gerrit", "Open corresponding link in browser", MyIcons.Gerrit);
@@ -53,16 +49,4 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         return String.format("%s/%s", url, changeNumber);
     }
 
-    public static class Proxy extends OpenInBrowserAction {
-        private final OpenInBrowserAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(OpenInBrowserAction.class);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

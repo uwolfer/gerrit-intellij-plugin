@@ -20,7 +20,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.inject.Inject;
 import com.intellij.util.EventDispatcher;
 
 import java.util.EventListener;
@@ -33,26 +32,17 @@ public class GerritChangesFilters implements AbstractChangesFilter.Listener {
     private final List<AbstractChangesFilter> filters;
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
-    @Inject
-    public GerritChangesFilters(FulltextFilter fulltextFilter,
-                                StatusFilter statusFilter,
-                                BranchFilter branchFilter,
-                                AssigneeFilter assigneeFilter,
-                                ReviewerFilter reviewerFilter,
-                                AttentionFilter attentionFilter,
-                                OwnerFilter ownerFilter,
-                                IsStarredFilter isStarredFilter,
-                                ShowWIPFilter showWipFilter) {
+    public GerritChangesFilters() {
         filters = ImmutableList.<AbstractChangesFilter>of(
-                fulltextFilter,
-                statusFilter,
-                branchFilter,
-                assigneeFilter,
-                reviewerFilter,
-                attentionFilter,
-                ownerFilter,
-                isStarredFilter,
-                showWipFilter);
+                new FulltextFilter(),
+                new StatusFilter(),
+                new BranchFilter(),
+                new AssigneeFilter(),
+                new ReviewerFilter(),
+                new AttentionFilter(),
+                new OwnerFilter(),
+                new IsStarredFilter(),
+                new ShowWIPFilter());
         for (AbstractChangesFilter filter : filters) {
             filter.addListener(this);
         }

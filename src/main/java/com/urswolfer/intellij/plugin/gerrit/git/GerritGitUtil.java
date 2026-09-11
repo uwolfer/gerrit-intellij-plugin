@@ -23,9 +23,9 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
 import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
-import com.google.inject.Inject;
 import com.intellij.dvcs.util.CommitCompareInfo;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -81,11 +81,12 @@ import java.util.concurrent.Callable;
 /**
  * @author Urs Wolfer
  */
-public class GerritGitUtil {
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private NotificationService notificationService;
+@Service(Service.Level.APP)
+public final class GerritGitUtil {
+
+    public static GerritGitUtil getInstance() {
+        return ApplicationManager.getApplication().getService(GerritGitUtil.class);
+    }
 
     public Iterable<GitRepository> getRepositories(Project project) {
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
@@ -118,7 +119,7 @@ public class GerritGitUtil {
             repositoryUrls.addAll(remote.getPushUrls());
             for (String repositoryUrl : repositoryUrls) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritSettings.getCloneBaseUrlOrHost())) {
+                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
                     return Optional.of(remote);
                 }
             }
@@ -126,7 +127,7 @@ public class GerritGitUtil {
         NotificationBuilder notification = new NotificationBuilder(project, "Error",
             String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
                 "Git repository: '%s'.", gitRepository.getPresentableUrl()));
-        notificationService.notifyError(notification);
+        NotificationService.getInstance().notifyError(notification);
         return Optional.absent();
     }
 
@@ -206,7 +207,7 @@ public class GerritGitUtil {
                     if (!gitRepositoryOptional.isPresent()) {
                         NotificationBuilder notification = new NotificationBuilder(project, "Error",
                             String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));
-                        notificationService.notifyError(notification);
+                        NotificationService.getInstance().notifyError(notification);
                         return;
                     }
                     GitRepository gitRepository = gitRepositoryOptional.get();
@@ -257,11 +258,11 @@ public class GerritGitUtil {
                 "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {
-            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+            NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
                     "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed."));
             return false;
         } else {
-            notificationService.notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+            NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
                     result.getErrorOutputAsHtmlString()));
             return false;
         }

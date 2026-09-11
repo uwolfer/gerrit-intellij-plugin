@@ -18,7 +18,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
-import com.google.inject.Inject;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -68,10 +67,8 @@ public class SettingsPanel {
 
     private boolean passwordModified;
 
-    @Inject
-    private GerritSettings gerritSettings;
-    @Inject
-    private GerritUtil gerritUtil;
+    private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
     public SettingsPanel() {
         hostTextField.getEmptyText().setText("https://review.example.org");

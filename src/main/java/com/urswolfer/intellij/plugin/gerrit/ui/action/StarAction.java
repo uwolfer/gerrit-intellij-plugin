@@ -6,12 +6,10 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
 /**
  * @author Urs Wolfer
  */
-@SuppressWarnings("ComponentNotRegistered") // proxy class below is registered
 public class StarAction extends AbstractLoggedInChangeAction {
 
     public StarAction() {
@@ -29,21 +27,4 @@ public class StarAction extends AbstractLoggedInChangeAction {
         gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project);
     }
 
-    public static class Proxy extends StarAction {
-        private final StarAction delegate;
-
-        public Proxy() {
-            delegate = GerritModule.getInstance(StarAction.class);
-        }
-
-        @Override
-        public void update(AnActionEvent e) {
-            delegate.update(e);
-        }
-
-        @Override
-        public void actionPerformed(AnActionEvent e) {
-            delegate.actionPerformed(e);
-        }
-    }
 }

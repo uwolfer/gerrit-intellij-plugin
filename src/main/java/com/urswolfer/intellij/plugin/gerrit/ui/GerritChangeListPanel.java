@@ -87,9 +87,10 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     private volatile boolean loadingMoreChanges = false;
     private final JScrollPane scrollPane;
 
-    public GerritChangeListPanel() {
-        this.selectedRevisions = SelectedRevisions.getInstance();
-        this.selectRevisionInfoColumn = new GerritSelectRevisionInfoColumn();
+    public GerritChangeListPanel(Project project) {
+        this.project = project;
+        this.selectedRevisions = SelectedRevisions.getInstance(project);
+        this.selectRevisionInfoColumn = new GerritSelectRevisionInfoColumn(project);
         this.gerritSettings = GerritSettings.getInstance();
         this.changes = Lists.newArrayList();
 
@@ -125,10 +126,6 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
             }
         });
         add(scrollPane);
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
     }
 
     @Override

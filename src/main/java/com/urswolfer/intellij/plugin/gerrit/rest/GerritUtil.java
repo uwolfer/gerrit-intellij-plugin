@@ -623,11 +623,12 @@ public final class GerritUtil {
         });
     }
 
-    public FetchInfo getFirstFetchInfo(ChangeInfo changeDetails) {
+    public FetchInfo getFirstFetchInfo(Project project, ChangeInfo changeDetails) {
         if (changeDetails.revisions == null) {
             return null;
         }
-        RevisionInfo revisionInfo = changeDetails.revisions.get(SelectedRevisions.getInstance().get(changeDetails));
+        RevisionInfo revisionInfo =
+            changeDetails.revisions.get(SelectedRevisions.getInstance(project).get(changeDetails));
         return getFirstFetchInfo(revisionInfo);
     }
 

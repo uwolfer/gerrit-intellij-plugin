@@ -42,7 +42,6 @@ import java.util.Map;
  */
 @SuppressWarnings("ComponentNotRegistered") // created per label and rating by ReviewActionGroup
 public class ReviewAction extends AbstractLoggedInChangeAction {
-    private final SelectedRevisions selectedRevisions = SelectedRevisions.getInstance();
     private final SubmitAction submitAction = new SubmitAction();
     private final NotificationService notificationService = NotificationService.getInstance();
 
@@ -66,7 +65,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
             return;
         }
         final ChangeInfo changeDetails = selectedChange.get();
-        gerritUtil.getComments(changeDetails._number, selectedRevisions.get(changeDetails), project, false, true,
+        gerritUtil.getComments(changeDetails._number, SelectedRevisions.getInstance(project).get(changeDetails), project, false, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
             @Override
             public void consume(Map<String, List<CommentInfo>> draftComments) {
@@ -99,7 +98,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
                 final boolean finalSubmitChange = submitChange;
                 gerritUtil.postReview(changeDetails.id,
-                        selectedRevisions.get(changeDetails),
+                        SelectedRevisions.getInstance(project).get(changeDetails),
                         reviewInput,
                         project,
                         new Consumer<Void>() {

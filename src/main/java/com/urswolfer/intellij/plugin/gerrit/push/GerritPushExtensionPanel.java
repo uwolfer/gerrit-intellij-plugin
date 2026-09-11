@@ -280,53 +280,61 @@ public class GerritPushExtensionPanel extends JPanel {
         ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
     }
 
-    private String getRef() {
-        String ref = "%s";
-        if (pushToGerritCheckBox.isSelected()) {
-            if (draftChangeCheckBox.isSelected()) {
-                ref = "refs/drafts/";
-            } else {
-                ref = "refs/for/";
-            }
-            if (!branchTextField.getText().isEmpty()) {
-                ref += branchTextField.getText();
-            } else {
-                ref += "%s";
-            }
-            List<String> gerritSpecs = Lists.newArrayList();
-            if (privateCheckBox.isSelected()) {
-                gerritSpecs.add("private");
-            } else if (unmarkPrivateCheckBox.isSelected()) {
-                gerritSpecs.add("remove-private");
-            }
-            if (wipCheckBox.isSelected()) {
-                gerritSpecs.add("wip");
-            } else if (readyCheckBox.isSelected()) {
-                gerritSpecs.add("ready");
-            }
-            if (publishDraftCommentsCheckBox.isSelected()) {
-                gerritSpecs.add("publish-comments");
-            }
-            if (submitChangeCheckBox.isSelected()) {
-                gerritSpecs.add("submit");
-            }
-            if (!topicTextField.getText().isEmpty()) {
-                gerritSpecs.add("topic=" + topicTextField.getText());
-            }
-            if (!hashTagTextField.getText().isEmpty()) {
-                gerritSpecs.add("hashtag=" + hashTagTextField.getText());
-            }
-            if (!patchsetDescriptionTextField.getText().isEmpty()) {
-                gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescriptionTextField.getText()));
-            }
-            handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
-            handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
-            String gerritSpec = Joiner.on(',').join(gerritSpecs);
-            if (!Strings.isNullOrEmpty(gerritSpec)) {
-                ref += "%%" + gerritSpec;
-            }
+    /**
+     * Builds the push target ref for the provided branch.
+     *
+     * The values entered by the user (branch, topic, patch set description, ...) are appended as they are.
+     * They must never be handled as a format string: the patch set description is percent-encoded, and
+     * sequences like "%2E" would be interpreted as (invalid) format specifiers.
+     */
+    private String getRef(String branch) {
+        StringBuilder ref = new StringBuilder();
+        if (!pushToGerritCheckBox.isSelected()) {
+            return ref.append(branch).toString();
         }
-        return ref;
+        if (draftChangeCheckBox.isSelected()) {
+            ref.append("refs/drafts/");
+        } else {
+            ref.append("refs/for/");
+        }
+        if (!branchTextField.getText().isEmpty()) {
+            ref.append(branchTextField.getText());
+        } else {
+            ref.append(branch);
+        }
+        List<String> gerritSpecs = Lists.newArrayList();
+        if (privateCheckBox.isSelected()) {
+            gerritSpecs.add("private");
+        } else if (unmarkPrivateCheckBox.isSelected()) {
+            gerritSpecs.add("remove-private");
+        }
+        if (wipCheckBox.isSelected()) {
+            gerritSpecs.add("wip");
+        } else if (readyCheckBox.isSelected()) {
+            gerritSpecs.add("ready");
+        }
+        if (publishDraftCommentsCheckBox.isSelected()) {
+            gerritSpecs.add("publish-comments");
+        }
+        if (submitChangeCheckBox.isSelected()) {
+            gerritSpecs.add("submit");
+        }
+        if (!topicTextField.getText().isEmpty()) {
+            gerritSpecs.add("topic=" + topicTextField.getText());
+        }
+        if (!hashTagTextField.getText().isEmpty()) {
+            gerritSpecs.add("hashtag=" + hashTagTextField.getText());
+        }
+        if (!patchsetDescriptionTextField.getText().isEmpty()) {
+            gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescriptionTextField.getText()));
+        }
+        handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
+        handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
+        String gerritSpec = Joiner.on(',').join(gerritSpecs);
+        if (!Strings.isNullOrEmpty(gerritSpec)) {
+            ref.append('%').append(gerritSpec);
+        }
+        return ref.toString();
     }
 
     private void handleExclusiveCheckBoxes() {
@@ -345,13 +353,13 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private void initDestinationBranch() {
         for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().initBranch(String.format(getRef(), entry.getValue()), pushToGerritByDefault);
+            entry.getKey().initBranch(getRef(entry.getValue()), pushToGerritByDefault);
         }
     }
 
     private void updateDestinationBranch() {
         for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().updateBranch(String.format(getRef(), entry.getValue()));
+            entry.getKey().updateBranch(getRef(entry.getValue()));
         }
     }
 

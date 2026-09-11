@@ -84,7 +84,6 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
 
     private Project project;
 
-    private volatile boolean loadingMoreChanges = false;
     private final JScrollPane scrollPane;
 
     public GerritChangeListPanel(Project project) {
@@ -107,20 +106,16 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             @Override
             public void adjustmentValueChanged(AdjustmentEvent e) {
-                if (!loadingMoreChanges && loadChangesProxy != null) {
-                    loadingMoreChanges = true;
-                    try {
-                        int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
-                        if (lowerEnd == e.getAdjustable().getMaximum()) {
-                            loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
-                                @Override
-                                public void consume(List<ChangeInfo> changeInfos) {
-                                    addChanges(changeInfos);
-                                }
-                            });
-                        }
-                    } finally {
-                        loadingMoreChanges = false;
+                if (loadChangesProxy != null) {
+                    int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
+                    if (lowerEnd == e.getAdjustable().getMaximum()) {
+                        // a load which is already running is skipped by the proxy
+                        loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+                            @Override
+                            public void consume(List<ChangeInfo> changeInfos) {
+                                addChanges(changeInfos);
+                            }
+                        });
                     }
                 }
             }

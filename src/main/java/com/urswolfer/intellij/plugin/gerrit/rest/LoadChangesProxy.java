@@ -24,8 +24,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Thomas Forrer
@@ -39,7 +38,7 @@ public class LoadChangesProxy {
     private String sortkey;
     private boolean hasMore = true;
     private final List<ChangeInfo> changes = Lists.newArrayList();
-    private final Lock lock = new ReentrantLock();
+    private final AtomicBoolean loading = new AtomicBoolean(false);
 
     public LoadChangesProxy(Changes.QueryRequest queryRequest,
                             GerritUtil gerritUtil,
@@ -50,19 +49,25 @@ public class LoadChangesProxy {
     }
 
     /**
-     * Load the next page of changes into the provided consumer
+     * Load the next page of changes into the provided consumer.
+     *
+     * Loading is asynchronous and this is called from the event dispatch thread (scrolling the change
+     * list), so a load which is already running must never be waited for: the result is handled on the
+     * event dispatch thread as well, which would deadlock. Such a call is skipped instead.
      */
     public void getNextPage(final Consumer<List<ChangeInfo>> consumer) {
-        if (hasMore) {
-            lock.lock();
-            Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(changes.size());
-            // remove sortkey handling once we drop Gerrit < 2.9 support
-            if (sortkey != null) {
-                myRequest.withSortkey(sortkey);
-            }
-            Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
-                @Override
-                public void consume(List<ChangeInfo> changeInfos) {
+        if (!hasMore || !loading.compareAndSet(false, true)) {
+            return;
+        }
+        Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(changes.size());
+        // remove sortkey handling once we drop Gerrit < 2.9 support
+        if (sortkey != null) {
+            myRequest.withSortkey(sortkey);
+        }
+        Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
+            @Override
+            public void consume(List<ChangeInfo> changeInfos) {
+                try {
                     if (changeInfos != null && !changeInfos.isEmpty()) {
                         ChangeInfo lastChangeInfo = Iterables.getLast(changeInfos);
                         hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
@@ -72,10 +77,11 @@ public class LoadChangesProxy {
                         hasMore = false;
                     }
                     consumer.consume(changeInfos);
-                    lock.unlock();
+                } finally {
+                    loading.set(false);
                 }
-            };
-            gerritUtil.getChanges(myRequest, project, myConsumer);
-        }
+            }
+        };
+        gerritUtil.getChanges(myRequest, project, myConsumer);
     }
 }

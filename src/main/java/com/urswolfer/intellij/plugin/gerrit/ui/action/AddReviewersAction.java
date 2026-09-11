@@ -28,7 +28,6 @@ import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
@@ -59,7 +58,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        final Project project = anActionEvent.getProject();
 
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {

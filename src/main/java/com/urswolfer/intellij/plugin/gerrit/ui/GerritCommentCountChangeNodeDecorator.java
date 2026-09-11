@@ -46,7 +46,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
-    private final PathUtils pathUtils = PathUtils.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     private final SelectedRevisions selectedRevisions;
@@ -129,7 +128,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
-        return pathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, selectedChange.project);
+        return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, selectedChange.project);
     }
 
     private Supplier<Map<String, List<CommentInfo>>> setupCommentsSupplier() {

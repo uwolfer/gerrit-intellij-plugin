@@ -22,7 +22,6 @@ import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 
 /**
@@ -65,7 +64,7 @@ public class DeleteAction extends AbstractLoggedInChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        Project project = anActionEvent.getProject();
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;

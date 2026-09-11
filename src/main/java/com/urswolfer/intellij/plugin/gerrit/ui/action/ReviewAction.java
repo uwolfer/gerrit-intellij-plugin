@@ -26,7 +26,6 @@ import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -60,7 +59,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
     @Override
     public void actionPerformed(final AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        final Project project = anActionEvent.getProject();
 
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {

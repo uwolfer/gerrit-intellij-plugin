@@ -23,7 +23,6 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
@@ -94,7 +93,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     }
 
     public void actionPerformed(AnActionEvent e) {
-        final Project project = e.getData(PlatformDataKeys.PROJECT);
+        final Project project = e.getProject();
         if (project == null) return;
         addVersionedComment(project);
     }

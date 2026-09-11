@@ -29,7 +29,6 @@ import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
@@ -115,7 +114,7 @@ public class GerritCheckoutProvider implements CheckoutProvider {
         final String directoryName = dialog.getDirectoryName();
         final String parentDirectory = dialog.getParentDirectory();
 
-        Git git = ApplicationManager.getApplication().getService(Git.class);
+        Git git = Git.getInstance();
 
         Listener listenerWrapper = addCommitMsgHookListener(listener, directoryName, parentDirectory, project);
 

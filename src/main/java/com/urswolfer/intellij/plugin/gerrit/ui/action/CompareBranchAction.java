@@ -22,7 +22,6 @@ import com.intellij.dvcs.ui.CompareBranchesDialog;
 import com.intellij.dvcs.util.CommitCompareInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -53,7 +52,7 @@ public class CompareBranchAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        final Project project = anActionEvent.getData(PlatformDataKeys.PROJECT);
+        final Project project = anActionEvent.getProject();
         Callable<Void> successCallable = new Callable<Void>() {
             @Override
             public Void call() throws Exception {

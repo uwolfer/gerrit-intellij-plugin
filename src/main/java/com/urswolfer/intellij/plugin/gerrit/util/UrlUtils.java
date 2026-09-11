@@ -51,7 +51,7 @@ public class UrlUtils {
         // at least the chars %^@.~-+_:/! must be percent-encoded and the space character must be encoded as '+'
         return URLEncoder.encode(text, StandardCharsets.UTF_8)
             .replace(".", "%2E")
-            .replace("-", "%96")
-            .replace("_", "%5E");
+            .replace("-", "%2D")
+            .replace("_", "%5F");
     }
 }

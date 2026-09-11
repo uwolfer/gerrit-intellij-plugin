@@ -25,6 +25,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.Constraints;
+import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.diagnostic.Logger;
@@ -41,6 +42,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.List;
@@ -50,6 +52,12 @@ import java.util.List;
  * @author Konrad Dobrzynski
  */
 public class GerritToolWindow implements Disposable {
+    /**
+     * Provided by the tool window content panel, so that actions can reach the tool window they were invoked from
+     * instead of looking it up in a global holder.
+     */
+    public static final DataKey<GerritToolWindow> GERRIT_TOOL_WINDOW = DataKey.create("Gerrit.ToolWindow");
+
     private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
@@ -71,7 +79,15 @@ public class GerritToolWindow implements Disposable {
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel = new GerritChangeListPanel(project);
 
-        SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true);
+        SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true) {
+            @Override
+            public Object getData(@NotNull String dataId) {
+                if (GERRIT_TOOL_WINDOW.is(dataId)) {
+                    return GerritToolWindow.this;
+                }
+                return super.getData(dataId);
+            }
+        };
 
         ActionToolbar toolbar = createToolbar(project);
         toolbar.setTargetComponent(changeListPanel);

@@ -31,10 +31,6 @@ public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
     @Override
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
         GerritToolWindow gerritToolWindow = new GerritToolWindow();
-
-        ProjectService projectService = project.getService(ProjectService.class);
-        projectService.setGerritToolWindow(gerritToolWindow);
-
         SimpleToolWindowPanel toolWindowContent = gerritToolWindow.createToolWindowContent(project);
 
         ContentManager contentManager = toolWindow.getContentManager();
@@ -42,18 +38,5 @@ public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
         content.setDisposer(gerritToolWindow);
         contentManager.addContent(content);
         contentManager.setSelectedContent(content);
-    }
-
-    public static class ProjectService {
-
-        private GerritToolWindow gerritToolWindow;
-
-        public GerritToolWindow getGerritToolWindow() {
-            return gerritToolWindow;
-        }
-
-        void setGerritToolWindow(GerritToolWindow gerritToolWindow) {
-            this.gerritToolWindow = gerritToolWindow;
-        }
     }
 }

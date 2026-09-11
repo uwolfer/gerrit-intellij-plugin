@@ -113,7 +113,7 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             for (ChangeInfo change : changes) {
                 stringBuilder
                         .append("<li>")
-                        .append(!notifiedChanges.contains(change.changeId) ? "<strong>NEW: </strong>" : "")
+                        .append(!notifiedChanges.contains(change.id) ? "<strong>NEW: </strong>" : "")
                         .append(change.project)
                         .append(": ")
                         .append(change.subject)

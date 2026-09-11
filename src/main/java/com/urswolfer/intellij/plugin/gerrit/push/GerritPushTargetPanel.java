@@ -104,6 +104,12 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     }
 
     private void updateBranchTextField(Runnable myFireOnChangeAction) {
+        if (branch == null) {
+            // "branch" is only set to null for intermediate states which cannot be pushed (e.g. while the user is
+            // still typing a branch name like "release/"). Writing such a value into the push target field would
+            // make the IDE fail to parse the push target and log an error, so the last valid value is kept instead.
+            return;
+        }
         try {
             Field myTargetEditorField = getField("myTargetEditor");
             PushTargetTextField myTargetEditor = (PushTargetTextField) myTargetEditorField.get(this);
@@ -126,10 +132,15 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     }
 
     public void setBranch(String branch) {
-        if (branch == null || branch.isEmpty() || branch.endsWith("/")) {
+        if (branch == null) {
             this.branch = null;
             return;
         }
-        this.branch = branch.trim();
+        String trimmedBranch = branch.trim();
+        if (trimmedBranch.isEmpty() || trimmedBranch.endsWith("/")) {
+            this.branch = null;
+            return;
+        }
+        this.branch = trimmedBranch;
     }
 }

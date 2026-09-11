@@ -22,7 +22,6 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.urswolfer.intellij.plugin.gerrit.GerritModule;
 
@@ -40,7 +39,7 @@ public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
         SimpleToolWindowPanel toolWindowContent = gerritToolWindow.createToolWindowContent(project);
 
         ContentManager contentManager = toolWindow.getContentManager();
-        Content content = ContentFactory.SERVICE.getInstance().createContent(toolWindowContent, "", false);
+        Content content = contentManager.getFactory().createContent(toolWindowContent, "", false);
         contentManager.addContent(content);
         contentManager.setSelectedContent(content);
     }

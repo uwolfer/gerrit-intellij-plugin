@@ -105,7 +105,9 @@ public class GerritPushExtensionPanel extends JPanel {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 if (gerritPushTargetPanels.size() == 1) {
-                    String branchName = gerritPushTargetPanels.values().iterator().next();
+                    // the branch is null when the IDE has no push target for the repository (e.g. a detached head),
+                    // and Optional#or refuses a null default value
+                    String branchName = Strings.nullToEmpty(gerritPushTargetPanels.values().iterator().next());
                     Optional<String> gitReviewBranchName = getGitReviewBranchName();
                     branchTextField.setText(gitReviewBranchName.or(branchName));
                 }

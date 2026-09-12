@@ -45,6 +45,35 @@ public class RangeUtilsTest {
     }
 
     @Test
+    public void testTextOffsetToRangeStartingAtLineStart() throws Exception {
+        Comment.Range range = RangeUtils.textOffsetToRange(STRING, 16, 26); // line 2, selected as a whole line
+
+        Assert.assertEquals(2, range.startLine);
+        Assert.assertEquals(0, range.startCharacter);
+        Assert.assertEquals(2, range.endLine);
+        Assert.assertEquals(10, range.endCharacter);
+    }
+
+    @Test
+    public void testTextOffsetToRangeStartingAtTextStart() throws Exception {
+        Comment.Range range = RangeUtils.textOffsetToRange(STRING, 0, 5); // word "short"
+
+        Assert.assertEquals(1, range.startLine);
+        Assert.assertEquals(0, range.startCharacter);
+        Assert.assertEquals(1, range.endLine);
+        Assert.assertEquals(5, range.endCharacter);
+    }
+
+    @Test
+    public void testTextOffsetToRangeOfLineStartIsResolvedBack() throws Exception {
+        Comment.Range range = RangeUtils.textOffsetToRange(STRING, 16, 26);
+        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(STRING, range);
+
+        Assert.assertEquals(16, offset.start);
+        Assert.assertEquals(26, offset.end);
+    }
+
+    @Test
     public void testRangeToTextOffsetSingleLine() throws Exception {
         Comment.Range range = new Comment.Range();
         range.startLine = 2; // word "break"

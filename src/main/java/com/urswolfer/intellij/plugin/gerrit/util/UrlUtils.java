@@ -25,6 +25,8 @@ import java.nio.charset.StandardCharsets;
  */
 public class UrlUtils {
 
+    private static final String GIT_EXTENSION = ".git";
+
     private UrlUtils() {}
 
     public static boolean urlHasSameHost(String url, String hostUrl) {
@@ -42,8 +44,16 @@ public class UrlUtils {
         return URI.create(gitConfigUrl);
     }
 
+    /**
+     * Removes the ".git" some repositories end their name with. Only at the end: any other occurrence belongs to a
+     * host or project name (e.g. "gerrit.gitlab.example.com" or "my.github-actions") and must be kept.
+     */
     public static String stripGitExtension(String url) {
-        return url.replace(".git", ""); // some repositories end their name with ".git"
+        String strippedUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        if (strippedUrl.endsWith(GIT_EXTENSION)) {
+            return strippedUrl.substring(0, strippedUrl.length() - GIT_EXTENSION.length());
+        }
+        return url;
     }
 
     public static String encodePatchSetDescription(String text) {

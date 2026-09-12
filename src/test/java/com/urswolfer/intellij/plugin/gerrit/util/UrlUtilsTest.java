@@ -63,6 +63,27 @@ public class UrlUtilsTest {
     }
 
     @Test
+    public void testStripGitExtension() throws Exception {
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://gerrit.example.com/myproject.git"),
+            "https://gerrit.example.com/myproject");
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://gerrit.example.com/myproject.git/"),
+            "https://gerrit.example.com/myproject");
+        Assert.assertEquals(UrlUtils.stripGitExtension("ssh://gerrit.example.com:29418/tools/build.git"),
+            "ssh://gerrit.example.com:29418/tools/build");
+    }
+
+    @Test
+    public void testStripGitExtensionKeepsOtherOccurrences() throws Exception {
+        // ".git" in a host or project name is not an extension
+        Assert.assertEquals(UrlUtils.stripGitExtension("ssh://gerrit.gitlab.example.com:29418/tools/build"),
+            "ssh://gerrit.gitlab.example.com:29418/tools/build");
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://review.example.com/a/my.github-actions.git"),
+            "https://review.example.com/a/my.github-actions");
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://gerrit.example.com/myproject"),
+            "https://gerrit.example.com/myproject");
+    }
+
+    @Test
     public void testPatchSetDescriptionEncoding() throws Exception {
         String encoded = UrlUtils.encodePatchSetDescription("Abc %^@.~-+_:/!");
         Assert.assertEquals(encoded, "Abc+%25%5E%40%2E%7E%2D%2B%5F%3A%2F%21");

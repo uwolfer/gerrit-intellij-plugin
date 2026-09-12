@@ -29,11 +29,14 @@ public final class TextToHtml {
      * Converts plain text formatted with wiki-like syntax to HTML.
      */
     public static String textToHtml(String text) {
-        if (!text.contains("\n")) {
-            return text;
+        // SafeHtml handles the text it is given as HTML which is escaped already. A comment or a change message
+        // is plain text, so it needs to be escaped first; otherwise it is rendered as markup (and the quote
+        // handling of wikify(), which looks for an escaped "&gt; ", never matches).
+        String escapedText = new SafeHtmlBuilder().append(text).toSafeHtml().asString();
+        if (!escapedText.contains("\n")) {
+            return SafeHtmlBuilder.asis(escapedText).linkify().asString();
         }
-        text = SafeHtmlBuilder.asis(text).wikify().asString();
-        text = text.replace("</p><p>", "</p><br/><p>"); // otherwise paragraph breaks are not visible in IntelliJ...
-        return text;
+        String html = SafeHtmlBuilder.asis(escapedText).wikify().asString();
+        return html.replace("</p><p>", "</p><br/><p>"); // otherwise paragraph breaks are not visible in IntelliJ...
     }
 }

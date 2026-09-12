@@ -26,6 +26,7 @@ import git4idea.push.GitPushSupport;
 import git4idea.push.GitPushTarget;
 import git4idea.push.GitPushTargetPanel;
 import git4idea.repo.GitRepository;
+import git4idea.validators.GitRefNameValidator;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,10 +35,23 @@ import java.lang.reflect.Field;
 public class GerritPushTargetPanel extends GitPushTargetPanel {
 
     private static final Logger LOG = Logger.getInstance(GerritPushTargetPanel.class);
+
     private String branch;
+    private Field errorField;
+    private String platformError;
 
     public GerritPushTargetPanel(@NotNull GitPushSupport support, @NotNull GitRepository repository, @Nullable GitPushTarget defaultTarget, GerritPushOptionsPanel gerritPushOptionsPanel) {
         super(support, repository, defaultTarget);
+
+        try {
+            errorField = getField("myError");
+            // an error which the IDE has set itself (e.g. for a detached head); it must not be overwritten
+            platformError = (String) errorField.get(this);
+        } catch (NoSuchFieldException e) {
+            LOG.warn("Push target error field not available; invalid branch names cannot be marked", e);
+        } catch (IllegalAccessException e) {
+            LOG.warn("Push target error field not accessible; invalid branch names cannot be marked", e);
+        }
 
         String initialBranch = null;
         if (defaultTarget != null) {
@@ -105,17 +119,37 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
 
     private void updateBranchTextField(Runnable myFireOnChangeAction) {
         try {
-            Field myTargetEditorField = getField("myTargetEditor");
-            PushTargetTextField myTargetEditor = (PushTargetTextField) myTargetEditorField.get(this);
-            myTargetEditor.setText(branch);
+            if (branch != null) {
+                Field myTargetEditorField = getField("myTargetEditor");
+                PushTargetTextField myTargetEditor = (PushTargetTextField) myTargetEditorField.get(this);
+                myTargetEditor.setText(branch);
 
-            fireOnChange();
+                fireOnChange();
+            }
 
+            // also run it for an invalid branch name: it repaints the push dialog entry, which then shows the error
+            // set by setBranch instead of a push target which would not be used
             myFireOnChangeAction.run();
         } catch (NoSuchFieldException e) {
             LOG.error(e);
         } catch (IllegalAccessException e) {
             LOG.error(e);
+        }
+    }
+
+    /**
+     * Marks the push target as invalid, or as valid again for a {@code null} error. As long as an error is set, the
+     * IDE does not build a push target out of the text field content and the push dialog shows the error instead of
+     * a branch name.
+     */
+    private void setError(String error) {
+        if (errorField == null || platformError != null) {
+            return;
+        }
+        try {
+            errorField.set(this, error);
+        } catch (IllegalAccessException e) {
+            LOG.warn("Cannot update push target error", e);
         }
     }
 
@@ -126,10 +160,17 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
     }
 
     public void setBranch(String branch) {
-        if (branch == null || branch.isEmpty() || branch.endsWith("/")) {
-            this.branch = null;
+        String trimmedBranch = branch == null ? "" : branch.trim();
+        if (GitRefNameValidator.getInstance().checkInput(trimmedBranch)) {
+            this.branch = trimmedBranch;
+            setError(null);
             return;
         }
-        this.branch = branch.trim();
+        // Values which are no valid ref names must not be set: the IDE rejects them when it builds the push target
+        // out of the text field content, which makes it log an error. Such values occur regularly while the user is
+        // still typing a branch name (e.g. "refs/for/release/" on the way to "refs/for/release/1.0"). Mark the push
+        // target as invalid instead of leaving a branch name behind which would not be the one pushed to.
+        this.branch = null;
+        setError("Invalid destination branch name: " + trimmedBranch);
     }
 }

@@ -40,13 +40,15 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent() && isSubmittable(selectedChange.get())) {
+        if (selectedChange.isPresent() && !canSubmit(selectedChange.get())) {
             e.getPresentation().setEnabled(false);
         }
     }
 
-    private boolean isSubmittable(ChangeInfo selectedChange) {
-        return Boolean.FALSE.equals(selectedChange.submittable);
+    private boolean canSubmit(ChangeInfo selectedChange) {
+        // null if the Gerrit instance does not report it (it is only set when the query asks for SUBMITTABLE, and
+        // older instances do not know that option at all); assume the change can be submitted in that case
+        return !Boolean.FALSE.equals(selectedChange.submittable);
     }
 
     @Override

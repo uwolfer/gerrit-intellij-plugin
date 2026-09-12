@@ -34,6 +34,12 @@ public class TextToHtmlTest {
                         "<p>Test</p><ul><li>list 1</li><li>list 2</li><li>list 3</li></ul><p>End line</p>"},
                 { "Test\n\n  code line 1\n  code line 2\n  code line 3\n    code line 4 more indented\n\nEnd line",
                         "<p>Test</p><pre>  code line 1<br />  code line 2<br />  code line 3<br />    code line 4 more indented<br /></pre><p>End line</p>"},
+                { "Use List<String> & Map<K,V> here", "Use List&lt;String&gt; &amp; Map&lt;K,V&gt; here"},
+                { "Use List<String> here\nand Map<K,V> there", "<p>Use List&lt;String&gt; here\nand Map&lt;K,V&gt; there</p>"},
+                { "> quoted previous comment\n> second line\n\nmy reply",
+                        "<blockquote>quoted previous comment\nsecond line</blockquote><p>my reply</p>"},
+                { "see http://example.com/x for details",
+                        "see <a href=\"http://example.com/x\" target=\"_blank\" rel=\"nofollow\">http://example.com/x</a> for details"},
         };
     }
 

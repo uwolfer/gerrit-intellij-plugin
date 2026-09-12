@@ -19,7 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 /** Safely constructs a {@link SafeHtml}, escaping user provided content. */
 @SuppressWarnings("serial")
 public class SafeHtmlBuilder extends SafeHtml {
-  private static final Impl impl = new ClientImpl();
+  // ClientImpl escapes with a GWT native method, which is not available here: this code runs in a JVM
+  private static final Impl impl = new ServerImpl();
 
   private final BufferDirect dBuf;
   private Buffer cb;

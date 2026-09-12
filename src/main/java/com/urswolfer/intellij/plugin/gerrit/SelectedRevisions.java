@@ -17,18 +17,19 @@
 package com.urswolfer.intellij.plugin.gerrit;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.EventDispatcher;
+import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
+import java.util.Collections;
 import java.util.EventListener;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Class keeping record of all selected revisions by change.
@@ -65,15 +66,24 @@ public final class SelectedRevisions {
      */
     public String get(ChangeInfo changeInfo) {
         String currentRevision = changeInfo.currentRevision;
-        if (currentRevision == null && changeInfo.revisions != null) {
+        if (currentRevision == null) {
             // don't know why with some changes currentRevision is not set,
             // the revisions map however is usually populated
-            Set<String> revisionKeys = changeInfo.revisions.keySet();
-            if (!revisionKeys.isEmpty()) {
-                currentRevision = Iterables.getLast(revisionKeys);
-            }
+            currentRevision = getNewestRevision(changeInfo);
         }
         return get(changeInfo.id).or(Optional.fromNullable(currentRevision)).orNull();
+    }
+
+    /**
+     * @return the revision with the highest patch set number, or {@code null} if the change provides no revisions.
+     *         The revisions map has no defined order, so the newest revision cannot be taken from its last entry.
+     */
+    @VisibleForTesting
+    static String getNewestRevision(ChangeInfo changeInfo) {
+        if (changeInfo.revisions == null || changeInfo.revisions.isEmpty()) {
+            return null;
+        }
+        return Collections.max(changeInfo.revisions.entrySet(), RevisionInfos.MAP_ENTRY_COMPARATOR).getKey();
     }
 
     public void put(String changeId, String revisionHash) {

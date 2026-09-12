@@ -90,6 +90,17 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>2.0.0</li>
+          <ul>
+            <li>large parts of the internals have been rewritten (dependency injection, background loading, notifications);
+            please report anything which behaves differently than before</li>
+            <li>migrate off deprecated and internal IntelliJ API</li>
+            <li>fix checkout and fetch of changes under WSL2</li>
+            <li>escape comment text before it is rendered</li>
+            <li>several push dialog fixes (invalid branch names, missing push target, push settings handling)</li>
+            <li>load changes and comment counts without blocking the IDE</li>
+            <li>fix percent-encoding of filter queries and patch set descriptions</li>
+          </ul>
           <li>1.3.4</li>
           <ul>
             <li>fix Gerrit credentials not being persisted when using KeePass as the password backend</li>

@@ -26,6 +26,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.SimpleColoredComponent;
@@ -48,6 +49,8 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     private final SelectedRevisions selectedRevisions;
+    private final Project project;
+    private final Disposable parent;
 
     private ChangeInfo selectedChange;
 
@@ -56,9 +59,14 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private Map<String, List<CommentInfo>> drafts = Collections.emptyMap();
     private Set<String> reviewed = Collections.emptySet();
 
+    /** Incremented on the event dispatch thread for every load, so that a load in progress can tell it is obsolete. */
+    private volatile long loadGeneration;
+
     private Runnable dataLoadedCallback;
 
     public GerritCommentCountChangeNodeDecorator(Project project, Disposable parent) {
+        this.project = project;
+        this.parent = parent;
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
@@ -101,12 +109,17 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     /**
-     * Loads the comments, drafts and reviewed files of the selected change in the background.
+     * Loads the comments, drafts and reviewed files of the selected change in the background. Every load gets a
+     * generation which is checked before each request and before the result is published, so that a load which has
+     * been superseded (another change or another revision of it got selected) stops instead of overwriting newer
+     * data, and one which outlived the tool window does not touch it any more.
      */
     private void loadData() {
         comments = Collections.emptyMap();
         drafts = Collections.emptyMap();
         reviewed = Collections.emptySet();
+
+        final long generation = ++loadGeneration; // only written here, and this runs on the event dispatch thread
 
         final ChangeInfo change = selectedChange;
         if (change == null) {
@@ -121,13 +134,22 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
             @Override
             public void run() {
+                if (isObsolete(generation)) {
+                    return;
+                }
                 final Map<String, List<CommentInfo>> loadedComments = loadComments(change, revisionId);
+                if (isObsolete(generation)) {
+                    return;
+                }
                 final Map<String, List<CommentInfo>> loadedDrafts = loadDrafts(change, revisionId);
+                if (isObsolete(generation)) {
+                    return;
+                }
                 final Set<String> loadedReviewed = loadReviewed(change, revisionId);
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        if (change != selectedChange) { // another change has been selected in the meantime
+                        if (isObsolete(generation)) {
                             return;
                         }
                         comments = loadedComments;
@@ -140,6 +162,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                 });
             }
         });
+    }
+
+    private boolean isObsolete(long generation) {
+        return generation != loadGeneration || project.isDisposed() || Disposer.isDisposed(parent);
     }
 
     private String getAffectedFilePath(Change change) {

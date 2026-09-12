@@ -39,6 +39,12 @@ public class UrlUtilsTest {
     }
 
     @Test
+    public void testUrlHasSameHostIgnoresCase() throws Exception {
+        Assert.assertTrue(UrlUtils.urlHasSameHost("https://gerrit.example.com/test.git", "https://GERRIT.Example.com/"));
+        Assert.assertTrue(UrlUtils.urlHasSameHost("https://GERRIT.EXAMPLE.com/test.git", "https://gerrit.example.com/"));
+    }
+
+    @Test
     public void testCreateUriFromGitConfigStringWithProtocol() throws Exception {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("https://git.example.com/");
         Assert.assertEquals(uriFromGitConfigString.toString(), "https://git.example.com/");

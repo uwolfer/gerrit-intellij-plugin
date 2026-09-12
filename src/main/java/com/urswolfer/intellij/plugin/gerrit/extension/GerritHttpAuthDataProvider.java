@@ -1,4 +1,5 @@
 /*
+ * Copyright 2000-2012 JetBrains s.r.o.
  * Copyright 2013 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +26,12 @@ import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * Parts based on org.jetbrains.plugins.github.extensions.GithubHttpAuthDataProvider
+ *
+ * @author Urs Wolfer
+ * @author Kirill Likhodedov
+ */
 public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
     private final GerritSettings gerritSettings = GerritSettings.getInstance();

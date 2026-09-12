@@ -30,7 +30,7 @@ public class UrlUtils {
     public static boolean urlHasSameHost(String url, String hostUrl) {
         String host = URI.create(hostUrl).getHost();
         String repositoryHost = UrlUtils.createUriFromGitConfigString(url).getHost();
-        return repositoryHost != null && repositoryHost.equals(host);
+        return repositoryHost != null && repositoryHost.equalsIgnoreCase(host); // host names are case insensitive
     }
 
     public static URI createUriFromGitConfigString(String gitConfigUrl) {

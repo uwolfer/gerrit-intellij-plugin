@@ -62,8 +62,8 @@ public class ProxyHttpClientBuilderExtension extends HttpClientBuilderExtension 
                     AuthScope authScope = new AuthScope(proxySettings.PROXY_HOST, proxySettings.PROXY_PORT);
                     UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(proxySettings.getProxyLogin(), proxySettings.getPlainProxyPassword());
                     credentialsProvider.setCredentials(authScope, credentials);
-                    break;
                 }
+                break; // the first usable proxy is the one to use, the ones after it are the alternatives
             }
         }
         return credentialsProvider;

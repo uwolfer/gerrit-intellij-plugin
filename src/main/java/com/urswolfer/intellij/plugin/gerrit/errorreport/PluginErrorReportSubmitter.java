@@ -18,10 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ex.ApplicationInfoEx;
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter;
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.diagnostic.SubmittedReportInfo;
+import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.Version;
@@ -40,6 +43,8 @@ import java.io.IOException;
  * @author Urs Wolfer
  */
 public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
+
+    private static final Logger LOG = Logger.getInstance(PluginErrorReportSubmitter.class);
 
     private static final String ERROR_REPORT_URL = "https://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
 
@@ -61,9 +66,15 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
                     ? emailAddress : additionalInfo + '\n' + emailAddress;
             }
         }
-        ErrorBean errorBean = createErrorBean(events[0], additionalInfo);
-        String json = new Gson().toJson(errorBean);
-        postError(json);
+        final String json = new Gson().toJson(createErrorBean(events[0], additionalInfo));
+        // the report is sent in background: this runs on the event dispatch thread, and the IDE waits for the
+        // result to be handed to the consumer before it shows the report as submitted (or as failed)
+        ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+            @Override
+            public void run() {
+                consumer.consume(postError(json));
+            }
+        });
         return true;
     }
 
@@ -82,22 +93,39 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         return errorBean;
     }
 
-    private void postError(String json) {
+    private SubmittedReportInfo postError(String json) {
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             try {
                 HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
                 httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
                 CloseableHttpResponse response = httpClient.execute(httpPost);
-                if (response.getStatusLine().getStatusCode() == 406) {
-                    String reasonPhrase = response.getStatusLine().getReasonPhrase();
-                    Messages.showErrorDialog(reasonPhrase, "Gerrit Plugin Message");
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode == 406) {
+                    showMessage(response.getStatusLine().getReasonPhrase());
+                    return new SubmittedReportInfo(SubmissionStatus.FAILED);
                 }
+                if (statusCode < 200 || statusCode >= 300) {
+                    LOG.warn("Error report was not accepted: " + response.getStatusLine());
+                    return new SubmittedReportInfo(SubmissionStatus.FAILED);
+                }
+                return new SubmittedReportInfo(SubmissionStatus.NEW_ISSUE);
             } finally {
                 httpClient.close();
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // the IDE tells the user that the report could not be sent, so this must not be thrown any further
+            LOG.warn("Failed to send error report.", e);
+            return new SubmittedReportInfo(SubmissionStatus.FAILED);
         }
+    }
+
+    private void showMessage(final String message) {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Messages.showErrorDialog(message, "Gerrit Plugin Message");
+            }
+        });
     }
 }

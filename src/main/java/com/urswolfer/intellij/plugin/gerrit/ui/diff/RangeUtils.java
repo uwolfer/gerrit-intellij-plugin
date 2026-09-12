@@ -40,19 +40,23 @@ public final class RangeUtils {
             String lineString;
             int currentCharCount = 0;
             while ((lineString = reader.readLine()) != null) {
+                int lineStart = currentCharCount;
                 currentCharCount += lineString.length();
                 currentCharCount++; // line break
 
-                if (start > currentCharCount) {
+                // ">=": currentCharCount is the offset of the first character of the next line once the line break
+                // is counted, so a selection which starts there starts on that next line and not at the end of this one
+                if (start >= currentCharCount) {
                     startLine++;
                 } else if (startOffset < 0) {
-                    startOffset = start - (currentCharCount - lineString.length() - 1);
+                    startOffset = start - lineStart;
                 }
 
+                // the end stays at the end of the line it reaches: it is the line the comment gets attached to
                 if (end > currentCharCount) {
                     endLine++;
                 } else if (endOffset < 0) {
-                    endOffset = end - (currentCharCount - lineString.length() - 1);
+                    endOffset = end - lineStart;
                     break;
                 }
             }

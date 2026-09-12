@@ -108,6 +108,13 @@ public final class GerritPushExtension {
         }
     }
 
+    /**
+     * Copies the Gerrit plugin classes which take part in the push dialog into the Git plugin class loader.
+     *
+     * Every class used by one of them must be listed as well: the Git plugin class loader does not know the
+     * Gerrit plugin, so a class which is not copied ends up as a NoClassDefFoundError as soon as the copied
+     * code touches it.
+     */
     private static void copyGerritPluginClassesToGitPlugin(ClassPool classPool, ClassLoader targetClassLoader) {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel");
@@ -117,6 +124,7 @@ public final class GerritPushExtension {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeTextActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$SettingsStateActionListener");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.PushOptionValidator");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.util.UrlUtils");
     }
 

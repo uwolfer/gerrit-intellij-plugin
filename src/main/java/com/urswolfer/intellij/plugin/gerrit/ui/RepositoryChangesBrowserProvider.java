@@ -102,6 +102,13 @@ public class RepositoryChangesBrowserProvider {
                 changesBrowser.setSelectedChange(changeInfo);
             }
         });
+        // the comment counts are loaded in background, the nodes displaying them have to be repainted afterwards
+        commentCountChangeNodeDecorator.setDataLoadedCallback(new Runnable() {
+            @Override
+            public void run() {
+                changesBrowser.getViewer().repaint();
+            }
+        });
         return changesBrowser;
     }
 

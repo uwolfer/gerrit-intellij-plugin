@@ -18,13 +18,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.changes.Change;
@@ -51,9 +50,13 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private final SelectedRevisions selectedRevisions;
 
     private ChangeInfo selectedChange;
-    private Supplier<Map<String, List<CommentInfo>>> comments = setupCommentsSupplier();
-    private Supplier<Map<String, List<CommentInfo>>> drafts = setupDraftsSupplier();
-    private Supplier<Set<String>> reviewed = setupReviewedSupplier();
+
+    /** Loaded by {@link #loadData()}; only read and written on the event dispatch thread. */
+    private Map<String, List<CommentInfo>> comments = Collections.emptyMap();
+    private Map<String, List<CommentInfo>> drafts = Collections.emptyMap();
+    private Set<String> reviewed = Collections.emptySet();
+
+    private Runnable dataLoadedCallback;
 
     public GerritCommentCountChangeNodeDecorator(Project project, Disposable parent) {
         this.selectedRevisions = SelectedRevisions.getInstance(project);
@@ -61,18 +64,24 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
             @Override
             public void selectedRevisionChanged(String changeId) {
                 if (changeId != null && selectedChange != null && selectedChange.id.equals(changeId)) {
-                    refreshSuppliers();
+                    loadData();
                 }
             }
         }, parent);
     }
 
-    private void refreshSuppliers() {
-        comments = setupCommentsSupplier();
-        drafts = setupDraftsSupplier();
-        reviewed = setupReviewedSupplier();
+    /**
+     * @param dataLoadedCallback executed on the event dispatch thread once the data of the selected change has been
+     *                           loaded, so that the nodes displaying it can be repainted
+     */
+    public void setDataLoadedCallback(Runnable dataLoadedCallback) {
+        this.dataLoadedCallback = dataLoadedCallback;
     }
 
+    /**
+     * Called while a change node gets painted, so it must not perform any remote calls: it displays what
+     * {@link #loadData()} has loaded so far.
+     */
     @Override
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
         String affectedFilePath = getAffectedFilePath(change);
@@ -88,7 +97,49 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Override
     public void onChangeSelected(Project project, ChangeInfo selectedChange) {
         this.selectedChange = selectedChange;
-        refreshSuppliers();
+        loadData();
+    }
+
+    /**
+     * Loads the comments, drafts and reviewed files of the selected change in the background.
+     */
+    private void loadData() {
+        comments = Collections.emptyMap();
+        drafts = Collections.emptyMap();
+        reviewed = Collections.emptySet();
+
+        final ChangeInfo change = selectedChange;
+        if (change == null) {
+            return;
+        }
+        final String revisionId = selectedRevisions.get(change);
+        if (revisionId == null) {
+            return;
+        }
+        gerritSettings.preloadPassword(); // the password cannot be read from the background thread below
+
+        ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+            @Override
+            public void run() {
+                final Map<String, List<CommentInfo>> loadedComments = loadComments(change, revisionId);
+                final Map<String, List<CommentInfo>> loadedDrafts = loadDrafts(change, revisionId);
+                final Set<String> loadedReviewed = loadReviewed(change, revisionId);
+                ApplicationManager.getApplication().invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (change != selectedChange) { // another change has been selected in the meantime
+                            return;
+                        }
+                        comments = loadedComments;
+                        drafts = loadedDrafts;
+                        reviewed = loadedReviewed;
+                        if (dataLoadedCallback != null) {
+                            dataLoadedCallback.run();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     private String getAffectedFilePath(Change change) {
@@ -108,19 +159,17 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         fileName = PathUtils.ensureSlashSeparators(fileName);
         List<String> parts = Lists.newArrayList();
 
-        Map<String, List<CommentInfo>> commentsMap = comments.get();
-        List<CommentInfo> commentsForFile = commentsMap.get(fileName);
+        List<CommentInfo> commentsForFile = comments.get(fileName);
         if (commentsForFile != null) {
             parts.add(String.format("%s comment%s", commentsForFile.size(), commentsForFile.size() == 1 ? "" : "s"));
         }
 
-        Map<String, List<CommentInfo>> draftsMap = drafts.get();
-        List<CommentInfo> draftsForFile = draftsMap.get(fileName);
+        List<CommentInfo> draftsForFile = drafts.get(fileName);
         if (draftsForFile != null) {
             parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
         }
 
-        if (reviewed.get().contains(fileName)) {
+        if (reviewed.contains(fileName)) {
             parts.add("reviewed");
         }
 
@@ -131,64 +180,45 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, selectedChange.project);
     }
 
-    private Supplier<Map<String, List<CommentInfo>>> setupCommentsSupplier() {
-        return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
-            @Override
-            public Map<String, List<CommentInfo>> get() {
-                try {
-                    return GerritApiProvider.getInstance().get().changes()
-                            .id(selectedChange.id)
-                            .revision(getSelectedRevisionId())
-                            .comments();
-                } catch (RestApiException e) {
-                    LOG.warn(e);
-                    return Collections.emptyMap();
-                }
-            }
-        });
+    private Map<String, List<CommentInfo>> loadComments(ChangeInfo change, String revisionId) {
+        try {
+            return GerritApiProvider.getInstance().get().changes()
+                    .id(change.id)
+                    .revision(revisionId)
+                    .comments();
+        } catch (RestApiException e) {
+            LOG.warn(e);
+            return Collections.emptyMap();
+        }
     }
 
-    private Supplier<Map<String, List<CommentInfo>>> setupDraftsSupplier() {
-        return Suppliers.memoize(new Supplier<Map<String, List<CommentInfo>>>() {
-            @Override
-            public Map<String, List<CommentInfo>> get() {
-                if (!gerritSettings.isLoginAndPasswordAvailable()) {
-                    return Collections.emptyMap();
-                }
-                try {
-                    return GerritApiProvider.getInstance().get().changes()
-                            .id(selectedChange.id)
-                            .revision(getSelectedRevisionId())
-                            .drafts();
-                } catch (RestApiException e) {
-                    LOG.warn(e);
-                    return Collections.emptyMap();
-                }
-            }
-        });
+    private Map<String, List<CommentInfo>> loadDrafts(ChangeInfo change, String revisionId) {
+        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return GerritApiProvider.getInstance().get().changes()
+                    .id(change.id)
+                    .revision(revisionId)
+                    .drafts();
+        } catch (RestApiException e) {
+            LOG.warn(e);
+            return Collections.emptyMap();
+        }
     }
 
-    private Supplier<Set<String>> setupReviewedSupplier() {
-        return Suppliers.memoize(new Supplier<Set<String>>() {
-            @Override
-            public Set<String> get() {
-                if (!gerritSettings.isLoginAndPasswordAvailable()) {
-                    return Collections.emptySet();
-                }
-                try {
-                    return GerritApiProvider.getInstance().get().changes()
-                            .id(selectedChange.id)
-                            .revision(getSelectedRevisionId())
-                            .reviewed();
-                } catch (RestApiException e) {
-                    LOG.warn(e);
-                    return Collections.emptySet();
-                }
-            }
-        });
-    }
-
-    private String getSelectedRevisionId() {
-        return selectedRevisions.get(selectedChange);
+    private Set<String> loadReviewed(ChangeInfo change, String revisionId) {
+        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+            return Collections.emptySet();
+        }
+        try {
+            return GerritApiProvider.getInstance().get().changes()
+                    .id(change.id)
+                    .revision(revisionId)
+                    .reviewed();
+        } catch (RestApiException e) {
+            LOG.warn(e);
+            return Collections.emptySet();
+        }
     }
 }

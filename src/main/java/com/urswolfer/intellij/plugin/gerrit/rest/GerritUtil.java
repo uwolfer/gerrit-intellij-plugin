@@ -299,7 +299,8 @@ public final class GerritUtil {
                                 ListChangesOption.CHANGE_ACTIONS,
                                 ListChangesOption.CURRENT_ACTIONS,
                                 ListChangesOption.DETAILED_LABELS,
-                                ListChangesOption.LABELS
+                                ListChangesOption.LABELS,
+                                ListChangesOption.SUBMITTABLE
                             ));
                     return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
             }
@@ -324,11 +325,12 @@ public final class GerritUtil {
                                 tryFallback = true;
                                 queryRequest.withStart(0); // remove start, trust that sortkey is set
                             }
-                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS)\".*\"-o\".*")) {
+                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS|SUBMITTABLE)\".*\"-o\".*")) {
                                 tryFallback = true;
                                 Set<ListChangesOption> options = queryRequest.getOptions();
                                 options.remove(ListChangesOption.CHANGE_ACTIONS);
                                 options.remove(ListChangesOption.CURRENT_ACTIONS);
+                                options.remove(ListChangesOption.SUBMITTABLE);
                                 queryRequest.withOptions(options);
                             }
                             if (tryFallback) {

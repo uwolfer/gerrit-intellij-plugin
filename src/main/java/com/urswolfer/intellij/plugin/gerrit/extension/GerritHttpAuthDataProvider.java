@@ -26,6 +26,8 @@ import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.URI;
+
 /**
  * Parts based on org.jetbrains.plugins.github.extensions.GithubHttpAuthDataProvider
  *
@@ -62,21 +64,39 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
     /**
      * Git asks for the credentials of a repository url (e.g. "https://gerrit.example.com/my-project"), which is never
-     * equal to the configured Gerrit url: the host is what they have in common.
+     * equal to the configured Gerrit url: they have the origin in common.
      */
     private boolean isGerritUrl(String url) {
-        return hasSameHost(url, gerritSettings.getHost())
-            || hasSameHost(url, gerritSettings.getCloneBaseUrl());
+        return hasSameOrigin(url, gerritSettings.getHost())
+            || hasSameOrigin(url, gerritSettings.getCloneBaseUrl());
     }
 
-    private boolean hasSameHost(String url, String gerritUrl) {
+    /**
+     * The password is only handed out for the Gerrit instance itself: the scheme and the port have to match as well,
+     * so that it does not end up at another service on the same host, or on an unencrypted connection.
+     */
+    private boolean hasSameOrigin(String url, String gerritUrl) {
         if (StringUtil.isEmptyOrSpaces(gerritUrl)) {
             return false;
         }
         try {
-            return UrlUtils.urlHasSameHost(url, gerritUrl);
-        } catch (IllegalArgumentException e) { // not a url, so it cannot point to the Gerrit host
+            if (!UrlUtils.urlHasSameHost(url, gerritUrl)) {
+                return false;
+            }
+            URI repositoryUri = UrlUtils.createUriFromGitConfigString(url);
+            URI gerritUri = URI.create(gerritUrl);
+            return repositoryUri.getScheme() != null
+                && repositoryUri.getScheme().equalsIgnoreCase(gerritUri.getScheme())
+                && port(repositoryUri) == port(gerritUri);
+        } catch (IllegalArgumentException e) { // not a url, so it cannot point to the Gerrit instance
             return false;
         }
+    }
+
+    private static int port(URI uri) {
+        if (uri.getPort() != -1) {
+            return uri.getPort();
+        }
+        return "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
     }
 }

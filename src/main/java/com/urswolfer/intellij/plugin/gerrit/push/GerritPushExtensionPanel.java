@@ -26,6 +26,7 @@ import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
@@ -70,6 +71,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField reviewersTextField;
     private JTextField ccTextField;
     private JTextField patchsetDescriptionTextField;
+    private JLabel validationLabel;
     private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
     private boolean initialized = false;
 
@@ -161,7 +163,7 @@ public class GerritPushExtensionPanel extends JPanel {
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
 
-        indentedSettingPanel = new JPanel(new GridLayoutManager(13, 2));
+        indentedSettingPanel = new JPanel(new GridLayoutManager(14, 2));
 
         privateCheckBox = new JCheckBox("Private (Gerrit 2.15+)");
         privateCheckBox.setToolTipText("Push a private change or to turn a change private.");
@@ -201,17 +203,19 @@ public class GerritPushExtensionPanel extends JPanel {
 
         topicTextField = addTextField(
                 "Topic:",
-                "A short topic associated with all of the changes in the same group, such as the local topic branch name.",
+                "A short topic associated with all of the changes in the same group, such as the local topic branch name. " +
+                        "It must not contain spaces: Gerrit reads it from the push reference.",
                 8);
 
         hashTagTextField = addTextField(
                 "Hashtag (Gerrit 2.15+):",
-                "Include a hashtag associated with all of the changes in the same group.",
+                "Include a hashtag associated with all of the changes in the same group. " +
+                        "It must not contain spaces: Gerrit reads it from the push reference.",
                 9);
 
         patchsetDescriptionTextField = addTextField(
                 "Patch Set Description (Gerrit 3.4+):",
-                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed.",
+                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed. Spaces can be used: the description is encoded before it is added to the push reference.",
                 10);
 
         reviewersTextField = addTextField(
@@ -223,6 +227,18 @@ public class GerritPushExtensionPanel extends JPanel {
                 "CC (user names, comma separated):",
                 "Users which will receive carbon copies of the notification message.",
                 12);
+
+        validationLabel = new JLabel();
+        validationLabel.setForeground(JBColor.RED);
+        indentedSettingPanel.add(
+                validationLabel,
+                new GridConstraints(13, 0, 1, 2,
+                        GridConstraints.ANCHOR_WEST,
+                        GridConstraints.FILL_NONE,
+                        GridConstraints.SIZEPOLICY_CAN_GROW,
+                        GridConstraints.SIZEPOLICY_FIXED,
+                        null, null, null)
+        );
 
         final JPanel settingLayoutPanel = new JPanel();
         settingLayoutPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -285,9 +301,14 @@ public class GerritPushExtensionPanel extends JPanel {
     /**
      * Builds the push target ref for the provided branch.
      *
-     * The values entered by the user (branch, topic, patch set description, ...) are appended as they are.
-     * They must never be handled as a format string: the patch set description is percent-encoded, and
-     * sequences like "%2E" would be interpreted as (invalid) format specifiers.
+     * The values entered by the user (branch, topic, patch set description, ...) are appended as they are,
+     * apart from surrounding whitespace which gets trimmed. They must never be handled as a format string:
+     * the patch set description is percent-encoded, and sequences like "%2E" would be interpreted as
+     * (invalid) format specifiers.
+     *
+     * Values which cannot be transported in a ref (e.g. a topic containing a space) are added nevertheless:
+     * the push target is marked as invalid in that case, which stops the push from happening with a ref
+     * which does not contain what the user entered. See {@link #validateSettings()}.
      */
     private String getRef(String branch) {
         StringBuilder ref = new StringBuilder();
@@ -299,8 +320,9 @@ public class GerritPushExtensionPanel extends JPanel {
         } else {
             ref.append("refs/for/");
         }
-        if (!branchTextField.getText().isEmpty()) {
-            ref.append(branchTextField.getText());
+        String branchName = getTrimmedText(branchTextField);
+        if (!branchName.isEmpty()) {
+            ref.append(branchName);
         } else {
             ref.append(branch);
         }
@@ -321,14 +343,17 @@ public class GerritPushExtensionPanel extends JPanel {
         if (submitChangeCheckBox.isSelected()) {
             gerritSpecs.add("submit");
         }
-        if (!topicTextField.getText().isEmpty()) {
-            gerritSpecs.add("topic=" + topicTextField.getText());
+        String topic = getTrimmedText(topicTextField);
+        if (!topic.isEmpty()) {
+            gerritSpecs.add("topic=" + topic);
         }
-        if (!hashTagTextField.getText().isEmpty()) {
-            gerritSpecs.add("hashtag=" + hashTagTextField.getText());
+        String hashTag = getTrimmedText(hashTagTextField);
+        if (!hashTag.isEmpty()) {
+            gerritSpecs.add("hashtag=" + hashTag);
         }
-        if (!patchsetDescriptionTextField.getText().isEmpty()) {
-            gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescriptionTextField.getText()));
+        String patchsetDescription = getTrimmedText(patchsetDescriptionTextField);
+        if (!patchsetDescription.isEmpty()) {
+            gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescription));
         }
         handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
         handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
@@ -353,15 +378,90 @@ public class GerritPushExtensionPanel extends JPanel {
         }
     }
 
+    /**
+     * Returns the content of a text field without surrounding whitespace: it would end up in the push ref,
+     * where it cannot be used.
+     */
+    private static String getTrimmedText(JTextField textField) {
+        return PushOptionValidator.trim(textField.getText());
+    }
+
+    /**
+     * Checks all values which are added to the push ref, marks the invalid ones and shows a message for the
+     * first of them. The message is returned as well: it is handed to the push target panels, which do not
+     * accept a ref built out of such a value.
+     */
+    private String validateSettings() {
+        String error = null;
+        if (pushToGerritCheckBox.isSelected()) {
+            error = firstError(
+                    validateBranch(branchTextField),
+                    validateOption(topicTextField, "Topic"),
+                    validateOption(hashTagTextField, "Hashtag"),
+                    validateUserNames(reviewersTextField, "Reviewer name"),
+                    validateUserNames(ccTextField, "CC user name"));
+        } else {
+            for (JTextField textField : Lists.newArrayList(branchTextField, topicTextField, hashTagTextField,
+                    reviewersTextField, ccTextField)) {
+                markInvalid(textField, false);
+            }
+        }
+        validationLabel.setText(Strings.nullToEmpty(error));
+        return error;
+    }
+
+    private String validateBranch(JTextField textField) {
+        String branch = getTrimmedText(textField);
+        String error = PushOptionValidator.validateBranch("Branch", branch);
+        // a branch which cannot be part of a ref name (e.g. "release/") is reported by the push target;
+        // mark the field it comes from, but leave the message to the push target
+        markInvalid(textField, error != null || !PushOptionValidator.isUsableAsBranchName(branch));
+        return error;
+    }
+
+    private String validateOption(JTextField textField, String label) {
+        String error = PushOptionValidator.validateOption(label, getTrimmedText(textField));
+        markInvalid(textField, error != null);
+        return error;
+    }
+
+    private String validateUserNames(JTextField textField, String label) {
+        String error = null;
+        for (String item : COMMA_SPLITTER.split(textField.getText())) {
+            error = firstError(error, PushOptionValidator.validateOption(label, item));
+        }
+        markInvalid(textField, error != null);
+        return error;
+    }
+
+    private static String firstError(String... errors) {
+        for (String error : errors) {
+            if (error != null) {
+                return error;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Marks a text field with the error outline of the current IDE theme, or removes that marking again.
+     */
+    private static void markInvalid(JComponent component, boolean invalid) {
+        component.putClientProperty("JComponent.outline", invalid ? "error" : null);
+        component.repaint();
+    }
+
     private void initDestinationBranch() {
+        String settingsError = validateSettings();
         for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().initBranch(getRef(entry.getValue()), pushToGerritByDefault);
+            entry.getKey().initBranch(getRef(entry.getValue()), pushToGerritByDefault, settingsError);
         }
     }
 
     private void updateDestinationBranch() {
+        String settingsError = validateSettings();
         for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().updateBranch(getRef(entry.getValue()));
+            entry.getKey().updateBranch(getRef(entry.getValue()), settingsError);
         }
     }
 

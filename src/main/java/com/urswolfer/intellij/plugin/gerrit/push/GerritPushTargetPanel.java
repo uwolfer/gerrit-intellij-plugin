@@ -60,8 +60,8 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         gerritPushOptionsPanel.getGerritPushExtensionPanel().registerGerritPushTargetPanel(this, initialBranch);
     }
 
-    public void initBranch(final String branch, boolean pushToGerritByDefault) {
-        setBranch(branch);
+    public void initBranch(final String branch, boolean pushToGerritByDefault, String settingsError) {
+        setBranch(branch, settingsError);
         try {
             Field myFireOnChangeActionField = getField("myFireOnChangeAction");
             final Runnable myFireOnChangeAction = (Runnable) myFireOnChangeActionField.get(this);
@@ -94,11 +94,11 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         } catch (IllegalAccessException e) {
             LOG.error(e);
         }
-        updateBranch(branch);
+        updateBranch(branch, settingsError);
     }
 
-    public void updateBranch(String branch) {
-        setBranch(branch);
+    public void updateBranch(String branch, String settingsError) {
+        setBranch(branch, settingsError);
         try {
             Field myFireOnChangeActionField = getField("myFireOnChangeAction");
             Runnable myFireOnChangeAction = (Runnable) myFireOnChangeActionField.get(this);
@@ -159,9 +159,16 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         return field;
     }
 
-    public void setBranch(String branch) {
+    /**
+     * Sets the ref to push to, or marks the push target as invalid when it cannot be used.
+     *
+     * {@code settingsError} reports a Gerrit push setting which cannot be transported in the ref. Such a ref is a
+     * valid ref name, so it would be pushed - and Gerrit would read something else than what was entered (e.g.
+     * "refs/for/mas%ter" pushes to branch "mas" with a push option "ter").
+     */
+    private void setBranch(String branch, String settingsError) {
         String trimmedBranch = branch == null ? "" : branch.trim();
-        if (GitRefNameValidator.getInstance().checkInput(trimmedBranch)) {
+        if (settingsError == null && GitRefNameValidator.getInstance().checkInput(trimmedBranch)) {
             this.branch = trimmedBranch;
             setError(null);
             return;
@@ -171,6 +178,6 @@ public class GerritPushTargetPanel extends GitPushTargetPanel {
         // still typing a branch name (e.g. "refs/for/release/" on the way to "refs/for/release/1.0"). Mark the push
         // target as invalid instead of leaving a branch name behind which would not be the one pushed to.
         this.branch = null;
-        setError("Invalid destination branch name: " + trimmedBranch);
+        setError(settingsError != null ? settingsError : "Invalid destination branch name: " + trimmedBranch);
     }
 }

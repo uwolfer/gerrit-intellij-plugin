@@ -20,6 +20,7 @@ import com.google.common.base.Optional;
 import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -48,8 +49,8 @@ public class PublishAction extends AbstractLoggedInChangeAction {
         if (!ChangeStatus.DRAFT.equals(selectedChange.status)) {
             return false;
         }
-        Map<String, ActionInfo> revisionActions =
-            selectedChange.revisions.get(selectedChange.currentRevision).actions;
+        RevisionInfo currentRevision = getCurrentRevision(selectedChange);
+        Map<String, ActionInfo> revisionActions = currentRevision != null ? currentRevision.actions : null;
         if (revisionActions == null) {
             // if there are absolutely no actions, assume an older Gerrit instance
             // which does not support receiving actions
@@ -58,6 +59,14 @@ public class PublishAction extends AbstractLoggedInChangeAction {
         }
         ActionInfo publishAction = revisionActions.get("publish");
         return publishAction != null && Boolean.TRUE.equals(publishAction.enabled);
+    }
+
+    /** Neither the revisions nor the current revision of a change are guaranteed to be there. */
+    private RevisionInfo getCurrentRevision(ChangeInfo selectedChange) {
+        if (selectedChange.revisions == null || selectedChange.currentRevision == null) {
+            return null;
+        }
+        return selectedChange.revisions.get(selectedChange.currentRevision);
     }
 
     @Override

@@ -194,11 +194,12 @@ public class GerritChangeDetailsPanel {
                     }
                     sb.append("</td></tr>");
                 }
-                if (ccAccounts != null) {
+                if (ccAccounts != null && !ccAccounts.isEmpty()) {
                     sb.append("<tr valign=\"top\"><td><i>").append("CC").append(":</i></td><td>");
                     for (ApprovalInfo approvalInfo : ccAccounts) {
                         sb.append("<b>").append(approvalInfo.name).append("</b>").append("<br/>");
                     }
+                    sb.append("</td></tr>");
                 }
             }
         }

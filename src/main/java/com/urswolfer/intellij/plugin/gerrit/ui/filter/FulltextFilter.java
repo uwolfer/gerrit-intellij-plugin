@@ -58,13 +58,14 @@ public class FulltextFilter extends AbstractChangesFilter {
      */
     public static String specialEncodeFulltextQuery(String query) {
         return query
+                // has to be encoded first, it would otherwise encode the percent signs introduced below again
+                .replace("%", "%25")
                 .replace("{", "%7B")
                 .replace("}", "%7D")
                 .replace("+", "%2B")
                 .replace(' ', '+')
                 .replace("\"", "%22")
                 .replace("\\", "%5C")
-                .replace("%", "%25")
                 .replace("<", "%3C")
                 .replace(">", "%3E")
                 .replace("^", "%5E");

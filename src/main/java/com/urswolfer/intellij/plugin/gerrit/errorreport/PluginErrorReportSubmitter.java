@@ -24,12 +24,19 @@ import com.intellij.openapi.diagnostic.IdeaLoggingEvent;
 import com.intellij.openapi.diagnostic.SubmittedReportInfo;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.Consumer;
+import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.Version;
+import com.urswolfer.intellij.plugin.gerrit.rest.CertificateManagerClientBuilderExtension;
+import com.urswolfer.intellij.plugin.gerrit.rest.ProxyHttpClientBuilderExtension;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,6 +49,9 @@ import java.io.IOException;
 public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     private static final String ERROR_REPORT_URL = "https://urswolfer.com/gerrit-intellij-plugin/service/error-report/";
+
+    private static final int CONNECT_TIMEOUT_MS = 10000;
+    private static final int SOCKET_TIMEOUT_MS = 30000;
 
     @Override
     public String getReportActionText() {
@@ -84,7 +94,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     private void postError(String json) {
         try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
+            CloseableHttpClient httpClient = createHttpClient();
             try {
                 HttpPost httpPost = new HttpPost(ERROR_REPORT_URL);
                 httpPost.setEntity(new StringEntity(json, ContentType.APPLICATION_JSON));
@@ -99,5 +109,24 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * @return a client set up like the ones talking to Gerrit: it goes through the proxy configured in the IDE
+     *         (authenticating against it) and trusts what the IDE trusts, neither of which a default client does.
+     *         Its requests time out, so that a service which never answers does not keep the report pending.
+     */
+    private CloseableHttpClient createHttpClient() {
+        GerritAuthData authData = new GerritAuthData.Basic(ERROR_REPORT_URL);
+        HttpClientBuilder httpClientBuilder = HttpClients.custom()
+            .setDefaultRequestConfig(RequestConfig.custom()
+                .setConnectTimeout(CONNECT_TIMEOUT_MS)
+                .setConnectionRequestTimeout(CONNECT_TIMEOUT_MS)
+                .setSocketTimeout(SOCKET_TIMEOUT_MS)
+                .build());
+        httpClientBuilder = new CertificateManagerClientBuilderExtension().extend(httpClientBuilder, authData);
+        CredentialsProvider credentialsProvider = new ProxyHttpClientBuilderExtension()
+            .extendCredentialProvider(httpClientBuilder, new BasicCredentialsProvider(), authData);
+        return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider).build();
     }
 }

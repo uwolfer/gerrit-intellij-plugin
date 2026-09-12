@@ -18,9 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -30,9 +27,9 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * This class helps to simultaneously fetch multiple revisions from a git repository.
@@ -47,7 +44,6 @@ public class RevisionFetcher {
     private final GitRepository gitRepository;
 
     private final Map<String, RevisionInfo> revisionInfoList = Maps.newLinkedHashMap();
-    private final List<FetchCallback> fetchCallbacks = Lists.newArrayList();
 
     public RevisionFetcher(GerritUtil gerritUtil,
                            GerritGitUtil gerritGitUtil,
@@ -71,10 +67,11 @@ public class RevisionFetcher {
      * @param callback the callback will be executed as soon as all revisions have been fetched successfully
      */
     public void fetch(final Callable<Void> callback) {
+        // a fetch runs asynchronously and can complete while the loop below is still starting the remaining
+        // ones, so the number of fetches to wait for has to be known before the first one gets started
+        AtomicInteger pendingFetches = new AtomicInteger(revisionInfoList.size());
         for (Map.Entry<String, RevisionInfo> entry : revisionInfoList.entrySet()) {
-            FetchCallback fetchCallback = new FetchCallback(callback);
-            fetchCallbacks.add(fetchCallback);
-            fetchChange(entry.getKey(), entry.getValue(), fetchCallback);
+            fetchChange(entry.getKey(), entry.getValue(), new FetchCallback(callback, pendingFetches));
         }
     }
 
@@ -96,33 +93,26 @@ public class RevisionFetcher {
         notificationService.notifyError(notification);
     }
 
-    private final class FetchCallback implements Callable<Void> {
+    /**
+     * Counts down the fetches which are still running; the callback provided by the caller gets executed by the
+     * one which completes last. A revision without fetch information never completes (an error is shown for it
+     * instead), so the callback is not executed in that case.
+     */
+    private static final class FetchCallback implements Callable<Void> {
         private final Callable<Void> callback;
-        private boolean returned = false;
+        private final AtomicInteger pendingFetches;
 
-        private FetchCallback(Callable<Void> callback) {
+        private FetchCallback(Callable<Void> callback, AtomicInteger pendingFetches) {
             this.callback = callback;
+            this.pendingFetches = pendingFetches;
         }
 
         @Override
         public Void call() throws Exception {
-            try {
-                return null;
-            } finally {
-                returned = true;
-                if (allFetchCallbacksReturned()) {
-                    callback.call();
-                }
+            if (pendingFetches.decrementAndGet() == 0) {
+                callback.call();
             }
-        }
-
-        private synchronized boolean allFetchCallbacksReturned() {
-            return Iterables.all(fetchCallbacks, new Predicate<FetchCallback>() {
-                @Override
-                public boolean apply(FetchCallback fetchCallback) {
-                    return fetchCallback.returned;
-                }
-            });
+            return null;
         }
     }
 }

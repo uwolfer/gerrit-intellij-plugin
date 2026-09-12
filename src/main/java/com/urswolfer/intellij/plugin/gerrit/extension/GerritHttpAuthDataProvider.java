@@ -1,5 +1,4 @@
 /*
- * Copyright 2000-2012 JetBrains s.r.o.
  * Copyright 2013 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,37 +20,56 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Parts based on org.jetbrains.plugins.github.extensions.GithubHttpAuthDataProvider
- *
- * @author Urs Wolfer
- * @author Kirill Likhodedov
- */
 public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     @Override
     public @Nullable AuthData getAuthData(@NotNull Project project, @NotNull String url) {
-        if (!gerritSettings.getHost().equalsIgnoreCase(url)) {
+        if (!isGerritUrl(url)) {
             return null;
         }
+        String login = gerritSettings.getLogin();
+        if (StringUtil.isEmptyOrSpaces(login)) {
+            return null;
+        }
+        gerritSettings.preloadPassword(); // Git asks for the credentials from a background thread
         String password = gerritSettings.getPassword();
-        if (StringUtil.isEmptyOrSpaces(gerritSettings.getLogin()) || StringUtil.isEmptyOrSpaces(password)) {
+        if (StringUtil.isEmptyOrSpaces(password)) {
             return null;
         }
-        return new AuthData(gerritSettings.getLogin(), password);
+        return new AuthData(login, password);
     }
 
     @Override
     public void forgetPassword(@NotNull Project project, @NotNull String url, @NotNull AuthData authData) {
-        if (gerritSettings.getHost().equalsIgnoreCase(url)) {
+        if (isGerritUrl(url)) {
             gerritSettings.forgetPassword();
         }
     }
 
+    /**
+     * Git asks for the credentials of a repository url (e.g. "https://gerrit.example.com/my-project"), which is never
+     * equal to the configured Gerrit url: the host is what they have in common.
+     */
+    private boolean isGerritUrl(String url) {
+        return hasSameHost(url, gerritSettings.getHost())
+            || hasSameHost(url, gerritSettings.getCloneBaseUrl());
+    }
+
+    private boolean hasSameHost(String url, String gerritUrl) {
+        if (StringUtil.isEmptyOrSpaces(gerritUrl)) {
+            return false;
+        }
+        try {
+            return UrlUtils.urlHasSameHost(url, gerritUrl);
+        } catch (IllegalArgumentException e) { // not a url, so it cannot point to the Gerrit host
+            return false;
+        }
+    }
 }

@@ -129,7 +129,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         if (revisionId == null) {
             return;
         }
-        gerritSettings.preloadPassword(); // the password cannot be read from the background thread below
 
         ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
             @Override

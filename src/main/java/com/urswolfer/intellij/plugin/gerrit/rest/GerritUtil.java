@@ -712,7 +712,6 @@ public final class GerritUtil {
                         }
                     }
                 };
-                GerritSettings.getInstance().preloadPassword();
                 backgroundTask.queue();
             }
         });

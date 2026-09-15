@@ -273,7 +273,6 @@ public class GerritCloneComponent implements VcsCloneComponent {
         String directoryName = directory.getFileName().toString();
         String parentDirectory = parent.toString();
 
-        gerritSettings.preloadPassword(); // the commit-message hook gets set up once the clone is done
         CheckoutProvider.Listener listenerWrapper =
             addCommitMsgHookListener(listener, directoryName, parentDirectory, project);
         GitCheckoutProvider.clone(project, Git.getInstance(), listenerWrapper, destinationParent,
@@ -329,7 +328,6 @@ public class GerritCloneComponent implements VcsCloneComponent {
             return;
         }
         showSpinner(true);
-        gerritSettings.preloadPassword(); // the password cannot be read from the background thread below
         ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
             @Override
             public void run() {

@@ -51,7 +51,7 @@ public class LoginDialog extends DialogWrapper {
         loginPanel = new LoginPanel(this);
         loginPanel.setHost(gerritSettings.getHost());
         loginPanel.setLogin(gerritSettings.getLogin());
-        loginPanel.setPassword(gerritSettings.getPassword());
+        loginPanel.setPassword(gerritSettings.getPasswordWithModalProgress(project));
         setTitle("Login to Gerrit");
         setOKButtonText("Login");
         init();

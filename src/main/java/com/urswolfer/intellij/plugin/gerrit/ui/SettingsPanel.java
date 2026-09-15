@@ -78,7 +78,8 @@ public class SettingsPanel {
         testButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String password = isPasswordModified() ? getPassword() : gerritSettings.getPassword();
+                String password = isPasswordModified() ? getPassword()
+                    : gerritSettings.getPasswordWithModalProgress(ProjectManager.getInstance().getDefaultProject());
                 String host = getHost();
                 if (Strings.isNullOrEmpty(host)) {
                     Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");

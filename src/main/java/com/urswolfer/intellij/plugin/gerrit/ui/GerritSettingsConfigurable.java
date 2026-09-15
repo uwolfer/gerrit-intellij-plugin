@@ -84,7 +84,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
         if (settingsPane != null) {
             gerritSettings.setLogin(settingsPane.getLogin());
             if (isPasswordModified()) {
-                gerritSettings.setPassword(settingsPane.getPassword());
+                gerritSettings.setPasswordWithModalProgress(null, settingsPane.getPassword());
                 settingsPane.resetPasswordModification();
             }
             gerritSettings.setHost(settingsPane.getHost());

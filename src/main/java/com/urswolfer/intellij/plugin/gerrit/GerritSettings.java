@@ -248,6 +248,15 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
         this.login = login != null ? login : "";
     }
 
+    /**
+     * Writing blocks just like reading does, so UI code which saves the password goes through a modal progress
+     * rather than holding the event dispatch thread while the credential store is written.
+     */
+    public void setPasswordWithModalProgress(@Nullable Project project, final String password) {
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                () -> setPassword(password), "Saving Gerrit Credentials", false, project);
+    }
+
     public void setPassword(final String password) {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
         synchronized (credentialsLock) {

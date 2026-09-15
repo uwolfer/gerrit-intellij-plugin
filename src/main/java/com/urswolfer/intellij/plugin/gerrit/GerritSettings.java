@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
@@ -29,6 +28,8 @@ import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.project.Project;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jdom.Element;
@@ -81,7 +82,8 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
     private String cloneBaseUrl = "";
 
-    private Optional<String> preloadedPassword;
+    private final Object credentialsLock = new Object();
+    private boolean legacyCredentialsMigrated;
 
     public static GerritSettings getInstance() {
         return ApplicationManager.getApplication().getService(GerritSettings.class);
@@ -158,31 +160,53 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
         return login;
     }
 
+    /**
+     * Reading the credential store blocks and must not happen on the event dispatch thread. The REST client asks for
+     * the password through this method while it runs in the background, which is fine; UI code which needs it right
+     * away goes through {@link #getPasswordWithModalProgress}.
+     */
     @Override
     @NotNull
     public String getPassword() {
-        if (!ApplicationManager.getApplication().isDispatchThread()) {
-            if (preloadedPassword == null) {
-                throw new IllegalStateException("Need to call #preloadPassword when password is required in background thread");
-            }
-        } else {
-            preloadPassword();
-        }
-        return preloadedPassword.or("");
-    }
-
-    public void preloadPassword() {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
         Credentials credentials = passwordSafe.get(CREDENTIAL_ATTRIBUTES);
         if (credentials == null) {
-            credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
+            credentials = migrateLegacyCredentials(passwordSafe);
+        }
+        String password = credentials != null ? credentials.getPasswordAsString() : null;
+        return password != null ? password : "";
+    }
+
+    /**
+     * A modal progress moves the blocking read off the event dispatch thread. The progress window only becomes
+     * visible if the credential store really takes a while - an OS keychain may need to be unlocked first.
+     */
+    @NotNull
+    public String getPasswordWithModalProgress(@Nullable Project project) {
+        return ProgressManager.getInstance().<String, RuntimeException>runProcessWithProgressSynchronously(
+                this::getPassword, "Reading Gerrit Credentials", false, project);
+    }
+
+    /**
+     * Credentials used to be stored under this class' name; move them over to the generated service name the first
+     * time nothing is found there. Concurrent requests are the normal case, so the move runs under a lock, and a
+     * caller which finds it already done re-reads the current key instead of reporting nothing: its own lookup ran
+     * before the move and missed the entry in flight.
+     */
+    @Nullable
+    private Credentials migrateLegacyCredentials(PasswordSafe passwordSafe) {
+        synchronized (credentialsLock) {
+            if (legacyCredentialsMigrated) {
+                return passwordSafe.get(CREDENTIAL_ATTRIBUTES);
+            }
+            Credentials credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
             if (credentials != null) {
                 passwordSafe.set(CREDENTIAL_ATTRIBUTES, credentials);
                 passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
             }
+            legacyCredentialsMigrated = true;
+            return credentials;
         }
-        String password = credentials != null ? credentials.getPasswordAsString() : null;
-        preloadedPassword = Optional.fromNullable(password);
     }
 
     @Override
@@ -224,16 +248,31 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
         this.login = login != null ? login : "";
     }
 
+    /**
+     * Writing blocks just like reading does, so UI code which saves the password goes through a modal progress
+     * rather than holding the event dispatch thread while the credential store is written.
+     */
+    public void setPasswordWithModalProgress(@Nullable Project project, final String password) {
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                () -> setPassword(password), "Saving Gerrit Credentials", false, project);
+    }
+
     public void setPassword(final String password) {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
-        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+        synchronized (credentialsLock) {
+            passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
+            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+            legacyCredentialsMigrated = true;
+        }
     }
 
     public void forgetPassword() {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
-        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+        synchronized (credentialsLock) {
+            passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
+            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+            legacyCredentialsMigrated = true;
+        }
     }
 
     public void setHost(final String host) {

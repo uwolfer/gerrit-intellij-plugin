@@ -47,7 +47,6 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
         if (StringUtil.isEmptyOrSpaces(login)) {
             return null;
         }
-        gerritSettings.preloadPassword(); // Git asks for the credentials from a background thread
         String password = gerritSettings.getPassword();
         if (StringUtil.isEmptyOrSpaces(password)) {
             return null;

@@ -82,7 +82,8 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
     private String cloneBaseUrl = "";
 
-    private volatile boolean legacyCredentialsMigrated;
+    private final Object credentialsLock = new Object();
+    private boolean legacyCredentialsMigrated;
 
     public static GerritSettings getInstance() {
         return ApplicationManager.getApplication().getService(GerritSettings.class);
@@ -167,9 +168,10 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     @Override
     @NotNull
     public String getPassword() {
-        Credentials credentials = PasswordSafe.getInstance().get(CREDENTIAL_ATTRIBUTES);
+        PasswordSafe passwordSafe = PasswordSafe.getInstance();
+        Credentials credentials = passwordSafe.get(CREDENTIAL_ATTRIBUTES);
         if (credentials == null) {
-            credentials = migrateLegacyCredentials();
+            credentials = migrateLegacyCredentials(passwordSafe);
         }
         String password = credentials != null ? credentials.getPasswordAsString() : null;
         return password != null ? password : "";
@@ -186,23 +188,25 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     }
 
     /**
-     * Credentials used to be stored under this class' name; move them over to the generated service name once they
-     * are found to be missing there. The legacy entry is looked up at most once per session, so that a setup without
-     * a stored password does not pay for a second credential store lookup on every request.
+     * Credentials used to be stored under this class' name; move them over to the generated service name the first
+     * time nothing is found there. Concurrent requests are the normal case, so the move runs under a lock, and a
+     * caller which finds it already done re-reads the current key instead of reporting nothing: its own lookup ran
+     * before the move and missed the entry in flight.
      */
     @Nullable
-    private Credentials migrateLegacyCredentials() {
-        if (legacyCredentialsMigrated) {
-            return null;
+    private Credentials migrateLegacyCredentials(PasswordSafe passwordSafe) {
+        synchronized (credentialsLock) {
+            if (legacyCredentialsMigrated) {
+                return passwordSafe.get(CREDENTIAL_ATTRIBUTES);
+            }
+            Credentials credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
+            if (credentials != null) {
+                passwordSafe.set(CREDENTIAL_ATTRIBUTES, credentials);
+                passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+            }
+            legacyCredentialsMigrated = true;
+            return credentials;
         }
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        Credentials credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
-        if (credentials != null) {
-            passwordSafe.set(CREDENTIAL_ATTRIBUTES, credentials);
-            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
-        }
-        legacyCredentialsMigrated = true;
-        return credentials;
     }
 
     @Override
@@ -246,14 +250,20 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
 
     public void setPassword(final String password) {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
-        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+        synchronized (credentialsLock) {
+            passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
+            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+            legacyCredentialsMigrated = true;
+        }
     }
 
     public void forgetPassword() {
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
-        passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+        synchronized (credentialsLock) {
+            passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
+            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
+            legacyCredentialsMigrated = true;
+        }
     }
 
     public void setHost(final String host) {

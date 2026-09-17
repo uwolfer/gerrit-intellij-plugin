@@ -27,12 +27,13 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.xmlb.Converter;
+import com.intellij.util.xmlb.annotations.Attribute;
+import com.intellij.util.xmlb.annotations.Property;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
-import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,23 +45,8 @@ import org.jetbrains.annotations.Nullable;
  */
 @Service(Service.Level.APP)
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
-public final class GerritSettings implements PersistentStateComponent<Element>, GerritAuthData {
+public final class GerritSettings implements PersistentStateComponent<GerritSettings.SettingsState>, GerritAuthData {
 
-    private static final Logger LOG = Logger.getInstance(GerritSettings.class);
-
-    private static final String GERRIT_SETTINGS_TAG = "GerritSettings";
-    private static final String LOGIN = "Login";
-    private static final String HOST = "Host";
-    private static final String AUTOMATIC_REFRESH = "AutomaticRefresh";
-    private static final String LIST_ALL_CHANGES = "ListAllChanges";
-    private static final String REFRESH_TIMEOUT = "RefreshTimeout";
-    private static final String REVIEW_NOTIFICATIONS = "ReviewNotifications";
-    private static final String PUSH_TO_GERRIT = "PushToGerrit";
-    private static final String SHOW_CHANGE_NUMBER_COLUMN = "ShowChangeNumberColumn";
-    private static final String SHOW_CHANGE_ID_COLUMN = "ShowChangeIdColumn";
-    private static final String SHOW_TOPIC_COLUMN = "ShowTopicColumn";
-    private static final String SHOW_PROJECT_COLUMN = "ShowProjectColumn";
-    private static final String CLONE_BASE_URL = "CloneBaseUrl";
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
     private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(
             CredentialAttributesKt.generateServiceName("Gerrit", GERRIT_SETTINGS_PASSWORD_KEY),
@@ -69,18 +55,51 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
             GerritSettings.class.getName(),
             GERRIT_SETTINGS_PASSWORD_KEY);
 
-    private String login = "";
-    private String host = "";
-    private boolean listAllChanges = false;
-    private boolean automaticRefresh = true;
-    private int refreshTimeout = 15;
-    private boolean refreshNotifications = true;
-    private boolean pushToGerrit = false;
-    private boolean showChangeNumberColumn = false;
-    private boolean showChangeIdColumn = false;
-    private boolean showTopicColumn = false;
-    private ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
-    private String cloneBaseUrl = "";
+    /**
+     * The settings are written as attributes of the component element, under the names the plugin has used since its
+     * first release, so that a file written by any earlier version still loads here and a file written here still
+     * loads there. {@code alwaysWrite} is what keeps that second direction working: the serializer would otherwise
+     * leave out every value which equals its default, and an earlier version reads a missing attribute as
+     * {@code false} or {@code 0} rather than as the default which belongs to it.
+     */
+    public static final class SettingsState {
+        @Property(alwaysWrite = true) @Attribute("Login") public String login = "";
+        @Property(alwaysWrite = true) @Attribute("Host") public String host = "";
+        @Property(alwaysWrite = true) @Attribute("ListAllChanges") public boolean listAllChanges = false;
+        @Property(alwaysWrite = true) @Attribute("AutomaticRefresh") public boolean automaticRefresh = true;
+        @Property(alwaysWrite = true) @Attribute("RefreshTimeout") public int refreshTimeout = 15;
+        @Property(alwaysWrite = true) @Attribute("ReviewNotifications") public boolean reviewNotifications = true;
+        @Property(alwaysWrite = true) @Attribute("PushToGerrit") public boolean pushToGerrit = false;
+        @Property(alwaysWrite = true) @Attribute("ShowChangeNumberColumn") public boolean showChangeNumberColumn = false;
+        @Property(alwaysWrite = true) @Attribute("ShowChangeIdColumn") public boolean showChangeIdColumn = false;
+        @Property(alwaysWrite = true) @Attribute("ShowTopicColumn") public boolean showTopicColumn = false;
+        @Property(alwaysWrite = true)
+        @Attribute(value = "ShowProjectColumn", converter = ShowProjectColumnConverter.class)
+        public ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
+        @Property(alwaysWrite = true) @Attribute("CloneBaseUrl") public String cloneBaseUrl = "";
+    }
+
+    /**
+     * {@link ShowProjectColumn#toString()} is the label of the settings combo box, and the serializer would write
+     * the enum through it. The file has always held the enum name, so it keeps holding the enum name.
+     */
+    public static final class ShowProjectColumnConverter extends Converter<ShowProjectColumn> {
+        @Override
+        public ShowProjectColumn fromString(@NotNull String value) {
+            try {
+                return ShowProjectColumn.valueOf(value);
+            } catch (IllegalArgumentException e) { // a value this version does not know about
+                return ShowProjectColumn.AUTO;
+            }
+        }
+
+        @Override
+        public String toString(@NotNull ShowProjectColumn value) {
+            return value.name();
+        }
+    }
+
+    private SettingsState state = new SettingsState();
 
     private final Object credentialsLock = new Object();
     private boolean legacyCredentialsMigrated;
@@ -89,75 +108,20 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
         return ApplicationManager.getApplication().getService(GerritSettings.class);
     }
 
-    public Element getState() {
-        final Element element = new Element(GERRIT_SETTINGS_TAG);
-        element.setAttribute(LOGIN, (getLogin() != null ? getLogin() : ""));
-        element.setAttribute(HOST, (getHost() != null ? getHost() : ""));
-        element.setAttribute(LIST_ALL_CHANGES, Boolean.toString(getListAllChanges()));
-        element.setAttribute(AUTOMATIC_REFRESH, Boolean.toString(getAutomaticRefresh()));
-        element.setAttribute(REFRESH_TIMEOUT, Integer.toString(getRefreshTimeout()));
-        element.setAttribute(REVIEW_NOTIFICATIONS, Boolean.toString(getReviewNotifications()));
-        element.setAttribute(PUSH_TO_GERRIT, Boolean.toString(getPushToGerrit()));
-        element.setAttribute(SHOW_CHANGE_NUMBER_COLUMN, Boolean.toString(getShowChangeNumberColumn()));
-        element.setAttribute(SHOW_CHANGE_ID_COLUMN, Boolean.toString(getShowChangeIdColumn()));
-        element.setAttribute(SHOW_TOPIC_COLUMN, Boolean.toString(getShowTopicColumn()));
-        element.setAttribute(SHOW_PROJECT_COLUMN, getShowProjectColumn().name());
-        element.setAttribute(CLONE_BASE_URL, (getCloneBaseUrl() != null ? getCloneBaseUrl() : ""));
-        return element;
+    @Override
+    public SettingsState getState() {
+        return state;
     }
 
-    public void loadState(@NotNull final Element element) {
-        // All the logic on retrieving password was moved to getPassword action to cleanup initialization process
-        try {
-            setLogin(element.getAttributeValue(LOGIN));
-            setHost(element.getAttributeValue(HOST));
-
-            setListAllChanges(getBooleanValue(element, LIST_ALL_CHANGES));
-            setAutomaticRefresh(getBooleanValue(element, AUTOMATIC_REFRESH));
-            setRefreshTimeout(getIntegerValue(element, REFRESH_TIMEOUT));
-            setReviewNotifications(getBooleanValue(element, REVIEW_NOTIFICATIONS));
-            setPushToGerrit(getBooleanValue(element, PUSH_TO_GERRIT));
-            setShowChangeNumberColumn(getBooleanValue(element, SHOW_CHANGE_NUMBER_COLUMN));
-            setShowChangeIdColumn(getBooleanValue(element, SHOW_CHANGE_ID_COLUMN));
-            setShowTopicColumn(getBooleanValue(element, SHOW_TOPIC_COLUMN));
-            setShowProjectColumn(getShowProjectColumnValue(element, SHOW_PROJECT_COLUMN));
-            setCloneBaseUrl(element.getAttributeValue(CLONE_BASE_URL));
-        } catch (Exception e) {
-            LOG.error("Error happened while loading gerrit settings: " + e);
-        }
-    }
-
-    private boolean getBooleanValue(Element element, String attributeName) {
-        String attributeValue = element.getAttributeValue(attributeName);
-        if (attributeValue != null) {
-            return Boolean.valueOf(attributeValue);
-        } else {
-            return false;
-        }
-    }
-
-    private int getIntegerValue(Element element, String attributeName) {
-        String attributeValue = element.getAttributeValue(attributeName);
-        if (attributeValue != null) {
-            return Integer.valueOf(attributeValue);
-        } else {
-            return 0;
-        }
-    }
-
-    private ShowProjectColumn getShowProjectColumnValue(Element element, String attributeName) {
-        String attributeValue = element.getAttributeValue(attributeName);
-        if (attributeValue != null) {
-            return ShowProjectColumn.valueOf(attributeValue);
-        } else {
-            return ShowProjectColumn.AUTO;
-        }
+    @Override
+    public void loadState(@NotNull SettingsState state) {
+        this.state = state;
     }
 
     @Override
     @Nullable
     public String getLogin() {
-        return login;
+        return state.login;
     }
 
     /**
@@ -216,7 +180,7 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
 
     @Override
     public String getHost() {
-        return host;
+        return state.host;
     }
 
     @Override
@@ -225,27 +189,27 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     }
 
     public boolean getListAllChanges() {
-        return listAllChanges;
+        return state.listAllChanges;
     }
 
     public void setListAllChanges(boolean listAllChanges) {
-        this.listAllChanges = listAllChanges;
+        state.listAllChanges = listAllChanges;
     }
 
     public boolean getAutomaticRefresh() {
-        return automaticRefresh;
+        return state.automaticRefresh;
     }
 
     public int getRefreshTimeout() {
-        return refreshTimeout;
+        return state.refreshTimeout;
     }
 
     public boolean getReviewNotifications() {
-        return refreshNotifications;
+        return state.reviewNotifications;
     }
 
     public void setLogin(final String login) {
-        this.login = login != null ? login : "";
+        state.login = login != null ? login : "";
     }
 
     /**
@@ -276,70 +240,70 @@ public final class GerritSettings implements PersistentStateComponent<Element>, 
     }
 
     public void setHost(final String host) {
-        this.host = host;
+        state.host = host != null ? host : "";
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {
-        this.automaticRefresh = automaticRefresh;
+        state.automaticRefresh = automaticRefresh;
     }
 
     public void setRefreshTimeout(final int refreshTimeout) {
-        this.refreshTimeout = refreshTimeout;
+        state.refreshTimeout = refreshTimeout;
     }
 
     public void setReviewNotifications(final boolean reviewNotifications) {
-        refreshNotifications = reviewNotifications;
+        state.reviewNotifications = reviewNotifications;
     }
 
     public void setPushToGerrit(boolean pushToGerrit) {
-        this.pushToGerrit = pushToGerrit;
+        state.pushToGerrit = pushToGerrit;
     }
 
     public boolean getPushToGerrit() {
-        return pushToGerrit;
+        return state.pushToGerrit;
     }
 
     public boolean getShowChangeNumberColumn() {
-        return showChangeNumberColumn;
+        return state.showChangeNumberColumn;
     }
 
     public void setShowChangeNumberColumn(boolean showChangeNumberColumn) {
-        this.showChangeNumberColumn = showChangeNumberColumn;
+        state.showChangeNumberColumn = showChangeNumberColumn;
     }
 
     public boolean getShowChangeIdColumn() {
-        return showChangeIdColumn;
+        return state.showChangeIdColumn;
     }
 
     public void setShowChangeIdColumn(boolean showChangeIdColumn) {
-        this.showChangeIdColumn = showChangeIdColumn;
+        state.showChangeIdColumn = showChangeIdColumn;
     }
 
     public boolean getShowTopicColumn() {
-        return showTopicColumn;
+        return state.showTopicColumn;
     }
 
     public ShowProjectColumn getShowProjectColumn() {
-        return showProjectColumn;
+        return state.showProjectColumn;
     }
 
     public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
-        this.showProjectColumn = showProjectColumn;
+        state.showProjectColumn = showProjectColumn;
     }
 
     public void setShowTopicColumn(boolean showTopicColumn) {
-        this.showTopicColumn = showTopicColumn;
+        state.showTopicColumn = showTopicColumn;
     }
 
     public void setCloneBaseUrl(String cloneBaseUrl) {
-        this.cloneBaseUrl = cloneBaseUrl;
+        state.cloneBaseUrl = cloneBaseUrl != null ? cloneBaseUrl : "";
     }
 
     public String getCloneBaseUrl() {
-        return cloneBaseUrl;
+        return state.cloneBaseUrl;
     }
 
     public String getCloneBaseUrlOrHost() {
-        return Strings.isNullOrEmpty(cloneBaseUrl) ? host : cloneBaseUrl;
+        return Strings.isNullOrEmpty(state.cloneBaseUrl) ? state.host : state.cloneBaseUrl;
     }
 }

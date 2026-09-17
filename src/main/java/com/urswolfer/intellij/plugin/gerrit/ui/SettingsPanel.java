@@ -19,7 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.common.base.Strings;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EnumComboBoxModel;
@@ -70,7 +70,11 @@ public class SettingsPanel {
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
-    public SettingsPanel() {
+    private final Project project;
+
+    public SettingsPanel(Project project) {
+        this.project = project;
+
         hostTextField.getEmptyText().setText("https://review.example.org");
 
         gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
@@ -79,7 +83,7 @@ public class SettingsPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword()
-                    : gerritSettings.getPasswordWithModalProgress(ProjectManager.getInstance().getDefaultProject());
+                    : gerritSettings.getPasswordWithModalProgress(project);
                 String host = getHost();
                 if (Strings.isNullOrEmpty(host)) {
                     Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
@@ -92,7 +96,7 @@ public class SettingsPanel {
                             return !Strings.isNullOrEmpty(getLogin());
                         }
                     };
-                    if (gerritUtil.checkCredentials(ProjectManager.getInstance().getDefaultProject(), gerritAuthData)) {
+                    if (gerritUtil.checkCredentials(project, gerritAuthData)) {
                         Messages.showInfoMessage(pane, "Connection successful", "Success");
                     } else {
                         Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");

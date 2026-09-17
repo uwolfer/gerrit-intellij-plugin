@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
+import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import git4idea.validators.GitRefNameValidator;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,33 +37,20 @@ import java.util.regex.Pattern;
  */
 public class PushOptionValidator {
 
-    /**
-     * The Unicode whitespace property rather than Character#isWhitespace, which does not cover what
-     * users paste in: the no-break space U+00A0 and the ideographic space U+3000 are not whitespace
-     * to it, while Gerrit and Git see them in the reference like any other.
-     */
-    private static final String WHITESPACE_CLASS = "\\p{IsWhite_Space}";
-
-    private static final Pattern WHITESPACE = Pattern.compile(WHITESPACE_CLASS);
-
-    private static final Pattern SURROUNDING_WHITESPACE =
-        Pattern.compile("^(?:" + WHITESPACE_CLASS + ")+|(?:" + WHITESPACE_CLASS + ")+$");
-
     /** A comma separates the Gerrit push options from each other. */
-    private static final Pattern INVALID_OPTION_CHARS = Pattern.compile("[" + WHITESPACE_CLASS + ",]");
+    private static final Pattern INVALID_OPTION_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + ",]");
 
     /** Gerrit handles everything after the first percent sign of a reference as push options. */
-    private static final Pattern INVALID_BRANCH_CHARS = Pattern.compile("[" + WHITESPACE_CLASS + "%]");
+    private static final Pattern INVALID_BRANCH_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + "%]");
 
     private PushOptionValidator() {}
 
     /**
-     * Removes the whitespace which this class rejects from both ends of a value. String#trim() is not
-     * enough: it stops at U+0020, which would leave e.g. a pasted no-break space to be rejected instead
-     * of being trimmed away.
+     * Removes the whitespace which this class rejects from both ends of a value, so that a pasted
+     * no-break space is trimmed away instead of being reported.
      */
     public static String trim(String value) {
-        return SURROUNDING_WHITESPACE.matcher(value).replaceAll("");
+        return Whitespace.trim(value);
     }
 
     /**
@@ -100,7 +88,7 @@ public class PushOptionValidator {
             return null;
         }
         char invalidChar = value.charAt(matcher.start());
-        if (WHITESPACE.matcher(String.valueOf(invalidChar)).matches()) {
+        if (Whitespace.isWhitespace(invalidChar)) {
             // name the character for whitespace which cannot be seen in the text field
             String whitespace = invalidChar == ' ' ? "spaces" : String.format("whitespace (U+%04X)", (int) invalidChar);
             return label + " must not contain " + whitespace + " (Gerrit reads it from the push reference, "

@@ -17,16 +17,13 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.vcs.VcsConfigurableProvider;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
@@ -36,12 +33,18 @@ import javax.swing.*;
  * @author oleg
  * @author Urs Wolfer
  */
-public class GerritSettingsConfigurable implements SearchableConfigurable, VcsConfigurableProvider {
+public class GerritSettingsConfigurable implements SearchableConfigurable {
     public static final String NAME = "Gerrit";
     private static final String DEFAULT_PASSWORD_TEXT = "************";
     private SettingsPanel settingsPane;
 
+    private final Project project;
+
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
+
+    public GerritSettingsConfigurable(Project project) {
+        this.project = project;
+    }
 
     @NotNull
     public String getDisplayName() {
@@ -55,7 +58,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
 
     public JComponent createComponent() {
         if (settingsPane == null) {
-            settingsPane = new SettingsPanel();
+            settingsPane = new SettingsPanel(project);
         }
         return settingsPane.getPanel();
     }
@@ -84,7 +87,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
         if (settingsPane != null) {
             gerritSettings.setLogin(settingsPane.getLogin());
             if (isPasswordModified()) {
-                gerritSettings.setPasswordWithModalProgress(null, settingsPane.getPassword());
+                gerritSettings.setPasswordWithModalProgress(project, settingsPane.getPassword());
                 settingsPane.resetPasswordModification();
             }
             gerritSettings.setHost(settingsPane.getHost());
@@ -135,11 +138,4 @@ public class GerritSettingsConfigurable implements SearchableConfigurable, VcsCo
     public Runnable enableSearch(String option) {
         return null;
     }
-
-    @Nullable
-    @Override
-    public Configurable getConfigurable(Project project) {
-        return this;
-    }
-
 }

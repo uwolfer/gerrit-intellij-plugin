@@ -5,18 +5,83 @@ Instructions for AI coding agents working on this repository.
 ## Build and test
 
 ```
-./gradlew test -x instrumentCode -x instrumentTestCode
+./gradlew build
 ```
 
-Plain `./gradlew build` fails in sandboxed environments at `instrumentCode`
-with `taskdef class com.intellij.ant.InstrumentIdeaExtensions cannot be found`:
-the instrumentation jars are served through `cache-redirector.jetbrains.com`,
-which redirects to an egress-blocked host, so only the `.pom` files arrive and
-the Ant classpath ends up empty. That is an environment limit — do not "fix" it
-in `build.gradle`. CI runs the full build on JDK 17, where instrumentation does
-run and is needed for the `.form` files and `@NotNull` checks.
+This runs the instrumentation, which weaves the `.form` files into their
+classes and adds the `@NotNull` checks, so it is the command that actually
+validates a UI change. CI runs the same on JDK 17.
+
+Sandboxed environments differ in what they can reach. Check rather than assume
+— both of the limits below have been true at some point and neither is
+permanent:
+
+* Maven Central through `repo.maven.apache.org` may answer `429 Too Many
+  Requests`, which fails the build before it compiles anything. Gradle treats a
+  429 as fatal and will not fall through to the next repository, so point it at
+  Google's Maven Central mirror with an init script passed via `-I`. The mirror
+  belongs to the environment, not to the project: keep it outside the
+  repository and never commit it, and do not touch `build.gradle`.
+
+  ```groovy
+  def mirror = 'https://maven-central.storage-download.googleapis.com/maven2'
+  beforeSettings { settings ->
+      settings.pluginManagement.repositories {
+          maven { url mirror }
+          gradlePluginPortal()
+      }
+  }
+  beforeProject { project ->
+      project.buildscript.repositories { maven { url mirror } }
+      project.repositories {
+          maven {
+              url mirror
+              content { // the SDK and the bundled plugins are not on Maven Central
+                  excludeGroupByRegex 'com\\.jetbrains.*'
+                  excludeGroupByRegex 'unzipped\\..*'
+                  excludeGroupByRegex 'org\\.jetbrains\\.intellij.*'
+              }
+          }
+      }
+      // drop the frontend that 429s, or those same groups fall through to it
+      project.afterEvaluate {
+          project.repositories.removeAll { r ->
+              r.hasProperty('url') && r.url.toString().contains('repo.maven.apache.org')
+          }
+      }
+  }
+  ```
+
+  One mirror, not a list of them: a second one is only reachable after the
+  first answers, and a 429 from the first ends the build either way.
+
+* The instrumentation jars come from `cache-redirector.jetbrains.com`. Where
+  that host is blocked, `instrumentCode` fails with `taskdef class
+  com.intellij.ant.InstrumentIdeaExtensions cannot be found` because only the
+  `.pom` files arrive and the Ant classpath ends up empty. Then, and only then,
+  fall back to `./gradlew test -x instrumentCode -x instrumentTestCode`, which
+  leaves the `.form` files unchecked. One request settles it:
+
+  ```
+  BASE=https://cache-redirector.jetbrains.com/intellij-repository/releases
+  curl -sSLo /dev/null -w '%{http_code}\n' \
+    $BASE/com/jetbrains/intellij/java/java-compiler-ant-tasks/203.8084.24/java-compiler-ant-tasks-203.8084.24.jar
+  ```
 
 The first build downloads the Gradle distribution and the ~1.6 GB IntelliJ SDK.
+
+Two parts of `build` are worth knowing about when you change the UI. After
+changing a class bound to a `.form`, check that the generated `$$$setupUI$$$()`
+still ends up in the constructor you touched — a signature change is silently
+fine until it is not:
+
+```
+javap -p -c build/instrumented/instrumentCode/<class>.class | grep setupUI
+```
+
+And `buildSearchableOptions` starts a headless IDE and walks every
+configurable, so it fails on a settings page which cannot be built, and its
+output under `build/searchableOptions` shows what the platform made of one.
 
 ## Bytecode injection and reflection into the platform
 

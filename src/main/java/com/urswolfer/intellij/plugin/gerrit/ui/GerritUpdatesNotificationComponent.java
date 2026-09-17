@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
@@ -90,8 +89,9 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             return;
         }
 
-        if (Strings.isNullOrEmpty(gerritSettings.getHost())
-                || Strings.isNullOrEmpty(gerritSettings.getLogin())) {
+        String host = gerritSettings.getHost();
+        String login = gerritSettings.getLogin();
+        if (host == null || host.isEmpty() || login == null || login.isEmpty()) {
             return;
         }
 

@@ -16,13 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,7 +36,7 @@ public class LoadChangesProxy {
     private final Project project;
     private String sortkey;
     private boolean hasMore = true;
-    private final List<ChangeInfo> changes = Lists.newArrayList();
+    private final List<ChangeInfo> changes = new ArrayList<>();
     private final AtomicBoolean loading = new AtomicBoolean(false);
 
     public LoadChangesProxy(Changes.QueryRequest queryRequest,
@@ -69,7 +68,7 @@ public class LoadChangesProxy {
             public void consume(List<ChangeInfo> changeInfos) {
                 try {
                     if (changeInfos != null && !changeInfos.isEmpty()) {
-                        ChangeInfo lastChangeInfo = Iterables.getLast(changeInfos);
+                        ChangeInfo lastChangeInfo = changeInfos.get(changeInfos.size() - 1);
                         hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
                         sortkey = lastChangeInfo._sortkey;
                         changes.addAll(changeInfos);

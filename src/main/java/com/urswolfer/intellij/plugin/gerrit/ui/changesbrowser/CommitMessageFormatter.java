@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
 import com.intellij.vcs.log.Hash;
 import git4idea.GitCommit;
 
@@ -25,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 /**
  * This class formats the commit message as similarly as possible to how Gerrit formats it.
@@ -85,10 +84,11 @@ public class CommitMessageFormatter {
     private String getParentLine() {
         List<Hash> parents = gitCommit.getParents();
         if (parents.size() == 1) {
-            Hash parent = Iterables.getOnlyElement(parents);
+            Hash parent = parents.get(0);
             return String.format(PARENT_PATTERN, parent.asString());
         } else if (parents.size() > 1) {
-            String allParents = Joiner.on(MERGE_PATTERN_DELIMITER).join(parents);
+            String allParents = parents.stream().map(Hash::asString)
+                .collect(Collectors.joining(MERGE_PATTERN_DELIMITER));
             return String.format(MERGE_PATTERN, allParents);
         } else {
             return "";

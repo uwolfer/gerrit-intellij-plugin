@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.errorreport;
 
-import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ex.ApplicationInfoEx;
@@ -55,13 +54,13 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     @Override
     public boolean submit(@NotNull IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<? super SubmittedReportInfo> consumer) {
-        if (Strings.isNullOrEmpty(additionalInfo) || !additionalInfo.contains("@")) {
+        if (additionalInfo == null || additionalInfo.isEmpty() || !additionalInfo.contains("@")) {
             String emailAddress = Messages.showInputDialog(
                 "It seems you have not included your email address.\n" +
                 "If you enter it below, you will get most probably a message " +
                 "with a solution for your issue or a question which " +
                 "will help to solve it.", "Information Required", null);
-            if (!Strings.isNullOrEmpty(emailAddress)) {
+            if (emailAddress != null && !emailAddress.isEmpty()) {
                 additionalInfo = additionalInfo == null
                     ? emailAddress : additionalInfo + '\n' + emailAddress;
             }

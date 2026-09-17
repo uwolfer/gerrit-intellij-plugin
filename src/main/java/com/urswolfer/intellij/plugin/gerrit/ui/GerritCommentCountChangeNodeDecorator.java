@@ -16,9 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
@@ -43,8 +40,6 @@ import java.util.*;
  */
 public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator {
     private static final Logger LOG = Logger.getInstance(GerritCommentCountChangeNodeDecorator.class);
-
-    private static final Joiner SUFFIX_JOINER = Joiner.on(", ").skipNulls();
 
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
@@ -95,7 +90,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         String affectedFilePath = getAffectedFilePath(change);
         if (affectedFilePath != null) {
             String text = getNodeSuffix(project, affectedFilePath);
-            if (!Strings.isNullOrEmpty(text)) {
+            if (text != null && !text.isEmpty()) {
                 component.append(String.format(" (%s)", text), SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
                 component.repaint();
             }
@@ -182,7 +177,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private String getNodeSuffix(Project project, String affectedFilePath) {
         String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
         fileName = PathUtils.ensureSlashSeparators(fileName);
-        List<String> parts = Lists.newArrayList();
+        List<String> parts = new ArrayList<>();
 
         List<CommentInfo> commentsForFile = comments.get(fileName);
         if (commentsForFile != null) {
@@ -198,7 +193,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
             parts.add("reviewed");
         }
 
-        return SUFFIX_JOINER.join(parts);
+        return String.join(", ", parts);
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {

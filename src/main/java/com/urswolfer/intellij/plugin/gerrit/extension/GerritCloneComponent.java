@@ -17,13 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
-import com.google.common.base.Function;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-import com.google.common.io.ByteStreams;
 import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
@@ -37,9 +30,9 @@ import com.intellij.dvcs.ui.SelectChildTextFieldWithBrowseButton;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
-import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
@@ -84,6 +77,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiConsumer;
 
@@ -98,12 +93,8 @@ import java.util.function.BiConsumer;
 public class GerritCloneComponent implements VcsCloneComponent {
     private static final Logger LOG = Logger.getInstance(GerritCloneComponent.class);
 
-    private static final Function<ProjectInfo, String> GET_ID_FUNCTION = new Function<ProjectInfo, String>() {
-        public String apply(ProjectInfo from) {
-            return from.id;
-        }
-    };
-    private static final Ordering<ProjectInfo> ID_ORDERING = Ordering.natural().onResultOf(GET_ID_FUNCTION);
+    private static final Comparator<ProjectInfo> ID_ORDERING =
+        Comparator.comparing(projectInfo -> projectInfo.id);
 
     private final Project project;
     private final ModalityState modalityState;
@@ -221,7 +212,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
     @Override
     public List<ValidationInfo> doValidateAll() {
-        List<ValidationInfo> validationInfos = Lists.newArrayList();
+        List<ValidationInfo> validationInfos = new ArrayList<>();
         ValidationInfo directoryValidation =
             CloneDvcsValidationUtils.checkDirectory(directoryField.getText(), directoryField.getTextField());
         if (directoryValidation != null) {
@@ -323,7 +314,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
             return;
         }
         projectsRequested = true;
-        if (Strings.isNullOrEmpty(gerritSettings.getHost())) {
+        String host = gerritSettings.getHost();
+        if (host == null || host.isEmpty()) {
             setErrorText("Gerrit is not set up; the repository URL needs to be entered manually.");
             return;
         }
@@ -361,9 +353,9 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
     private List<String> getRepositoryUrls() throws RestApiException {
         String url = getCloneBaseUrl();
-        ImmutableSortedSet<ProjectInfo> orderedProjects = ImmutableSortedSet.orderedBy(ID_ORDERING)
-            .addAll(GerritApiProvider.getInstance().get().projects().list().get()).build();
-        List<String> repositoryUrls = Lists.newArrayListWithCapacity(orderedProjects.size());
+        List<ProjectInfo> orderedProjects = new ArrayList<>(GerritApiProvider.getInstance().get().projects().list().get());
+        orderedProjects.sort(ID_ORDERING);
+        List<String> repositoryUrls = new ArrayList<>(orderedProjects.size());
         for (ProjectInfo projectInfo : orderedProjects) {
             repositoryUrls.add(url + '/' + Url.decode(projectInfo.id));
         }
@@ -377,8 +369,9 @@ public class GerritCloneComponent implements VcsCloneComponent {
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
     private String getCloneBaseUrl() {
-        if (!Strings.isNullOrEmpty(gerritSettings.getCloneBaseUrl())) {
-            return gerritSettings.getCloneBaseUrl();
+        String cloneBaseUrl = gerritSettings.getCloneBaseUrl();
+        if (cloneBaseUrl != null && !cloneBaseUrl.isEmpty()) {
+            return cloneBaseUrl;
         }
         String url = gerritSettings.getHost();
         try {
@@ -390,7 +383,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
                 LOG.info("ChangeInfo list is empty.");
                 return url;
             }
-            ChangeInfo changeInfo = Iterables.getOnlyElement(changeInfos);
+            ChangeInfo changeInfo = changeInfos.get(0);
             FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(project, changeInfo);
             if (fetchInfo != null) {
                 // the project name is a literal suffix, it can contain characters which are special in a regex
@@ -431,7 +424,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
             try (InputStream commitMessageHook = GerritApiProvider.getInstance().get().tools().getCommitMessageHook();
                  OutputStream targetStream = new FileOutputStream(targetFile)) {
-                ByteStreams.copy(commitMessageHook, targetStream);
+                commitMessageHook.transferTo(targetStream);
             }
             //noinspection ResultOfMethodCallIgnored
             targetFile.setExecutable(true);

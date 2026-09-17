@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Strings;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
@@ -185,7 +184,8 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     @Override
     public boolean isLoginAndPasswordAvailable() {
-        return !Strings.isNullOrEmpty(getLogin());
+        String login = getLogin();
+        return login != null && !login.isEmpty();
     }
 
     public boolean getListAllChanges() {
@@ -304,6 +304,6 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     }
 
     public String getCloneBaseUrlOrHost() {
-        return Strings.isNullOrEmpty(state.cloneBaseUrl) ? state.host : state.cloneBaseUrl;
+        return state.cloneBaseUrl == null || state.cloneBaseUrl.isEmpty() ? state.host : state.cloneBaseUrl;
     }
 }

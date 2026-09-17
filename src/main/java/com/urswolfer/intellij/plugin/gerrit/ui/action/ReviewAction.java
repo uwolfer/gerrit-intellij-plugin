@@ -16,11 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.changes.NotifyHandling;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -34,8 +29,12 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
@@ -86,7 +85,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                         return;
                     }
                     final String message = dialog.getReviewPanel().getMessage();
-                    if (!Strings.isNullOrEmpty(message)) {
+                    if (message != null && !message.isEmpty()) {
                         reviewInput.message = message;
                     }
                     submitChange = dialog.getReviewPanel().getSubmitChange();
@@ -123,13 +122,13 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         List<ReviewInput.CommentInput> commentInputs;
         Map<String, List<ReviewInput.CommentInput>> comments = reviewInput.comments;
         if (comments == null) {
-            comments = Maps.newHashMap();
+            comments = new HashMap<>();
             reviewInput.comments = comments;
         }
         if (comments.containsKey(path)) {
             commentInputs = comments.get(path);
         } else {
-            commentInputs = Lists.newArrayList();
+            commentInputs = new ArrayList<>();
             comments.put(path, commentInputs);
         }
 
@@ -152,7 +151,9 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         );
         if (!reviewInput.labels.isEmpty()) {
             stringBuilder.append(": ");
-            stringBuilder.append(Joiner.on(", ").withKeyValueSeparator(": ").join(reviewInput.labels));
+            stringBuilder.append(reviewInput.labels.entrySet().stream()
+                    .map(label -> label.getKey() + ": " + label.getValue())
+                    .collect(Collectors.joining(", ")));
         }
         return stringBuilder.toString();
     }

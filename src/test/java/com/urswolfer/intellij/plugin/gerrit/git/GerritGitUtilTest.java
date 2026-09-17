@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
@@ -27,6 +26,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
+import java.util.Optional;
 
 public class GerritGitUtilTest {
 

@@ -16,11 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
+
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer

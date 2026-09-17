@@ -16,14 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.intellij.util.EventDispatcher;
 
 import java.util.EventListener;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author Thomas Forrer
@@ -33,7 +31,7 @@ public class GerritChangesFilters implements AbstractChangesFilter.Listener {
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
     public GerritChangesFilters() {
-        filters = ImmutableList.<AbstractChangesFilter>of(
+        filters = List.of(
                 new FulltextFilter(),
                 new StatusFilter(),
                 new BranchFilter(),
@@ -58,17 +56,14 @@ public class GerritChangesFilters implements AbstractChangesFilter.Listener {
     }
 
     public String getQuery() {
-        return Joiner.on("+").skipNulls()
-                .join(Iterables.transform(filters, new Function<AbstractChangesFilter, String>() {
-            @Override
-            public String apply(AbstractChangesFilter abstractChangesFilter) {
-                return abstractChangesFilter.getSearchQueryPart();
-            }
-        }));
+        return filters.stream()
+                .map(AbstractChangesFilter::getSearchQueryPart)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("+"));
     }
 
     public Iterable<ChangesFilter> getFilters() {
-        return ImmutableList.<ChangesFilter>copyOf(filters);
+        return List.<ChangesFilter>copyOf(filters);
     }
 
     public interface Listener extends EventListener {

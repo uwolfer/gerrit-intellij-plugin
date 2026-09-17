@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.dvcs.ui.CompareBranchesDialog;
 import com.intellij.dvcs.util.CommitCompareInfo;
@@ -32,6 +31,7 @@ import git4idea.repo.GitRepository;
 import git4idea.ui.branch.GitCompareBranchesHelper;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**

@@ -62,6 +62,15 @@ public class PushOptionValidatorTest {
     }
 
     @Test
+    public void testWhitespaceCharacterIsWhitespaceDoesNotKnow() throws Exception {
+        // Character#isWhitespace() says no to the non-breaking ones, this validation has to say yes
+        Assert.assertEquals(PushOptionValidator.trim("\u202Fmy-topic\u2007"), "my-topic");
+        String error = PushOptionValidator.validateOption("Topic", "Bug\u202Fxy");
+        Assert.assertNotNull(error);
+        Assert.assertTrue(error.startsWith("Topic must not contain whitespace (U+202F)"), error);
+    }
+
+    @Test
     public void testTopicWithComma() throws Exception {
         // a comma would be handled as separator between two Gerrit push options
         Assert.assertEquals(PushOptionValidator.validateOption("Topic", "bug,fix"),

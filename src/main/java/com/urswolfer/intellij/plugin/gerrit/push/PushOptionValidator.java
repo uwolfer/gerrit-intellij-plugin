@@ -16,9 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
-import com.google.common.base.CharMatcher;
+import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import git4idea.validators.GitRefNameValidator;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Checks the values entered in the Gerrit push settings for what cannot be transported in the Git
@@ -34,23 +37,20 @@ import org.jetbrains.annotations.Nullable;
  */
 public class PushOptionValidator {
 
-    private static final CharMatcher WHITESPACE = CharMatcher.whitespace();
-
     /** A comma separates the Gerrit push options from each other. */
-    private static final CharMatcher INVALID_OPTION_CHARS = WHITESPACE.or(CharMatcher.is(','));
+    private static final Pattern INVALID_OPTION_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + ",]");
 
     /** Gerrit handles everything after the first percent sign of a reference as push options. */
-    private static final CharMatcher INVALID_BRANCH_CHARS = WHITESPACE.or(CharMatcher.is('%'));
+    private static final Pattern INVALID_BRANCH_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + "%]");
 
     private PushOptionValidator() {}
 
     /**
-     * Removes the whitespace which this class rejects from both ends of a value. String#trim() is not
-     * enough: it stops at U+0020, which would leave e.g. a pasted no-break space to be rejected instead
-     * of being trimmed away.
+     * Removes the whitespace which this class rejects from both ends of a value, so that a pasted
+     * no-break space is trimmed away instead of being reported.
      */
     public static String trim(String value) {
-        return WHITESPACE.trimFrom(value);
+        return Whitespace.trim(value);
     }
 
     /**
@@ -82,13 +82,13 @@ public class PushOptionValidator {
     }
 
     @Nullable
-    private static String validate(String label, String value, CharMatcher invalidChars) {
-        int index = invalidChars.indexIn(value);
-        if (index < 0) {
+    private static String validate(String label, String value, Pattern invalidChars) {
+        Matcher matcher = invalidChars.matcher(value);
+        if (!matcher.find()) {
             return null;
         }
-        char invalidChar = value.charAt(index);
-        if (WHITESPACE.matches(invalidChar)) {
+        char invalidChar = value.charAt(matcher.start());
+        if (Whitespace.isWhitespace(invalidChar)) {
             // name the character for whitespace which cannot be seen in the text field
             String whitespace = invalidChar == ' ' ? "spaces" : String.format("whitespace (U+%04X)", (int) invalidChar);
             return label + " must not contain " + whitespace + " (Gerrit reads it from the push reference, "

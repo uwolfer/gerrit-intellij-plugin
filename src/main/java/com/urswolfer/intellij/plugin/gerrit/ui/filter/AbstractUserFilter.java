@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
@@ -36,6 +34,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer
@@ -45,18 +45,18 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
 
-    private ImmutableList<User> users;
+    private List<User> users;
     private JBPopup popup;
     private AnAction selectOkAction;
     private JTextArea selectUserTextArea;
-    private Optional<User> value = Optional.absent();
+    private Optional<User> value = Optional.empty();
 
     public abstract String getActionLabel();
     public abstract String getQueryField();
 
     @Override
     public AnAction getAction(final Project project) {
-        users = ImmutableList.of(
+        users = List.of(
                 new User("All", null),
                 new User("Me", "self")
         );
@@ -82,7 +82,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
 
         private User(String label, String forQuery) {
             this.label = label;
-            this.forQuery = Optional.fromNullable(forQuery);
+            this.forQuery = Optional.ofNullable(forQuery);
         }
     }
 

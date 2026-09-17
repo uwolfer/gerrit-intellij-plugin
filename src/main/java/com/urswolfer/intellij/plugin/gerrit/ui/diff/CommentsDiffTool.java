@@ -16,13 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
-import com.google.common.primitives.Longs;
 import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.client.Side;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -43,11 +36,11 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.colors.EditorColors;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
-import com.intellij.openapi.editor.colors.EditorColors;
-import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
@@ -66,9 +59,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
@@ -80,20 +78,12 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private static final TextAttributesKey COMMENT_RANGE_ATTRIBUTES = TextAttributesKey.createTextAttributesKey(
         "GERRIT_COMMENT_RANGE", EditorColors.SEARCH_RESULT_ATTRIBUTES);
 
-    private static final Predicate<Comment> REVISION_COMMENT = new Predicate<Comment>() {
-        @Override
-        public boolean apply(Comment comment) {
-            return comment.side == null || comment.side.equals(Side.REVISION);
-        }
-    };
+    private static final Predicate<Comment> REVISION_COMMENT =
+        comment -> comment.side == null || comment.side.equals(Side.REVISION);
 
-    private static final Ordering<Comment> COMMENT_ORDERING = new Ordering<Comment>() {
-        @Override
-        public int compare(Comment left, Comment right) {
-            // need to sort descending as icons are added to the left of existing icons
-            return -Longs.compare(left.updated.getTime(), right.updated.getTime());
-        }
-    };
+    // descending, as icons are added to the left of existing icons
+    private static final Comparator<Comment> COMMENT_ORDERING =
+        Comparator.comparingLong((Comment comment) -> comment.updated.getTime()).reversed();
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
@@ -108,7 +98,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     @SuppressWarnings("unchecked")
     @Override
     public List<Class<? extends DiffTool>> getSuppressedTools() {
-        return Lists.<Class<? extends DiffTool>>newArrayList(
+        return Arrays.<Class<? extends DiffTool>>asList(
             UnifiedDiffTool.INSTANCE.getClass(),
             SimpleDiffTool.INSTANCE.getClass()
         );
@@ -155,7 +145,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                     editor2,
                                     relativeFilePath,
                                     selectedRevisionId,
-                                    Iterables.filter(fileComments, REVISION_COMMENT),
+                                    filter(fileComments, REVISION_COMMENT),
                                     changeInfo,
                                     project
                             );
@@ -164,7 +154,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                         editor1,
                                         relativeFilePath,
                                         selectedRevisionId,
-                                        Iterables.filter(fileComments, Predicates.not(REVISION_COMMENT)),
+                                        filter(fileComments, REVISION_COMMENT.negate()),
                                         changeInfo,
                                         project
                                 );
@@ -186,7 +176,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                 editor1,
                                 relativeFilePath,
                                 baseRevision.get().getFirst(),
-                                Iterables.filter(fileComments, REVISION_COMMENT),
+                                filter(fileComments, REVISION_COMMENT),
                                 changeInfo,
                                 project
                         );
@@ -225,6 +215,10 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
         group.add(addCommentAction);
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
+    }
+
+    private static List<CommentInfo> filter(List<CommentInfo> comments, Predicate<Comment> predicate) {
+        return comments.stream().filter(predicate).collect(Collectors.toList());
     }
 
     private void addCommentsGutter(Editor editor,
@@ -319,7 +313,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
         RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(charsSequence, range);
 
-        ArrayList<RangeHighlighter> highlighters = Lists.newArrayList();
+        ArrayList<RangeHighlighter> highlighters = new ArrayList<>();
         HighlightManager highlightManager = HighlightManager.getInstance(project);
         highlightManager.addRangeHighlight(editor, offset.start, offset.end, COMMENT_RANGE_ATTRIBUTES, false, highlighters);
         return highlighters.get(0);

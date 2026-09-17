@@ -610,6 +610,10 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeIdAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Abandon"/>
     </action>
+    <action id="Gerrit.RefreshFeatureMergePatchSet" text="Refresh Feature Merge Patch Set"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshFeatureMergePatchSetAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="before" relative-to-action="Gerrit.OpenInBrowser"/>
+    </action>
     <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="last"/>
@@ -618,6 +622,10 @@
     <action id="Gerrit.Refresh" text="Refresh"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshAction">
       <add-to-group group-id="Gerrit.Toolbar" anchor="first"/>
+    </action>
+    <action id="Gerrit.CreateFeatureMergeChange" text="Create Feature Merge Change"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CreateFeatureMergeChangeAction">
+      <add-to-group group-id="Gerrit.Toolbar" anchor="before" relative-to-action="Gerrit.Settings"/>
     </action>
     <action id="Gerrit.Settings" text="Settings"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction">

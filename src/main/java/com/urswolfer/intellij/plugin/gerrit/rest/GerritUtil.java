@@ -24,8 +24,11 @@ import com.google.gerrit.extensions.api.changes.DraftApi;
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
+import com.google.gerrit.extensions.api.projects.BranchInfo;
 import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ChangeInput;
+import com.google.gerrit.extensions.common.MergePatchSetInput;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
@@ -116,6 +119,39 @@ public final class GerritUtil {
             return result.get();
         }
         throw new RuntimeException(exception.get());
+    }
+
+    public void createMergeChange(final ChangeInput changeInput,
+                                  final Project project,
+                                  final Consumer<ChangeInfo> consumer) {
+        Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
+            @Override
+            public ChangeInfo get() {
+                try {
+                    return gerritApi().changes().create(changeInput).info();
+                } catch (RestApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to create Gerrit merge change");
+    }
+
+    public void createMergePatchSet(final String changeId,
+                                    final MergePatchSetInput mergePatchSetInput,
+                                    final Project project,
+                                    final Consumer<ChangeInfo> consumer) {
+        Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
+            @Override
+            public ChangeInfo get() {
+                try {
+                    return gerritApi().changes().id(changeId).createMergePatchSet(mergePatchSetInput);
+                } catch (RestApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to refresh Gerrit merge patch set");
     }
 
     public void postReview(final String changeId,
@@ -391,6 +427,47 @@ public final class GerritUtil {
         return projectNames;
     }
 
+    public void getProjectHead(final String projectName, final Project project, final Consumer<String> consumer) {
+        Supplier<String> supplier = new Supplier<String>() {
+            @Override
+            public String get() {
+                try {
+                    return gerritApi().projects().name(projectName).head();
+                } catch (RestApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to resolve Gerrit default branch");
+    }
+
+    public void getProjectBranches(final String projectName,
+                                   final Project project,
+                                   final Consumer<List<String>> consumer) {
+        Supplier<List<String>> supplier = new Supplier<List<String>>() {
+            @Override
+            public List<String> get() {
+                try {
+                    List<String> branches = new ArrayList<>();
+                    for (BranchInfo branchInfo : gerritApi().projects().name(projectName).branches().get()) {
+                        if (branchInfo == null || branchInfo.ref == null || branchInfo.ref.isEmpty()) {
+                            continue;
+                        }
+                        String branch = branchInfo.ref.trim();
+                        if (branch.startsWith("refs/heads/") && branch.length() > "refs/heads/".length()) {
+                            branches.add(branch);
+                        }
+                    }
+                    Collections.sort(branches);
+                    return branches;
+                } catch (RestApiException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to load Gerrit branches");
+    }
+
     private String getProjectName(String gerritUrl, String gerritCloneBaseUrl,  String url) {
         String baseUrl = gerritCloneBaseUrl == null || gerritCloneBaseUrl.isEmpty() ? gerritUrl : gerritCloneBaseUrl;
         if (!baseUrl.endsWith("/")) {
@@ -431,6 +508,13 @@ public final class GerritUtil {
     }
 
     public void getChangeDetails(final int changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
+        getChangeDetails(null, changeNr, project, consumer);
+    }
+
+    public void getChangeDetails(final String projectName,
+                                 final int changeNr,
+                                 final Project project,
+                                 final Consumer<ChangeInfo> consumer) {
         Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
             @Override
             public ChangeInfo get() {
@@ -442,12 +526,18 @@ public final class GerritUtil {
                             ListChangesOption.LABELS,
                             ListChangesOption.DETAILED_LABELS);
                     try {
-                        return gerritApi().changes().id(changeNr).get(options);
+                        if (projectName == null) {
+                            return gerritApi().changes().id(changeNr).get(options);
+                        }
+                        return gerritApi().changes().id(projectName, changeNr).get(options);
                     } catch (HttpStatusException e) {
                         // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
                         if (e.getStatusCode() == 400) {
                             options.remove(ListChangesOption.MESSAGES);
-                            return gerritApi().changes().id(changeNr).get(options);
+                            if (projectName == null) {
+                                return gerritApi().changes().id(changeNr).get(options);
+                            }
+                            return gerritApi().changes().id(projectName, changeNr).get(options);
                         } else {
                             throw e;
                         }

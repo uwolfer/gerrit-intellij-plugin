@@ -22,9 +22,6 @@ import static com.intellij.icons.AllIcons.Actions.Checked;
 import static com.intellij.icons.AllIcons.Actions.MoveDown;
 import static com.intellij.icons.AllIcons.Actions.MoveUp;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -62,9 +59,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * A table with the list of changes.
@@ -91,7 +90,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.selectRevisionInfoColumn = new GerritSelectRevisionInfoColumn(project);
         this.gerritSettings = GerritSettings.getInstance();
-        this.changes = Lists.newArrayList();
+        this.changes = new ArrayList<>();
 
         this.table = new TableView<ChangeInfo>();
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -219,7 +218,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         ItemAndWidth projectName = new ItemAndWidth("", 0);
         ItemAndWidth branch = new ItemAndWidth("", 0);
         ItemAndWidth time = new ItemAndWidth("", 0);
-        Set<String> availableLabels = Sets.newTreeSet();
+        Set<String> availableLabels = new TreeSet<>();
         for (ChangeInfo change : changes) {
             number = getMax(number, getNumber(change));
             hash = getMax(hash, getHash(change));
@@ -237,7 +236,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
             }
         }
 
-        List<ColumnInfo> columnList = Lists.newArrayList();
+        List<ColumnInfo> columnList = new ArrayList<>();
         columnList.add(new GerritChangeColumnStarredInfo());
         boolean showChangeNumberColumn = gerritSettings.getShowChangeNumberColumn();
         if (showChangeNumberColumn) {
@@ -378,12 +377,13 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
      * Code-Review -> CR: collect first letter of every word part.
      */
     private String getShortLabelDisplay(String label) {
-        String result = "";
-        Iterable<String> parts = Splitter.on('-').omitEmptyStrings().split(label);
-        for (String part : parts) {
-            result += part.substring(0, 1);
+        StringBuilder result = new StringBuilder();
+        for (String part : label.split("-")) {
+            if (!part.isEmpty()) {
+                result.append(part.charAt(0));
+            }
         }
-        return result;
+        return result.toString();
     }
 
     private ItemAndWidth getMax(ItemAndWidth current, String candidate) {

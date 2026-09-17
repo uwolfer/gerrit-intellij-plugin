@@ -16,12 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.collect.Lists;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.project.Project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,7 +35,7 @@ public final class NotificationBuilder {
     private final String message;
     private NotificationType type = NotificationType.INFORMATION;
 
-    private final List<AnAction> actions = Lists.newArrayList();
+    private final List<AnAction> actions = new ArrayList<>();
     private boolean showBalloon = true;
 
     public NotificationBuilder(Project project, String title, String message) {

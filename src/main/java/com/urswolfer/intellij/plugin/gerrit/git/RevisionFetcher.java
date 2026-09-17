@@ -18,7 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.project.Project;
@@ -27,6 +26,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,7 +43,7 @@ public class RevisionFetcher {
     private final Project project;
     private final GitRepository gitRepository;
 
-    private final Map<String, RevisionInfo> revisionInfoList = Maps.newLinkedHashMap();
+    private final Map<String, RevisionInfo> revisionInfoList = new LinkedHashMap<>();
 
     public RevisionFetcher(GerritUtil gerritUtil,
                            GerritGitUtil gerritGitUtil,

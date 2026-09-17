@@ -18,7 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.base.Optional;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -27,6 +26,7 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.File;
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer

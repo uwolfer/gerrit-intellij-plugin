@@ -16,9 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -46,6 +43,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -71,9 +69,11 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
         String content = dialog.reviewTextField.getText();
-        Iterable<String> reviewerNames = Splitter.on(',').omitEmptyStrings().trimResults().split(content);
-        for (String reviewerName : reviewerNames) {
-            gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project);
+        for (String reviewer : content.split(",")) {
+            String reviewerName = reviewer.trim();
+            if (!reviewerName.isEmpty()) {
+                gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project);
+            }
         }
     }
 
@@ -113,7 +113,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                                                      int offset,
                                                      @NotNull final String prefix,
                                                      @NotNull final CompletionResultSet result) {
-                    if (Strings.isNullOrEmpty(prefix)) {
+                    if (prefix.isEmpty()) {
                         return;
                     }
                     try {
@@ -151,7 +151,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                 presentableText = String.format("%s (group)", suggestedReviewer.group.name);
                 reviewerName = suggestedReviewer.group.name;
             } else {
-                return Optional.absent();
+                return Optional.empty();
             }
             return Optional.of(LookupElementBuilder.create(reviewerName + ',').withPresentableText(presentableText));
         }

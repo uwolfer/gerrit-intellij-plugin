@@ -18,10 +18,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.Disposable;
@@ -37,8 +33,11 @@ import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * @author Thomas Forrer
@@ -47,19 +46,14 @@ import java.util.Map;
 public class SelectBaseRevisionAction extends BasePopupAction {
 
     private static final String BASE = "Base";
-    private static final Function<Pair<String, RevisionInfo>, String> REVISION_LABEL_FUNCTION = new Function<Pair<String, RevisionInfo>, String>() {
-        @Override
-        public String apply(Pair<String, RevisionInfo> revisionInfo) {
-            return String.format("%s: %s",
-                    revisionInfo.getSecond()._number,
-                    revisionInfo.getFirst().substring(0, 7));
-        }
-    };
+    private static final Function<Pair<String, RevisionInfo>, String> REVISION_LABEL_FUNCTION = revisionInfo ->
+        String.format("%s: %s", revisionInfo.getSecond()._number, revisionInfo.getFirst().substring(0, 7));
+
     private final SelectedRevisions selectedRevisions;
 
-    private Optional<ChangeInfo> selectedChange = Optional.absent();
-    private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.absent();
-    private List<Listener> listeners = Lists.newArrayList();
+    private Optional<ChangeInfo> selectedChange = Optional.empty();
+    private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.empty();
+    private List<Listener> listeners = new ArrayList<>();
 
     public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions, Disposable parent) {
         super("Diff against");
@@ -89,9 +83,8 @@ public class SelectBaseRevisionAction extends BasePopupAction {
             }
         });
         if (selectedChange.isPresent()) {
-            ImmutableSortedSet<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
-                    RevisionInfos.MAP_ENTRY_COMPARATOR,
-                    selectedChange.get().revisions.entrySet());
+            List<Map.Entry<String, RevisionInfo>> revisions = new ArrayList<>(selectedChange.get().revisions.entrySet());
+            revisions.sort(RevisionInfos.MAP_ENTRY_COMPARATOR);
             for (Map.Entry<String, RevisionInfo> entry : revisions) {
                 anActionConsumer.consume(getActionForRevision(entry.getKey(), entry.getValue()));
             }
@@ -100,7 +93,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
 
     public void setSelectedChange(ChangeInfo selectedChange) {
         this.selectedChange = Optional.of(selectedChange);
-        selectedValue = Optional.absent();
+        selectedValue = Optional.empty();
         updateLabel();
     }
 
@@ -135,7 +128,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     }
 
     private void removeSelectedValue() {
-        selectedValue = Optional.absent();
+        selectedValue = Optional.empty();
         notifyListeners();
     }
 
@@ -146,7 +139,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     }
 
     private void updateLabel() {
-        updateFilterValueLabel(selectedValue.transform(REVISION_LABEL_FUNCTION).or(BASE));
+        updateFilterValueLabel(selectedValue.map(REVISION_LABEL_FUNCTION).orElse(BASE));
     }
 
     public static interface Listener {

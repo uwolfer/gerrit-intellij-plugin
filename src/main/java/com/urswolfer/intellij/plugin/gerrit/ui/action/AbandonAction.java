@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.common.ActionInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -29,6 +27,8 @@ import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer
@@ -77,7 +77,7 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
             return;
         }
         String message = editor.getMessageField().getText().trim();
-        if (!Strings.isNullOrEmpty(message)) {
+        if (!message.isEmpty()) {
             abandonInput.message = message;
         }
 

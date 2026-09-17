@@ -16,7 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.google.common.primitives.Ints;
 import com.google.gerrit.extensions.common.RevisionInfo;
 
 import java.util.Comparator;
@@ -38,6 +37,6 @@ public class RevisionInfos {
     }
 
     public static int compare(RevisionInfo r1, RevisionInfo r2) {
-        return Ints.compare(r1._number, r2._number);
+        return Integer.compare(r1._number, r2._number);
     }
 }

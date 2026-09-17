@@ -16,16 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.intellij.openapi.ui.ComboBoxTableRenderer;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBoxTableRenderer;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -43,7 +37,8 @@ import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Class representing the column in the {@link com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel} to select
@@ -54,12 +49,8 @@ import java.util.Set;
 public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, String> {
     private final SelectedRevisions selectedRevisions;
 
-    private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR = new Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>>() {
-        @Override
-        public Pair<String, RevisionInfo> apply(Map.Entry<String, RevisionInfo> entry) {
-            return Pair.create(entry.getKey(), entry.getValue());
-        }
-    };
+    private static final Function<Map.Entry<String, RevisionInfo>, Pair<String, RevisionInfo>> MAP_ENTRY_TO_PAIR =
+        entry -> Pair.create(entry.getKey(), entry.getValue());
 
     public GerritSelectRevisionInfoColumn(Project project) {
         super("Patch Set");
@@ -91,8 +82,9 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
             public void editingStopped(ChangeEvent e) {
                 ComboBoxTableRenderer cellEditor = (ComboBoxTableRenderer) e.getSource();
                 String value = (String) cellEditor.getCellEditorValue();
-                Iterable<Pair<String, RevisionInfo>> pairs = Iterables.transform(changeInfo.revisions.entrySet(), MAP_ENTRY_TO_PAIR);
-                Map<String, Pair<String, RevisionInfo>> map = Maps.uniqueIndex(pairs, getRevisionLabelFunction(changeInfo));
+                Map<String, Pair<String, RevisionInfo>> map = changeInfo.revisions.entrySet().stream()
+                    .map(MAP_ENTRY_TO_PAIR)
+                    .collect(Collectors.toMap(getRevisionLabelFunction(changeInfo), Function.identity()));
                 Pair<String, RevisionInfo> pair = map.get(value);
                 selectedRevisions.put(changeInfo.id, pair.getFirst());
             }
@@ -145,14 +137,10 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         if (changeInfo.revisions == null) {
             return Collections.emptyList();
         }
-        Set<Map.Entry<String, RevisionInfo>> revisions = ImmutableSortedSet.copyOf(
-                RevisionInfos.MAP_ENTRY_COMPARATOR,
-                changeInfo.revisions.entrySet());
-        return Lists.newArrayList(Iterables.transform(
-                        revisions,
-                        Functions.compose(getRevisionLabelFunction(changeInfo), MAP_ENTRY_TO_PAIR)
-                )
-        );
+        return changeInfo.revisions.entrySet().stream()
+                .sorted(RevisionInfos.MAP_ENTRY_COMPARATOR)
+                .map(MAP_ENTRY_TO_PAIR.andThen(getRevisionLabelFunction(changeInfo)))
+                .collect(Collectors.toList());
     }
 
     private Function<Pair<String, RevisionInfo>, String> getRevisionLabelFunction(final ChangeInfo changeInfo) {

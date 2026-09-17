@@ -17,13 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
 import com.google.gerrit.extensions.api.changes.Changes;
@@ -69,15 +62,20 @@ import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubUtil
@@ -353,8 +351,9 @@ public final class GerritUtil {
 
     private String appendQueryStringForProject(Project project, String query) {
         String projectQueryPart = getProjectQueryPart(project);
-        query = Joiner.on('+').skipNulls().join(Strings.emptyToNull(query), Strings.emptyToNull(projectQueryPart));
-        return query;
+        return Stream.of(query, projectQueryPart)
+            .filter(part -> part != null && !part.isEmpty())
+            .collect(Collectors.joining("+"));
     }
 
     private String getProjectQueryPart(Project project) {
@@ -364,32 +363,27 @@ public final class GerritUtil {
             return "";
         }
 
-        List<GitRemote> remotes = Lists.newArrayList();
+        List<GitRemote> remotes = new ArrayList<>();
         for (GitRepository repository : repositories) {
             remotes.addAll(repository.getRemotes());
         }
         List<String> projectNames = getProjectNames(remotes);
-        Iterable<String> projectNamesWithQueryPrefix = Iterables.transform(projectNames, new Function<String, String>() {
-            @Override
-            public String apply(String input) {
-                return "project:" + Url.encode(input);
-            }
-        });
-
-        if (Iterables.isEmpty(projectNamesWithQueryPrefix)) {
+        if (projectNames.isEmpty()) {
             return "";
         }
-        return String.format("(%s)", Joiner.on("+OR+").join(projectNamesWithQueryPrefix));
+        return projectNames.stream()
+            .map(projectName -> "project:" + Url.encode(projectName))
+            .collect(Collectors.joining("+OR+", "(", ")"));
     }
 
     public List<String> getProjectNames(Collection<GitRemote> remotes) {
-        List<String> projectNames = Lists.newArrayList();
+        List<String> projectNames = new ArrayList<>();
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
                 remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
                 String projectName = getProjectName(GerritSettings.getInstance().getHost(), GerritSettings.getInstance().getCloneBaseUrl(),
                     remoteUrl);
-                if (!Strings.isNullOrEmpty(projectName) && remoteUrl.endsWith(projectName)) {
+                if (projectName != null && !projectName.isEmpty() && remoteUrl.endsWith(projectName)) {
                     projectNames.add(projectName);
                 }
             }
@@ -398,7 +392,7 @@ public final class GerritUtil {
     }
 
     private String getProjectName(String gerritUrl, String gerritCloneBaseUrl,  String url) {
-        String baseUrl = Strings.isNullOrEmpty(gerritCloneBaseUrl) ? gerritUrl : gerritCloneBaseUrl;
+        String baseUrl = gerritCloneBaseUrl == null || gerritCloneBaseUrl.isEmpty() ? gerritUrl : gerritCloneBaseUrl;
         if (!baseUrl.endsWith("/")) {
             baseUrl = baseUrl + "/";
         }
@@ -485,14 +479,14 @@ public final class GerritUtil {
                     if (includePublishedComments) {
                         comments = gerritApi().changes().id(changeNr).revision(revision).comments();
                     } else {
-                        comments = Maps.newHashMap();
+                        comments = new HashMap<>();
                     }
 
                     Map<String, List<CommentInfo>> drafts;
                     if (includeDraftComments && GerritSettings.getInstance().isLoginAndPasswordAvailable()) {
                         drafts = gerritApi().changes().id(changeNr).revision(revision).drafts();
                     } else {
-                        drafts = Maps.newHashMap();
+                        drafts = new HashMap<>();
                     }
 
                     HashMap<String, List<CommentInfo>> allComments = new HashMap<String, List<CommentInfo>>(drafts);
@@ -591,7 +585,8 @@ public final class GerritUtil {
     }
 
     public boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
-        if (Strings.isNullOrEmpty(gerritAuthData.getHost())) {
+        String host = gerritAuthData.getHost();
+        if (host == null || host.isEmpty()) {
             return false;
         }
         Boolean result = accessToGerritWithModalProgress(project, new ThrowableComputable<Boolean, Exception>() {
@@ -638,7 +633,8 @@ public final class GerritUtil {
         if (revisionInfo == null) {
             return null;
         }
-        return Iterables.getFirst(revisionInfo.fetch.values(), null);
+        Iterator<FetchInfo> fetchInfos = revisionInfo.fetch.values().iterator();
+        return fetchInfos.hasNext() ? fetchInfos.next() : null;
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")

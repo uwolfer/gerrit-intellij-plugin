@@ -16,8 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Maps;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
@@ -29,7 +27,9 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.Collections;
 import java.util.EventListener;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Class keeping record of all selected revisions by change.
@@ -38,7 +38,7 @@ import java.util.Map;
  */
 @Service(Service.Level.PROJECT)
 public final class SelectedRevisions {
-    private final Map<String, String> map = Maps.newHashMap();
+    private final Map<String, String> map = new HashMap<>();
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
     public static SelectedRevisions getInstance(Project project) {
@@ -54,11 +54,11 @@ public final class SelectedRevisions {
     }
 
     /**
-     * @return the selected revision for the provided changeId, or {@link com.google.common.base.Optional#absent()} if
+     * @return the selected revision for the provided changeId, or {@link java.util.Optional#empty()} if
      *         the current revision was selected.
      */
     public Optional<String> get(String changeId) {
-        return Optional.fromNullable(map.get(changeId));
+        return Optional.ofNullable(map.get(changeId));
     }
 
     /**
@@ -71,7 +71,7 @@ public final class SelectedRevisions {
             // the revisions map however is usually populated
             currentRevision = getNewestRevision(changeInfo);
         }
-        return get(changeInfo.id).or(Optional.fromNullable(currentRevision)).orNull();
+        return get(changeInfo.id).orElse(currentRevision);
     }
 
     /**

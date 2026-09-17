@@ -16,14 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
-import java.util.Collections;
-import java.util.List;
-
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -32,11 +24,16 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import git4idea.GitRemoteBranch;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Thomas Forrer
@@ -45,7 +42,7 @@ public class BranchFilter extends AbstractChangesFilter {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
-    private Optional<BranchDescriptor> value = Optional.absent();
+    private Optional<BranchDescriptor> value = Optional.empty();
 
     @Override
     public AnAction getAction(Project project) {
@@ -76,7 +73,7 @@ public class BranchFilter extends AbstractChangesFilter {
             actionConsumer.consume(new DumbAwareAction("All") {
                 @Override
                 public void actionPerformed(AnActionEvent e) {
-                    value = Optional.absent();
+                    value = Optional.empty();
                     updateFilterValueLabel("All");
                     fireFilterChanged();
                 }
@@ -93,14 +90,8 @@ public class BranchFilter extends AbstractChangesFilter {
                         fireFilterChanged();
                     }
                 });
-                List<GitRemoteBranch> branches = Lists.newArrayList(repository.getBranches().getRemoteBranches());
-                Ordering<GitRemoteBranch> ordering = Ordering.natural().onResultOf(new Function<GitRemoteBranch, String>() {
-                    @Override
-                    public String apply(GitRemoteBranch branch) {
-                        return branch.getNameForRemoteOperations();
-                    }
-                });
-                Collections.sort(branches, ordering);
+                List<GitRemoteBranch> branches = new ArrayList<>(repository.getBranches().getRemoteBranches());
+                branches.sort(Comparator.comparing(GitRemoteBranch::getNameForRemoteOperations));
                 for (final GitRemoteBranch branch : branches) {
                     if (!branch.getNameForRemoteOperations().equals("HEAD")) {
                         group.add(new DumbAwareAction(branch.getNameForRemoteOperations()) {
@@ -119,7 +110,8 @@ public class BranchFilter extends AbstractChangesFilter {
     }
 
     private String getNameForRepository(GitRepository repository) {
-        return Iterables.getFirst(gerritUtil.getProjectNames(repository.getRemotes()), "");
+        List<String> projectNames = gerritUtil.getProjectNames(repository.getRemotes());
+        return projectNames.isEmpty() ? "" : projectNames.get(0);
     }
 
     private final class BranchDescriptor {
@@ -133,7 +125,7 @@ public class BranchFilter extends AbstractChangesFilter {
 
         private BranchDescriptor(GitRepository repository) {
             this.repository = repository;
-            this.branch = Optional.absent();
+            this.branch = Optional.empty();
         }
 
         public String getQuery() {

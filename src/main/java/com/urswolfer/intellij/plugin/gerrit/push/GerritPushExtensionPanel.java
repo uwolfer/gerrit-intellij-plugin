@@ -16,12 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -41,16 +35,20 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritPushExtensionPanel extends JPanel {
 
-    private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
     private static final String GITREVIEW_FILENAME = ".gitreview";
 
     private final boolean pushToGerritByDefault;
@@ -72,7 +70,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField ccTextField;
     private JTextField patchsetDescriptionTextField;
     private JLabel validationLabel;
-    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = Maps.newHashMap();
+    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = new HashMap<>();
     private boolean initialized = false;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
@@ -107,11 +105,10 @@ public class GerritPushExtensionPanel extends JPanel {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 if (gerritPushTargetPanels.size() == 1) {
-                    // the branch is null when the IDE has no push target for the repository (e.g. a detached head),
-                    // and Optional#or refuses a null default value
-                    String branchName = Strings.nullToEmpty(gerritPushTargetPanels.values().iterator().next());
+                    // the branch is null when the IDE has no push target for the repository (e.g. a detached head)
+                    String branchName = gerritPushTargetPanels.values().iterator().next();
                     Optional<String> gitReviewBranchName = getGitReviewBranchName();
-                    branchTextField.setText(gitReviewBranchName.or(branchName));
+                    branchTextField.setText(gitReviewBranchName.orElse(branchName == null ? "" : branchName));
                 }
                 initDestinationBranch();
             }
@@ -119,15 +116,14 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private Optional<String> getGitReviewBranchName() {
-        Optional<String> branchName = Optional.absent();
+        Optional<String> branchName = Optional.empty();
 
         DataContext dataContext = DataManager.getInstance().getDataContext(this);
         Optional<Project> openedProject = dataContext != null ?
-            Optional.fromNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.<Project>absent();
+            Optional.ofNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.empty();
 
         if (openedProject.isPresent()) {
-            String gitReviewFilePath = Joiner.on(File.separator).join(
-                openedProject.get().getBasePath(), GITREVIEW_FILENAME);
+            String gitReviewFilePath = openedProject.get().getBasePath() + File.separator + GITREVIEW_FILENAME;
 
             File gitReviewFile = new File(gitReviewFilePath);
             if (gitReviewFile.exists() && gitReviewFile.isFile()) {
@@ -137,7 +133,8 @@ public class GerritPushExtensionPanel extends JPanel {
 
                     Properties properties = new Properties();
                     properties.load(fileInputStream);
-                    branchName = Optional.fromNullable(Strings.emptyToNull(properties.getProperty("defaultbranch")));
+                    branchName = Optional.ofNullable(properties.getProperty("defaultbranch"))
+                        .filter(branch -> !branch.isEmpty());
                 } catch (IOException e) {
                     //no need to handle as branch name is already absent and ready to be returned
                 } finally {
@@ -326,7 +323,7 @@ public class GerritPushExtensionPanel extends JPanel {
         } else {
             ref.append(branch);
         }
-        List<String> gerritSpecs = Lists.newArrayList();
+        List<String> gerritSpecs = new ArrayList<>();
         if (privateCheckBox.isSelected()) {
             gerritSpecs.add("private");
         } else if (unmarkPrivateCheckBox.isSelected()) {
@@ -357,8 +354,8 @@ public class GerritPushExtensionPanel extends JPanel {
         }
         handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
         handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
-        String gerritSpec = Joiner.on(',').join(gerritSpecs);
-        if (!Strings.isNullOrEmpty(gerritSpec)) {
+        String gerritSpec = String.join(",", gerritSpecs);
+        if (!gerritSpec.isEmpty()) {
             ref.append('%').append(gerritSpec);
         }
         return ref.toString();
@@ -372,8 +369,7 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
-        Iterable<String> items = COMMA_SPLITTER.split(textField.getText());
-        for (String item : items) {
+        for (String item : splitCommaSeparated(textField.getText())) {
             gerritSpecs.add(option + '=' + item);
         }
     }
@@ -401,12 +397,12 @@ public class GerritPushExtensionPanel extends JPanel {
                     validateUserNames(reviewersTextField, "Reviewer name"),
                     validateUserNames(ccTextField, "CC user name"));
         } else {
-            for (JTextField textField : Lists.newArrayList(branchTextField, topicTextField, hashTagTextField,
+            for (JTextField textField : List.of(branchTextField, topicTextField, hashTagTextField,
                     reviewersTextField, ccTextField)) {
                 markInvalid(textField, false);
             }
         }
-        validationLabel.setText(Strings.nullToEmpty(error));
+        validationLabel.setText(error == null ? "" : error);
         return error;
     }
 
@@ -427,11 +423,19 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private String validateUserNames(JTextField textField, String label) {
         String error = null;
-        for (String item : COMMA_SPLITTER.split(textField.getText())) {
+        for (String item : splitCommaSeparated(textField.getText())) {
             error = firstError(error, PushOptionValidator.validateOption(label, item));
         }
         markInvalid(textField, error != null);
         return error;
+    }
+
+    /** Splits a comma separated value the way the push ref carries it: no surrounding whitespace, no empty entries. */
+    private static List<String> splitCommaSeparated(String value) {
+        return Arrays.stream(value.split(","))
+                .map(PushOptionValidator::trim)
+                .filter(item -> !item.isEmpty())
+                .collect(Collectors.toList());
     }
 
     private static String firstError(String... errors) {

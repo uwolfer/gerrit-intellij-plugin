@@ -20,7 +20,6 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import static git4idea.commands.GitSimpleEventDetector.Event.CHERRY_PICK_CONFLICT;
 import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK;
 
-import com.google.common.base.Optional;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.dvcs.util.CommitCompareInfo;
@@ -76,6 +75,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -108,7 +108,7 @@ public final class GerritGitUtil {
                 }
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
@@ -128,7 +128,7 @@ public final class GerritGitUtil {
             String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
                 "Git repository: '%s'.", gitRepository.getPresentableUrl()));
         NotificationService.getInstance().notifyError(notification);
-        return Optional.absent();
+        return Optional.empty();
     }
 
     public void fetchChange(final Project project,
@@ -178,7 +178,7 @@ public final class GerritGitUtil {
             return Optional.of(Pair.create(createSelfFetchRemote(), commitHash));
         }
 
-        return getRemoteForChange(project, gitRepository, fetchInfo).transform(remote -> Pair.create(remote, fetchInfo.ref));
+        return getRemoteForChange(project, gitRepository, fetchInfo).map(remote -> Pair.create(remote, fetchInfo.ref));
     }
 
     private static GitRemote createSelfFetchRemote() {

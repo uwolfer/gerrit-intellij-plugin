@@ -21,7 +21,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import static java.lang.Boolean.TRUE;
 import static javax.swing.JEditorPane.HONOR_DISPLAY_PROPERTIES;
 
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -42,6 +41,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import java.awt.*;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -178,9 +178,9 @@ public class GerritChangeDetailsPanel {
                     List<ApprovalInfo> all = labelInfoEntry.getValue().all;
                     if (ccAccounts == null) {
                         if (all != null) {
-                            ccAccounts = Lists.newArrayList(all);
+                            ccAccounts = new ArrayList<>(all);
                         } else {
-                            ccAccounts = Lists.newArrayList();
+                            ccAccounts = new ArrayList<>();
                         }
                     }
                     if (all != null) {

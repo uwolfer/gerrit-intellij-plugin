@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Strings;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.dvcs.repo.VcsRepositoryMappingListener;
@@ -153,7 +152,7 @@ public class GerritToolWindow implements Disposable {
 
     private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
         String apiUrl = gerritSettings.getHost();
-        if (Strings.isNullOrEmpty(apiUrl)) {
+        if (apiUrl == null || apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
                 dialog.show();

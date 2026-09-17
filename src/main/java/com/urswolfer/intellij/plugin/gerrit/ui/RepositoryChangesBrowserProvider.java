@@ -16,10 +16,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.diff.chains.DiffRequestChain;
@@ -58,10 +54,12 @@ import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -81,7 +79,7 @@ public class RepositoryChangesBrowserProvider {
      * @return the decorators applied to every change node, in the order they are applied
      */
     private List<GerritChangeNodeDecorator> changeNodeDecorators() {
-        return ImmutableList.<GerritChangeNodeDecorator>of(commentCountChangeNodeDecorator);
+        return List.of(commentCountChangeNodeDecorator);
     }
 
     public GerritRepositoryChangesBrowser get(Project project, GerritChangeListPanel changeListPanel, Disposable parent) {
@@ -114,7 +112,7 @@ public class RepositoryChangesBrowserProvider {
 
     private final class GerritRepositoryChangesBrowser extends CommittedChangesBrowser {
         private ChangeInfo selectedChange;
-        private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.absent();
+        private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
         private Project project;
 
         public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
@@ -156,7 +154,7 @@ public class RepositoryChangesBrowserProvider {
                 public void consume(ChangeInfo changeDetails) {
                     if (selectedChange.id.equals(changeDetails.id)) {
                         selectedChange = changeDetails;
-                        baseRevision = Optional.absent();
+                        baseRevision = Optional.empty();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
                         for (GerritChangeNodeDecorator decorator : changeNodeDecorators()) {
                             decorator.onChangeSelected(project, selectedChange);
@@ -215,7 +213,7 @@ public class RepositoryChangesBrowserProvider {
                         @Override
                         public void run() {
                             getViewer().setEmptyText("No changes");
-                            setChangesToDisplay(Lists.newArrayList(totalDiff));
+                            setChangesToDisplay(new ArrayList<>(totalDiff));
                         }
                     });
                     return null;
@@ -227,7 +225,10 @@ public class RepositoryChangesBrowserProvider {
             // -1: limit; log exactly this commit; git show would do this job also, but there is no api in GitHistoryUtils
             // ("git show hash" <-> "git log hash -1")
             List<GitCommit> history = GitHistoryUtils.history(project, gitRepositoryRoot, revisionId, "-1");
-            return Iterables.getOnlyElement(history);
+            if (history.size() != 1) {
+                throw new VcsException(String.format("Expected exactly one commit for %s, got %s.", revisionId, history.size()));
+            }
+            return history.get(0);
         }
 
         private ChangeNodeDecorator getChangeNodeDecorator() {

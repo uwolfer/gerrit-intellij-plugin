@@ -17,7 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.google.common.base.Strings;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -85,7 +84,7 @@ public class SettingsPanel {
                 String password = isPasswordModified() ? getPassword()
                     : gerritSettings.getPasswordWithModalProgress(project);
                 String host = getHost();
-                if (Strings.isNullOrEmpty(host)) {
+                if (host == null || host.isEmpty()) {
                     Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
                     return;
                 }
@@ -93,7 +92,8 @@ public class SettingsPanel {
                     GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password) {
                         @Override
                         public boolean isLoginAndPasswordAvailable() {
-                            return !Strings.isNullOrEmpty(getLogin());
+                            String login = getLogin();
+                            return login != null && !login.isEmpty();
                         }
                     };
                     if (gerritUtil.checkCredentials(project, gerritAuthData)) {

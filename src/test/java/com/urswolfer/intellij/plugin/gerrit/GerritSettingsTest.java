@@ -116,6 +116,105 @@ public class GerritSettingsTest {
         Assert.assertEquals(state.showProjectColumn, ShowProjectColumn.AUTO);
     }
 
+    /**
+     * A downgrade leaves the settings file of this version behind for an older build to read, so what is written
+     * here has to survive the parser that build still uses. The reader below is that parser, copied verbatim from
+     * the GerritSettings which preceded the state bean.
+     */
+    @Test
+    public void testSettingsWrittenHereAreReadByTheParserOfEarlierVersions() throws Exception {
+        GerritSettings.SettingsState state = deserialize(LEGACY_SETTINGS_XML);
+
+        PreBeanSettingsReader read = new PreBeanSettingsReader(serialize(state));
+
+        Assert.assertEquals(read.login, state.login);
+        Assert.assertEquals(read.host, state.host);
+        Assert.assertEquals(read.listAllChanges, state.listAllChanges);
+        Assert.assertEquals(read.automaticRefresh, state.automaticRefresh);
+        Assert.assertEquals(read.refreshTimeout, state.refreshTimeout);
+        Assert.assertEquals(read.reviewNotifications, state.reviewNotifications);
+        Assert.assertEquals(read.pushToGerrit, state.pushToGerrit);
+        Assert.assertEquals(read.showChangeNumberColumn, state.showChangeNumberColumn);
+        Assert.assertEquals(read.showChangeIdColumn, state.showChangeIdColumn);
+        Assert.assertEquals(read.showTopicColumn, state.showTopicColumn);
+        Assert.assertEquals(read.showProjectColumn, state.showProjectColumn);
+        Assert.assertEquals(read.cloneBaseUrl, state.cloneBaseUrl);
+    }
+
+    /**
+     * The defaults are the interesting half of a downgrade: the older parser maps an attribute which is not in the
+     * file to false or 0, which would turn the automatic refresh off rather than leave it on.
+     */
+    @Test
+    public void testDefaultsWrittenHereKeepTheirMeaningForEarlierVersions() {
+        PreBeanSettingsReader read = new PreBeanSettingsReader(serialize(new GerritSettings.SettingsState()));
+
+        Assert.assertTrue(read.automaticRefresh);
+        Assert.assertEquals(read.refreshTimeout, 15);
+        Assert.assertTrue(read.reviewNotifications);
+        Assert.assertEquals(read.showProjectColumn, ShowProjectColumn.AUTO);
+    }
+
+    /**
+     * Copied verbatim from GerritSettings#loadState as it read the file before the state bean replaced it.
+     */
+    private static final class PreBeanSettingsReader {
+        private String login;
+        private String host;
+        private boolean listAllChanges;
+        private boolean automaticRefresh;
+        private int refreshTimeout;
+        private boolean reviewNotifications;
+        private boolean pushToGerrit;
+        private boolean showChangeNumberColumn;
+        private boolean showChangeIdColumn;
+        private boolean showTopicColumn;
+        private ShowProjectColumn showProjectColumn;
+        private String cloneBaseUrl;
+
+        PreBeanSettingsReader(Element element) {
+            login = element.getAttributeValue("Login");
+            host = element.getAttributeValue("Host");
+            listAllChanges = getBooleanValue(element, "ListAllChanges");
+            automaticRefresh = getBooleanValue(element, "AutomaticRefresh");
+            refreshTimeout = getIntegerValue(element, "RefreshTimeout");
+            reviewNotifications = getBooleanValue(element, "ReviewNotifications");
+            pushToGerrit = getBooleanValue(element, "PushToGerrit");
+            showChangeNumberColumn = getBooleanValue(element, "ShowChangeNumberColumn");
+            showChangeIdColumn = getBooleanValue(element, "ShowChangeIdColumn");
+            showTopicColumn = getBooleanValue(element, "ShowTopicColumn");
+            showProjectColumn = getShowProjectColumnValue(element, "ShowProjectColumn");
+            cloneBaseUrl = element.getAttributeValue("CloneBaseUrl");
+        }
+
+        private boolean getBooleanValue(Element element, String attributeName) {
+            String attributeValue = element.getAttributeValue(attributeName);
+            if (attributeValue != null) {
+                return Boolean.valueOf(attributeValue);
+            } else {
+                return false;
+            }
+        }
+
+        private int getIntegerValue(Element element, String attributeName) {
+            String attributeValue = element.getAttributeValue(attributeName);
+            if (attributeValue != null) {
+                return Integer.valueOf(attributeValue);
+            } else {
+                return 0;
+            }
+        }
+
+        private ShowProjectColumn getShowProjectColumnValue(Element element, String attributeName) {
+            String attributeValue = element.getAttributeValue(attributeName);
+            if (attributeValue != null) {
+                return ShowProjectColumn.valueOf(attributeValue);
+            } else {
+                return ShowProjectColumn.AUTO;
+            }
+        }
+    }
+
     private static GerritSettings.SettingsState deserialize(String xml) throws Exception {
         return XmlSerializer.deserialize(parse(xml), GerritSettings.SettingsState.class);
     }

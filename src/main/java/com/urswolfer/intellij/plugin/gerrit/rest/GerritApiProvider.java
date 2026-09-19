@@ -25,6 +25,7 @@ import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,8 +64,8 @@ public final class GerritApiProvider {
      * @return the api of this account; one is kept per account rather than per project, so the projects which share
      *         an account share its connections too
      */
-    public GerritRestApi get(GerritAccount account) {
-        return get(account.id);
+    public GerritRestApi get(@Nullable GerritAccount account) {
+        return get(account != null ? account.id : "");
     }
 
     private GerritRestApi get(String accountId) {

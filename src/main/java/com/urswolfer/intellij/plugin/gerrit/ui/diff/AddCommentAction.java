@@ -36,6 +36,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -100,7 +101,8 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 
     private void addVersionedComment(final Project project) {

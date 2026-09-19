@@ -77,6 +77,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -119,7 +120,7 @@ public final class GerritGitUtil {
             repositoryUrls.addAll(remote.getPushUrls());
             for (String repositoryUrl : repositoryUrls) {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
+                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritProjectAccount.getInstance(project).getCloneBaseUrlOrHost())) {
                     return Optional.of(remote);
                 }
             }

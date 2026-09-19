@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -64,7 +65,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
 
-        AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(), selectedChange.get());
+        AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()), selectedChange.get());
         dialog.show();
         if (!dialog.isOK()) {
             return;

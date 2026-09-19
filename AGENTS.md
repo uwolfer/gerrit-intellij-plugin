@@ -65,10 +65,11 @@ permanent:
   ```
   BASE=https://cache-redirector.jetbrains.com/intellij-repository/releases
   curl -sSLo /dev/null -w '%{http_code}\n' \
-    $BASE/com/jetbrains/intellij/java/java-compiler-ant-tasks/203.8084.24/java-compiler-ant-tasks-203.8084.24.jar
+    $BASE/com/jetbrains/intellij/java/java-compiler-ant-tasks/233.13135.103/java-compiler-ant-tasks-233.13135.103.jar
   ```
 
-The first build downloads the Gradle distribution and the ~1.6 GB IntelliJ SDK.
+The first build downloads the Gradle distribution and the IntelliJ SDK, which
+needs a good 2 GB of disk.
 
 Two parts of `build` are worth knowing about when you change the UI. After
 changing a class bound to a `.form`, check that the generated `$$$setupUI$$$()`
@@ -83,29 +84,23 @@ And `buildSearchableOptions` starts a headless IDE and walks every
 configurable, so it fails on a settings page which cannot be built, and its
 output under `build/searchableOptions` shows what the platform made of one.
 
-## Bytecode injection and reflection into the platform
+## The push dialog
 
-The push-dialog integration is the most fragile code here.
+The push-dialog integration is the code most exposed to platform changes.
 
-`GerritPushExtension` rewrites `git4idea.push.GitPushSupport` with javassist at
-application startup, because the platform offers no extension point for the push
-dialog. `GerritPushTargetPanel` then reaches into private platform state:
+The settings are an options panel which the dialog picks up through the
+experimental `com.intellij.customPushOptionsPanelFactory`, which is what
+`since-build` is pinned to. Nothing hands the repository rows to a plugin, so
+`GerritPushTargetUpdater` looks them up in the tree of the dialog the panel is
+shown in - from `addNotify`, not from a constructor - and drives them with
+`RepositoryNode.forceUpdateUiModelWithTypedText` and `fireOnChange`, the calls
+the IDE uses when all push targets are edited at once.
 
-* `GitPushTargetPanel.myFireOnChangeAction` and `myTargetEditor`
-* `val$repoPanel` and `val$repoNode` — synthetic fields of the anonymous
-  `Runnable` held in `myFireOnChangeAction`
-
-None of this is API. Field names, the anonymous class and the
-`createTargetPanel` signature change without notice between IDE releases, and
-the failure is a startup error rather than a compile error. When you touch this
-code, say in the commit message which platform version you checked it against.
-
-Crash reports pointing into `javassist.*` are usually javassist bugs. Check what
-the *reporting* version bundled before reading plugin code:
-
-```
-git show v1.2.6-203:build.gradle | grep javassist
-```
+Those classes are public but belong to `dvcs-impl`, so a change on either side
+fails silently: no rows are found and the settings do nothing. That is why the
+panel reports it and `GerritPrePushHandler` stops the push instead of letting it
+go out without them. Say in the commit message which platform version you
+checked such a change against.
 
 Sessions often start from a shallow clone without tags, which also makes
 `git log -S` useless. Two seconds fixes it:
@@ -138,13 +133,13 @@ Keep them lean.
 Only write a comment that earns its place. A comment explains *why* — a platform
 quirk, a constraint, a reason the straightforward approach does not work. Never
 narrate what the next line does, and do not add Javadoc to self-evident methods.
-The reflection and javassist code is where comments genuinely pay off.
+The push-dialog code is where comments genuinely pay off.
 
 New files get the Apache 2.0 header with the **current year** as the copyright
 year. Do not copy the year range from the file you started from.
 
 ## Branches and versions
 
-The default branch is `intellij2020.3` and targets the oldest supported IDE
-(`since-build="203.4818.26"`, `ideaVersion=IC-2020.3.4`). Pull requests go
-there, so fixes reach every newer branch. `gradle.properties` targets Java 11.
+The default branch is still called `intellij2020.3`, but targets the oldest
+supported IDE, 2023.3.2 (`since-build="233.13135"`, `ideaVersion=IC-2023.3.2`,
+Java 17). Pull requests go there, so fixes reach every newer branch.

@@ -37,12 +37,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Writes the Gerrit push ref into the row of one repository of the push dialog.
- *
- * This is the way the IDE updates such a row itself when the push targets of all repositories are edited at
- * once ({@code PushLog#fireEditorUpdated}): set the text of the target editor, then let the row build its push
- * target out of it. The rows are not handed to the plugin anywhere, so they are looked up in the tree of the
- * push dialog the Gerrit push settings are shown in.
+ * Writes the Gerrit push ref into the row of one repository of the push dialog. The rows are not handed to a
+ * plugin anywhere, so they are looked up in the tree of the dialog, and updated the way the IDE updates them
+ * itself when all push targets are edited at once ({@code PushLog#fireEditorUpdated}).
  *
  * @author Urs Wolfer
  */
@@ -65,10 +62,7 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
         this.initialBranch = initialBranch;
     }
 
-    /**
-     * Returns the tree with the repository rows of the push dialog {@code component} is shown in, or
-     * {@code null} as long as the component is not part of a push dialog.
-     */
+    /** Returns {@code null} as long as {@code component} is not part of a push dialog. */
     public static JTree findPushDialogTree(JComponent component) {
         JRootPane rootPane = SwingUtilities.getRootPane(component);
         if (rootPane == null) {
@@ -79,11 +73,8 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     }
 
     /**
-     * Returns an updater for every Git repository of the push dialog.
-     *
-     * Rows which the IDE has no push target for are skipped: a row of another VCS, and a Git repository where
-     * it cannot tell where to push to (e.g. a repository without any remote). Such a row does not accept a
-     * push target built out of a text, so there is nothing a Gerrit ref could be written to.
+     * Returns an updater for every Git repository of the push dialog. Rows the IDE has no push target for are
+     * skipped: a row of another VCS, or a repository it cannot tell where to push to, does not take a ref.
      */
     public static List<GerritPushTargetUpdater> collect(JTree tree) {
         Object root = tree.getModel().getRoot();
@@ -114,9 +105,7 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
         return updaters;
     }
 
-    /**
-     * Returns the ref the IDE pushes this repository to without the Gerrit push settings applied.
-     */
+    /** Returns the ref the IDE pushes this repository to without the Gerrit push settings applied. */
     public String getInitialBranch() {
         return initialBranch;
     }
@@ -133,7 +122,7 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     /**
      * Sets the ref to push to. A {@code null} branch reports Gerrit push settings which cannot be transported
      * in a ref: the last usable ref is kept, the one the push dialog already shows and the one the push would
-     * use, instead of a ref which does not contain what the user entered.
+     * use, and {@link GerritPrePushHandler} stops a push until they can be used again.
      *
      * A row which is not checked is left alone: writing to it checks it (the IDE checks a repository as soon
      * as its push target changes), which would select every repository of the project for the push. Such a

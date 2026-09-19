@@ -29,16 +29,15 @@ import java.util.regex.Pattern;
  * from that reference without decoding them; the patch set description is the only exception, see
  * {@link com.urswolfer.intellij.plugin.gerrit.util.UrlUtils#encodePatchSetDescription(String)}.
  *
- * Characters which are invalid in a reference name are already rejected for the assembled reference,
- * which is validated with git4idea. Only the cases that check cannot report properly are handled
- * here: whitespace (what users actually run into, and the reference name error does not tell which
- * of the values caused it), and the two characters which Git accepts but Gerrit reads as syntax of
- * the reference.
+ * The assembled reference is validated with git4idea as well, but that error does not tell which of
+ * the values caused it - and it does not catch the characters which Git accepts while Gerrit reads
+ * them as syntax of the reference.
  */
 public class PushOptionValidator {
 
-    /** A comma separates the Gerrit push options from each other. */
-    private static final Pattern INVALID_OPTION_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + ",]");
+    /** A comma separates the Gerrit push options from each other, the rest cannot be part of a ref name. */
+    private static final Pattern INVALID_OPTION_CHARS =
+        Pattern.compile("[" + Whitespace.REGEX_CLASS + ",~^:?*\\[\\\\]");
 
     /** Gerrit handles everything after the first percent sign of a reference as push options. */
     private static final Pattern INVALID_BRANCH_CHARS = Pattern.compile("[" + Whitespace.REGEX_CLASS + "%]");

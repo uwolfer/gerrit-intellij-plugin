@@ -46,7 +46,6 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    implementation 'org.javassist:javassist:3.33.0-GA'
 
     testImplementation 'org.testng:testng:7.12.0'
     testImplementation 'org.easymock:easymock:5.7.0'
@@ -57,7 +56,7 @@ intellij {
     pluginName = 'gerrit-intellij-plugin'
     updateSinceUntilBuild = false
     downloadSources = Boolean.valueOf(downloadIdeaSources)
-    plugins = ['git4idea']
+    plugins = ['vcs-git'] // the directory of the bundled Git plugin, which is not called git4idea any more
 
     publishPlugin {
         channels = [ijPluginRepoChannel]

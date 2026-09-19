@@ -54,7 +54,8 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -101,7 +102,6 @@ public class GerritCloneComponent implements VcsCloneComponent {
     private final VcsCloneDialogComponentStateListener dialogStateListener;
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
     private final DvcsRememberedInputs rememberedInputs = GitRememberedInputs.getInstance();
@@ -314,7 +314,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
             return;
         }
         projectsRequested = true;
-        String host = gerritSettings.getHost();
+        String host = defaultAccountHost();
         if (host == null || host.isEmpty()) {
             setErrorText("Gerrit is not set up; the repository URL needs to be entered manually.");
             return;
@@ -368,12 +368,18 @@ public class GerritCloneComponent implements VcsCloneComponent {
      *
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
+    private static String defaultAccountHost() {
+        GerritAccount account = GerritAccounts.getInstance().getDefaultAccount();
+        return account != null ? account.host : "";
+    }
+
     private String getCloneBaseUrl() {
-        String cloneBaseUrl = gerritSettings.getCloneBaseUrl();
+        GerritAccount account = GerritAccounts.getInstance().getDefaultAccount();
+        String cloneBaseUrl = account != null ? account.cloneBaseUrl : "";
         if (cloneBaseUrl != null && !cloneBaseUrl.isEmpty()) {
             return cloneBaseUrl;
         }
-        String url = gerritSettings.getHost();
+        String url = defaultAccountHost();
         try {
             List<ChangeInfo> changeInfos = GerritApiProvider.getInstance().get().changes().query()
                 .withLimit(1)

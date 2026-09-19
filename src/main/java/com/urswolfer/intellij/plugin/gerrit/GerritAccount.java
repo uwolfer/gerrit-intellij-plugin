@@ -62,6 +62,16 @@ public final class GerritAccount {
         return account;
     }
 
+    public GerritAccount copy() {
+        GerritAccount copy = new GerritAccount();
+        copy.id = id;
+        copy.login = login;
+        copy.host = host;
+        copy.cloneBaseUrl = cloneBaseUrl;
+        copy.usesLegacyPasswordKey = usesLegacyPasswordKey;
+        return copy;
+    }
+
     public String getCloneBaseUrlOrHost() {
         return cloneBaseUrl == null || cloneBaseUrl.isEmpty() ? host : cloneBaseUrl;
     }

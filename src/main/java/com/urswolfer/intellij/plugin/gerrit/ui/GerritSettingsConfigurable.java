@@ -21,11 +21,18 @@ import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Comparing;
-import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import com.intellij.openapi.progress.ProgressManager;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import org.jetbrains.annotations.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsConfigurable
@@ -35,7 +42,6 @@ import javax.swing.*;
  */
 public class GerritSettingsConfigurable implements SearchableConfigurable {
     public static final String NAME = "Gerrit";
-    private static final String DEFAULT_PASSWORD_TEXT = "************";
     private SettingsPanel settingsPane;
 
     private final Project project;
@@ -64,9 +70,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
     }
 
     public boolean isModified() {
-        return settingsPane != null && (!Comparing.equal(gerritSettings.getLogin(), settingsPane.getLogin(), true) ||
-                isPasswordModified() ||
-                !Comparing.equal(gerritSettings.getHost(), settingsPane.getHost(), true) ||
+        return settingsPane != null && (accountsModified() ||
                 !Comparing.equal(gerritSettings.getAutomaticRefresh(), settingsPane.getAutomaticRefresh()) ||
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
@@ -75,22 +79,36 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
                 !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
-                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()) ||
-                !Comparing.equal(gerritSettings.getCloneBaseUrl(), settingsPane.getCloneBaseUrl(), true));
+                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()));
     }
 
-    private boolean isPasswordModified() {
-        return settingsPane.isPasswordModified();
+    private boolean accountsModified() {
+        if (!settingsPane.getRemovedAccountIds().isEmpty() || !settingsPane.getEditedPasswords().isEmpty()) {
+            return true;
+        }
+        if (!Comparing.equal(settingsPane.getProjectAccount(), projectAccount().get())) {
+            return true;
+        }
+        List<GerritAccount> edited = settingsPane.getAccounts();
+        List<GerritAccount> stored = GerritAccounts.getInstance().getAccounts();
+        if (edited.size() != stored.size()) {
+            return true;
+        }
+        for (int i = 0; i < edited.size(); i++) {
+            GerritAccount a = edited.get(i);
+            GerritAccount b = stored.get(i);
+            if (!a.id.equals(b.id) || !a.host.equals(b.host) || !a.login.equals(b.login)
+                || !a.cloneBaseUrl.equals(b.cloneBaseUrl)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void apply() throws ConfigurationException {
         if (settingsPane != null) {
-            gerritSettings.setLogin(settingsPane.getLogin());
-            if (isPasswordModified()) {
-                gerritSettings.setPasswordWithModalProgress(project, settingsPane.getPassword());
-                settingsPane.resetPasswordModification();
-            }
-            gerritSettings.setHost(settingsPane.getHost());
+            applyAccounts();
+
             gerritSettings.setListAllChanges(settingsPane.getListAllChanges());
             gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
             gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
@@ -100,19 +118,54 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
             gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
-            gerritSettings.setCloneBaseUrl(settingsPane.getCloneBaseUrl());
 
             GerritUpdatesNotificationComponent.configurationChanged();
         }
     }
 
+    private void applyAccounts() {
+        GerritAccounts accounts = GerritAccounts.getInstance();
+        List<GerritAccount> edited = settingsPane.getAccounts();
+        GerritAccount usedByProject = settingsPane.getProjectAccount();
+
+        List<GerritAccount> removed = new ArrayList<>();
+        for (String removedId : settingsPane.getRemovedAccountIds()) {
+            GerritAccount account = accounts.findById(removedId);
+            if (account != null) {
+                removed.add(account);
+            }
+        }
+        accounts.setAccounts(edited);
+
+        Map<String, String> passwords = settingsPane.getEditedPasswords();
+        if (!removed.isEmpty() || !passwords.isEmpty()) {
+            // the credential store blocks, which must not happen on the event dispatch thread
+            ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                for (GerritAccount account : removed) {
+                    accounts.clearStoredPassword(account);
+                }
+                for (Map.Entry<String, String> entry : passwords.entrySet()) {
+                    GerritAccount account = accounts.findById(entry.getKey());
+                    if (account != null) {
+                        accounts.setPassword(account, entry.getValue());
+                    }
+                }
+            }, "Saving Gerrit Credentials", false, project);
+        }
+        projectAccount().set(usedByProject);
+
+        List<GerritAccount> refreshed = copies(accounts.getAccounts());
+        // the panel edits copies; handing it the stored accounts would edit them in place, past any Cancel
+        settingsPane.setAccounts(refreshed, find(refreshed, usedByProject));
+    }
+
     public void reset() {
         if (settingsPane != null) {
-            String login = gerritSettings.getLogin();
-            settingsPane.setLogin(login);
-            settingsPane.setPassword(StringUtil.isEmptyOrSpaces(login) ? "" : DEFAULT_PASSWORD_TEXT);
-            settingsPane.resetPasswordModification();
-            settingsPane.setHost(gerritSettings.getHost());
+            GerritAccounts accounts = GerritAccounts.getInstance();
+            GerritAccount current = projectAccount().get();
+            List<GerritAccount> copies = copies(accounts.getAccounts());
+            settingsPane.setAccounts(copies, find(copies, current));
+
             settingsPane.setListAllChanges(gerritSettings.getListAllChanges());
             settingsPane.setAutomaticRefresh(gerritSettings.getAutomaticRefresh());
             settingsPane.setRefreshTimeout(gerritSettings.getRefreshTimeout());
@@ -122,8 +175,24 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setShowChangeIdColumn(gerritSettings.getShowChangeIdColumn());
             settingsPane.setShowTopicColumn(gerritSettings.getShowTopicColumn());
             settingsPane.setShowProjectColumn(gerritSettings.getShowProjectColumn());
-            settingsPane.setCloneBaseUrl(gerritSettings.getCloneBaseUrl());
         }
+    }
+
+    private GerritProjectAccount projectAccount() {
+        return GerritProjectAccount.getInstance(project);
+    }
+
+    private static List<GerritAccount> copies(List<GerritAccount> accounts) {
+        List<GerritAccount> copies = new ArrayList<>(accounts.size());
+        for (GerritAccount account : accounts) {
+            copies.add(account.copy());
+        }
+        return copies;
+    }
+
+    @Nullable
+    private static GerritAccount find(List<GerritAccount> accounts, @Nullable GerritAccount account) {
+        return account == null ? null : accounts.stream().filter(a -> a.id.equals(account.id)).findFirst().orElse(null);
     }
 
     public void disposeUIResources() {

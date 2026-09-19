@@ -22,17 +22,16 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.Converter;
 import com.intellij.util.xmlb.annotations.Attribute;
 import com.intellij.util.xmlb.annotations.Property;
-import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
+ * The preferences which are the same whichever Gerrit instance a project talks to. Host, login and password
+ * belong to a {@link GerritAccount}.
+ *
  * Parts based on org.jetbrains.plugins.github.GithubSettings
  *
  * @author oleg
@@ -40,7 +39,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @Service(Service.Level.APP)
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
-public final class GerritSettings implements PersistentStateComponent<GerritSettings.SettingsState>, GerritAuthData {
+public final class GerritSettings implements PersistentStateComponent<GerritSettings.SettingsState> {
 
     /**
      * The settings are written as attributes of the component element, under the names the plugin has used since its
@@ -99,7 +98,7 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     @Override
     public SettingsState getState() {
         // one look, so that the accounts and whether they are kept cannot be read from either side of a change
-        GerritAccounts.Snapshot known = accounts().peek();
+        GerritAccounts.Snapshot known = GerritAccounts.getInstance().peek();
         GerritAccount account = known.accounts.isEmpty() ? null : known.accounts.get(0);
         if (account != null) { // keep what a version without accounts reads pointing at the account in use
             state.host = account.host;
@@ -116,67 +115,6 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     @Override
     public void loadState(@NotNull SettingsState state) {
         this.state = state;
-    }
-
-    private GerritAccounts accounts() {
-        return GerritAccounts.getInstance();
-    }
-
-    /**
-     * @return the account whose settings this reflects, creating it the first time one is written to
-     */
-    private GerritAccount accountForWrite() {
-        GerritAccount account = accounts().getDefaultAccount();
-        if (account == null) {
-            account = GerritAccount.create(state.host, state.login, state.cloneBaseUrl);
-            accounts().put(account);
-        }
-        return account;
-    }
-
-    @Override
-    @Nullable
-    public String getLogin() {
-        GerritAccount account = accounts().getDefaultAccount();
-        return account != null ? account.login : "";
-    }
-
-    /**
-     * Reading the credential store blocks and must not happen on the event dispatch thread. The REST client asks for
-     * the password through this method while it runs in the background, which is fine; UI code which needs it right
-     * away goes through {@link #getPasswordWithModalProgress}.
-     */
-    @Override
-    @NotNull
-    public String getPassword() {
-        return accounts().getPassword(accounts().getDefaultAccount());
-    }
-
-    /**
-     * A modal progress moves the blocking read off the event dispatch thread. The progress window only becomes
-     * visible if the credential store really takes a while - an OS keychain may need to be unlocked first.
-     */
-    @NotNull
-    public String getPasswordWithModalProgress(@Nullable Project project) {
-        return ProgressManager.getInstance().<String, RuntimeException>runProcessWithProgressSynchronously(
-                this::getPassword, "Reading Gerrit Credentials", false, project);
-    }
-
-    @Override
-    public boolean isHttpPassword() {
-        return false;
-    }
-
-    @Override
-    public String getHost() {
-        GerritAccount account = accounts().getDefaultAccount();
-        return account != null ? account.host : "";
-    }
-
-    @Override
-    public boolean isLoginAndPasswordAvailable() {
-        String login = getLogin();
-        return login != null && !login.isEmpty();
     }
 
     public boolean getListAllChanges() {
@@ -197,36 +135,6 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public boolean getReviewNotifications() {
         return state.reviewNotifications;
-    }
-
-    public void setLogin(final String login) {
-        state.login = login != null ? login : "";
-        accountForWrite().login = state.login;
-    }
-
-    /**
-     * Writing blocks just like reading does, so UI code which saves the password goes through a modal progress
-     * rather than holding the event dispatch thread while the credential store is written.
-     */
-    public void setPasswordWithModalProgress(@Nullable Project project, final String password) {
-        ProgressManager.getInstance().runProcessWithProgressSynchronously(
-                () -> setPassword(password), "Saving Gerrit Credentials", false, project);
-    }
-
-    public void setPassword(final String password) {
-        accounts().setPassword(accountForWrite(), password);
-    }
-
-    public void forgetPassword() {
-        GerritAccount account = accounts().getDefaultAccount();
-        if (account != null) {
-            accounts().forgetPassword(account);
-        }
-    }
-
-    public void setHost(final String host) {
-        state.host = host != null ? host : "";
-        accountForWrite().host = state.host;
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {
@@ -279,21 +187,6 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public void setShowTopicColumn(boolean showTopicColumn) {
         state.showTopicColumn = showTopicColumn;
-    }
-
-    public void setCloneBaseUrl(String cloneBaseUrl) {
-        state.cloneBaseUrl = cloneBaseUrl != null ? cloneBaseUrl : "";
-        accountForWrite().cloneBaseUrl = state.cloneBaseUrl;
-    }
-
-    public String getCloneBaseUrl() {
-        GerritAccount account = accounts().getDefaultAccount();
-        return account != null ? account.cloneBaseUrl : "";
-    }
-
-    public String getCloneBaseUrlOrHost() {
-        GerritAccount account = accounts().getDefaultAccount();
-        return account != null ? account.getCloneBaseUrlOrHost() : "";
     }
 
     /**

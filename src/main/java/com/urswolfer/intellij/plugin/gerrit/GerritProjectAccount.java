@@ -140,6 +140,27 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
                 this::getPassword, "Reading Gerrit Credentials", false, project);
     }
 
+    /**
+     * Saves what the login dialog collected on the account this project uses, creating it when the project has none
+     * yet. Writing blocks on the credential store, so it runs behind a modal progress rather than on the event
+     * dispatch thread.
+     */
+    public void saveCredentialsWithModalProgress(String host, String login, String password) {
+        GerritAccounts accounts = GerritAccounts.getInstance();
+        GerritAccount account = get();
+        if (account == null) {
+            account = GerritAccount.create(host, login, "");
+            set(account);
+        } else {
+            account.host = host;
+            account.login = login;
+        }
+        accounts.put(account);
+        GerritAccount target = account;
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                () -> accounts.setPassword(target, password), "Saving Gerrit Credentials", false, project);
+    }
+
     public void forgetPassword() {
         GerritAccount account = get();
         if (account != null) {

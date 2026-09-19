@@ -148,8 +148,9 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             List<GerritAccount> updated = new ArrayList<>(accounts);
             updated.remove(account);
             accounts = Collections.unmodifiableList(updated);
+            // not through forgetPassword: putting the account back is exactly what it must not do here
+            PasswordSafe.getInstance().set(attributesFor(account), null);
         }
-        forgetPassword(account);
     }
 
     /**
@@ -219,8 +220,13 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     public void forgetPassword(@NotNull GerritAccount account) {
         synchronized (lock) {
             PasswordSafe.getInstance().set(attributesFor(account), null);
-            account.fromLegacySettings = false;
-            put(account);
+            if (account.fromLegacySettings) {
+                // otherwise the next read would hand back the password of the version this account was seeded from
+                account.fromLegacySettings = false;
+                if (accounts.contains(account)) {
+                    put(account);
+                }
+            }
         }
     }
 

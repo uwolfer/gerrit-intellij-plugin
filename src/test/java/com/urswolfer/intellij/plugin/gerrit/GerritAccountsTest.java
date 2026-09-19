@@ -120,6 +120,22 @@ public class GerritAccountsTest {
         Assert.assertEquals(accounts.getDefaultAccount().host, "https://other.example.com");
     }
 
+    /**
+     * Forgetting a password used to put the account back, so removing one returned it to the list.
+     */
+    @Test
+    public void testRemovingAnAccountDoesNotPutItBack() {
+        GerritAccounts accounts = new GerritAccounts();
+        GerritAccount one = GerritAccount.create("https://one.example.com", "jdoe", "");
+        GerritAccount two = GerritAccount.create("https://two.example.com", "jdoe", "");
+        accounts.loadState(new GerritAccount[]{one, two});
+
+        accounts.setAccounts(java.util.Collections.singletonList(one));
+
+        Assert.assertEquals(accounts.getAccounts().size(), 1);
+        Assert.assertSame(accounts.getDefaultAccount(), one);
+    }
+
     private static CredentialAttributes constant(String fieldName) throws Exception {
         Field field = GerritAccounts.class.getDeclaredField(fieldName);
         field.setAccessible(true);

@@ -89,9 +89,7 @@ public class LoginDialog extends DialogWrapper {
         try {
             boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {
-                gerritSettings.setLogin(login);
-                gerritSettings.setPasswordWithModalProgress(project, password);
-                gerritSettings.setHost(host);
+                GerritProjectAccount.getInstance(project).saveCredentialsWithModalProgress(host, login, password);
                 super.doOKAction();
             } else {
                 setErrorText("Can't login with given credentials");

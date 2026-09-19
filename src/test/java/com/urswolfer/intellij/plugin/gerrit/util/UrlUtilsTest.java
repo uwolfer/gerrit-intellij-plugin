@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
+import git4idea.validators.GitRefNameValidator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -94,5 +95,14 @@ public class UrlUtilsTest {
         String encoded = UrlUtils.encodePatchSetDescription("Abc %^@.~-+_:/!");
         Assert.assertEquals(encoded, "Abc+%25%5E%40%2E%7E%2D%2B%5F%3A%2F%21");
         Assert.assertEquals(URLDecoder.decode(encoded, StandardCharsets.UTF_8), "Abc %^@.~-+_:/!");
+    }
+
+    @Test
+    public void testPatchSetDescriptionEncodingKeepsRefNameValid() throws Exception {
+        // URLEncoder leaves the asterisk as it is, and a ref name cannot contain it
+        String encoded = UrlUtils.encodePatchSetDescription("fix *bold*");
+        Assert.assertEquals(encoded, "fix+%2Abold%2A");
+        Assert.assertEquals(URLDecoder.decode(encoded, StandardCharsets.UTF_8), "fix *bold*");
+        Assert.assertTrue(GitRefNameValidator.getInstance().checkInput("refs/for/master%m=" + encoded));
     }
 }

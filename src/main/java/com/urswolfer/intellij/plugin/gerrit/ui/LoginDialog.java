@@ -26,6 +26,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubLoginDialog
@@ -49,9 +50,10 @@ public class LoginDialog extends DialogWrapper {
         this.gerritSettings = gerritSettings;
         this.project = project;
         loginPanel = new LoginPanel(this);
-        loginPanel.setHost(gerritSettings.getHost());
-        loginPanel.setLogin(gerritSettings.getLogin());
-        loginPanel.setPassword(gerritSettings.getPasswordWithModalProgress(project));
+        GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
+        loginPanel.setHost(projectAccount.getHost());
+        loginPanel.setLogin(projectAccount.getLogin());
+        loginPanel.setPassword(projectAccount.getPasswordWithModalProgress());
         setTitle("Login to Gerrit");
         setOKButtonText("Login");
         init();
@@ -87,9 +89,7 @@ public class LoginDialog extends DialogWrapper {
         try {
             boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {
-                gerritSettings.setLogin(login);
-                gerritSettings.setPasswordWithModalProgress(project, password);
-                gerritSettings.setHost(host);
+                GerritProjectAccount.getInstance(project).saveCredentialsWithModalProgress(host, login, password);
                 super.doOKAction();
             } else {
                 setErrorText("Can't login with given credentials");

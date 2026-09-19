@@ -54,7 +54,8 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -81,6 +82,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiConsumer;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Gerrit specific panel of the "Get from Version Control" dialog. It offers all projects of the configured Gerrit
@@ -101,7 +105,6 @@ public class GerritCloneComponent implements VcsCloneComponent {
     private final VcsCloneDialogComponentStateListener dialogStateListener;
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
     private final DvcsRememberedInputs rememberedInputs = GitRememberedInputs.getInstance();
@@ -112,6 +115,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
     private final SelectChildTextFieldWithBrowseButton directoryField;
     private final JBLabel statusLabel = new JBLabel();
     private final JPanel mainPanel;
+
+    private final Map<String, GerritAccount> accountByRepositoryUrl = new HashMap<>();
 
     private boolean projectsRequested;
     private boolean itemSetFromPopup;
@@ -265,7 +270,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
         String parentDirectory = parent.toString();
 
         CheckoutProvider.Listener listenerWrapper =
-            addCommitMsgHookListener(listener, directoryName, parentDirectory, project);
+            addCommitMsgHookListener(listener, directoryName, parentDirectory, project,
+                accountFor(sourceRepositoryUrl));
         GitCheckoutProvider.clone(project, Git.getInstance(), listenerWrapper, destinationParent,
             sourceRepositoryUrl, directoryName, parentDirectory);
 
@@ -314,8 +320,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
             return;
         }
         projectsRequested = true;
-        String host = gerritSettings.getHost();
-        if (host == null || host.isEmpty()) {
+        if (GerritAccounts.getInstance().getAccounts().isEmpty()) {
             setErrorText("Gerrit is not set up; the repository URL needs to be entered manually.");
             return;
         }
@@ -351,15 +356,56 @@ public class GerritCloneComponent implements VcsCloneComponent {
         });
     }
 
+    /**
+     * Offers the projects of every account rather than of one of them: which account a clone belongs to follows
+     * from the repository the user picks, and there is no project yet whose account could be asked.
+     */
     private List<String> getRepositoryUrls() throws RestApiException {
-        String url = getCloneBaseUrl();
-        List<ProjectInfo> orderedProjects = new ArrayList<>(GerritApiProvider.getInstance().get().projects().list().get());
-        orderedProjects.sort(ID_ORDERING);
-        List<String> repositoryUrls = new ArrayList<>(orderedProjects.size());
-        for (ProjectInfo projectInfo : orderedProjects) {
-            repositoryUrls.add(url + '/' + Url.decode(projectInfo.id));
+        List<GerritAccount> accounts = GerritAccounts.getInstance().getAccounts();
+        List<String> repositoryUrls = new ArrayList<>();
+        RestApiException lastError = null;
+        accountByRepositoryUrl.clear();
+        for (GerritAccount account : accounts) {
+            try {
+                String url = getCloneBaseUrl(account);
+                List<ProjectInfo> orderedProjects =
+                    new ArrayList<>(GerritApiProvider.getInstance().get(account).projects().list().get());
+                orderedProjects.sort(ID_ORDERING);
+                for (ProjectInfo projectInfo : orderedProjects) {
+                    String repositoryUrl = url + '/' + Url.decode(projectInfo.id);
+                    repositoryUrls.add(repositoryUrl);
+                    accountByRepositoryUrl.put(repositoryUrl, account);
+                }
+            } catch (RestApiException e) { // one unreachable instance must not hide the projects of the others
+                LOG.info("Could not list the projects of " + account, e);
+                lastError = e;
+            }
+        }
+        if (repositoryUrls.isEmpty() && lastError != null) {
+            throw lastError;
         }
         return repositoryUrls;
+    }
+
+    /**
+     * @return the account the repository url was offered for, or the one whose instance it points at when the url
+     *         was typed rather than picked
+     */
+    private GerritAccount accountFor(String repositoryUrl) {
+        GerritAccount account = accountByRepositoryUrl.get(repositoryUrl);
+        if (account != null) {
+            return account;
+        }
+        for (GerritAccount candidate : GerritAccounts.getInstance().getAccounts()) {
+            try {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, candidate.getCloneBaseUrlOrHost())) {
+                    return candidate;
+                }
+            } catch (IllegalArgumentException e) { // not a url, so it points at no account of ours
+                LOG.debug("Not a repository url: " + repositoryUrl, e);
+            }
+        }
+        return GerritAccounts.getInstance().getDefaultAccount();
     }
 
     /**
@@ -368,14 +414,14 @@ public class GerritCloneComponent implements VcsCloneComponent {
      *
      * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
      */
-    private String getCloneBaseUrl() {
-        String cloneBaseUrl = gerritSettings.getCloneBaseUrl();
+    private String getCloneBaseUrl(GerritAccount account) {
+        String cloneBaseUrl = account.cloneBaseUrl;
         if (cloneBaseUrl != null && !cloneBaseUrl.isEmpty()) {
             return cloneBaseUrl;
         }
-        String url = gerritSettings.getHost();
+        String url = account.host;
         try {
-            List<ChangeInfo> changeInfos = GerritApiProvider.getInstance().get().changes().query()
+            List<ChangeInfo> changeInfos = GerritApiProvider.getInstance().get(account).changes().query()
                 .withLimit(1)
                 .withOption(ListChangesOption.CURRENT_REVISION)
                 .get();
@@ -403,11 +449,12 @@ public class GerritCloneComponent implements VcsCloneComponent {
     private CheckoutProvider.Listener addCommitMsgHookListener(final CheckoutProvider.Listener listener,
                                                                final String directoryName,
                                                                final String parentDirectory,
-                                                               final Project project) {
+                                                               final Project project,
+                                                               final GerritAccount account) {
         return new CheckoutProvider.Listener() {
             @Override
             public void directoryCheckedOut(File directory, VcsKey vcs) {
-                setupCommitMsgHook(parentDirectory, directoryName, project);
+                setupCommitMsgHook(parentDirectory, directoryName, project, account);
 
                 listener.directoryCheckedOut(directory, vcs);
             }
@@ -419,10 +466,15 @@ public class GerritCloneComponent implements VcsCloneComponent {
         };
     }
 
-    private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {
+    /**
+     * @param account resolved while the dialog was still up: the checkout finishes long after it has closed, and
+     *                the url it was cloned from is no longer on screen to be asked
+     */
+    private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project, GerritAccount account) {
         try {
             File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
-            try (InputStream commitMessageHook = GerritApiProvider.getInstance().get().tools().getCommitMessageHook();
+            try (InputStream commitMessageHook =
+                     GerritApiProvider.getInstance().get(account).tools().getCommitMessageHook();
                  OutputStream targetStream = new FileOutputStream(targetFile)) {
                 commitMessageHook.transferTo(targetStream);
             }

@@ -314,6 +314,18 @@ public class GerritAccountsTest {
         return state;
     }
 
+    /**
+     * The accounts are synced between machines but the credential store is not, so a machine which has not moved
+     * the password yet still has to know that it may be under the key an earlier version used.
+     */
+    @Test
+    public void testTheLegacyKeyMarkerSurvivesBeingCopied() {
+        GerritAccount account = GerritAccount.create("https://gerrit.example.com", "jdoe", "");
+        account.usesLegacyPasswordKey = true;
+
+        Assert.assertTrue(account.copy().usesLegacyPasswordKey);
+    }
+
     private static CredentialAttributes constant(String fieldName) throws Exception {
         Field field = GerritAccounts.class.getDeclaredField(fieldName);
         field.setAccessible(true);

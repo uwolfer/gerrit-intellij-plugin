@@ -20,7 +20,7 @@ package com.urswolfer.intellij.plugin.gerrit.extension;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
@@ -36,18 +36,17 @@ import java.net.URI;
  */
 public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
-
     @Override
     public @Nullable AuthData getAuthData(@NotNull Project project, @NotNull String url) {
-        if (!isGerritUrl(url)) {
+        GerritProjectAccount account = GerritProjectAccount.getInstance(project);
+        if (!isGerritUrl(account, url)) {
             return null;
         }
-        String login = gerritSettings.getLogin();
+        String login = account.getLogin();
         if (StringUtil.isEmptyOrSpaces(login)) {
             return null;
         }
-        String password = gerritSettings.getPassword();
+        String password = account.getPassword();
         if (StringUtil.isEmptyOrSpaces(password)) {
             return null;
         }
@@ -56,8 +55,9 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
     @Override
     public void forgetPassword(@NotNull Project project, @NotNull String url, @NotNull AuthData authData) {
-        if (isGerritUrl(url)) {
-            gerritSettings.forgetPassword();
+        GerritProjectAccount account = GerritProjectAccount.getInstance(project);
+        if (isGerritUrl(account, url)) {
+            account.forgetPassword();
         }
     }
 
@@ -65,9 +65,9 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
      * Git asks for the credentials of a repository url (e.g. "https://gerrit.example.com/my-project"), which is never
      * equal to the configured Gerrit url: they have the origin in common.
      */
-    private boolean isGerritUrl(String url) {
-        return hasSameOrigin(url, gerritSettings.getHost())
-            || hasSameOrigin(url, gerritSettings.getCloneBaseUrl());
+    private boolean isGerritUrl(GerritProjectAccount account, String url) {
+        return hasSameOrigin(url, account.getHost())
+            || hasSameOrigin(url, account.getCloneBaseUrl());
     }
 
     /**

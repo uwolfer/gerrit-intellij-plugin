@@ -45,6 +45,10 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.List;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.intellij.openapi.ui.Messages;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 
 /**
  * @author Urs Wolfer
@@ -151,7 +155,11 @@ public class GerritToolWindow implements Disposable {
     }
 
     private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
-        String apiUrl = gerritSettings.getHost();
+        GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
+        if (projectAccount.needsChoice() && (!requestSettingsIfNonExistent || !chooseAccount(project, projectAccount))) {
+            return;
+        }
+        String apiUrl = projectAccount.getHost();
         if (apiUrl == null || apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
@@ -164,6 +172,25 @@ public class GerritToolWindow implements Disposable {
             }
         }
         gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
+    }
+
+    /**
+     * Asking beats the login dialog here: the accounts exist and have their passwords, it is only unknown which of
+     * them this project belongs to.
+     */
+    private boolean chooseAccount(Project project, GerritProjectAccount projectAccount) {
+        List<GerritAccount> accounts = GerritAccounts.getInstance().getAccounts();
+        String[] labels = new String[accounts.size()];
+        for (int i = 0; i < accounts.size(); i++) {
+            labels[i] = accounts.get(i).toString();
+        }
+        int index = Messages.showChooseDialog(project, "Which Gerrit account does this project use?",
+            "Select Gerrit Account", Messages.getQuestionIcon(), labels, labels[0]);
+        if (index < 0) {
+            return false;
+        }
+        projectAccount.set(accounts.get(index));
+        return true;
     }
 
     private ActionToolbar createToolbar(final Project project) {

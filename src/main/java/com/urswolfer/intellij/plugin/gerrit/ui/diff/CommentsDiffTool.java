@@ -42,7 +42,9 @@ import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
+import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.changes.Change;
@@ -75,6 +77,10 @@ import java.util.stream.Collectors;
  * https://github.com/ktisha/Crucible4IDEA
  */
 public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
+    static final Key<AddCommentAction> ADD_COMMENT_ACTION = Key.create("gerrit.AddCommentAction");
+
+    private static final String ADD_COMMENT_ACTION_ID = "Gerrit.AddComment";
+
     private static final TextAttributesKey COMMENT_RANGE_ATTRIBUTES = TextAttributesKey.createTextAttributesKey(
         "GERRIT_COMMENT_RANGE", EditorColors.SEARCH_RESULT_ATTRIBUTES);
 
@@ -212,9 +218,22 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                 .withText("Add Comment")
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
-        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
+        editor.putUserData(ADD_COMMENT_ACTION, addCommentAction);
+        registerShortcut(addCommentAction, editor);
         group.add(addCommentAction);
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
+    }
+
+    /**
+     * A bare "C" bound to the editor component competes with typing and gets swallowed by the diff
+     * viewer in newer IDE versions (issue #410), so it only serves as the default. Once the user has
+     * picked a shortcut for {@code Gerrit.AddComment}, the keymap dispatches it and a second binding
+     * on a bare letter would just bring the conflict back.
+     */
+    private static void registerShortcut(AddCommentAction addCommentAction, Editor editor) {
+        if (KeymapUtil.getActiveKeymapShortcuts(ADD_COMMENT_ACTION_ID).getShortcuts().length > 0) return;
+
+        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
     }
 
     private static List<CommentInfo> filter(List<CommentInfo> comments, Predicate<Comment> predicate) {

@@ -29,11 +29,11 @@ import java.util.regex.Pattern;
  * from that reference without decoding them; the patch set description is the only exception, see
  * {@link com.urswolfer.intellij.plugin.gerrit.util.UrlUtils#encodePatchSetDescription(String)}.
  *
- * Characters which are invalid in a reference name are already rejected by the push target panel,
- * which validates the assembled reference with git4idea. Only the cases it cannot report properly
- * are handled here: whitespace (what users actually run into, and the reference name error does not
- * tell which of the values caused it), and the two characters which Git accepts but Gerrit reads as
- * syntax of the reference.
+ * Characters which are invalid in a reference name are already rejected for the assembled reference,
+ * which is validated with git4idea. Only the cases that check cannot report properly are handled
+ * here: whitespace (what users actually run into, and the reference name error does not tell which
+ * of the values caused it), and the two characters which Git accepts but Gerrit reads as syntax of
+ * the reference.
  */
 public class PushOptionValidator {
 
@@ -74,8 +74,8 @@ public class PushOptionValidator {
      * Tells whether the branch can be part of a ref name. An empty value can: the branch of the push
      * target is used then.
      *
-     * What this rejects (e.g. a branch ending with a slash) is reported by the push target itself, which
-     * validates the assembled ref - it just does not tell which of the values it is caused by.
+     * What this rejects (e.g. a branch ending with a slash) is reported for the assembled ref, which is
+     * validated as a whole - that check just does not tell which of the values it is caused by.
      */
     public static boolean isUsableAsBranchName(String value) {
         return value.isEmpty() || GitRefNameValidator.getInstance().checkInput(value);

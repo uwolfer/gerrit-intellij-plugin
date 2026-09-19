@@ -22,12 +22,11 @@ import git4idea.push.GitPushOperation;
 import javassist.*;
 
 /**
- * Since there are no entry points for modifying the push dialog without copying a lot of source, some modifications
- * to the Git push setting panel (where you can set an alternative remote branch) are done with byte-code modification
- * with javassist:
+ * The push dialog offers no entry point for adding the Gerrit push settings to it, so the panel with them is added
+ * with byte-code modification with javassist:
  *
- * * Some methods of GitPushSupport are overwritten in order to inject Gerrit push support.
- * * GerritPushExtensionPanel, GerritPushOptionsPanel and GerritPushTargetPanel get copied to the Git plugin class loader.
+ * * GitPushSupport#createOptionsPanel is overwritten in order to return the Gerrit push settings panel.
+ * * GerritPushExtensionPanel, GerritPushOptionsPanel and the classes they use get copied to the Git plugin class loader.
  *
  * The byte-code modifications are triggered by {@link #install()}, which {@link GerritPushExtensionStarter}
  * calls on application startup. They are applied at most once per application.
@@ -83,22 +82,6 @@ public final class GerritPushExtension {
                 "}"
             );
 
-            CtMethod createTargetPanelMethod = gitPushSupportClass.getDeclaredMethod("createTargetPanel");
-            // GitPushSupport#createTargetPanel signature change in: https://github.com/JetBrains/intellij-community/commit/1ab27885afa82e46eba4715829c88f0de494b652
-            if (createTargetPanelMethod.getLongName().equals("git4idea.push.GitPushSupport.createTargetPanel(git4idea.repo.GitRepository,git4idea.push.GitPushTarget)")) {
-                createTargetPanelMethod.setBody(
-                    "{" +
-                        "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $2, gerritPushOptionsPanel);" +
-                    "}"
-                );
-            } else if (createTargetPanelMethod.getLongName().equals("git4idea.push.GitPushSupport.createTargetPanel(git4idea.repo.GitRepository,git4idea.push.GitPushSource,git4idea.push.GitPushTarget)")) {
-                createTargetPanelMethod.setBody(
-                    "{" +
-                        "return new com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel(this, $1, $3, gerritPushOptionsPanel);" +
-                    "}"
-                );
-            }
-
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
         } catch (CannotCompileException e) {
@@ -117,8 +100,7 @@ public final class GerritPushExtension {
      */
     private static void copyGerritPluginClassesToGitPlugin(ClassPool classPool, ClassLoader targetClassLoader) {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
-        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel");
-        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetPanel$1");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushTargetUpdater");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$1");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeActionListener");
@@ -126,6 +108,7 @@ public final class GerritPushExtension {
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$SettingsStateActionListener");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.push.PushOptionValidator");
         loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.util.UrlUtils");
+        loadClass(classPool, targetClassLoader, "com.urswolfer.intellij.plugin.gerrit.util.Whitespace");
     }
 
     private static void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {

@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -61,7 +62,8 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 
     @NotNull

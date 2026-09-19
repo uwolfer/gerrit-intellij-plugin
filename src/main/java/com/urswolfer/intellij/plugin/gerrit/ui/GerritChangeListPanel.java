@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * A table with the list of changes.
@@ -152,7 +153,7 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
     }
 
     public void showSetupHintWhenRequired(final Project project) {
-        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+        if (!GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
             emptyText.appendText("Open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {

@@ -30,6 +30,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -84,6 +85,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 }

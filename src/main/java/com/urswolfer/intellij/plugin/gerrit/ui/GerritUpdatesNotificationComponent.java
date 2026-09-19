@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * Project service, started by {@link GerritUpdatesNotificationStartupActivity} and disposed with its project.
@@ -89,8 +90,8 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             return;
         }
 
-        String host = gerritSettings.getHost();
-        String login = gerritSettings.getLogin();
+        String host = GerritProjectAccount.getInstance(project).getHost();
+        String login = GerritProjectAccount.getInstance(project).getLogin();
         if (host == null || host.isEmpty() || login == null || login.isEmpty()) {
             return;
         }

@@ -20,6 +20,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 
 import javax.swing.*;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * Actions which require a logged in user need to extend this class.
@@ -35,6 +36,7 @@ public abstract class AbstractLoggedInChangeAction extends AbstractChangeAction 
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 }

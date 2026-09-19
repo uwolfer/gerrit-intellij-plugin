@@ -34,6 +34,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 
 import java.util.*;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Thomas Forrer
@@ -202,7 +203,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private Map<String, List<CommentInfo>> loadComments(ChangeInfo change, String revisionId) {
         try {
-            return GerritApiProvider.getInstance().get().changes()
+            return GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()).changes()
                     .id(change.id)
                     .revision(revisionId)
                     .comments();
@@ -213,11 +214,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private Map<String, List<CommentInfo>> loadDrafts(ChangeInfo change, String revisionId) {
-        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+        if (!GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable()) {
             return Collections.emptyMap();
         }
         try {
-            return GerritApiProvider.getInstance().get().changes()
+            return GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()).changes()
                     .id(change.id)
                     .revision(revisionId)
                     .drafts();
@@ -228,11 +229,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private Set<String> loadReviewed(ChangeInfo change, String revisionId) {
-        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+        if (!GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable()) {
             return Collections.emptySet();
         }
         try {
-            return GerritApiProvider.getInstance().get().changes()
+            return GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()).changes()
                     .id(change.id)
                     .revision(revisionId)
                     .reviewed();

@@ -45,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.List;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 
 /**
  * @author Urs Wolfer
@@ -151,7 +152,7 @@ public class GerritToolWindow implements Disposable {
     }
 
     private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
-        String apiUrl = gerritSettings.getHost();
+        String apiUrl = GerritProjectAccount.getInstance(project).getHost();
         if (apiUrl == null || apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 JetBrains s.r.o.
+ * Copyright 2000-2012 JetBrains s.r.o.
  * Copyright 2013 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,39 +17,45 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
-import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.ui.EnumComboBoxModel;
+import com.intellij.ui.AnActionButton;
+import com.intellij.ui.CollectionListModel;
+import com.intellij.ui.ColoredListCellRenderer;
+import com.intellij.ui.DoubleClickListener;
 import com.intellij.ui.GuiUtils;
-import com.intellij.ui.components.JBTextField;
-import com.urswolfer.gerrit.client.rest.GerritAuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.SimpleTextAttributes;
+import com.intellij.ui.ToolbarDecorator;
+import com.intellij.ui.components.JBList;
+import com.intellij.util.ui.JBUI;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import com.intellij.openapi.ui.ComboBox;
-import com.intellij.ui.CollectionComboBoxModel;
-import com.intellij.ui.IdeBorderFactory;
-import com.intellij.ui.SimpleListCellRenderer;
-import com.intellij.util.ui.UIUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
-import java.awt.BorderLayout;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.intellij.openapi.progress.ProgressManager;
-import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsPanel
@@ -58,15 +64,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
  * @author Urs Wolfer
  */
 public class SettingsPanel {
-    private static final Logger LOG = Logger.getInstance(SettingsPanel.class);
-    static final String DEFAULT_PASSWORD_TEXT = "************";
 
-    private JTextField loginTextField;
-    private JPasswordField passwordField;
-    private JTextPane gerritLoginInfoTextField;
-    private JPanel loginPane;
-    private JButton testButton;
-    private JBTextField hostTextField;
     private JSpinner refreshTimeoutSpinner;
     private JPanel settingsPane;
     private JPanel pane;
@@ -78,96 +76,22 @@ public class SettingsPanel {
     private JCheckBox showChangeIdColumnCheckBox;
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
-    private JTextField cloneBaseUrlTextField;
-
-    private boolean passwordModified;
-
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
-    private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
     private final Project project;
 
-    private final CollectionComboBoxModel<GerritAccount> accountModel = new CollectionComboBoxModel<>();
-    private final ComboBox<GerritAccount> accountComboBox = new ComboBox<>(accountModel);
+    private final CollectionListModel<GerritAccount> accountModel = new CollectionListModel<>();
+    private final JBList<GerritAccount> accountList = new JBList<>(accountModel);
     private final Map<String, String> editedPasswords = new HashMap<>();
     private final Set<String> removedAccountIds = new HashSet<>();
-    private GerritAccount shownAccount;
+    private GerritAccount projectAccount;
     private JPanel wrapper;
 
     public SettingsPanel(Project project) {
         this.project = project;
 
-        hostTextField.getEmptyText().setText("https://review.example.org");
-
-        gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
-        gerritLoginInfoTextField.setBackground(pane.getBackground());
-        testButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String password = isPasswordModified() ? getPassword() : passwordOfShownAccount();
-                String host = getHost();
-                if (host == null || host.isEmpty()) {
-                    Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
-                    return;
-                }
-                try {
-                    GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, getLogin(), password) {
-                        @Override
-                        public boolean isLoginAndPasswordAvailable() {
-                            String login = getLogin();
-                            return login != null && !login.isEmpty();
-                        }
-                    };
-                    if (gerritUtil.checkCredentials(project, gerritAuthData)) {
-                        Messages.showInfoMessage(pane, "Connection successful", "Success");
-                    } else {
-                        Messages.showErrorDialog(pane, "Can't login to " + host + " using given credentials", "Login Failure");
-                    }
-                } catch (Exception ex) {
-                    LOG.info(ex);
-                    Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
-                            "Login Failure");
-                }
-                setPassword(password);
-            }
-        });
-
-        hostTextField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent e) {
-                fixUrl(hostTextField);
-            }
-        });
-
-        passwordField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent e) {
-                passwordModified = true;
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent e) {
-                passwordModified = true;
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent e) {
-                passwordModified = true;
-            }
-        });
-
         automaticRefreshCheckbox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 updateAutomaticRefresh();
-            }
-        });
-
-        showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
-
-        cloneBaseUrlTextField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent e) {
-                fixUrl(cloneBaseUrlTextField);
             }
         });
     }
@@ -197,140 +121,133 @@ public class SettingsPanel {
     }
 
     /**
-     * The chooser says which account this project talks to, and the fields below it edit that account, so that the
-     * page reads the same for the one account most installations have as it does for several.
+     * The accounts are a list rather than a chooser over one set of fields, and their details live in a dialog.
+     * Selecting a row then says nothing about which account the project uses, so looking at an account cannot
+     * change what the project talks to.
      */
     private JComponent createAccountPane() {
-        accountComboBox.setRenderer(SimpleListCellRenderer.create("", GerritAccount::toString));
-        accountComboBox.addActionListener(e -> {
-            GerritAccount selected = accountModel.getSelected();
-            if (selected != shownAccount) {
-                flushFieldsInto(shownAccount);
-                stashPasswordOf(shownAccount);
-                show(selected);
+        accountList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        accountList.setCellRenderer(new ColoredListCellRenderer<GerritAccount>() {
+            @Override
+            protected void customizeCellRenderer(@NotNull JList<? extends GerritAccount> list, GerritAccount account,
+                                                 int index, boolean selected, boolean hasFocus) {
+                boolean usedHere = account.equals(projectAccount);
+                append(account.toString(), usedHere
+                    ? SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES : SimpleTextAttributes.REGULAR_ATTRIBUTES);
+                if (usedHere) {
+                    append("  used by this project", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+                }
             }
         });
-
-        JButton addButton = new JButton("Add");
-        addButton.addActionListener(e -> {
-            flushFieldsInto(shownAccount);
-            stashPasswordOf(shownAccount);
-            GerritAccount account = GerritAccount.create("", "", "");
-            accountModel.add(account);
-            accountModel.setSelectedItem(account);
-            show(account);
-        });
-
-        JButton removeButton = new JButton("Remove");
-        removeButton.addActionListener(e -> {
-            GerritAccount selected = accountModel.getSelected();
-            if (selected == null) {
-                return;
+        new DoubleClickListener() {
+            @Override
+            protected boolean onDoubleClick(@NotNull MouseEvent event) {
+                return editSelectedAccount();
             }
-            if (Messages.showYesNoDialog(pane, "Remove the account for " + selected + "?",
-                "Remove Gerrit Account", Messages.getQuestionIcon()) != Messages.YES) {
-                return;
-            }
-            removedAccountIds.add(selected.id);
-            editedPasswords.remove(selected.id);
-            accountModel.remove(selected);
-            GerritAccount next = accountModel.getSize() > 0 ? accountModel.getElementAt(0) : null;
-            accountModel.setSelectedItem(next);
-            show(next);
-        });
+        }.installOn(accountList);
 
-        JPanel accountPane = new JPanel(new BorderLayout(UIUtil.DEFAULT_HGAP, 0));
-        accountPane.setBorder(IdeBorderFactory.createTitledBorder("Account for this project"));
-        accountPane.add(accountComboBox, BorderLayout.CENTER);
-        JPanel buttons = new JPanel(new BorderLayout(UIUtil.DEFAULT_HGAP, 0));
-        buttons.add(addButton, BorderLayout.WEST);
-        buttons.add(removeButton, BorderLayout.EAST);
-        accountPane.add(buttons, BorderLayout.EAST);
+        JPanel accountPane = ToolbarDecorator.createDecorator(accountList)
+            .setAddAction(button -> addAccount())
+            .setEditAction(button -> editSelectedAccount())
+            .setRemoveAction(button -> removeSelectedAccount())
+            .addExtraAction(new AnActionButton("Use for This Project", AllIcons.Actions.Checked) {
+                @Override
+                public void actionPerformed(@NotNull AnActionEvent e) {
+                    GerritAccount selected = accountList.getSelectedValue();
+                    if (selected != null) {
+                        projectAccount = selected;
+                        accountList.repaint();
+                    }
+                }
+
+                @Override
+                public boolean isEnabled() {
+                    GerritAccount selected = accountList.getSelectedValue();
+                    return selected != null && !selected.equals(projectAccount);
+                }
+            })
+            .disableUpDownActions()
+            .createPanel();
+        accountPane.setBorder(IdeBorderFactory.createTitledBorder("Gerrit Accounts"));
+        accountPane.setPreferredSize(new Dimension(-1, JBUI.scale(160)));
         return accountPane;
     }
 
-    /**
-     * Reading blocks on the credential store, so the Test button asks for the stored password behind a modal
-     * progress rather than on the event dispatch thread.
-     */
-    private String passwordOfShownAccount() {
-        if (shownAccount == null) {
-            return "";
+    private void addAccount() {
+        GerritAccountDialog dialog = new GerritAccountDialog(project, null, "");
+        if (!dialog.showAndGet()) {
+            return;
         }
-        GerritAccount account = shownAccount;
-        return ProgressManager.getInstance().<String, RuntimeException>runProcessWithProgressSynchronously(
-            () -> GerritAccounts.getInstance().getPassword(account), "Reading Gerrit Credentials", false, project);
+        GerritAccount account = GerritAccount.create(dialog.getHost(), dialog.getLogin(), dialog.getCloneBaseUrl());
+        accountModel.add(account);
+        editedPasswords.put(account.id, dialog.getPassword());
+        if (projectAccount == null) { // the first account is the one this project uses, without anyone saying so
+            projectAccount = account;
+        }
+        accountList.setSelectedValue(account, true);
     }
 
-    private void flushFieldsInto(GerritAccount account) {
+    private boolean editSelectedAccount() {
+        GerritAccount account = accountList.getSelectedValue();
+        if (account == null) {
+            return false;
+        }
+        String password = editedPasswords.containsKey(account.id)
+            ? editedPasswords.get(account.id) : passwordOf(account);
+        GerritAccountDialog dialog = new GerritAccountDialog(project, account, password);
+        if (!dialog.showAndGet()) {
+            return false;
+        }
+        account.host = dialog.getHost();
+        account.login = dialog.getLogin();
+        account.cloneBaseUrl = dialog.getCloneBaseUrl();
+        if (dialog.isPasswordModified()) {
+            editedPasswords.put(account.id, dialog.getPassword());
+        }
+        accountList.repaint();
+        return true;
+    }
+
+    private void removeSelectedAccount() {
+        GerritAccount account = accountList.getSelectedValue();
         if (account == null) {
             return;
         }
-        account.host = getHost();
-        account.login = getLogin();
-        account.cloneBaseUrl = getCloneBaseUrl();
-    }
-
-    /**
-     * Kept apart from the fields: the dialog asks whether anything changed on a timer, and remembering a typed
-     * password as a side effect of being asked would leave it remembered after it was taken back again.
-     */
-    private void stashPasswordOf(GerritAccount account) {
-        if (account != null && isPasswordModified()) {
-            editedPasswords.put(account.id, getPassword());
-        }
-    }
-
-    private void show(GerritAccount account) {
-        shownAccount = account;
-        hostTextField.setText(account != null ? account.host : "");
-        loginTextField.setText(account != null ? account.login : "");
-        cloneBaseUrlTextField.setText(account != null ? account.cloneBaseUrl : "");
-        String edited = account != null ? editedPasswords.get(account.id) : null;
-        if (edited != null) {
-            setPassword(edited);
-            passwordModified = true;
-        } else {
-            setPassword(account != null && !account.login.isEmpty() ? DEFAULT_PASSWORD_TEXT : "");
-            resetPasswordModification();
-        }
-    }
-
-    /**
-     * There is no account to type into on a fresh install. Rather than making the account first and entering its
-     * details second, the fields make the account as soon as anything is entered in them.
-     *
-     * Called only while applying: growing an account as a side effect of being asked whether anything changed is
-     * how the dialog ends up storing things nobody asked it to store.
-     */
-    public void materializeTypedAccount() {
-        if (shownAccount != null || !hasTypedFieldsWithoutAccount()) {
+        if (Messages.showYesNoDialog(pane, "Remove the account for " + account + "?",
+            "Remove Gerrit Account", Messages.getQuestionIcon()) != Messages.YES) {
             return;
         }
-        GerritAccount account = GerritAccount.create("", "", "");
-        shownAccount = account; // set first, so selecting it does not make the listener swap the fields out
-        accountModel.add(account);
-        accountModel.setSelectedItem(account);
+        removedAccountIds.add(account.id);
+        editedPasswords.remove(account.id);
+        accountModel.remove(account);
+        if (account.equals(projectAccount)) {
+            projectAccount = accountModel.getSize() == 1 ? accountModel.getElementAt(0) : null;
+        }
+        accountList.repaint();
     }
 
-    public boolean hasTypedFieldsWithoutAccount() {
-        return shownAccount == null
-            && (!getHost().isEmpty() || !getLogin().isEmpty() || !getCloneBaseUrl().isEmpty() || isPasswordModified());
+    /**
+     * Reading blocks on the credential store, so the account dialog is filled behind a modal progress rather than
+     * on the event dispatch thread.
+     */
+    private String passwordOf(GerritAccount account) {
+        return ProgressManager.getInstance().<String, RuntimeException>runProcessWithProgressSynchronously(
+            () -> GerritAccounts.getInstance().getPassword(account), "Reading Gerrit Credentials", false, project);
     }
 
     /**
      * @param accounts copies the dialog may edit freely; nothing is stored before the settings are applied
      */
-    public void setAccounts(List<GerritAccount> accounts, GerritAccount selected) {
+    public void setAccounts(List<GerritAccount> accounts, @Nullable GerritAccount usedByProject) {
         editedPasswords.clear();
         removedAccountIds.clear();
         accountModel.replaceAll(accounts);
-        accountModel.setSelectedItem(selected);
-        show(selected);
+        projectAccount = usedByProject;
+        accountList.clearSelection();
+        accountList.repaint();
     }
 
     public List<GerritAccount> getAccounts() {
-        flushFieldsInto(shownAccount);
         return new ArrayList<>(accountModel.getItems());
     }
 
@@ -338,46 +255,13 @@ public class SettingsPanel {
         return removedAccountIds;
     }
 
-    /**
-     * Only for applying the settings: it takes the password currently typed as edited.
-     */
-    public Map<String, String> collectEditedPasswords() {
-        stashPasswordOf(shownAccount);
+    public Map<String, String> getEditedPasswords() {
         return editedPasswords;
     }
 
-    public boolean hasEditedPasswords() {
-        return isPasswordModified() || !editedPasswords.isEmpty();
-    }
-
-    public GerritAccount getSelectedAccount() {
-        flushFieldsInto(shownAccount);
-        return accountModel.getSelected();
-    }
-
-    public void setLogin(final String login) {
-        loginTextField.setText(login);
-    }
-
-    public void setPassword(final String password) {
-        // Show password as blank if password is empty
-        passwordField.setText(StringUtil.isEmpty(password) ? null : password);
-    }
-
-    public String getLogin() {
-        return loginTextField.getText().trim();
-    }
-
-    public String getPassword() {
-        return String.valueOf(passwordField.getPassword());
-    }
-
-    public void setHost(final String host) {
-        hostTextField.setText(host);
-    }
-
-    public String getHost() {
-        return hostTextField.getText().trim();
+    @Nullable
+    public GerritAccount getProjectAccount() {
+        return projectAccount;
     }
 
     public boolean getListAllChanges() {
@@ -452,22 +336,4 @@ public class SettingsPanel {
     public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
         showProjectColumnComboBox.getModel().setSelectedItem(showProjectColumn);
     }
-
-    public boolean isPasswordModified() {
-        return passwordModified;
-    }
-
-    public void resetPasswordModification() {
-        passwordModified = false;
-    }
-
-    public void setCloneBaseUrl(final String cloneBaseUrl) {
-        cloneBaseUrlTextField.setText(cloneBaseUrl);
-    }
-
-    public String getCloneBaseUrl() {
-        return cloneBaseUrlTextField.getText().trim();
-    }
-
 }
-

@@ -83,11 +83,10 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
     }
 
     private boolean accountsModified() {
-        if (!settingsPane.getRemovedAccountIds().isEmpty() || settingsPane.hasEditedPasswords()
-            || settingsPane.hasTypedFieldsWithoutAccount()) {
+        if (!settingsPane.getRemovedAccountIds().isEmpty() || !settingsPane.getEditedPasswords().isEmpty()) {
             return true;
         }
-        if (!Comparing.equal(settingsPane.getSelectedAccount(), projectAccount().get())) {
+        if (!Comparing.equal(settingsPane.getProjectAccount(), projectAccount().get())) {
             return true;
         }
         List<GerritAccount> edited = settingsPane.getAccounts();
@@ -124,11 +123,10 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
         }
     }
 
-    private void applyAccounts() throws ConfigurationException {
+    private void applyAccounts() {
         GerritAccounts accounts = GerritAccounts.getInstance();
-        settingsPane.materializeTypedAccount();
-        List<GerritAccount> edited = validated(settingsPane.getAccounts());
-        GerritAccount selected = settingsPane.getSelectedAccount();
+        List<GerritAccount> edited = settingsPane.getAccounts();
+        GerritAccount usedByProject = settingsPane.getProjectAccount();
 
         List<GerritAccount> removed = new ArrayList<>();
         for (String removedId : settingsPane.getRemovedAccountIds()) {
@@ -138,11 +136,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             }
         }
         accounts.setAccounts(edited);
-        if (!edited.contains(selected)) { // the selection was blank, so it was not stored
-            selected = null;
-        }
 
-        Map<String, String> passwords = settingsPane.collectEditedPasswords();
+        Map<String, String> passwords = settingsPane.getEditedPasswords();
         if (!removed.isEmpty() || !passwords.isEmpty()) {
             // the credential store blocks, which must not happen on the event dispatch thread
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
@@ -157,29 +152,11 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 }
             }, "Saving Gerrit Credentials", false, project);
         }
-        projectAccount().set(selected);
+        projectAccount().set(usedByProject);
+
         List<GerritAccount> refreshed = copies(accounts.getAccounts());
         // the panel edits copies; handing it the stored accounts would edit them in place, past any Cancel
-        settingsPane.setAccounts(refreshed, find(refreshed, selected));
-    }
-
-    /**
-     * An account added but never filled in is dropped rather than stored: it would be offered as a choice which
-     * names no instance, and would make every project look as though it had a choice to make.
-     */
-    private static List<GerritAccount> validated(List<GerritAccount> edited) throws ConfigurationException {
-        List<GerritAccount> result = new ArrayList<>(edited.size());
-        for (GerritAccount account : edited) {
-            if (account.host.isEmpty() && account.login.isEmpty() && account.cloneBaseUrl.isEmpty()) {
-                continue;
-            }
-            if (account.host.isEmpty()) {
-                throw new ConfigurationException(
-                    "Enter the Gerrit URL of the account " + account.login + ", or remove the account.");
-            }
-            result.add(account);
-        }
-        return result;
+        settingsPane.setAccounts(refreshed, find(refreshed, usedByProject));
     }
 
     public void reset() {

@@ -52,8 +52,6 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final String GITREVIEW_FILENAME = ".gitreview";
 
-    private final boolean pushToGerritByDefault;
-
     private JPanel indentedSettingPanel;
 
     private JCheckBox pushToGerritCheckBox;
@@ -75,7 +73,6 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTree registeredTree;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
-        this.pushToGerritByDefault = pushToGerritByDefault;
         createLayout();
 
         pushToGerritCheckBox.setSelected(pushToGerritByDefault);
@@ -488,8 +485,8 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Writes the ref built out of the Gerrit push settings into every repository row of the push dialog, and
-     * shows the first value which cannot be used.
+     * Writes the ref built out of the Gerrit push settings into the checked repository rows of the push
+     * dialog, and shows the first value which cannot be used.
      */
     private void updateDestinationBranches(boolean init) {
         String settingsError = validateSettings();
@@ -500,7 +497,7 @@ public class GerritPushExtensionPanel extends JPanel {
             error = firstError(error, refError);
             String branch = refError == null ? ref : null;
             if (init) {
-                entry.getKey().initBranch(branch, pushToGerritByDefault);
+                entry.getKey().initBranch(branch);
             } else {
                 entry.getKey().updateBranch(branch);
             }

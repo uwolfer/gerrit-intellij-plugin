@@ -122,7 +122,6 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         });
         commentForm.setBalloon(balloon);
         balloon.showInBestPositionFor(editor);
-        commentForm.requestFocus();
     }
 
     private void handleComment(final DraftInput comment, final Project project) {

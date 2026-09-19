@@ -25,7 +25,6 @@ import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
-import com.intellij.openapi.wm.IdeFocusManager;
 import com.intellij.ui.EditorTextField;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
@@ -154,9 +153,9 @@ public class CommentForm extends JPanel {
         return comment;
     }
 
-    @Override
-    public void requestFocus() {
-        IdeFocusManager.findInstanceByComponent(reviewTextField).requestFocus(reviewTextField, true);
+    @NotNull
+    public JComponent getPreferredFocusedComponent() {
+        return reviewTextField;
     }
 
     @NotNull

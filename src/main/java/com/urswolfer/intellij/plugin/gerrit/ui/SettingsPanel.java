@@ -207,6 +207,7 @@ public class SettingsPanel {
             GerritAccount selected = accountModel.getSelected();
             if (selected != shownAccount) {
                 flushFieldsInto(shownAccount);
+                stashPasswordOf(shownAccount);
                 show(selected);
             }
         });
@@ -214,6 +215,7 @@ public class SettingsPanel {
         JButton addButton = new JButton("Add");
         addButton.addActionListener(e -> {
             flushFieldsInto(shownAccount);
+            stashPasswordOf(shownAccount);
             GerritAccount account = GerritAccount.create("", "", "");
             accountModel.add(account);
             accountModel.setSelectedItem(account);
@@ -268,7 +270,14 @@ public class SettingsPanel {
         account.host = getHost();
         account.login = getLogin();
         account.cloneBaseUrl = getCloneBaseUrl();
-        if (isPasswordModified()) {
+    }
+
+    /**
+     * Kept apart from the fields: the dialog asks whether anything changed on a timer, and remembering a typed
+     * password as a side effect of being asked would leave it remembered after it was taken back again.
+     */
+    private void stashPasswordOf(GerritAccount account) {
+        if (account != null && isPasswordModified()) {
             editedPasswords.put(account.id, getPassword());
         }
     }
@@ -308,9 +317,16 @@ public class SettingsPanel {
         return removedAccountIds;
     }
 
-    public Map<String, String> getEditedPasswords() {
-        flushFieldsInto(shownAccount);
+    /**
+     * Only for applying the settings: it takes the password currently typed as edited.
+     */
+    public Map<String, String> collectEditedPasswords() {
+        stashPasswordOf(shownAccount);
         return editedPasswords;
+    }
+
+    public boolean hasEditedPasswords() {
+        return isPasswordModified() || !editedPasswords.isEmpty();
     }
 
     public GerritAccount getSelectedAccount() {

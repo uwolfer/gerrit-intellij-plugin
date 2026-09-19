@@ -61,18 +61,24 @@ public class GerritAccountsTest {
     @Test
     public void testAccountsRoundTripThroughTheSerializer() {
         GerritAccount account = GerritAccount.create("https://gerrit.example.com", "jdoe", "https://clone.example.com");
-        account.fromLegacySettings = true;
+        account.usesLegacyPasswordKey = true;
 
-        Element element = XmlSerializer.serialize(new GerritAccount[]{account});
-        GerritAccount[] read = XmlSerializer.deserialize(element, GerritAccount[].class);
+        GerritAccounts.AccountsState state = new GerritAccounts.AccountsState();
+        state.seeded = true;
+        state.accounts = java.util.Collections.singletonList(account);
 
-        Assert.assertEquals(new XMLOutputter().outputString(element).contains("<account"), true);
-        Assert.assertEquals(read.length, 1);
-        Assert.assertEquals(read[0].id, account.id);
-        Assert.assertEquals(read[0].login, "jdoe");
-        Assert.assertEquals(read[0].host, "https://gerrit.example.com");
-        Assert.assertEquals(read[0].cloneBaseUrl, "https://clone.example.com");
-        Assert.assertTrue(read[0].fromLegacySettings);
+        Element element = XmlSerializer.serialize(state);
+        GerritAccounts.AccountsState loaded = XmlSerializer.deserialize(element, GerritAccounts.AccountsState.class);
+        java.util.List<GerritAccount> read = loaded.accounts;
+
+        Assert.assertTrue(new XMLOutputter().outputString(element).contains("<account"), new XMLOutputter().outputString(element));
+        Assert.assertTrue(loaded.seeded);
+        Assert.assertEquals(read.size(), 1);
+        Assert.assertEquals(read.get(0).id, account.id);
+        Assert.assertEquals(read.get(0).login, "jdoe");
+        Assert.assertEquals(read.get(0).host, "https://gerrit.example.com");
+        Assert.assertEquals(read.get(0).cloneBaseUrl, "https://clone.example.com");
+        Assert.assertTrue(read.get(0).usesLegacyPasswordKey);
     }
 
     /**
@@ -90,7 +96,7 @@ public class GerritAccountsTest {
         Assert.assertEquals(seeded.get(0).host, "https://gerrit.example.com");
         Assert.assertEquals(seeded.get(0).login, "jdoe");
         Assert.assertEquals(seeded.get(0).cloneBaseUrl, "https://clone.example.com");
-        Assert.assertTrue(seeded.get(0).fromLegacySettings);
+        Assert.assertTrue(seeded.get(0).usesLegacyPasswordKey);
         Assert.assertFalse(seeded.get(0).id.isEmpty());
     }
 
@@ -113,7 +119,7 @@ public class GerritAccountsTest {
         GerritAccounts accounts = new GerritAccounts();
         GerritAccount stored = GerritAccount.create("https://other.example.com", "someone", "");
 
-        accounts.loadState(new GerritAccount[]{stored});
+        accounts.loadState(stateOf(true, stored));
         accounts.seedFrom("https://gerrit.example.com", "jdoe", "");
 
         Assert.assertEquals(accounts.getAccounts().size(), 1);
@@ -128,12 +134,55 @@ public class GerritAccountsTest {
         GerritAccounts accounts = new GerritAccounts();
         GerritAccount one = GerritAccount.create("https://one.example.com", "jdoe", "");
         GerritAccount two = GerritAccount.create("https://two.example.com", "jdoe", "");
-        accounts.loadState(new GerritAccount[]{one, two});
+        accounts.loadState(stateOf(true, one, two));
 
         accounts.setAccounts(java.util.Collections.singletonList(one));
 
         Assert.assertEquals(accounts.getAccounts().size(), 1);
         Assert.assertSame(accounts.getDefaultAccount(), one);
+    }
+
+    /**
+     * Removing the last account looked exactly like an installation which had never been migrated, so the account,
+     * and the password an earlier version had kept for it, came back on the next start.
+     */
+    @Test
+    public void testRemovingTheLastAccountDoesNotBringItBackOnTheNextStart() {
+        GerritAccounts accounts = new GerritAccounts();
+
+        accounts.loadState(stateOf(true)); // what is stored after the user removed their only account
+        accounts.seedFrom("https://gerrit.example.com", "jdoe", "");
+
+        Assert.assertTrue(accounts.getAccounts().isEmpty());
+        Assert.assertNull(accounts.getDefaultAccount());
+    }
+
+    @Test
+    public void testSeedingIsRememberedAcrossRestarts() {
+        GerritAccounts accounts = new GerritAccounts();
+        accounts.seedFrom("https://gerrit.example.com", "jdoe", "");
+
+        Assert.assertTrue(accounts.getState().seeded);
+        Assert.assertTrue(accounts.isSeeded());
+    }
+
+    /**
+     * The accounts are synced between machines but the credential store is not, so a machine which has not moved
+     * the password yet still has to know that it may be under the key an earlier version used.
+     */
+    @Test
+    public void testTheLegacyKeyMarkerSurvivesBeingCopied() {
+        GerritAccount account = GerritAccount.create("https://gerrit.example.com", "jdoe", "");
+        account.usesLegacyPasswordKey = true;
+
+        Assert.assertTrue(account.copy().usesLegacyPasswordKey);
+    }
+
+    private static GerritAccounts.AccountsState stateOf(boolean seeded, GerritAccount... accounts) {
+        GerritAccounts.AccountsState state = new GerritAccounts.AccountsState();
+        state.seeded = seeded;
+        state.accounts = java.util.Arrays.asList(accounts);
+        return state;
     }
 
     private static CredentialAttributes constant(String fieldName) throws Exception {

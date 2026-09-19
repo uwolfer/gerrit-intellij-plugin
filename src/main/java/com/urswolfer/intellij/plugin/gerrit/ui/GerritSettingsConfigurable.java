@@ -83,7 +83,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
     }
 
     private boolean accountsModified() {
-        if (!settingsPane.getRemovedAccountIds().isEmpty() || !settingsPane.getEditedPasswords().isEmpty()) {
+        if (!settingsPane.getRemovedAccountIds().isEmpty() || settingsPane.hasEditedPasswords()) {
             return true;
         }
         if (!Comparing.equal(settingsPane.getSelectedAccount(), projectAccount().get())) {
@@ -136,7 +136,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
         }
         accounts.setAccounts(edited);
 
-        Map<String, String> passwords = settingsPane.getEditedPasswords();
+        Map<String, String> passwords = settingsPane.collectEditedPasswords();
         if (!passwords.isEmpty()) {
             // writing blocks on the credential store, which must not happen on the event dispatch thread
             ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {

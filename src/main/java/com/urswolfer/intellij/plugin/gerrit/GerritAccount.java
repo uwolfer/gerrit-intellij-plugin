@@ -39,11 +39,13 @@ public final class GerritAccount {
     @Attribute("cloneBaseUrl") public String cloneBaseUrl = "";
 
     /**
-     * Set on the account seeded from the settings of a version which had no accounts, until its password has been
-     * read from where that version kept it. The credential store can be locked or memory-only for a whole session,
-     * which is indistinguishable from an empty store, so the move has to stay possible on a later run.
+     * Set on the account taken over from a version which had no accounts, and kept set for as long as the account
+     * exists. It says the password may also be sitting under the key that version used, which stays true for every
+     * machine the accounts are synced to: the accounts travel, the credential store does not, so a machine which
+     * has not done the move yet still has to know to look there. Reading it costs nothing once the account has its
+     * own password, and only clearing the password clears this.
      */
-    @Attribute("fromLegacySettings") public boolean fromLegacySettings = false;
+    @Attribute("usesLegacyPasswordKey") public boolean usesLegacyPasswordKey = false;
 
     /**
      * The serializer needs this; everything else goes through {@link #create}.
@@ -66,7 +68,7 @@ public final class GerritAccount {
         copy.login = login;
         copy.host = host;
         copy.cloneBaseUrl = cloneBaseUrl;
-        copy.fromLegacySettings = fromLegacySettings;
+        copy.usesLegacyPasswordKey = usesLegacyPasswordKey;
         return copy;
     }
 

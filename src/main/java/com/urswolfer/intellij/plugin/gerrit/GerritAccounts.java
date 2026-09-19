@@ -25,11 +25,13 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
+import com.intellij.util.xmlb.annotations.Attribute;
+import com.intellij.util.xmlb.annotations.Property;
+import com.intellij.util.xmlb.annotations.XCollection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -43,7 +45,20 @@ import java.util.List;
  */
 @Service(Service.Level.APP)
 @State(name = "GerritAccounts", storages = @Storage("gerrit_settings.xml"))
-public final class GerritAccounts implements PersistentStateComponent<GerritAccount[]> {
+public final class GerritAccounts implements PersistentStateComponent<GerritAccounts.AccountsState> {
+
+    public static final class AccountsState {
+        /**
+         * Whether the account of a version which had no accounts has already been taken over. Written even when it
+         * is false, so that the component is always in the file and the answer survives a restart: without it,
+         * removing the last account would look exactly like an installation which has never been migrated, and the
+         * removed account would come back on the next start.
+         */
+        @Property(alwaysWrite = true) @Attribute("seeded") public boolean seeded = false;
+
+        @XCollection(propertyElementName = "accounts") public List<GerritAccount> accounts = new ArrayList<>();
+    }
+
 
     private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
@@ -68,16 +83,27 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     @Override
-    public GerritAccount[] getState() {
-        return accounts.toArray(new GerritAccount[0]);
+    public AccountsState getState() {
+        AccountsState state = new AccountsState();
+        state.seeded = seeded;
+        state.accounts = new ArrayList<>(accounts);
+        return state;
     }
 
     @Override
-    public void loadState(@NotNull GerritAccount[] state) {
+    public void loadState(@NotNull AccountsState state) {
         synchronized (lock) {
-            accounts = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(state)));
-            seeded = !accounts.isEmpty();
+            accounts = Collections.unmodifiableList(new ArrayList<>(state.accounts));
+            seeded = state.seeded;
         }
+    }
+
+    /**
+     * @return whether accounts are being kept for this installation, which is what tells an empty list apart from
+     *         one which has simply never been filled in
+     */
+    public boolean isSeeded() {
+        return seeded;
     }
 
     public List<GerritAccount> getAccounts() {
@@ -149,7 +175,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             updated.remove(account);
             accounts = Collections.unmodifiableList(updated);
             // not through forgetPassword: putting the account back is exactly what it must not do here
-            PasswordSafe.getInstance().set(attributesFor(account), null);
+            clearPasswords(account);
         }
     }
 
@@ -181,7 +207,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
                 return;
             }
             GerritAccount account = GerritAccount.create(host, login, cloneBaseUrl);
-            account.fromLegacySettings = true;
+            account.usesLegacyPasswordKey = true;
             accounts = Collections.singletonList(account);
         }
     }
@@ -197,7 +223,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
         }
         PasswordSafe passwordSafe = PasswordSafe.getInstance();
         String password = read(passwordSafe, attributesFor(account));
-        if (password == null && account.fromLegacySettings) {
+        if (password == null && account.usesLegacyPasswordKey) {
             password = readLegacy(passwordSafe);
             if (password != null) {
                 setPassword(account, password);
@@ -209,24 +235,33 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     public void setPassword(@NotNull GerritAccount account, @Nullable String password) {
         synchronized (lock) {
             PasswordSafe.getInstance().set(attributesFor(account), new Credentials(null, password != null ? password : ""));
-            if (account.fromLegacySettings) {
-                // the password now lives under the account, so stop looking for it where an earlier version kept it
-                account.fromLegacySettings = false;
-                put(account);
-            }
         }
     }
 
     public void forgetPassword(@NotNull GerritAccount account) {
         synchronized (lock) {
-            PasswordSafe.getInstance().set(attributesFor(account), null);
-            if (account.fromLegacySettings) {
-                // otherwise the next read would hand back the password of the version this account was seeded from
-                account.fromLegacySettings = false;
+            clearPasswords(account);
+            if (account.usesLegacyPasswordKey) {
+                // clearing only the account's own key would let the next read hand the forgotten password back
+                account.usesLegacyPasswordKey = false;
                 if (accounts.contains(account)) {
                     put(account);
                 }
             }
+        }
+    }
+
+    /**
+     * Clears the account's password, and the one an earlier version kept for it. Reading falls back to that older
+     * key, so leaving it behind would both hand the password back and leave it in the credential store of someone
+     * who asked for it to be gone.
+     */
+    private void clearPasswords(GerritAccount account) {
+        PasswordSafe passwordSafe = PasswordSafe.getInstance();
+        passwordSafe.set(attributesFor(account), null);
+        if (account.usesLegacyPasswordKey) {
+            passwordSafe.set(LEGACY_SETTINGS_ATTRIBUTES, null);
+            passwordSafe.set(LEGACY_CLASS_ATTRIBUTES, null);
         }
     }
 

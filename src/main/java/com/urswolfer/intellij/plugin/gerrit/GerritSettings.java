@@ -97,11 +97,16 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     @Override
     public SettingsState getState() {
-        GerritAccount account = GerritAccounts.getInstance().peekDefaultAccount();
+        GerritAccounts accounts = GerritAccounts.getInstance();
+        GerritAccount account = accounts.peekDefaultAccount();
         if (account != null) { // keep what a version without accounts reads pointing at the account in use
             state.host = account.host;
             state.login = account.login;
             state.cloneBaseUrl = account.cloneBaseUrl;
+        } else if (accounts.isSeeded()) { // every account is gone, so stop describing one
+            state.host = "";
+            state.login = "";
+            state.cloneBaseUrl = "";
         }
         return state;
     }

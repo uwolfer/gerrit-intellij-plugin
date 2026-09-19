@@ -17,10 +17,6 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.intellij.credentialStore.CredentialAttributes;
-import com.intellij.credentialStore.CredentialAttributesKt;
-import com.intellij.credentialStore.Credentials;
-import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
@@ -46,20 +42,16 @@ import org.jetbrains.annotations.Nullable;
 @State(name = "GerritSettings", storages = @Storage("gerrit_settings.xml"))
 public final class GerritSettings implements PersistentStateComponent<GerritSettings.SettingsState>, GerritAuthData {
 
-    private static final String GERRIT_SETTINGS_PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
-    private static final CredentialAttributes CREDENTIAL_ATTRIBUTES = new CredentialAttributes(
-            CredentialAttributesKt.generateServiceName("Gerrit", GERRIT_SETTINGS_PASSWORD_KEY),
-            GERRIT_SETTINGS_PASSWORD_KEY);
-    private static final CredentialAttributes LEGACY_CREDENTIAL_ATTRIBUTES = new CredentialAttributes(
-            GerritSettings.class.getName(),
-            GERRIT_SETTINGS_PASSWORD_KEY);
-
     /**
      * The settings are written as attributes of the component element, under the names the plugin has used since its
      * first release, so that a file written by any earlier version still loads here and a file written here still
      * loads there. {@code alwaysWrite} is what keeps that second direction working: the serializer would otherwise
      * leave out every value which equals its default, and an earlier version reads a missing attribute as
      * {@code false} or {@code 0} rather than as the default which belongs to it.
+     *
+     * Login, host and clone base url belong to a {@link GerritAccount} now. They are still written here, from the
+     * account in use, so that a version without accounts keeps finding them, and they are what the first account is
+     * seeded from.
      */
     public static final class SettingsState {
         @Property(alwaysWrite = true) @Attribute("Login") public String login = "";
@@ -100,15 +92,18 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     private SettingsState state = new SettingsState();
 
-    private final Object credentialsLock = new Object();
-    private boolean legacyCredentialsMigrated;
-
     public static GerritSettings getInstance() {
         return ApplicationManager.getApplication().getService(GerritSettings.class);
     }
 
     @Override
     public SettingsState getState() {
+        GerritAccount account = accounts().peekDefaultAccount();
+        if (account != null) { // keep what a version without accounts reads pointing at the account in use
+            state.host = account.host;
+            state.login = account.login;
+            state.cloneBaseUrl = account.cloneBaseUrl;
+        }
         return state;
     }
 
@@ -117,10 +112,27 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
         this.state = state;
     }
 
+    private GerritAccounts accounts() {
+        return GerritAccounts.getInstance();
+    }
+
+    /**
+     * @return the account whose settings this reflects, creating it the first time one is written to
+     */
+    private GerritAccount accountForWrite() {
+        GerritAccount account = accounts().getDefaultAccount();
+        if (account == null) {
+            account = GerritAccount.create(state.host, state.login, state.cloneBaseUrl);
+            accounts().put(account);
+        }
+        return account;
+    }
+
     @Override
     @Nullable
     public String getLogin() {
-        return state.login;
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.login : "";
     }
 
     /**
@@ -131,13 +143,7 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     @Override
     @NotNull
     public String getPassword() {
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        Credentials credentials = passwordSafe.get(CREDENTIAL_ATTRIBUTES);
-        if (credentials == null) {
-            credentials = migrateLegacyCredentials(passwordSafe);
-        }
-        String password = credentials != null ? credentials.getPasswordAsString() : null;
-        return password != null ? password : "";
+        return accounts().getPassword(accounts().getDefaultAccount());
     }
 
     /**
@@ -150,28 +156,6 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
                 this::getPassword, "Reading Gerrit Credentials", false, project);
     }
 
-    /**
-     * Credentials used to be stored under this class' name; move them over to the generated service name the first
-     * time nothing is found there. Concurrent requests are the normal case, so the move runs under a lock, and a
-     * caller which finds it already done re-reads the current key instead of reporting nothing: its own lookup ran
-     * before the move and missed the entry in flight.
-     */
-    @Nullable
-    private Credentials migrateLegacyCredentials(PasswordSafe passwordSafe) {
-        synchronized (credentialsLock) {
-            if (legacyCredentialsMigrated) {
-                return passwordSafe.get(CREDENTIAL_ATTRIBUTES);
-            }
-            Credentials credentials = passwordSafe.get(LEGACY_CREDENTIAL_ATTRIBUTES);
-            if (credentials != null) {
-                passwordSafe.set(CREDENTIAL_ATTRIBUTES, credentials);
-                passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
-            }
-            legacyCredentialsMigrated = true;
-            return credentials;
-        }
-    }
-
     @Override
     public boolean isHttpPassword() {
         return false;
@@ -179,7 +163,8 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     @Override
     public String getHost() {
-        return state.host;
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.host : "";
     }
 
     @Override
@@ -210,6 +195,7 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public void setLogin(final String login) {
         state.login = login != null ? login : "";
+        accountForWrite().login = state.login;
     }
 
     /**
@@ -222,25 +208,19 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     }
 
     public void setPassword(final String password) {
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        synchronized (credentialsLock) {
-            passwordSafe.set(CREDENTIAL_ATTRIBUTES, new Credentials(null, password != null ? password : ""));
-            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
-            legacyCredentialsMigrated = true;
-        }
+        accounts().setPassword(accountForWrite(), password);
     }
 
     public void forgetPassword() {
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        synchronized (credentialsLock) {
-            passwordSafe.set(CREDENTIAL_ATTRIBUTES, null);
-            passwordSafe.set(LEGACY_CREDENTIAL_ATTRIBUTES, null);
-            legacyCredentialsMigrated = true;
+        GerritAccount account = accounts().getDefaultAccount();
+        if (account != null) {
+            accounts().forgetPassword(account);
         }
     }
 
     public void setHost(final String host) {
         state.host = host != null ? host : "";
+        accountForWrite().host = state.host;
     }
 
     public void setAutomaticRefresh(final boolean automaticRefresh) {
@@ -297,13 +277,32 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public void setCloneBaseUrl(String cloneBaseUrl) {
         state.cloneBaseUrl = cloneBaseUrl != null ? cloneBaseUrl : "";
+        accountForWrite().cloneBaseUrl = state.cloneBaseUrl;
     }
 
     public String getCloneBaseUrl() {
-        return state.cloneBaseUrl;
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.cloneBaseUrl : "";
     }
 
     public String getCloneBaseUrlOrHost() {
-        return state.cloneBaseUrl == null || state.cloneBaseUrl.isEmpty() ? state.host : state.cloneBaseUrl;
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.getCloneBaseUrlOrHost() : "";
+    }
+
+    /**
+     * What a version without accounts wrote, which is where the first account is seeded from. Read through
+     * {@link GerritAccounts} rather than here.
+     */
+    String getLegacyHost() {
+        return state.host;
+    }
+
+    String getLegacyLogin() {
+        return state.login;
+    }
+
+    String getLegacyCloneBaseUrl() {
+        return state.cloneBaseUrl;
     }
 }

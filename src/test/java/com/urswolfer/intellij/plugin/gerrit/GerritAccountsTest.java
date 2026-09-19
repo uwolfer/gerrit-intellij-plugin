@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit;
 
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
+import com.intellij.credentialStore.Credentials;
 import com.intellij.util.xmlb.XmlSerializer;
 import org.jdom.Element;
 import org.jdom.output.XMLOutputter;
@@ -127,22 +128,6 @@ public class GerritAccountsTest {
     }
 
     /**
-     * Forgetting a password used to put the account back, so removing one returned it to the list.
-     */
-    @Test
-    public void testRemovingAnAccountDoesNotPutItBack() {
-        GerritAccounts accounts = new GerritAccounts();
-        GerritAccount one = GerritAccount.create("https://one.example.com", "jdoe", "");
-        GerritAccount two = GerritAccount.create("https://two.example.com", "jdoe", "");
-        accounts.loadState(stateOf(true, one, two));
-
-        accounts.setAccounts(java.util.Collections.singletonList(one));
-
-        Assert.assertEquals(accounts.getAccounts().size(), 1);
-        Assert.assertSame(accounts.getDefaultAccount(), one);
-    }
-
-    /**
      * Removing the last account looked exactly like an installation which had never been migrated, so the account,
      * and the password an earlier version had kept for it, came back on the next start.
      */
@@ -164,6 +149,162 @@ public class GerritAccountsTest {
 
         Assert.assertTrue(accounts.getState().seeded);
         Assert.assertTrue(accounts.isSeeded());
+    }
+
+    // --- what happens to the password itself, through a credential store the test can look inside ---
+
+    @Test
+    public void testTheAccountsOwnPasswordIsUsedWhenItHasOne() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(GerritAccounts.attributesFor(account), "current");
+        store.put(legacySettingsKey(), "old");
+
+        Assert.assertEquals(accounts.getPassword(account), "current");
+    }
+
+    @Test
+    public void testAPasswordUnderTheKeyOfAnEarlierVersionIsFoundAndMovedAcross() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(legacySettingsKey(), "old");
+
+        Assert.assertEquals(accounts.getPassword(account), "old");
+        Assert.assertEquals(store.passwordAt(GerritAccounts.attributesFor(account)), "old");
+        // and the key it came from is left alone, for a machine which has not done this yet
+        Assert.assertEquals(store.passwordAt(legacySettingsKey()), "old");
+        Assert.assertTrue(account.usesLegacyPasswordKey);
+    }
+
+    @Test
+    public void testTheOlderOfTheTwoKeysIsUsedWhenTheNewerHasNothing() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(legacyClassKey(), "ancient");
+
+        Assert.assertEquals(accounts.getPassword(account), "ancient");
+    }
+
+    /**
+     * Clearing the password field stores an empty password rather than removing the entry. Treating that as "no
+     * password" sent the read to the key of an earlier version, which still had the old one, and put it back.
+     */
+    @Test
+    public void testClearingThePasswordDoesNotBringTheOldOneBack() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(legacySettingsKey(), "old");
+
+        accounts.setPassword(account, "");
+
+        Assert.assertEquals(accounts.getPassword(account), "");
+    }
+
+    /**
+     * Entering a password settles where this account's password lives, so the key of an earlier version stops being
+     * consulted - on every machine, since the accounts travel.
+     */
+    @Test
+    public void testEnteringAPasswordStopsTheOlderKeyBeingConsulted() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(legacySettingsKey(), "old");
+
+        accounts.setPassword(account, "new");
+
+        Assert.assertFalse(account.usesLegacyPasswordKey);
+        Assert.assertEquals(accounts.getPassword(account), "new");
+    }
+
+    @Test
+    public void testForgettingAPasswordClearsTheOlderKeysToo() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(GerritAccounts.attributesFor(account), "current");
+        store.put(legacySettingsKey(), "old");
+        store.put(legacyClassKey(), "ancient");
+
+        accounts.forgetPassword(account);
+
+        Assert.assertEquals(accounts.getPassword(account), "");
+        Assert.assertNull(store.passwordAt(legacySettingsKey()));
+        Assert.assertNull(store.passwordAt(legacyClassKey()));
+    }
+
+    /**
+     * Forgetting a password used to put the account back, so removing one returned it to the list.
+     */
+    @Test
+    public void testRemovingAnAccountClearsItsPasswordAndDoesNotPutItBack() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(GerritAccounts.attributesFor(account), "current");
+
+        accounts.remove(account);
+
+        Assert.assertTrue(accounts.getAccounts().isEmpty());
+        Assert.assertNull(store.passwordAt(GerritAccounts.attributesFor(account)));
+    }
+
+    private static GerritAccounts seeded(GerritAccounts.CredentialStore store) {
+        GerritAccounts accounts = new GerritAccounts();
+        accounts.setCredentialStore(store);
+        accounts.seedFrom("https://gerrit.example.com", "jdoe", "");
+        return accounts;
+    }
+
+    private static CredentialAttributes legacySettingsKey() throws RuntimeException {
+        try {
+            return constant("LEGACY_SETTINGS_ATTRIBUTES");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static CredentialAttributes legacyClassKey() {
+        try {
+            return constant("LEGACY_CLASS_ATTRIBUTES");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static final class FakeCredentialStore implements GerritAccounts.CredentialStore {
+        private final java.util.Map<String, Credentials> entries = new java.util.HashMap<>();
+
+        void put(CredentialAttributes attributes, String password) {
+            entries.put(key(attributes), new Credentials(null, password));
+        }
+
+        String passwordAt(CredentialAttributes attributes) {
+            Credentials credentials = entries.get(key(attributes));
+            return credentials != null ? credentials.getPasswordAsString() : null;
+        }
+
+        @Override
+        public Credentials get(CredentialAttributes attributes) {
+            return entries.get(key(attributes));
+        }
+
+        @Override
+        public void set(CredentialAttributes attributes, Credentials credentials) {
+            if (credentials == null) {
+                entries.remove(key(attributes));
+            } else {
+                entries.put(key(attributes), credentials);
+            }
+        }
+
+        private static String key(CredentialAttributes attributes) {
+            return attributes.getServiceName() + "\u0000" + attributes.getUserName();
+        }
     }
 
     private static GerritAccounts.AccountsState stateOf(boolean seeded, GerritAccount... accounts) {

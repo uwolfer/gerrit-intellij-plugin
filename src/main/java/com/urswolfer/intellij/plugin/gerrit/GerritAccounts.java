@@ -175,15 +175,8 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             updated.remove(account);
             accounts = Collections.unmodifiableList(updated);
         }
-        // outside the lock, and not through forgetPassword: putting the account back is what it must not do here
+        // not through forgetPassword: putting the account back is exactly what it must not do here
         clearStoredPassword(account);
-    }
-
-    /**
-     * Blocks on the credential store, so callers on the event dispatch thread put it behind a modal progress.
-     */
-    public void clearStoredPassword(GerritAccount account) {
-        clearPasswords(account);
     }
 
     /**
@@ -220,36 +213,83 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     /**
+     * The credential store, behind an interface so that what is done with it can be tested without one.
+     */
+    interface CredentialStore {
+        @Nullable
+        Credentials get(CredentialAttributes attributes);
+
+        void set(CredentialAttributes attributes, @Nullable Credentials credentials);
+    }
+
+    private volatile CredentialStore credentialStore = new CredentialStore() {
+        @Override
+        public Credentials get(CredentialAttributes attributes) {
+            return PasswordSafe.getInstance().get(attributes);
+        }
+
+        @Override
+        public void set(CredentialAttributes attributes, Credentials credentials) {
+            PasswordSafe.getInstance().set(attributes, credentials);
+        }
+    };
+
+    void setCredentialStore(CredentialStore credentialStore) { // for tests
+        this.credentialStore = credentialStore;
+    }
+
+    /**
      * Reading the credential store blocks and must not happen on the event dispatch thread; UI code goes through the
      * modal progress in {@link GerritSettings} instead.
+     *
+     * The whole lookup runs under the lock: a password set or forgotten between reading the older key and writing
+     * what it held to the account's own would otherwise be overwritten, or brought back.
      */
     @NotNull
     public String getPassword(@Nullable GerritAccount account) {
         if (account == null) {
             return "";
         }
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        String password = read(passwordSafe, attributesFor(account));
-        if (password == null && account.usesLegacyPasswordKey) {
-            password = readLegacy(passwordSafe);
-            if (password != null) {
-                setPassword(account, password);
+        synchronized (lock) {
+            Credentials stored = credentialStore.get(attributesFor(account));
+            if (stored != null) {
+                // an entry which is there decides, even when it holds nothing: that is a password someone cleared
+                String password = stored.getPasswordAsString();
+                return password != null ? password : "";
             }
+            if (account.usesLegacyPasswordKey) {
+                String legacy = readLegacy();
+                if (legacy != null) {
+                    // not through setPassword: this is the move itself, and the account may have to make it again
+                    // on another machine, whose credential store did not travel with it
+                    credentialStore.set(attributesFor(account), new Credentials(null, legacy));
+                    return legacy;
+                }
+            }
+            return "";
         }
-        return password != null ? password : "";
     }
 
+    /**
+     * Saves a password someone entered. That settles where this account's password lives, so the key an earlier
+     * version used stops being consulted - otherwise clearing the password here would hand the old one back.
+     */
     public void setPassword(@NotNull GerritAccount account, @Nullable String password) {
         synchronized (lock) {
-            PasswordSafe.getInstance().set(attributesFor(account), new Credentials(null, password != null ? password : ""));
+            credentialStore.set(attributesFor(account), new Credentials(null, password != null ? password : ""));
+            if (account.usesLegacyPasswordKey) {
+                account.usesLegacyPasswordKey = false;
+                if (accounts.contains(account)) {
+                    put(account);
+                }
+            }
         }
     }
 
     public void forgetPassword(@NotNull GerritAccount account) {
         synchronized (lock) {
-            clearPasswords(account);
+            clearStoredPassword(account);
             if (account.usesLegacyPasswordKey) {
-                // clearing only the account's own key would let the next read hand the forgotten password back
                 account.usesLegacyPasswordKey = false;
                 if (accounts.contains(account)) {
                     put(account);
@@ -263,29 +303,30 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      * key, so leaving it behind would both hand the password back and leave it in the credential store of someone
      * who asked for it to be gone.
      */
-    private void clearPasswords(GerritAccount account) {
-        PasswordSafe passwordSafe = PasswordSafe.getInstance();
-        passwordSafe.set(attributesFor(account), null);
-        if (account.usesLegacyPasswordKey) {
-            passwordSafe.set(LEGACY_SETTINGS_ATTRIBUTES, null);
-            passwordSafe.set(LEGACY_CLASS_ATTRIBUTES, null);
+    public void clearStoredPassword(@NotNull GerritAccount account) {
+        synchronized (lock) {
+            credentialStore.set(attributesFor(account), null);
+            if (account.usesLegacyPasswordKey) {
+                credentialStore.set(LEGACY_SETTINGS_ATTRIBUTES, null);
+                credentialStore.set(LEGACY_CLASS_ATTRIBUTES, null);
+            }
         }
     }
 
     /**
      * The password of an account which predates them can still be sitting under either of the two keys earlier
-     * versions used. Neither is cleared once it has been read: that is what lets a downgrade, and a second upgrade
-     * from a different installation, still find it.
+     * versions used. Neither is cleared once it has been read: that is what lets a downgrade, and a machine the
+     * accounts were synced to, still find it.
      */
     @Nullable
-    private String readLegacy(PasswordSafe passwordSafe) {
-        String password = read(passwordSafe, LEGACY_SETTINGS_ATTRIBUTES);
-        return password != null ? password : read(passwordSafe, LEGACY_CLASS_ATTRIBUTES);
+    private String readLegacy() {
+        String password = read(LEGACY_SETTINGS_ATTRIBUTES);
+        return password != null ? password : read(LEGACY_CLASS_ATTRIBUTES);
     }
 
     @Nullable
-    private static String read(PasswordSafe passwordSafe, CredentialAttributes attributes) {
-        Credentials credentials = passwordSafe.get(attributes);
+    private String read(CredentialAttributes attributes) {
+        Credentials credentials = credentialStore.get(attributes);
         String password = credentials != null ? credentials.getPasswordAsString() : null;
         return password == null || password.isEmpty() ? null : password;
     }

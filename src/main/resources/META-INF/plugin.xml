@@ -566,6 +566,10 @@
       <separator/>
     </group>
 
+    <action id="Gerrit.AddComment" text="Add Comment"
+            description="Add a Gerrit comment at the caret position in the diff of a change"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction"/>
+
     <action id="Gerrit.CompareBranch" text="Compare with Branch"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>

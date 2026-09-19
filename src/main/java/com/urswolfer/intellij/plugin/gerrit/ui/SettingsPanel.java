@@ -201,8 +201,7 @@ public class SettingsPanel {
      * page reads the same for the one account most installations have as it does for several.
      */
     private JComponent createAccountPane() {
-        accountComboBox.setRenderer(SimpleListCellRenderer.create("", account ->
-            account.host.isEmpty() && account.login.isEmpty() ? "New account" : account.toString()));
+        accountComboBox.setRenderer(SimpleListCellRenderer.create("", GerritAccount::toString));
         accountComboBox.addActionListener(e -> {
             GerritAccount selected = accountModel.getSelected();
             if (selected != shownAccount) {
@@ -295,6 +294,28 @@ public class SettingsPanel {
             setPassword(account != null && !account.login.isEmpty() ? DEFAULT_PASSWORD_TEXT : "");
             resetPasswordModification();
         }
+    }
+
+    /**
+     * There is no account to type into on a fresh install. Rather than making the account first and entering its
+     * details second, the fields make the account as soon as anything is entered in them.
+     *
+     * Called only while applying: growing an account as a side effect of being asked whether anything changed is
+     * how the dialog ends up storing things nobody asked it to store.
+     */
+    public void materializeTypedAccount() {
+        if (shownAccount != null || !hasTypedFieldsWithoutAccount()) {
+            return;
+        }
+        GerritAccount account = GerritAccount.create("", "", "");
+        shownAccount = account; // set first, so selecting it does not make the listener swap the fields out
+        accountModel.add(account);
+        accountModel.setSelectedItem(account);
+    }
+
+    public boolean hasTypedFieldsWithoutAccount() {
+        return shownAccount == null
+            && (!getHost().isEmpty() || !getLogin().isEmpty() || !getCloneBaseUrl().isEmpty() || isPasswordModified());
     }
 
     /**

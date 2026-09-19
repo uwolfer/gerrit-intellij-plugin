@@ -174,9 +174,16 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             List<GerritAccount> updated = new ArrayList<>(accounts);
             updated.remove(account);
             accounts = Collections.unmodifiableList(updated);
-            // not through forgetPassword: putting the account back is exactly what it must not do here
-            clearPasswords(account);
         }
+        // outside the lock, and not through forgetPassword: putting the account back is what it must not do here
+        clearStoredPassword(account);
+    }
+
+    /**
+     * Blocks on the credential store, so callers on the event dispatch thread put it behind a modal progress.
+     */
+    public void clearStoredPassword(GerritAccount account) {
+        clearPasswords(account);
     }
 
     /**

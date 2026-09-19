@@ -232,7 +232,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
     }
 
     @Override
-    public void doClone(@NotNull Project project, @NotNull CheckoutProvider.Listener listener) {
+    public void doClone(@NotNull CheckoutProvider.Listener listener) {
         if (!gerritUtil.testGitExecutable(project)) {
             return;
         }
@@ -271,14 +271,6 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
         rememberedInputs.addUrl(sourceRepositoryUrl);
         rememberedInputs.setCloneParentDir(parentDirectory);
-    }
-
-    /**
-     * {@link VcsCloneComponent} dropped the project parameter of {@code doClone} with 2022.1. Both signatures are
-     * implemented, so that the one declared by the platform in use gets called.
-     */
-    public void doClone(@NotNull CheckoutProvider.Listener listener) {
-        doClone(project, listener);
     }
 
     @Override

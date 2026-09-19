@@ -24,7 +24,7 @@ Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for the
 * Rider
 * MPS
 
-*Compiled with Java 11*
+*Requires IntelliJ 2023.3.2 or newer, compiled with Java 17*
 
 Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
 
@@ -38,7 +38,7 @@ Installation
   matching your IntelliJ version and install it manually using
   <kbd>Settings...</kbd> > <kbd>Plugins</kbd> > <kbd>Gear icon</kbd> > <kbd>Install Plugin from Disk</kbd>
 
-Restart your IDE.
+Restart your IDE if it asks you to.
 
 Your Support
 ------------

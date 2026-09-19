@@ -78,10 +78,12 @@ public class PushOptionValidatorTest {
     }
 
     @Test
-    public void testTopicWithCharacterWhichIsInvalidInRefName() throws Exception {
-        // characters which cannot be part of a ref name are rejected by the push target panel,
-        // which validates the assembled ref
-        Assert.assertNull(PushOptionValidator.validateOption("Topic", "bug~1"));
+    public void testOptionWithCharacterWhichIsInvalidInRefName() throws Exception {
+        // the assembled ref gets rejected as well, but that error does not tell which value caused it
+        Assert.assertEquals(PushOptionValidator.validateOption("Topic", "bug~1"),
+            "Topic must not contain the character '~'.");
+        Assert.assertEquals(PushOptionValidator.validateOption("Reviewer name", "user:name"),
+            "Reviewer name must not contain the character ':'.");
     }
 
     @Test

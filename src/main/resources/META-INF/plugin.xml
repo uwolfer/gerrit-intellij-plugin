@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 -->
-<!-- GerritPushExtension modifies git4idea byte-code, which cannot be undone on plugin unload -->
-<idea-plugin require-restart="true">
+<idea-plugin>
   <!-- do NOT change the id, see https://intellij-support.jetbrains.com/hc/en-us/community/posts/13362061756050-Plugin-ID-specified-in-plugin-xml-should-not-contain-intellij-   -->
   <id>com.urswolfer.intellij.plugin.gerrit</id>
   <name>Gerrit</name>
@@ -492,8 +491,13 @@
   </change-notes>
 
   <!-- please see https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html for description -->
-  <idea-version since-build="203.4818.26"/>
+  <idea-version since-build="233.13135"/>
   <!--
+    IntelliJ IDEA 2023.3
+    ================
+    com.intellij.customPushOptionsPanelFactory (the Gerrit push settings) added in 233.13135, not yet in the
+    first 2023.3 release
+
     IntelliJ IDEA 2020.3
     ================
     PopupHandler.installPopupHandler since 203.4818.26
@@ -532,11 +536,6 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
-  <applicationListeners>
-    <listener class="com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionStarter"
-              topic="com.intellij.ide.AppLifecycleListener"/>
-  </applicationListeners>
-
   <extensions defaultExtensionNs="com.intellij">
     <notificationGroup id="gerrit" displayType="BALLOON"
                        bundle="messages.GerritBundle" key="notification.group.gerrit"/>
@@ -551,6 +550,9 @@
     <diff.DiffTool implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.CommentsDiffTool"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
+
+    <customPushOptionsPanelFactory implementation="com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanelFactory"/>
+    <prePushHandler implementation="com.urswolfer.intellij.plugin.gerrit.push.GerritPrePushHandler"/>
   </extensions>
 
   <extensions defaultExtensionNs="Git4Idea">

@@ -121,23 +121,28 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
         return initialBranch;
     }
 
-    public void initBranch(String branch, boolean pushToGerritByDefault) {
-        this.branch = branch;
+    /**
+     * Starts following the checked state of this repository and writes the first ref into its row.
+     */
+    public void initBranch(String branch) {
         //noinspection unchecked
         repositoryPanel.addRepoNodeListener(this);
-
-        if (pushToGerritByDefault) {
-            updateBranchTextField();
-        }
         updateBranch(branch);
     }
 
     /**
-     * Sets the ref to push to, or keeps the one which is set for a {@code null} branch: the Gerrit push
-     * settings cannot be transported in a ref then, and the push dialog would show and push a ref which does
-     * not contain what the user entered.
+     * Sets the ref to push to. A {@code null} branch reports Gerrit push settings which cannot be transported
+     * in a ref: the last usable ref is kept, the one the push dialog already shows and the one the push would
+     * use, instead of a ref which does not contain what the user entered.
+     *
+     * A row which is not checked is left alone: writing to it checks it (the IDE checks a repository as soon
+     * as its push target changes), which would select every repository of the project for the push. Such a
+     * row gets the ref once the user checks it, see {@link #onSelectionChanged(boolean)}.
      */
     public void updateBranch(String branch) {
+        if (branch == null) {
+            return;
+        }
         this.branch = branch;
         if (repositoryNode.isChecked()) {
             updateBranchTextField();
@@ -157,6 +162,10 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     @Override
     public void onTargetChanged(PushTarget newTarget) {}
 
+    /**
+     * Writes the last usable ref built out of the Gerrit push settings into a row the user has just checked:
+     * it was skipped as long as the repository was not part of the push.
+     */
     @Override
     public void onSelectionChanged(boolean isSelected) {
         if (isSelected) {

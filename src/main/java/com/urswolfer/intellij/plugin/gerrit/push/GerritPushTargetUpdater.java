@@ -122,6 +122,16 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     }
 
     /**
+     * Returns whether the IDE is still loading the commits of this repository.
+     *
+     * Writing the push target of such a row cancels that load, and the IDE starts the replacement as a
+     * follow-up load - the one kind after which it never unchecks a repository again.
+     */
+    public boolean isLoading() {
+        return repositoryNode.isLoading();
+    }
+
+    /**
      * Starts following the checked state of this repository and writes the first ref into its row.
      */
     public void initBranch(String branch) {

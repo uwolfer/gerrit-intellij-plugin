@@ -52,6 +52,9 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private static final String GITREVIEW_FILENAME = ".gitreview";
 
+    private static final int COMMIT_LOADING_POLL_MS = 100;
+    private static final int COMMIT_LOADING_TIMEOUT_MS = 2000;
+
     private JPanel indentedSettingPanel;
 
     private JCheckBox pushToGerritCheckBox;
@@ -71,6 +74,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private JLabel validationLabel;
     private final Map<GerritPushTargetUpdater, String> pushTargets = new LinkedHashMap<>();
     private JTree registeredTree;
+    private Timer commitLoadingTimer;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
         createLayout();
@@ -100,6 +104,7 @@ public class GerritPushExtensionPanel extends JPanel {
         super.removeNotify();
 
         // the rows belong to the closed push dialog; the next one gets its own
+        stopWaitingForCommits();
         registeredTree = null;
         pushTargets.clear();
     }
@@ -476,8 +481,47 @@ public class GerritPushExtensionPanel extends JPanel {
         component.repaint();
     }
 
+    /**
+     * Applies the Gerrit push settings to the repository rows, once the IDE has loaded the commits of the
+     * repositories.
+     *
+     * Writing to a row while its commits are still being loaded cancels that load, and the IDE starts the
+     * replacement as a follow-up load - the one kind after which it never unchecks a repository again. A
+     * project which starts out with every repository selected (a synchronous one, or "vcs.push.all.with
+     * .commits") would keep them all selected instead of dropping the ones with nothing to push.
+     *
+     * The rows are written to once the wait is over, not on every check: writing the same ref again reloads
+     * the commits of a repository which has none, which would never end.
+     *
+     * The wait is bounded because it is the push target which is waited with: a load which ends in an error
+     * leaves its row loading for good, and a row without the Gerrit push settings is worse than a selected
+     * repository which has nothing to push.
+     */
     private void initDestinationBranch() {
-        updateDestinationBranches(true);
+        if (!isLoadingCommits()) {
+            updateDestinationBranches(true);
+            return;
+        }
+        long deadline = System.currentTimeMillis() + COMMIT_LOADING_TIMEOUT_MS;
+        commitLoadingTimer = new Timer(COMMIT_LOADING_POLL_MS, event -> {
+            if (isLoadingCommits() && System.currentTimeMillis() < deadline) {
+                return;
+            }
+            stopWaitingForCommits();
+            updateDestinationBranches(true);
+        });
+        commitLoadingTimer.start();
+    }
+
+    private boolean isLoadingCommits() {
+        return pushTargets.keySet().stream().anyMatch(GerritPushTargetUpdater::isLoading);
+    }
+
+    private void stopWaitingForCommits() {
+        if (commitLoadingTimer != null) {
+            commitLoadingTimer.stop();
+            commitLoadingTimer = null;
+        }
     }
 
     private void updateDestinationBranch() {

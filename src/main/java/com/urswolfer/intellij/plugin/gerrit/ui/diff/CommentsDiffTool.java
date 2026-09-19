@@ -35,6 +35,8 @@ import com.intellij.diff.tools.simple.SimpleOnesideDiffViewer;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.actionSystem.Shortcut;
+import com.intellij.openapi.actionSystem.ShortcutSet;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.EditorColors;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
@@ -80,6 +82,20 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     static final Key<AddCommentAction> ADD_COMMENT_ACTION = Key.create("gerrit.AddCommentAction");
 
     private static final String ADD_COMMENT_ACTION_ID = "Gerrit.AddComment";
+
+    private static final Shortcut[] DEFAULT_ADD_COMMENT_SHORTCUTS = CustomShortcutSet.fromString("C").getShortcuts();
+
+    /**
+     * A bare "C" bound to the editor component competes with typing and gets swallowed by the diff
+     * viewer in newer IDE versions (issue #410), so it only serves as the default. Once the user has
+     * picked a shortcut for {@code Gerrit.AddComment}, the keymap dispatches it and a second binding
+     * on a bare letter would just bring the conflict back. Resolved per keystroke, so that a keymap
+     * change also reaches the diffs which are open already.
+     */
+    private static final ShortcutSet ADD_COMMENT_SHORTCUT_SET = () ->
+        KeymapUtil.getActiveKeymapShortcuts(ADD_COMMENT_ACTION_ID).getShortcuts().length > 0
+            ? Shortcut.EMPTY_ARRAY
+            : DEFAULT_ADD_COMMENT_SHORTCUTS;
 
     private static final TextAttributesKey COMMENT_RANGE_ATTRIBUTES = TextAttributesKey.createTextAttributesKey(
         "GERRIT_COMMENT_RANGE", EditorColors.SEARCH_RESULT_ATTRIBUTES);
@@ -219,21 +235,9 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
         editor.putUserData(ADD_COMMENT_ACTION, addCommentAction);
-        registerShortcut(addCommentAction, editor);
+        addCommentAction.registerCustomShortcutSet(ADD_COMMENT_SHORTCUT_SET, editor.getContentComponent());
         group.add(addCommentAction);
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
-    }
-
-    /**
-     * A bare "C" bound to the editor component competes with typing and gets swallowed by the diff
-     * viewer in newer IDE versions (issue #410), so it only serves as the default. Once the user has
-     * picked a shortcut for {@code Gerrit.AddComment}, the keymap dispatches it and a second binding
-     * on a bare letter would just bring the conflict back.
-     */
-    private static void registerShortcut(AddCommentAction addCommentAction, Editor editor) {
-        if (KeymapUtil.getActiveKeymapShortcuts(ADD_COMMENT_ACTION_ID).getShortcuts().length > 0) return;
-
-        addCommentAction.registerCustomShortcutSet(CustomShortcutSet.fromString("C"), editor.getContentComponent());
     }
 
     private static List<CommentInfo> filter(List<CommentInfo> comments, Predicate<Comment> predicate) {

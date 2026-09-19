@@ -74,9 +74,24 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             GerritSettings.class.getName(),
             GERRIT_SETTINGS_PASSWORD_KEY);
 
+    /**
+     * Whether accounts are kept and which ones they are is one fact, so it is held in one object behind one field.
+     * Read separately, a save could catch the two halves mid-change and store "accounts are kept, there are none" -
+     * after which nothing is ever migrated, because that is exactly what a migrated installation with no accounts
+     * looks like. Writers replace the whole thing under the lock; readers take one look and see a matching pair.
+     */
+    static final class Snapshot {
+        final boolean seeded;
+        final List<GerritAccount> accounts;
+
+        Snapshot(boolean seeded, List<GerritAccount> accounts) {
+            this.seeded = seeded;
+            this.accounts = Collections.unmodifiableList(new ArrayList<>(accounts));
+        }
+    }
+
     private final Object lock = new Object();
-    private volatile List<GerritAccount> accounts = Collections.emptyList();
-    private volatile boolean seeded;
+    private volatile Snapshot snapshot = new Snapshot(false, Collections.emptyList());
 
     public static GerritAccounts getInstance() {
         return ApplicationManager.getApplication().getService(GerritAccounts.class);
@@ -84,18 +99,25 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
 
     @Override
     public AccountsState getState() {
+        Snapshot current = snapshot;
         AccountsState state = new AccountsState();
-        state.seeded = seeded;
-        state.accounts = new ArrayList<>(accounts);
+        state.seeded = current.seeded;
+        state.accounts = new ArrayList<>(current.accounts);
         return state;
     }
 
     @Override
     public void loadState(@NotNull AccountsState state) {
         synchronized (lock) {
-            accounts = Collections.unmodifiableList(new ArrayList<>(state.accounts));
-            seeded = state.seeded;
+            snapshot = new Snapshot(state.seeded, state.accounts);
         }
+    }
+
+    /**
+     * @return the accounts and whether they are kept, as one pair; callers which need both must not ask twice
+     */
+    Snapshot peek() {
+        return snapshot;
     }
 
     /**
@@ -103,18 +125,17 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      *         one which has simply never been filled in
      */
     public boolean isSeeded() {
-        return seeded;
+        return snapshot.seeded;
     }
 
     public List<GerritAccount> getAccounts() {
         seedFromSettingsOnce();
-        return accounts;
+        return snapshot.accounts;
     }
 
     public void setAccounts(List<GerritAccount> newAccounts) {
         synchronized (lock) {
-            accounts = Collections.unmodifiableList(new ArrayList<>(newAccounts));
-            seeded = true;
+            snapshot = new Snapshot(true, newAccounts);
         }
     }
 
@@ -135,7 +156,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      */
     @Nullable
     public GerritAccount peekDefaultAccount() {
-        List<GerritAccount> current = accounts;
+        List<GerritAccount> current = snapshot.accounts;
         return current.isEmpty() ? null : current.get(0);
     }
 
@@ -157,23 +178,22 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      */
     public void put(GerritAccount account) {
         synchronized (lock) {
-            List<GerritAccount> updated = new ArrayList<>(accounts);
+            List<GerritAccount> updated = new ArrayList<>(snapshot.accounts);
             int index = updated.indexOf(account);
             if (index >= 0) {
                 updated.set(index, account);
             } else {
                 updated.add(account);
             }
-            accounts = Collections.unmodifiableList(updated);
-            seeded = true;
+            snapshot = new Snapshot(true, updated);
         }
     }
 
     public void remove(GerritAccount account) {
         synchronized (lock) {
-            List<GerritAccount> updated = new ArrayList<>(accounts);
+            List<GerritAccount> updated = new ArrayList<>(snapshot.accounts);
             updated.remove(account);
-            accounts = Collections.unmodifiableList(updated);
+            snapshot = new Snapshot(snapshot.seeded, updated);
         }
         // not through forgetPassword: putting the account back is exactly what it must not do here
         clearStoredPassword(account);
@@ -185,7 +205,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      * because the settings it would be seeded from are cleared along with it.
      */
     private void seedFromSettingsOnce() {
-        if (seeded) {
+        if (snapshot.seeded) {
             return;
         }
         GerritSettings settings = GerritSettings.getInstance();
@@ -199,16 +219,16 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      */
     void seedFrom(String host, String login, String cloneBaseUrl) {
         synchronized (lock) {
-            if (seeded) {
+            if (snapshot.seeded) {
                 return;
             }
-            seeded = true;
             if ((host == null || host.isEmpty()) && (login == null || login.isEmpty())) {
+                snapshot = new Snapshot(true, Collections.emptyList());
                 return;
             }
             GerritAccount account = GerritAccount.create(host, login, cloneBaseUrl);
             account.usesLegacyPasswordKey = true;
-            accounts = Collections.singletonList(account);
+            snapshot = new Snapshot(true, Collections.singletonList(account));
         }
     }
 
@@ -279,7 +299,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             credentialStore.set(attributesFor(account), new Credentials(null, password != null ? password : ""));
             if (account.usesLegacyPasswordKey) {
                 account.usesLegacyPasswordKey = false;
-                if (accounts.contains(account)) {
+                if (snapshot.accounts.contains(account)) {
                     put(account);
                 }
             }
@@ -291,7 +311,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             clearStoredPassword(account);
             if (account.usesLegacyPasswordKey) {
                 account.usesLegacyPasswordKey = false;
-                if (accounts.contains(account)) {
+                if (snapshot.accounts.contains(account)) {
                     put(account);
                 }
             }

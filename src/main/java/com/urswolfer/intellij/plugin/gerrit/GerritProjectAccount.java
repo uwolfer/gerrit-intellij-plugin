@@ -101,6 +101,15 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
         return GerritAccounts.getInstance().findById(state.defaultAccountId) != null;
     }
 
+    /**
+     * @return whether there are several accounts to choose between and this project has chosen none; the tool
+     *         window asks rather than picking one, because picking would send this project's changes, and its
+     *         credentials, to whichever instance happened to come first
+     */
+    public boolean needsChoice() {
+        return !isBound() && GerritAccounts.getInstance().getAccounts().size() > 1;
+    }
+
     public String getHost() {
         GerritAccount account = get();
         return account != null ? account.host : "";

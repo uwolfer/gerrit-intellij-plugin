@@ -25,6 +25,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import git4idea.validators.GitRefNameValidator;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -37,7 +38,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,8 +51,6 @@ import java.util.stream.Collectors;
 public class GerritPushExtensionPanel extends JPanel {
 
     private static final String GITREVIEW_FILENAME = ".gitreview";
-
-    private final boolean pushToGerritByDefault;
 
     private JPanel indentedSettingPanel;
 
@@ -70,11 +69,10 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField ccTextField;
     private JTextField patchsetDescriptionTextField;
     private JLabel validationLabel;
-    private Map<GerritPushTargetPanel, String> gerritPushTargetPanels = new HashMap<>();
-    private boolean initialized = false;
+    private final Map<GerritPushTargetUpdater, String> pushTargets = new LinkedHashMap<>();
+    private JTree registeredTree;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
-        this.pushToGerritByDefault = pushToGerritByDefault;
         createLayout();
 
         pushToGerritCheckBox.setSelected(pushToGerritByDefault);
@@ -84,35 +82,60 @@ public class GerritPushExtensionPanel extends JPanel {
         addChangeListener();
     }
 
-    public void registerGerritPushTargetPanel(GerritPushTargetPanel gerritPushTargetPanel, String branch) {
-        if (initialized) { // a new dialog gets initialized; start again
-            initialized = false;
-            gerritPushTargetPanels.clear();
-        }
+    @Override
+    public void addNotify() {
+        super.addNotify();
 
-        if (branch != null) {
-            branch = branch.replaceAll("^refs/(for|drafts)/", "");
-            branch = branch.replaceAll("%.*$", "");
-        }
-
-        gerritPushTargetPanels.put(gerritPushTargetPanel, branch);
-    }
-
-    public void initialized() {
-        initialized = true;
-
-        // force a deferred update (changes are monitored only after full construction of dialog)
+        // the repository rows are looked up in the push dialog this panel got added to; a deferred update
+        // leaves the dialog the time to finish its construction
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                if (gerritPushTargetPanels.size() == 1) {
-                    // the branch is null when the IDE has no push target for the repository (e.g. a detached head)
-                    String branchName = gerritPushTargetPanels.values().iterator().next();
-                    Optional<String> gitReviewBranchName = getGitReviewBranchName();
-                    branchTextField.setText(gitReviewBranchName.orElse(branchName == null ? "" : branchName));
-                }
-                initDestinationBranch();
+                registerPushTargets();
             }
         });
+    }
+
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
+
+        // the rows belong to the closed push dialog; the next one gets its own
+        registeredTree = null;
+        pushTargets.clear();
+    }
+
+    /**
+     * Collects the repository rows of the push dialog and applies the Gerrit push settings to them.
+     *
+     * This panel belongs to the push support of the project, so it is shown in every push dialog which gets
+     * opened. The rows of a dialog are collected once: a repeated registration would undo a push target which
+     * the user has edited by hand.
+     */
+    private void registerPushTargets() {
+        JTree tree = GerritPushTargetUpdater.findPushDialogTree(this);
+        if (tree == null || tree == registeredTree) {
+            return;
+        }
+        registeredTree = tree;
+
+        pushTargets.clear();
+        for (GerritPushTargetUpdater pushTarget : GerritPushTargetUpdater.collect(tree)) {
+            pushTargets.put(pushTarget, getBranchName(pushTarget.getInitialBranch()));
+        }
+
+        if (pushTargets.size() == 1) {
+            Optional<String> gitReviewBranchName = getGitReviewBranchName();
+            branchTextField.setText(gitReviewBranchName.orElse(pushTargets.values().iterator().next()));
+        }
+        initDestinationBranch();
+    }
+
+    /**
+     * Returns the branch the Gerrit push settings are applied to. A ref which already contains them (the push
+     * dialog was opened again, or the repository is configured with a Gerrit push spec) is reduced to it.
+     */
+    private static String getBranchName(String ref) {
+        return ref.replaceAll("^refs/(for|drafts)/", "").replaceAll("%.*$", "");
     }
 
     private Optional<String> getGitReviewBranchName() {
@@ -304,8 +327,8 @@ public class GerritPushExtensionPanel extends JPanel {
      * (invalid) format specifiers.
      *
      * Values which cannot be transported in a ref (e.g. a topic containing a space) are added nevertheless:
-     * the push target is marked as invalid in that case, which stops the push from happening with a ref
-     * which does not contain what the user entered. See {@link #validateSettings()}.
+     * such a ref is not written to the push dialog, which would show and push a ref not containing what the
+     * user entered. See {@link #validateSettings()}.
      */
     private String getRef(String branch) {
         StringBuilder ref = new StringBuilder();
@@ -383,9 +406,8 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Checks all values which are added to the push ref, marks the invalid ones and shows a message for the
-     * first of them. The message is returned as well: it is handed to the push target panels, which do not
-     * accept a ref built out of such a value.
+     * Checks all values which are added to the push ref and marks the invalid ones. The message for the first
+     * of them is returned: a ref built out of such a value is not written to the push dialog.
      */
     private String validateSettings() {
         String error = null;
@@ -402,15 +424,14 @@ public class GerritPushExtensionPanel extends JPanel {
                 markInvalid(textField, false);
             }
         }
-        validationLabel.setText(error == null ? "" : error);
         return error;
     }
 
     private String validateBranch(JTextField textField) {
         String branch = getTrimmedText(textField);
         String error = PushOptionValidator.validateBranch("Branch", branch);
-        // a branch which cannot be part of a ref name (e.g. "release/") is reported by the push target;
-        // mark the field it comes from, but leave the message to the push target
+        // a branch which cannot be part of a ref name (e.g. "release/") is reported for the assembled ref by
+        // validateRef; mark the field it comes from, but leave the message to that check
         markInvalid(textField, error != null || !PushOptionValidator.isUsableAsBranchName(branch));
         return error;
     }
@@ -456,17 +477,44 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private void initDestinationBranch() {
-        String settingsError = validateSettings();
-        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().initBranch(getRef(entry.getValue()), pushToGerritByDefault, settingsError);
-        }
+        updateDestinationBranches(true);
     }
 
     private void updateDestinationBranch() {
+        updateDestinationBranches(false);
+    }
+
+    /**
+     * Writes the ref built out of the Gerrit push settings into the checked repository rows of the push
+     * dialog, and shows the first value which cannot be used.
+     */
+    private void updateDestinationBranches(boolean init) {
         String settingsError = validateSettings();
-        for (Map.Entry<GerritPushTargetPanel, String> entry : gerritPushTargetPanels.entrySet()) {
-            entry.getKey().updateBranch(getRef(entry.getValue()), settingsError);
+        String error = settingsError;
+        for (Map.Entry<GerritPushTargetUpdater, String> entry : pushTargets.entrySet()) {
+            String ref = getRef(entry.getValue());
+            String refError = settingsError != null ? settingsError : validateRef(ref);
+            error = firstError(error, refError);
+            String branch = refError == null ? ref : null;
+            if (init) {
+                entry.getKey().initBranch(branch);
+            } else {
+                entry.getKey().updateBranch(branch);
+            }
         }
+        validationLabel.setText(error == null ? "" : error);
+    }
+
+    /**
+     * Checks the assembled ref the way the push dialog does before it builds a push target out of it. Values
+     * which are no valid ref names occur regularly while the user is still typing a branch name (e.g.
+     * "refs/for/release/" on the way to "refs/for/release/1.0").
+     */
+    private static String validateRef(String ref) {
+        if (GitRefNameValidator.getInstance().checkInput(ref)) {
+            return null;
+        }
+        return "Invalid destination branch name: " + ref;
     }
 
     private void setSettingsEnabled(boolean enabled) {

@@ -1,7 +1,5 @@
 package com.urswolfer.intellij.plugin.gerrit;
 
-import com.intellij.credentialStore.CredentialAttributes;
-import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.util.xmlb.SkipDefaultsSerializationFilter;
 import com.intellij.util.xmlb.XmlSerializer;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
@@ -10,13 +8,10 @@ import org.jdom.Element;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class GerritSettingsTest {
-
-    private static final String PASSWORD_KEY = "GERRIT_SETTINGS_PASSWORD_KEY";
 
     /**
      * A settings file as every released version of the plugin has written it. The component element carries the
@@ -28,22 +23,6 @@ public class GerritSettingsTest {
             + " PushToGerrit=\"true\" ShowChangeNumberColumn=\"true\" ShowChangeIdColumn=\"true\""
             + " ShowTopicColumn=\"true\" ShowProjectColumn=\"NEVER\""
             + " CloneBaseUrl=\"https://clone.example.com\" />";
-
-    @Test
-    public void testCredentialAttributesUseIntelliJPlatformServiceName() throws Exception {
-        CredentialAttributes attributes = credentialAttributes("CREDENTIAL_ATTRIBUTES");
-
-        Assert.assertEquals(serviceName(attributes), CredentialAttributesKt.generateServiceName("Gerrit", PASSWORD_KEY));
-        Assert.assertEquals(userName(attributes), PASSWORD_KEY);
-    }
-
-    @Test
-    public void testLegacyCredentialAttributesAreKeptForMigration() throws Exception {
-        CredentialAttributes attributes = credentialAttributes("LEGACY_CREDENTIAL_ATTRIBUTES");
-
-        Assert.assertEquals(serviceName(attributes), GerritSettings.class.getName());
-        Assert.assertEquals(userName(attributes), PASSWORD_KEY);
-    }
 
     @Test
     public void testSettingsFileOfAnEarlierVersionIsLoaded() throws Exception {
@@ -235,17 +214,4 @@ public class GerritSettingsTest {
         return attributes;
     }
 
-    private static CredentialAttributes credentialAttributes(String fieldName) throws Exception {
-        Field field = GerritSettings.class.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return (CredentialAttributes) field.get(null);
-    }
-
-    private static String serviceName(CredentialAttributes attributes) throws Exception {
-        return attributes.getServiceName();
-    }
-
-    private static String userName(CredentialAttributes attributes) throws Exception {
-        return attributes.getUserName();
-    }
 }

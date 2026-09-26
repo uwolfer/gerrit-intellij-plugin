@@ -59,9 +59,11 @@ public class UrlUtils {
     public static String encodePatchSetDescription(String text) {
         // According to https://gerrit-review.googlesource.com/Documentation/user-upload.html#patch_set_description,
         // at least the chars %^@.~-+_:/! must be percent-encoded and the space character must be encoded as '+'
+        // the encoded description ends up in a ref name, so nothing URLEncoder leaves as it is may stay behind
         return URLEncoder.encode(text, StandardCharsets.UTF_8)
             .replace(".", "%2E")
             .replace("-", "%2D")
-            .replace("_", "%5F");
+            .replace("_", "%5F")
+            .replace("*", "%2A");
     }
 }

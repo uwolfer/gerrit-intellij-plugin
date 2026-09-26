@@ -44,6 +44,17 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         BrowserUtil.browse(urlToOpen);
     }
 
+    /**
+     * Without a host there is no change to open: the url would come out as a bare change number, and the browser
+     * would be sent to it. The action waits until Gerrit is set up.
+     */
+    @Override
+    public void update(AnActionEvent e) {
+        super.update(e);
+        String host = gerritSettings.getHost();
+        e.getPresentation().setEnabled(host != null && !host.isEmpty());
+    }
+
     private String getUrl(ChangeInfo change) {
         String url = gerritSettings.getHost();
         int changeNumber = change._number;

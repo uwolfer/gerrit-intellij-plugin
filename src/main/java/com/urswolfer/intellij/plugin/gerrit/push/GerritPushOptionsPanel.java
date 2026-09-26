@@ -51,15 +51,9 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
         mainContainer.add(gitPushOptionsPanel);
 
         add(mainContainer, BorderLayout.CENTER);
-
-        gerritPushExtensionPanel.initialized();
     }
 
     public VcsPushOptionValue getValue() {
         return gitPushOptionsPanel.getValue();
-    }
-
-    public GerritPushExtensionPanel getGerritPushExtensionPanel() {
-        return gerritPushExtensionPanel;
     }
 }

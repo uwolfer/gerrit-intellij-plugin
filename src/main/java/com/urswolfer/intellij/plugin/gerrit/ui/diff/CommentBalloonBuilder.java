@@ -37,7 +37,7 @@ public class CommentBalloonBuilder {
 
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {
         final ComponentPopupBuilder builder = JBPopupFactory.getInstance().
-                createComponentPopupBuilder(balloonContent, balloonContent);
+                createComponentPopupBuilder(balloonContent, balloonContent.getPreferredFocusedComponent());
         builder.setAdText(POPUP_TEXT);
         builder.setTitle(title);
         builder.setResizable(true);

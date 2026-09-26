@@ -90,6 +90,19 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>2.0.1</li>
+          <ul>
+            <li>add "Create Feature Merge Change" action</li>
+            <li>fix push dialog selecting every repository in a multi-repo project when "push to Gerrit by
+            default" is enabled</li>
+            <li>fix "Open in Gerrit" sending the browser to an invalid URL when no host is configured</li>
+            <li>fix percent-encoding of the asterisk in patch set descriptions</li>
+            <li>fix reviewer names with non-breaking spaces not being trimmed before sending them to Gerrit</li>
+            <li>fix the diff "add comment" shortcut no longer reaching the keymap, and make it configurable</li>
+            <li>fix focus handling of the inline comment popup breaking composed input (e.g. IME)</li>
+            <li>fix settings page being shared between projects instead of built per project</li>
+            <li>read and write Gerrit credentials off the event dispatch thread to avoid blocking the IDE</li>
+          </ul>
           <li>2.0.0</li>
           <ul>
             <li>large parts of the internals have been rewritten (dependency injection, background loading, notifications);

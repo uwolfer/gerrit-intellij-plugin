@@ -151,19 +151,30 @@ public final class GerritGitUtil {
                     return;
                 }
 
-                Pair<GitRemote, String> target = fetchTarget.get();
-                GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, target.first, target.second);
-                result.showNotificationIfFailed();
-
-                try {
-                    if (fetchCallback != null) {
-                        fetchCallback.call();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                 }
+                fetch(project, gitRepository, fetchTarget.get(), fetchCallback);
             }
         });
+    }
+
+    @VisibleForTesting
+    void fetch(Project project,
+               GitRepository gitRepository,
+               Pair<GitRemote, String> target,
+               @Nullable Callable<Void> fetchCallback) {
+        GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, target.first, target.second);
+        // a failed fetch leaves the commit missing or FETCH_HEAD pointing to an earlier fetch,
+        // so the callers would fail or work with a different change
+        if (!result.showNotificationIfFailed()) {
+            return;
+        }
+
+        try {
+            if (fetchCallback != null) {
+                fetchCallback.call();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @VisibleForTesting

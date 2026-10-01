@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
+import git4idea.fetch.GitFetchResult;
+import git4idea.fetch.GitFetchSupport;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.easymock.EasyMock;
@@ -27,6 +29,7 @@ import org.testng.annotations.Test;
 
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GerritGitUtilTest {
 
@@ -84,5 +87,42 @@ public class GerritGitUtilTest {
         Pair<GitRemote, String> target = fetchTarget.get();
         Assert.assertSame(target.first, origin);
         Assert.assertEquals(target.second, "refs/changes/34/1234/1");
+    }
+
+    @Test
+    public void testFetchRunsCallbackAfterSuccessfulFetch() {
+        Assert.assertTrue(fetchAndCheckCallback(true));
+    }
+
+    @Test
+    public void testFetchDoesNotRunCallbackAfterFailedFetch() {
+        Assert.assertFalse(fetchAndCheckCallback(false));
+    }
+
+    private static boolean fetchAndCheckCallback(boolean fetchSucceeds) {
+        GitRemote origin = new GitRemote(
+            "origin",
+            Collections.singletonList("https://gerrit.example.com/myProject"),
+            Collections.emptySet(),
+            Collections.emptyList(),
+            Collections.emptyList()
+        );
+        GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
+        GitFetchResult fetchResult = EasyMock.createMock(GitFetchResult.class);
+        EasyMock.expect(fetchResult.showNotificationIfFailed()).andReturn(fetchSucceeds);
+        GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, "refs/changes/34/1234/1")).andReturn(fetchResult);
+        Project project = EasyMock.createMock(Project.class);
+        EasyMock.expect(project.getService(GitFetchSupport.class)).andReturn(fetchSupport).anyTimes();
+        EasyMock.replay(gitRepository, fetchResult, fetchSupport, project);
+
+        AtomicBoolean callbackRan = new AtomicBoolean();
+        new GerritGitUtil().fetch(project, gitRepository, Pair.create(origin, "refs/changes/34/1234/1"), () -> {
+            callbackRan.set(true);
+            return null;
+        });
+
+        EasyMock.verify(fetchResult, fetchSupport);
+        return callbackRan.get();
     }
 }

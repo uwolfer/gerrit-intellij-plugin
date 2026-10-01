@@ -297,6 +297,23 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
     }
 
     /**
+     * Only kept on the account: a version without accounts has no use for it.
+     */
+    public void setGitilesUrl(String gitilesUrl) {
+        accountForWrite().gitilesUrl = gitilesUrl != null ? gitilesUrl : "";
+    }
+
+    public String getGitilesUrl() {
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.gitilesUrl : "";
+    }
+
+    public String getGitilesUrlOrDefault() {
+        GerritAccount account = accounts().getDefaultAccount();
+        return account != null ? account.getGitilesUrlOrDefault() : "";
+    }
+
+    /**
      * What a version without accounts wrote, which is where the first account is seeded from. Read through
      * {@link GerritAccounts} rather than here.
      */

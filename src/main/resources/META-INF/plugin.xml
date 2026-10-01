@@ -50,6 +50,7 @@
           <li>Clone and set up Gerrit projects directly in IDE (commit-message-hook is automatically added)</li>
           <li>Abandon changes</li>
           <li>Publish and delete draft changes</li>
+          <li>Open files and commits in Gitiles</li>
         </ul>
       </p>
 
@@ -642,6 +643,19 @@
     <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="last"/>
+    </action>
+
+    <action id="Gerrit.OpenInGitiles" text="Open in Gitiles"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInGitilesAction">
+      <!-- within the "Open In" submenu of the editor, editor tab and project view -->
+      <override-text place="EditorTabPopup" text="Gitiles"/>
+      <override-text place="ProjectViewPopup" use-text-of-place="EditorTabPopup"/>
+      <override-text place="EditorPopup" use-text-of-place="EditorTabPopup"/>
+      <override-text place="FavoritesPopup" use-text-of-place="EditorTabPopup"/>
+      <add-to-group group-id="RevealGroup"/>
+      <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
+      <add-to-group group-id="VcsHistoryActionsGroup" anchor="last"/>
+      <add-to-group group-id="VcsSelectionHistoryDialog.Popup" anchor="last"/>
     </action>
 
     <action id="Gerrit.Refresh" text="Refresh"

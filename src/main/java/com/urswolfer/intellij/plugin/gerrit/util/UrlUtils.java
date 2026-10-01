@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.util;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,12 +59,20 @@ public class UrlUtils {
     }
 
     public static URI createUriFromGitConfigString(String gitConfigUrl) {
+        gitConfigUrl = normalizeScpLikeUrl(gitConfigUrl);
         if (!gitConfigUrl.contains("://")) { // some urls do not contain a protocol; just add something so it will not fail with parsing
             gitConfigUrl = "git://" + gitConfigUrl;
         }
         gitConfigUrl = gitConfigUrl.replace(" ", "%20");
         gitConfigUrl = gitConfigUrl.replace("\\", "/");
         return URI.create(gitConfigUrl);
+    }
+
+    public static String stripAuthenticationPrefix(String url, String projectName) {
+        // over HTTP Gerrit reserves "/a/" for authenticated access, so there it is never part of a project name
+        String lowerCaseUrl = url.toLowerCase(Locale.ROOT);
+        boolean http = lowerCaseUrl.startsWith("http://") || lowerCaseUrl.startsWith("https://");
+        return http && projectName.startsWith("a/") ? projectName.substring(2) : projectName;
     }
 
     /**

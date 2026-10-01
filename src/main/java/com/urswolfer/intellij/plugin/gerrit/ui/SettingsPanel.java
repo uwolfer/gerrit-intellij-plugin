@@ -27,6 +27,7 @@ import com.intellij.ui.components.JBTextField;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -63,6 +64,7 @@ public class SettingsPanel {
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
     private JTextField cloneBaseUrlTextField;
+    private JBTextField gitilesUrlTextField;
 
     private boolean passwordModified;
 
@@ -146,6 +148,14 @@ public class SettingsPanel {
             @Override
             public void focusLost(FocusEvent e) {
                 fixUrl(cloneBaseUrlTextField);
+            }
+        });
+
+        gitilesUrlTextField.getEmptyText().setText("<Gerrit URL>" + GitilesUrls.PLUGIN_PATH);
+        gitilesUrlTextField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                fixUrl(gitilesUrlTextField);
             }
         });
     }
@@ -281,6 +291,14 @@ public class SettingsPanel {
 
     public String getCloneBaseUrl() {
         return cloneBaseUrlTextField.getText().trim();
+    }
+
+    public void setGitilesUrl(final String gitilesUrl) {
+        gitilesUrlTextField.setText(gitilesUrl);
+    }
+
+    public String getGitilesUrl() {
+        return gitilesUrlTextField.getText().trim();
     }
 
 }

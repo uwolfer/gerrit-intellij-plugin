@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.util;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Urs Wolfer
@@ -27,12 +29,32 @@ public class UrlUtils {
 
     private static final String GIT_EXTENSION = ".git";
 
+    // git's scp-like syntax "[user@]host:path"; a single letter before the colon is a Windows drive, and digits up to
+    // the next slash are kept as a port, which is how createUriFromGitConfigString has always read "host:29418/x"
+    private static final Pattern SCP_LIKE_URL = Pattern.compile("^((?:[^@/:]+@)?[^@/:\\\\]{2,}):(?!\\d+(?:/|$))(.*)$");
+
     private UrlUtils() {}
 
     public static boolean urlHasSameHost(String url, String hostUrl) {
         String host = URI.create(hostUrl).getHost();
         String repositoryHost = UrlUtils.createUriFromGitConfigString(url).getHost();
         return repositoryHost != null && repositoryHost.equalsIgnoreCase(host); // host names are case insensitive
+    }
+
+    /**
+     * Rewrites git's scp-like "user@host:path" to "ssh://user@host/path", which {@link java.net.URI} can take apart.
+     * Anything else is returned unchanged.
+     */
+    public static String normalizeScpLikeUrl(String url) {
+        if (url.contains("://")) {
+            return url;
+        }
+        Matcher matcher = SCP_LIKE_URL.matcher(url);
+        if (!matcher.matches()) {
+            return url;
+        }
+        String path = matcher.group(2);
+        return "ssh://" + matcher.group(1) + (path.startsWith("/") ? "" : "/") + path;
     }
 
     public static URI createUriFromGitConfigString(String gitConfigUrl) {

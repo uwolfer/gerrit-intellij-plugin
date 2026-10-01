@@ -36,7 +36,11 @@ public final class PathUtils {
     private PathUtils() {}
 
     public static String getRelativePath(Project project, String absoluteFilePath, String gerritProjectName) {
-        Optional<GitRepository> gitRepositoryOptional = GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName);
+        return getRelativePath(
+            GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName), absoluteFilePath);
+    }
+
+    private static String getRelativePath(Optional<GitRepository> gitRepositoryOptional, String absoluteFilePath) {
         if (!gitRepositoryOptional.isPresent()) return null;
         GitRepository repository = gitRepositoryOptional.get();
         VirtualFile root = repository.getRoot();
@@ -47,7 +51,17 @@ public final class PathUtils {
      * @return a relative path for all files under the project root, or the absolute path for other files
      */
     public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
-        String relativePath = getRelativePath(project, absoluteFilePath, gerritProjectName);
+        return getRelativeOrAbsolutePath(
+            GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName), absoluteFilePath);
+    }
+
+    /**
+     * @param gitRepository the repository of the change, as resolved by
+     *                      {@link GerritGitUtil#getRepositoryForGerritProject(Project, String)}
+     * @return a relative path for all files under the project root, or the absolute path for other files
+     */
+    public static String getRelativeOrAbsolutePath(Optional<GitRepository> gitRepository, String absoluteFilePath) {
+        String relativePath = getRelativePath(gitRepository, absoluteFilePath);
         if (relativePath == null || leavesRepositoryRoot(relativePath)) {
             return absoluteFilePath;
         }

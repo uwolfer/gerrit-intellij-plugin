@@ -71,6 +71,13 @@ public class PushOptionValidatorTest {
     }
 
     @Test
+    public void testIsValidOptionAgreesWithValidateOption() throws Exception {
+        Assert.assertTrue(PushOptionValidator.isValidOption("driver/i42"));
+        Assert.assertFalse(PushOptionValidator.isValidOption("Bug xy"));
+        Assert.assertFalse(PushOptionValidator.isValidOption("bug,fix"));
+    }
+
+    @Test
     public void testTopicWithComma() throws Exception {
         // a comma would be handled as separator between two Gerrit push options
         Assert.assertEquals(PushOptionValidator.validateOption("Topic", "bug,fix"),

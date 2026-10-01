@@ -131,9 +131,8 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     }
 
     /**
-     * Sets the ref to push to. A {@code null} branch reports Gerrit push settings which cannot be transported
-     * in a ref: the last usable ref is kept, the one the push dialog already shows and the one the push would
-     * use, instead of a ref which does not contain what the user entered.
+     * Sets the ref to push to. A {@code null} branch reports that no usable ref could be built: the row keeps
+     * the last one, as writing a ref the push dialog rejects would only log an error.
      *
      * A row which is not checked is left alone: writing to it checks it (the IDE checks a repository as soon
      * as its push target changes), which would select every repository of the project for the push. Such a

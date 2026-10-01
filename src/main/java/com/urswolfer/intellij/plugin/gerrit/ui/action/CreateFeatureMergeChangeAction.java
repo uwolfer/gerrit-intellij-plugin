@@ -12,6 +12,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -44,7 +45,7 @@ import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings("ComponentNotRegistered")
-public class CreateFeatureMergeChangeAction extends AnAction implements DumbAware {
+public class CreateFeatureMergeChangeAction extends AnAction implements DumbAware, UpdateInBackground {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();

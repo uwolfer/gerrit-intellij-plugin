@@ -18,6 +18,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -35,9 +36,8 @@ public final class PathUtils {
 
     private PathUtils() {}
 
-    public static String getRelativePath(Project project, String absoluteFilePath, String gerritProjectName) {
-        return getRelativePath(
-            GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName), absoluteFilePath);
+    public static String getRelativePath(Project project, String absoluteFilePath, ChangeInfo change) {
+        return getRelativePath(GerritGitUtil.getInstance().getRepositoryForChange(project, change), absoluteFilePath);
     }
 
     private static String getRelativePath(Optional<GitRepository> gitRepositoryOptional, String absoluteFilePath) {
@@ -50,14 +50,13 @@ public final class PathUtils {
     /**
      * @return a relative path for all files under the project root, or the absolute path for other files
      */
-    public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, String gerritProjectName) {
+    public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo change) {
         return getRelativeOrAbsolutePath(
-            GerritGitUtil.getInstance().getRepositoryForGerritProject(project, gerritProjectName), absoluteFilePath);
+            GerritGitUtil.getInstance().getRepositoryForChange(project, change), absoluteFilePath);
     }
 
     /**
-     * @param gitRepository the repository of the change, as resolved by
-     *                      {@link GerritGitUtil#getRepositoryForGerritProject(Project, String)}
+     * @param gitRepository the repository of the change, as resolved by {@link GerritGitUtil#getRepositoryForChange}
      * @return a relative path for all files under the project root, or the absolute path for other files
      */
     public static String getRelativeOrAbsolutePath(Optional<GitRepository> gitRepository, String absoluteFilePath) {

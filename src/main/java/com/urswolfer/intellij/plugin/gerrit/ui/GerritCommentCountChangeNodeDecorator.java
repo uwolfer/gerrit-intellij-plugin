@@ -206,7 +206,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
         if (selectedRepository == null) {
-            selectedRepository = GerritGitUtil.getInstance().getRepositoryForGerritProject(project, selectedChange.project);
+            selectedRepository = GerritGitUtil.getInstance().getRepositoryForChange(project, selectedChange);
         }
         return PathUtils.getRelativeOrAbsolutePath(selectedRepository, absoluteFilePath);
     }

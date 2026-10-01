@@ -328,7 +328,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo changeInfo) {
-        return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo.project);
+        return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo);
     }
 
     private static RangeHighlighter highlightRangeComment(Comment.Range range, Editor editor, Project project) {

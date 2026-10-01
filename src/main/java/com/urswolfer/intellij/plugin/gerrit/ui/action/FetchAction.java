@@ -51,7 +51,7 @@ public class FetchAction {
             @Override
             public void consume(ChangeInfo changeDetails) {
 
-                Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForGerritProject(project, changeDetails.project);
+                Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForChange(project, changeDetails);
                 if (!gitRepository.isPresent()) {
                     NotificationBuilder notification = new NotificationBuilder(project, "Error",
                         String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));

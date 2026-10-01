@@ -168,7 +168,7 @@ public class RepositoryChangesBrowserProvider {
         protected void updateChangesBrowser() {
             getViewer().setEmptyText("Loading...");
             setChangesToDisplay(Collections.<Change>emptyList());
-            Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, selectedChange.project);
+            Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
             if (!gitRepositoryOptional.isPresent()) {
                 getViewer().setEmptyText("Diff cannot be displayed as no local repository was found");
                 return;

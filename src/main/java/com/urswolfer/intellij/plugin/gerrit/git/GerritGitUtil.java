@@ -52,6 +52,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitCommit;
+import git4idea.GitLocalBranch;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
 import git4idea.commands.Git;
@@ -65,6 +66,7 @@ import git4idea.fetch.GitFetchResult;
 import git4idea.fetch.GitFetchSupport;
 import git4idea.history.GitHistoryUtils;
 import git4idea.merge.GitConflictResolver;
+import git4idea.repo.GitBranchTrackInfo;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.repo.GitRepositoryManager;
@@ -232,23 +234,61 @@ public final class GerritGitUtil {
     }
 
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
-        String url = fetchInfo.url;
+        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo);
+        if (remotes.isEmpty()) {
+            notifyNoRemoteForChange(project, gitRepository);
+            return Optional.empty();
+        }
+        return Optional.of(remotes.get(0));
+    }
+
+    /**
+     * @return the remotes on the Gerrit host, the one the current branch tracks first
+     */
+    @VisibleForTesting
+    List<GitRemote> getRemotesForChange(GitRepository gitRepository, FetchInfo fetchInfo) {
+        List<GitRemote> remotes = new ArrayList<GitRemote>();
         for (GitRemote remote : gitRepository.getRemotes()) {
-            List<String> repositoryUrls = new ArrayList<String>();
-            repositoryUrls.addAll(remote.getUrls());
-            repositoryUrls.addAll(remote.getPushUrls());
-            for (String repositoryUrl : repositoryUrls) {
-                if (UrlUtils.urlHasSameHost(repositoryUrl, url)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
-                    return Optional.of(remote);
-                }
+            if (isOnGerritHost(remote, fetchInfo.url)) {
+                remotes.add(remote);
             }
         }
+        // several remotes can point to the Gerrit host, for example over SSH and HTTP, and not every one of
+        // them has to be reachable; the one the user works with is the most likely to be
+        Optional<GitRemote> trackedRemote = getTrackedRemote(gitRepository);
+        if (trackedRemote.isPresent() && remotes.remove(trackedRemote.get())) {
+            remotes.add(0, trackedRemote.get());
+        }
+        return remotes;
+    }
+
+    private static boolean isOnGerritHost(GitRemote remote, String fetchUrl) {
+        List<String> repositoryUrls = new ArrayList<String>();
+        repositoryUrls.addAll(remote.getUrls());
+        repositoryUrls.addAll(remote.getPushUrls());
+        for (String repositoryUrl : repositoryUrls) {
+            if (UrlUtils.urlHasSameHost(repositoryUrl, fetchUrl)
+                || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Optional<GitRemote> getTrackedRemote(GitRepository gitRepository) {
+        GitLocalBranch currentBranch = gitRepository.getCurrentBranch();
+        if (currentBranch == null) {
+            return Optional.empty();
+        }
+        GitBranchTrackInfo trackInfo = gitRepository.getBranchTrackInfo(currentBranch.getName());
+        return trackInfo != null ? Optional.of(trackInfo.getRemote()) : Optional.empty();
+    }
+
+    private static void notifyNoRemoteForChange(Project project, GitRepository gitRepository) {
         NotificationBuilder notification = new NotificationBuilder(project, "Error",
             String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
                 "Git repository: '%s'.", gitRepository.getPresentableUrl()));
         NotificationService.getInstance().notifyError(notification);
-        return Optional.empty();
     }
 
     public void fetchChange(final Project project,
@@ -276,14 +316,34 @@ public final class GerritGitUtil {
             runCallback(fetchCallback);
             return;
         }
-        Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
-        if (!remote.isPresent()) {
+        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo);
+        if (remotes.isEmpty()) {
+            notifyNoRemoteForChange(project, gitRepository);
             return;
         }
-        GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote.get(), fetchInfo.ref);
+        List<GitFetchResult> failedFetches = new ArrayList<GitFetchResult>();
+        for (GitRemote remote : remotes) {
+            GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote, fetchInfo.ref);
+            if (succeeded(result)) {
+                runCallback(fetchCallback);
+                return;
+            }
+            failedFetches.add(result);
+        }
         // a failed fetch leaves the commit missing, so the callers would fail
-        if (result.showNotificationIfFailed()) {
-            runCallback(fetchCallback);
+        for (GitFetchResult failedFetch : failedFetches) {
+            failedFetch.showNotificationIfFailed();
+        }
+    }
+
+    private static boolean succeeded(GitFetchResult result) {
+        // the only way to check without notifying; the Kotlin implementation throws a VcsException
+        // without declaring it, so it cannot be caught as such
+        try {
+            result.throwExceptionIfFailed();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 

@@ -95,8 +95,8 @@ public class RevisionFetcher {
 
     /**
      * Counts down the fetches which are still running; the callback provided by the caller gets executed by the
-     * one which completes last. A revision without fetch information never completes (an error is shown for it
-     * instead), so the callback is not executed in that case.
+     * one which completes last. A revision without fetch information or whose fetch fails never completes (an error
+     * is shown for it instead), so the callback is not executed in that case.
      */
     private static final class FetchCallback implements Callable<Void> {
         private final Callable<Void> callback;

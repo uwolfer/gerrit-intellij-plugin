@@ -32,6 +32,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.ChangeListManagerEx;
@@ -46,6 +47,7 @@ import com.intellij.vcs.log.VcsUserRegistry;
 import com.intellij.vcs.log.impl.HashImpl;
 import com.intellij.vcs.log.impl.VcsShortCommitDetailsImpl;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
@@ -72,9 +74,12 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -94,21 +99,136 @@ public final class GerritGitUtil {
     }
 
     public Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
-        final Iterable<GitRepository> repositoriesFromRoots = getRepositories(project);
-        for (GitRepository repository : repositoriesFromRoots) {
-            for (GitRemote remote : repository.getRemotes()) {
-                if (remote.getName().equals(gerritProjectName)) {
-                    return Optional.of(repository);
-                }
-                for (String remoteUrl : remote.getUrls()) {
-                    remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
-                    if (remoteUrl != null && remoteUrl.endsWith(gerritProjectName)) {
-                        return Optional.of(repository);
-                    }
+        GerritSettings settings = GerritSettings.getInstance();
+        return getRepositoryForGerritProject(getRepositories(project), project.getBasePath(),
+            settings.getHost(), settings.getCloneBaseUrl(), gerritProjectName);
+    }
+
+    @VisibleForTesting
+    static Optional<GitRepository> getRepositoryForGerritProject(Iterable<GitRepository> repositories,
+                                                                 @Nullable String projectBasePath,
+                                                                 @Nullable String gerritHost,
+                                                                 @Nullable String cloneBaseUrl,
+                                                                 String gerritProjectName) {
+        ProjectMatcher matcher = new ProjectMatcher(gerritProjectName, gerritHost, cloneBaseUrl);
+        // a weaker match is still accepted on its own, but it must not win over a root whose remote really is the
+        // project: "my-app" and "team/app" both end with "app"
+        List<GitRepository> candidates = new ArrayList<>();
+        RemoteMatch best = RemoteMatch.SUFFIX;
+        for (GitRepository repository : repositories) {
+            RemoteMatch match = matcher.match(repository);
+            if (match.compareTo(best) > 0) {
+                candidates.clear();
+                best = match;
+            }
+            if (match == best) {
+                candidates.add(repository);
+            }
+        }
+        return pickPreferredRepository(candidates, projectBasePath);
+    }
+
+    private enum RemoteMatch { NONE, SUFFIX, SEGMENT, EXACT }
+
+    private static final class ProjectMatcher {
+        private final String gerritProjectName;
+        private final List<String> gerritBaseUrls = new ArrayList<>();
+
+        ProjectMatcher(String gerritProjectName, @Nullable String gerritHost, @Nullable String cloneBaseUrl) {
+            this.gerritProjectName = gerritProjectName;
+            // the host and the clone base URL can differ in their path as well, so a remote is resolved against
+            // each one it lives on
+            for (String baseUrl : Arrays.asList(gerritHost, cloneBaseUrl)) {
+                if (!StringUtil.isEmpty(baseUrl)) {
+                    gerritBaseUrls.add(baseUrl);
                 }
             }
         }
-        return Optional.empty();
+
+        RemoteMatch match(GitRepository repository) {
+            RemoteMatch best = RemoteMatch.NONE;
+            for (GitRemote remote : repository.getRemotes()) {
+                best = max(best, match(remote));
+            }
+            return best;
+        }
+
+        RemoteMatch match(GitRemote remote) {
+            RemoteMatch best = remote.getName().equals(gerritProjectName) ? RemoteMatch.SEGMENT : RemoteMatch.NONE;
+            for (String remoteUrl : remote.getUrls()) {
+                remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
+                if (remoteUrl != null && remoteUrl.endsWith(gerritProjectName)) {
+                    best = max(best, match(remoteUrl));
+                }
+            }
+            return best;
+        }
+
+        private RemoteMatch match(String remoteUrl) {
+            List<String> projectNames = projectNamesOnGerrit(remoteUrl);
+            if (projectNames.contains(gerritProjectName)) {
+                return RemoteMatch.EXACT;
+            }
+            if (!projectNames.isEmpty()) {
+                // on the Gerrit host, the URL names its project exactly, and that is another one
+                return RemoteMatch.SUFFIX;
+            }
+            // the separators cover "host/project", scp-like "host:project" and local Windows paths
+            int separator = remoteUrl.length() - gerritProjectName.length() - 1;
+            if (separator < 0 || "/:\\".indexOf(remoteUrl.charAt(separator)) >= 0) {
+                return RemoteMatch.SEGMENT;
+            }
+            return RemoteMatch.SUFFIX;
+        }
+
+        private List<String> projectNamesOnGerrit(String remoteUrl) {
+            String url = UrlUtils.normalizeScpLikeUrl(remoteUrl);
+            List<String> projectNames = new ArrayList<>();
+            for (String baseUrl : gerritBaseUrls) {
+                try {
+                    if (UrlUtils.urlHasSameHost(url, baseUrl)) {
+                        projectNames.add(stripAuthenticationPrefix(url, GerritUtil.getProjectName(baseUrl, null, url)));
+                    }
+                } catch (IllegalArgumentException e) {
+                    // java.net.URI rejects some remotes git accepts; they are matched by the weaker rules only
+                }
+            }
+            return projectNames;
+        }
+
+        private static String stripAuthenticationPrefix(String url, String projectName) {
+            // over HTTP Gerrit reserves "/a/" for authenticated access, so there it is never part of a project name
+            String lowerCaseUrl = url.toLowerCase(Locale.ROOT);
+            boolean http = lowerCaseUrl.startsWith("http://") || lowerCaseUrl.startsWith("https://");
+            return http && projectName.startsWith("a/") ? projectName.substring(2) : projectName;
+        }
+
+        private static RemoteMatch max(RemoteMatch a, RemoteMatch b) {
+            return a.compareTo(b) >= 0 ? a : b;
+        }
+    }
+
+    private static Optional<GitRepository> pickPreferredRepository(List<GitRepository> candidates,
+                                                                   @Nullable String projectBasePath) {
+        // several roots can carry the same project, e.g. submodules kept as branches of the main repository; the
+        // root the IDE project was opened on is the one the user works in, and failing that the outermost one, as a
+        // submodule is nested inside its superproject
+        if (projectBasePath != null) {
+            for (GitRepository candidate : candidates) {
+                if (FileUtil.pathsEqual(rootPath(candidate), projectBasePath)) {
+                    return Optional.of(candidate);
+                }
+            }
+        }
+        return candidates.stream()
+            .filter(candidate -> candidates.stream().noneMatch(other ->
+                FileUtil.isAncestor(rootPath(other), rootPath(candidate), true)))
+            // the platform keeps its roots in a hash map, so its order must not decide
+            .min(Comparator.comparing(GerritGitUtil::rootPath));
+    }
+
+    private static String rootPath(GitRepository repository) {
+        return repository.getRoot().getPath();
     }
 
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {

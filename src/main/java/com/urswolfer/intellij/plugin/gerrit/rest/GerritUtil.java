@@ -496,7 +496,7 @@ public final class GerritUtil {
         accessGerrit(supplier, consumer, project, "Failed to load Gerrit branches");
     }
 
-    private String getProjectName(String gerritUrl, String gerritCloneBaseUrl,  String url) {
+    public static String getProjectName(String gerritUrl, String gerritCloneBaseUrl, String url) {
         String baseUrl = gerritCloneBaseUrl == null || gerritCloneBaseUrl.isEmpty() ? gerritUrl : gerritCloneBaseUrl;
         if (!baseUrl.endsWith("/")) {
             baseUrl = baseUrl + "/";

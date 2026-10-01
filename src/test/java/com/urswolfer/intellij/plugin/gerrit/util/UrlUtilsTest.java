@@ -105,4 +105,29 @@ public class UrlUtilsTest {
         Assert.assertEquals(URLDecoder.decode(encoded, StandardCharsets.UTF_8), "fix *bold*");
         Assert.assertTrue(GitRefNameValidator.getInstance().checkInput("refs/for/master%m=" + encoded));
     }
+
+    @Test
+    public void testNormalizeScpLikeUrl() {
+        Assert.assertEquals(UrlUtils.normalizeScpLikeUrl("git@gerrit.example.com:team/app"),
+            "ssh://git@gerrit.example.com/team/app");
+        Assert.assertEquals(UrlUtils.normalizeScpLikeUrl("gerrit.example.com:app.git"), "ssh://gerrit.example.com/app.git");
+        Assert.assertEquals(UrlUtils.normalizeScpLikeUrl("gerrit.example.com:/srv/app"), "ssh://gerrit.example.com/srv/app");
+        Assert.assertEquals(UrlUtils.createUriFromGitConfigString(
+            UrlUtils.normalizeScpLikeUrl("git@gerrit.example.com:team/app")).getHost(), "gerrit.example.com");
+    }
+
+    @Test
+    public void testNormalizeScpLikeUrlKeepsOtherUrls() {
+        for (String url : new String[]{
+            "https://gerrit.example.com/app",
+            "ssh://git@gerrit.example.com:29418/app",
+            "gerrit.example.com:29418/app",
+            "/srv/git/app",
+            "C:/git/app",
+            "C:\\git\\app",
+            "../app",
+        }) {
+            Assert.assertEquals(UrlUtils.normalizeScpLikeUrl(url), url);
+        }
+    }
 }

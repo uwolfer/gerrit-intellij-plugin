@@ -30,8 +30,10 @@ import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
+import git4idea.repo.GitRepository;
 
 import java.util.*;
 
@@ -48,6 +50,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private final Disposable parent;
 
     private ChangeInfo selectedChange;
+    /**
+     * The repository of {@link #selectedChange}, resolved on the event dispatch thread when the first node is painted
+     * rather than once per node; null until then.
+     */
+    private Optional<GitRepository> selectedRepository;
 
     /** Loaded by {@link #loadData()}; only read and written on the event dispatch thread. */
     private Map<String, List<CommentInfo>> comments = Collections.emptyMap();
@@ -100,6 +107,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     @Override
     public void onChangeSelected(Project project, ChangeInfo selectedChange) {
         this.selectedChange = selectedChange;
+        this.selectedRepository = null;
         loadData();
     }
 
@@ -197,7 +205,10 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
-        return PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, selectedChange.project);
+        if (selectedRepository == null) {
+            selectedRepository = GerritGitUtil.getInstance().getRepositoryForGerritProject(project, selectedChange.project);
+        }
+        return PathUtils.getRelativeOrAbsolutePath(selectedRepository, absoluteFilePath);
     }
 
     private Map<String, List<CommentInfo>> loadComments(ChangeInfo change, String revisionId) {

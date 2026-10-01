@@ -18,7 +18,8 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
+import git4idea.fetch.GitFetchResult;
+import git4idea.fetch.GitFetchSupport;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.easymock.EasyMock;
@@ -26,63 +27,77 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.Optional;
 
 public class GerritGitUtilTest {
+    private static final String GERRIT_URL = "https://gerrit.example.com/myProject";
+    private static final String CHANGE_REF = "refs/changes/34/1234/1";
 
     @Test
-    public void testDetermineFetchTargetUsesSelfPathWhenCommitAlreadyFetched() {
-        GerritGitUtil gerritGitUtil = new GerritGitUtil();
-
+    public void testFetchIfMissingDoesNotFetchLocalCommit() {
+        Project project = EasyMock.createMock(Project.class);
         GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
-        EasyMock.replay(gitRepository);
+        EasyMock.replay(project, gitRepository);
 
-        Optional<Pair<GitRemote, String>> fetchTarget = gerritGitUtil.determineFetchTarget(
-            null,
-            gitRepository,
-            null,
-            "abcd1234",
-            true
-        );
+        boolean available = new GerritGitUtil().fetchIfMissing(project, gitRepository, null, true);
 
-        Assert.assertTrue(fetchTarget.isPresent());
-        Pair<GitRemote, String> target = fetchTarget.get();
-        Assert.assertEquals(target.first.getName(), ".");
-        Assert.assertEquals(target.second, "abcd1234");
-
-        EasyMock.verify(gitRepository);
+        Assert.assertTrue(available);
+        EasyMock.verify(project, gitRepository);
     }
 
     @Test
-    public void testDetermineFetchTargetResolvesRemoteWhenCommitNotYetFetched() {
-        GerritGitUtil gerritGitUtil = new GerritGitUtil();
+    public void testFetchIfMissingFetchesChangeRefFromMatchingRemote() {
+        GitRemote origin = createRemote(GERRIT_URL);
+        GitRepository gitRepository = createRepository(origin);
+        GitFetchResult fetchResult = EasyMock.createMock(GitFetchResult.class);
+        EasyMock.expect(fetchResult.showNotificationIfFailed()).andReturn(true);
+        GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, CHANGE_REF)).andReturn(fetchResult);
+        Project project = createProject(fetchSupport);
+        EasyMock.replay(fetchResult, fetchSupport, project);
 
-        String gerritUrl = "https://gerrit.example.com/myProject";
-        GitRemote origin = new GitRemote(
+        boolean available = new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), false);
+
+        Assert.assertTrue(available);
+        EasyMock.verify(fetchResult, fetchSupport);
+    }
+
+    @Test
+    public void testFetchIfMissingReportsFailedFetch() {
+        GitRemote origin = createRemote(GERRIT_URL);
+        GitRepository gitRepository = createRepository(origin);
+        GitFetchResult fetchResult = EasyMock.createMock(GitFetchResult.class);
+        EasyMock.expect(fetchResult.showNotificationIfFailed()).andReturn(false);
+        GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, CHANGE_REF)).andReturn(fetchResult);
+        Project project = createProject(fetchSupport);
+        EasyMock.replay(fetchResult, fetchSupport, project);
+
+        boolean available = new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), false);
+
+        Assert.assertFalse(available);
+        EasyMock.verify(fetchResult, fetchSupport);
+    }
+
+    private static GitRemote createRemote(String url) {
+        return new GitRemote(
             "origin",
-            Collections.singletonList(gerritUrl),
+            Collections.singletonList(url),
             Collections.emptySet(),
             Collections.emptyList(),
             Collections.emptyList()
         );
+    }
 
+    private static GitRepository createRepository(GitRemote remote) {
         GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
-        EasyMock.expect(gitRepository.getRemotes()).andReturn(Collections.singletonList(origin)).anyTimes();
+        EasyMock.expect(gitRepository.getRemotes()).andReturn(Collections.singletonList(remote)).anyTimes();
         EasyMock.replay(gitRepository);
-        FetchInfo fetchInfo = new FetchInfo(gerritUrl, "refs/changes/34/1234/1");
+        return gitRepository;
+    }
+
+    private static Project createProject(GitFetchSupport fetchSupport) {
         Project project = EasyMock.createMock(Project.class);
-
-        Optional<Pair<GitRemote, String>> fetchTarget = gerritGitUtil.determineFetchTarget(
-            project,
-            gitRepository,
-            fetchInfo,
-            "abcd1234",
-            false
-        );
-
-        Assert.assertTrue(fetchTarget.isPresent());
-        Pair<GitRemote, String> target = fetchTarget.get();
-        Assert.assertSame(target.first, origin);
-        Assert.assertEquals(target.second, "refs/changes/34/1234/1");
+        EasyMock.expect(project.getService(GitFetchSupport.class)).andReturn(fetchSupport).anyTimes();
+        return project;
     }
 }

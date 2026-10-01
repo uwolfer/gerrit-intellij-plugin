@@ -140,20 +140,9 @@ public final class GerritGitUtil {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
-                Optional<Pair<GitRemote, String>> fetchTarget = determineFetchTarget(
-                    project,
-                    gitRepository,
-                    fetchInfo,
-                    commitHash,
-                    commitIsFetched
-                );
-                if (!fetchTarget.isPresent()) {
+                if (!fetchIfMissing(project, gitRepository, fetchInfo, commitIsFetched)) {
                     return;
                 }
-
-                Pair<GitRemote, String> target = fetchTarget.get();
-                GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, target.first, target.second);
-                result.showNotificationIfFailed();
 
                 try {
                     if (fetchCallback != null) {
@@ -166,34 +155,19 @@ public final class GerritGitUtil {
         });
     }
 
+    // A local commit is not fetched again: the callers work with its hash rather than with FETCH_HEAD,
+    // which a failed fetch leaves behind unchanged and any other fetch can overwrite before they read it.
     @VisibleForTesting
-    Optional<Pair<GitRemote, String>> determineFetchTarget(
-        Project project,
-        GitRepository gitRepository,
-        FetchInfo fetchInfo,
-        String commitHash,
-        boolean commitIsFetched
-    ) {
+    boolean fetchIfMissing(Project project, GitRepository gitRepository, FetchInfo fetchInfo, boolean commitIsFetched) {
         if (commitIsFetched) {
-            return Optional.of(Pair.create(createSelfFetchRemote(), commitHash));
+            return true;
         }
-
-        return getRemoteForChange(project, gitRepository, fetchInfo).map(remote -> Pair.create(remote, fetchInfo.ref));
-    }
-
-    private static GitRemote createSelfFetchRemote() {
-        // fetch from "." (the repo's own working directory) instead of an absolute path: under WSL2,
-        // IntelliJ's absolute path is a Windows UNC path that's meaningless to git running inside the
-        // Linux subsystem, while "." always resolves correctly since it's relative to the process's cwd
-        String workingDirectory = ".";
-
-        return new GitRemote(
-            workingDirectory,
-            Collections.emptyList(),
-            Collections.emptySet(),
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
+        Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
+        if (!remote.isPresent()) {
+            return false;
+        }
+        GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote.get(), fetchInfo.ref);
+        return result.showNotificationIfFailed();
     }
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {

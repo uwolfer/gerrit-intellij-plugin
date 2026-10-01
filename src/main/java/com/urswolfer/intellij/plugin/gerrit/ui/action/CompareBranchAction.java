@@ -23,16 +23,14 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.vcs.log.impl.HashImpl;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitLocalBranch;
 import git4idea.repo.GitRepository;
 import git4idea.ui.branch.GitCompareBranchesHelper;
 
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 /**
  * @author Urs Wolfer
@@ -40,7 +38,6 @@ import java.util.concurrent.Callable;
 public class CompareBranchAction extends AbstractChangeAction {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final FetchAction fetchAction = new FetchAction();
-    private final NotificationService notificationService = NotificationService.getInstance();
 
     public CompareBranchAction() {
         super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.Diff);
@@ -53,27 +50,11 @@ public class CompareBranchAction extends AbstractChangeAction {
             return;
         }
         final Project project = anActionEvent.getProject();
-        Callable<Void> successCallable = new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                diffChange(project, selectedChange.get());
-                return null;
-            }
-        };
-        fetchAction.fetchChange(selectedChange.get(), project, successCallable);
+        fetchAction.fetchChange(selectedChange.get(), project,
+            (gitRepository, commitHash) -> diffChange(project, gitRepository, commitHash));
     }
 
-    private void diffChange(final Project project, ChangeInfo changeInfo) {
-        Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForGerritProject(project, changeInfo.project);
-        if (!gitRepositoryOptional.isPresent()) {
-            NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));
-            notificationService.notifyError(notification);
-            return;
-        }
-        final GitRepository gitRepository = gitRepositoryOptional.get();
-
-        final String branchName = "FETCH_HEAD";
+    private void diffChange(final Project project, final GitRepository gitRepository, String commitHash) {
         GitLocalBranch currentBranch = gitRepository.getCurrentBranch();
         final String currentBranchName;
         if (currentBranch != null) {
@@ -84,11 +65,13 @@ public class CompareBranchAction extends AbstractChangeAction {
         assert currentBranchName != null : "Current branch is neither a named branch nor a revision";
 
         CommitCompareInfo compareInfo = gerritGitUtil.loadCommitsToCompare(
-            Collections.singletonList(gitRepository), branchName, project);
+            Collections.singletonList(gitRepository), commitHash, project);
+        // the dialog only displays this name
+        String changeName = HashImpl.build(commitHash).toShortString();
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
-                new CompareBranchesDialog(new GitCompareBranchesHelper(project), branchName, currentBranchName, compareInfo, gitRepository, false).show();
+                new CompareBranchesDialog(new GitCompareBranchesHelper(project), changeName, currentBranchName, compareInfo, gitRepository, false).show();
             }
         });
     }

@@ -607,9 +607,13 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AddReviewersAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Star"/>
     </action>
+    <action id="Gerrit.SetAssignee" text="Set Assignee..."
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.SetAssigneeAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
+    </action>
     <action id="Gerrit.Publish" text="Publish Draft"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.PublishAction">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.SetAssignee"/>
     </action>
     <action id="Gerrit.Delete" text="Delete Draft"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.DeleteAction">

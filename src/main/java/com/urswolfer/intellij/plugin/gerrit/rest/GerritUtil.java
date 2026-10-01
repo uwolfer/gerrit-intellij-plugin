@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.AssigneeInput;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.DraftApi;
 import com.google.gerrit.extensions.api.changes.DraftInput;
@@ -26,6 +28,7 @@ import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.api.projects.BranchInfo;
 import com.google.gerrit.extensions.client.ListChangesOption;
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ChangeInput;
 import com.google.gerrit.extensions.common.MergePatchSetInput;
@@ -259,6 +262,31 @@ public final class GerritUtil {
             }
         };
         accessGerrit(supplier, __ -> {}, project, "Failed to add reviewer");
+    }
+
+    /**
+     * @param assignee an empty value removes the assignee
+     * @param consumer receives the new assignee, or null once it has been removed
+     */
+    public void setAssignee(final String changeId,
+                            final String assignee,
+                            final Project project,
+                            final Consumer<AccountInfo> consumer) {
+        Supplier<AccountInfo> supplier = () -> {
+            try {
+                ChangeApi changeApi = gerritApi().changes().id(changeId);
+                if (assignee.isEmpty()) {
+                    changeApi.deleteAssignee();
+                    return null;
+                }
+                AssigneeInput input = new AssigneeInput();
+                input.assignee = assignee;
+                return changeApi.setAssignee(input);
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        accessGerrit(supplier, consumer, project, "Failed to set assignee");
     }
 
     /**

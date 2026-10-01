@@ -146,6 +146,15 @@ public class GerritToolWindow implements Disposable {
         });
     }
 
+    /**
+     * Refreshes the details panel without reloading the list, which would lose the selection.
+     */
+    public void reloadChangeDetails(ChangeInfo changeInfo, Project project) {
+        if (changeListPanel.getTable().getSelectedObject() == changeInfo) {
+            changeSelected(changeInfo, project);
+        }
+    }
+
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
         getChanges(project, requestSettingsIfNonExistent, changeListPanel);
     }

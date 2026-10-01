@@ -18,7 +18,6 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Pair;
 import git4idea.fetch.GitFetchResult;
 import git4idea.fetch.GitFetchSupport;
 import git4idea.repo.GitRemote;
@@ -28,96 +27,58 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GerritGitUtilTest {
+    private static final String GERRIT_URL = "https://gerrit.example.com/myProject";
+    private static final String CHANGE_REF = "refs/changes/34/1234/1";
 
     @Test
-    public void testDetermineFetchTargetUsesSelfPathWhenCommitAlreadyFetched() {
-        GerritGitUtil gerritGitUtil = new GerritGitUtil();
-
+    public void testFetchIfMissingRunsCallbackWithoutFetchingLocalCommit() {
+        Project project = EasyMock.createMock(Project.class);
         GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
-        EasyMock.replay(gitRepository);
+        EasyMock.replay(project, gitRepository);
 
-        Optional<Pair<GitRemote, String>> fetchTarget = gerritGitUtil.determineFetchTarget(
-            null,
-            gitRepository,
-            null,
-            "abcd1234",
-            true
-        );
+        AtomicBoolean callbackRan = new AtomicBoolean();
+        new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), true, () -> {
+            callbackRan.set(true);
+            return null;
+        });
 
-        Assert.assertTrue(fetchTarget.isPresent());
-        Pair<GitRemote, String> target = fetchTarget.get();
-        Assert.assertEquals(target.first.getName(), ".");
-        Assert.assertEquals(target.second, "abcd1234");
-
-        EasyMock.verify(gitRepository);
+        Assert.assertTrue(callbackRan.get());
+        EasyMock.verify(project, gitRepository);
     }
 
     @Test
-    public void testDetermineFetchTargetResolvesRemoteWhenCommitNotYetFetched() {
-        GerritGitUtil gerritGitUtil = new GerritGitUtil();
+    public void testFetchIfMissingRunsCallbackAfterSuccessfulFetch() {
+        Assert.assertTrue(fetchMissingCommitAndCheckCallback(true));
+    }
 
-        String gerritUrl = "https://gerrit.example.com/myProject";
+    @Test
+    public void testFetchIfMissingDoesNotRunCallbackAfterFailedFetch() {
+        Assert.assertFalse(fetchMissingCommitAndCheckCallback(false));
+    }
+
+    private static boolean fetchMissingCommitAndCheckCallback(boolean fetchSucceeds) {
         GitRemote origin = new GitRemote(
             "origin",
-            Collections.singletonList(gerritUrl),
+            Collections.singletonList(GERRIT_URL),
             Collections.emptySet(),
             Collections.emptyList(),
             Collections.emptyList()
         );
-
         GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
         EasyMock.expect(gitRepository.getRemotes()).andReturn(Collections.singletonList(origin)).anyTimes();
-        EasyMock.replay(gitRepository);
-        FetchInfo fetchInfo = new FetchInfo(gerritUrl, "refs/changes/34/1234/1");
-        Project project = EasyMock.createMock(Project.class);
-
-        Optional<Pair<GitRemote, String>> fetchTarget = gerritGitUtil.determineFetchTarget(
-            project,
-            gitRepository,
-            fetchInfo,
-            "abcd1234",
-            false
-        );
-
-        Assert.assertTrue(fetchTarget.isPresent());
-        Pair<GitRemote, String> target = fetchTarget.get();
-        Assert.assertSame(target.first, origin);
-        Assert.assertEquals(target.second, "refs/changes/34/1234/1");
-    }
-
-    @Test
-    public void testFetchRunsCallbackAfterSuccessfulFetch() {
-        Assert.assertTrue(fetchAndCheckCallback(true));
-    }
-
-    @Test
-    public void testFetchDoesNotRunCallbackAfterFailedFetch() {
-        Assert.assertFalse(fetchAndCheckCallback(false));
-    }
-
-    private static boolean fetchAndCheckCallback(boolean fetchSucceeds) {
-        GitRemote origin = new GitRemote(
-            "origin",
-            Collections.singletonList("https://gerrit.example.com/myProject"),
-            Collections.emptySet(),
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
-        GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
         GitFetchResult fetchResult = EasyMock.createMock(GitFetchResult.class);
         EasyMock.expect(fetchResult.showNotificationIfFailed()).andReturn(fetchSucceeds);
         GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
-        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, "refs/changes/34/1234/1")).andReturn(fetchResult);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, CHANGE_REF)).andReturn(fetchResult);
         Project project = EasyMock.createMock(Project.class);
         EasyMock.expect(project.getService(GitFetchSupport.class)).andReturn(fetchSupport).anyTimes();
         EasyMock.replay(gitRepository, fetchResult, fetchSupport, project);
 
         AtomicBoolean callbackRan = new AtomicBoolean();
-        new GerritGitUtil().fetch(project, gitRepository, Pair.create(origin, "refs/changes/34/1234/1"), () -> {
+        new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), false, () -> {
             callbackRan.set(true);
             return null;
         });

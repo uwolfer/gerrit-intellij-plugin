@@ -20,6 +20,7 @@ import com.intellij.diff.tools.util.DiffDataKeys;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @author Urs Wolfer
  */
-public class AddCommentInDiffAction extends AnAction implements DumbAware {
+public class AddCommentInDiffAction extends AnAction implements DumbAware, UpdateInBackground {
 
     @Override
     public void actionPerformed(AnActionEvent e) {

@@ -18,9 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
+import git4idea.GitLocalBranch;
+import git4idea.GitStandardRemoteBranch;
 import git4idea.fetch.GitFetchResult;
 import git4idea.fetch.GitFetchSupport;
+import git4idea.repo.GitBranchTrackInfo;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.easymock.EasyMock;
@@ -34,8 +38,10 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GerritGitUtilTest {
-    private static final String GERRIT_URL = "https://gerrit.example.com/myProject";
     private static final String CHANGE_REF = "refs/changes/34/1234/1";
+    private static final FetchInfo FETCH_INFO = new FetchInfo("https://gerrit.example.com/myProject", CHANGE_REF);
+    private static final GitRemote SSH_REMOTE = remote("ssh", "ssh://gerrit.example.com:29418/myProject");
+    private static final GitRemote HTTP_REMOTE = remote("http", "https://gerrit.example.com/myProject");
 
     @Test
     public void testFetchIfMissingRunsCallbackWithoutFetchingLocalCommit() {
@@ -43,52 +49,113 @@ public class GerritGitUtilTest {
         GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
         EasyMock.replay(project, gitRepository);
 
-        AtomicBoolean callbackRan = new AtomicBoolean();
-        new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), true, () -> {
-            callbackRan.set(true);
-            return null;
-        });
-
-        Assert.assertTrue(callbackRan.get());
+        Assert.assertTrue(fetchIfMissingAndCheckCallback(project, gitRepository, true));
         EasyMock.verify(project, gitRepository);
     }
 
     @Test
     public void testFetchIfMissingRunsCallbackAfterSuccessfulFetch() {
-        Assert.assertTrue(fetchMissingCommitAndCheckCallback(true));
+        GitRepository gitRepository = createRepository(null, SSH_REMOTE);
+        GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, SSH_REMOTE, CHANGE_REF)).andReturn(succeededFetch());
+        EasyMock.replay(fetchSupport);
+
+        Assert.assertTrue(fetchIfMissingAndCheckCallback(createProject(fetchSupport), gitRepository, false));
+        EasyMock.verify(fetchSupport);
     }
 
     @Test
-    public void testFetchIfMissingDoesNotRunCallbackAfterFailedFetch() {
-        Assert.assertFalse(fetchMissingCommitAndCheckCallback(false));
+    public void testFetchIfMissingNotifiesAndDoesNotRunCallbackWhenEveryFetchFails() {
+        GitRepository gitRepository = createRepository(null, SSH_REMOTE, HTTP_REMOTE);
+        GitFetchResult sshResult = failedFetch(true);
+        GitFetchResult httpResult = failedFetch(true);
+        GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, SSH_REMOTE, CHANGE_REF)).andReturn(sshResult);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, HTTP_REMOTE, CHANGE_REF)).andReturn(httpResult);
+        EasyMock.replay(fetchSupport);
+
+        Assert.assertFalse(fetchIfMissingAndCheckCallback(createProject(fetchSupport), gitRepository, false));
+        EasyMock.verify(fetchSupport, sshResult, httpResult);
     }
 
-    private static boolean fetchMissingCommitAndCheckCallback(boolean fetchSucceeds) {
-        GitRemote origin = new GitRemote(
-            "origin",
-            Collections.singletonList(GERRIT_URL),
-            Collections.emptySet(),
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
-        GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
-        EasyMock.expect(gitRepository.getRemotes()).andReturn(Collections.singletonList(origin)).anyTimes();
-        GitFetchResult fetchResult = EasyMock.createMock(GitFetchResult.class);
-        EasyMock.expect(fetchResult.showNotificationIfFailed()).andReturn(fetchSucceeds);
+    @Test
+    public void testFetchIfMissingFallsBackToNextRemoteWithoutNotifying() {
+        GitRepository gitRepository = createRepository(null, SSH_REMOTE, HTTP_REMOTE);
+        GitFetchResult sshResult = failedFetch(false);
         GitFetchSupport fetchSupport = EasyMock.createMock(GitFetchSupport.class);
-        EasyMock.expect(fetchSupport.fetch(gitRepository, origin, CHANGE_REF)).andReturn(fetchResult);
-        Project project = EasyMock.createMock(Project.class);
-        EasyMock.expect(project.getService(GitFetchSupport.class)).andReturn(fetchSupport).anyTimes();
-        EasyMock.replay(gitRepository, fetchResult, fetchSupport, project);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, SSH_REMOTE, CHANGE_REF)).andReturn(sshResult);
+        EasyMock.expect(fetchSupport.fetch(gitRepository, HTTP_REMOTE, CHANGE_REF)).andReturn(succeededFetch());
+        EasyMock.replay(fetchSupport);
 
+        Assert.assertTrue(fetchIfMissingAndCheckCallback(createProject(fetchSupport), gitRepository, false));
+        EasyMock.verify(fetchSupport, sshResult);
+    }
+
+    @Test
+    public void testGetRemotesForChangeKeepsConfigOrderWithoutTrackedRemote() {
+        GitRepository gitRepository = createRepository(null, SSH_REMOTE, HTTP_REMOTE);
+
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+
+        Assert.assertEquals(remotes, Arrays.asList(SSH_REMOTE, HTTP_REMOTE));
+    }
+
+    @Test
+    public void testGetRemotesForChangePutsTrackedRemoteFirst() {
+        GitRepository gitRepository = createRepository(HTTP_REMOTE, SSH_REMOTE, HTTP_REMOTE);
+
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+
+        Assert.assertEquals(remotes, Arrays.asList(HTTP_REMOTE, SSH_REMOTE));
+    }
+
+    private static boolean fetchIfMissingAndCheckCallback(Project project, GitRepository gitRepository, boolean commitIsFetched) {
         AtomicBoolean callbackRan = new AtomicBoolean();
-        new GerritGitUtil().fetchIfMissing(project, gitRepository, new FetchInfo(GERRIT_URL, CHANGE_REF), false, () -> {
+        new GerritGitUtil().fetchIfMissing(project, gitRepository, FETCH_INFO, commitIsFetched, () -> {
             callbackRan.set(true);
             return null;
         });
-
-        EasyMock.verify(fetchResult, fetchSupport);
         return callbackRan.get();
+    }
+
+    private static GitRepository createRepository(GitRemote trackedRemote, GitRemote... remotes) {
+        GitRepository gitRepository = EasyMock.createMock(GitRepository.class);
+        EasyMock.expect(gitRepository.getRemotes()).andReturn(Arrays.asList(remotes)).anyTimes();
+        GitLocalBranch currentBranch = new GitLocalBranch("master");
+        EasyMock.expect(gitRepository.getCurrentBranch()).andReturn(currentBranch).anyTimes();
+        GitBranchTrackInfo trackInfo = trackedRemote == null ? null
+            : new GitBranchTrackInfo(currentBranch, new GitStandardRemoteBranch(trackedRemote, "master"), false);
+        EasyMock.expect(gitRepository.getBranchTrackInfo("master")).andReturn(trackInfo).anyTimes();
+        EasyMock.replay(gitRepository);
+        return gitRepository;
+    }
+
+    private static Project createProject(GitFetchSupport fetchSupport) {
+        Project project = EasyMock.createMock(Project.class);
+        EasyMock.expect(project.getService(GitFetchSupport.class)).andReturn(fetchSupport).anyTimes();
+        EasyMock.replay(project);
+        return project;
+    }
+
+    private static GitFetchResult succeededFetch() {
+        GitFetchResult result = EasyMock.createMock(GitFetchResult.class);
+        result.throwExceptionIfFailed();
+        EasyMock.replay(result);
+        return result;
+    }
+
+    private static GitFetchResult failedFetch(boolean expectNotification) {
+        GitFetchResult result = EasyMock.createMock(GitFetchResult.class);
+        result.throwExceptionIfFailed();
+        // like the platform's implementation, which throws it without declaring it
+        EasyMock.expectLastCall().andAnswer(() -> {
+            throw new VcsException("Connection refused");
+        });
+        if (expectNotification) {
+            EasyMock.expect(result.showNotificationIfFailed()).andReturn(false);
+        }
+        EasyMock.replay(result);
+        return result;
     }
 
     @Test

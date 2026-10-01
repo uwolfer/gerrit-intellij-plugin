@@ -51,6 +51,8 @@ import java.util.stream.Collectors;
 public class GerritPushExtensionPanel extends JPanel {
 
     private static final String GITREVIEW_FILENAME = ".gitreview";
+    private static final String REVIEW_REF_PREFIX = "refs/for/";
+    private static final String DRAFTS_REF_PREFIX = "refs/drafts/";
 
     private JPanel indentedSettingPanel;
 
@@ -135,7 +137,7 @@ public class GerritPushExtensionPanel extends JPanel {
      * dialog was opened again, or the repository is configured with a Gerrit push spec) is reduced to it.
      */
     private static String getBranchName(String ref) {
-        return ref.replaceAll("^refs/(for|drafts)/", "").replaceAll("%.*$", "");
+        return ref.replaceAll("^(" + REVIEW_REF_PREFIX + "|" + DRAFTS_REF_PREFIX + ")", "").replaceAll("%.*$", "");
     }
 
     private Optional<String> getGitReviewBranchName() {
@@ -319,29 +321,29 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Builds the push target ref for the provided branch.
+     * Builds the push target ref for the provided branch out of the Gerrit push settings which can be used.
      *
      * The values entered by the user (branch, topic, patch set description, ...) are appended as they are,
      * apart from surrounding whitespace which gets trimmed. They must never be handled as a format string:
      * the patch set description is percent-encoded, and sequences like "%2E" would be interpreted as
      * (invalid) format specifiers.
      *
-     * Values which cannot be transported in a ref (e.g. a topic containing a space) are added nevertheless:
-     * such a ref is not written to the push dialog, which would show and push a ref not containing what the
-     * user entered. See {@link #validateSettings()}.
+     * A value which cannot be transported in a ref (e.g. a topic containing a space) is left out, and so is
+     * every value from a text field without {@code withTextOptions}; {@link #validateSettings()} reports
+     * them. Keeping the previous ref of the row instead is not safe: it may be the plain branch, which would
+     * bypass the review, or carry a push option the user has turned off since (e.g. "submit").
+     *
+     * A branch which cannot be used falls back to the branch of the push target, so the push still goes to
+     * review: a change on the wrong branch can be abandoned, a direct push cannot be taken back.
      */
-    private String getRef(String branch) {
+    private String getRef(String branch, boolean withTextOptions) {
         StringBuilder ref = new StringBuilder();
         if (!pushToGerritCheckBox.isSelected()) {
             return ref.append(branch).toString();
         }
-        if (draftChangeCheckBox.isSelected()) {
-            ref.append("refs/drafts/");
-        } else {
-            ref.append("refs/for/");
-        }
+        ref.append(draftChangeCheckBox.isSelected() ? DRAFTS_REF_PREFIX : REVIEW_REF_PREFIX);
         String branchName = getTrimmedText(branchTextField);
-        if (!branchName.isEmpty()) {
+        if (!branchName.isEmpty() && isUsableBranch(branchName)) {
             ref.append(branchName);
         } else {
             ref.append(branch);
@@ -363,20 +365,20 @@ public class GerritPushExtensionPanel extends JPanel {
         if (submitChangeCheckBox.isSelected()) {
             gerritSpecs.add("submit");
         }
-        String topic = getTrimmedText(topicTextField);
-        if (!topic.isEmpty()) {
-            gerritSpecs.add("topic=" + topic);
+        if (withTextOptions) {
+            addOption(gerritSpecs, "topic", getTrimmedText(topicTextField));
+            addOption(gerritSpecs, "hashtag", getTrimmedText(hashTagTextField));
+            String patchsetDescription = getTrimmedText(patchsetDescriptionTextField);
+            if (!patchsetDescription.isEmpty()) {
+                gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescription));
+            }
+            for (String reviewer : splitCommaSeparated(reviewersTextField.getText())) {
+                addOption(gerritSpecs, "r", reviewer);
+            }
+            for (String cc : splitCommaSeparated(ccTextField.getText())) {
+                addOption(gerritSpecs, "cc", cc);
+            }
         }
-        String hashTag = getTrimmedText(hashTagTextField);
-        if (!hashTag.isEmpty()) {
-            gerritSpecs.add("hashtag=" + hashTag);
-        }
-        String patchsetDescription = getTrimmedText(patchsetDescriptionTextField);
-        if (!patchsetDescription.isEmpty()) {
-            gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescription));
-        }
-        handleCommaSeparatedUserNames(gerritSpecs, reviewersTextField, "r");
-        handleCommaSeparatedUserNames(gerritSpecs, ccTextField, "cc");
         String gerritSpec = String.join(",", gerritSpecs);
         if (!gerritSpec.isEmpty()) {
             ref.append('%').append(gerritSpec);
@@ -384,17 +386,22 @@ public class GerritPushExtensionPanel extends JPanel {
         return ref.toString();
     }
 
+    private static void addOption(List<String> gerritSpecs, String option, String value) {
+        if (!value.isEmpty() && PushOptionValidator.isValidOption(value)) {
+            gerritSpecs.add(option + '=' + value);
+        }
+    }
+
+    private static boolean isUsableBranch(String branchName) {
+        return PushOptionValidator.validateBranch("Branch", branchName) == null
+                && PushOptionValidator.isUsableAsBranchName(branchName);
+    }
+
     private void handleExclusiveCheckBoxes() {
         privateCheckBox.setEnabled(!unmarkPrivateCheckBox.isSelected());
         unmarkPrivateCheckBox.setEnabled(!privateCheckBox.isSelected());
         wipCheckBox.setEnabled(!readyCheckBox.isSelected());
         readyCheckBox.setEnabled(!wipCheckBox.isSelected());
-    }
-
-    private void handleCommaSeparatedUserNames(List<String> gerritSpecs, JTextField textField, String option) {
-        for (String item : splitCommaSeparated(textField.getText())) {
-            gerritSpecs.add(option + '=' + item);
-        }
     }
 
     /**
@@ -430,9 +437,10 @@ public class GerritPushExtensionPanel extends JPanel {
     private String validateBranch(JTextField textField) {
         String branch = getTrimmedText(textField);
         String error = PushOptionValidator.validateBranch("Branch", branch);
-        // a branch which cannot be part of a ref name (e.g. "release/") is reported for the assembled ref by
-        // validateRef; mark the field it comes from, but leave the message to that check
-        markInvalid(textField, error != null || !PushOptionValidator.isUsableAsBranchName(branch));
+        if (error == null && !PushOptionValidator.isUsableAsBranchName(branch)) {
+            error = "Invalid branch name: " + branch;
+        }
+        markInvalid(textField, error != null);
         return error;
     }
 
@@ -489,13 +497,16 @@ public class GerritPushExtensionPanel extends JPanel {
      * dialog, and shows the first value which cannot be used.
      */
     private void updateDestinationBranches(boolean init) {
-        String settingsError = validateSettings();
-        String error = settingsError;
+        String error = validateSettings();
         for (Map.Entry<GerritPushTargetUpdater, String> entry : pushTargets.entrySet()) {
-            String ref = getRef(entry.getValue());
-            String refError = settingsError != null ? settingsError : validateRef(ref);
-            error = firstError(error, refError);
-            String branch = refError == null ? ref : null;
+            String ref = getRef(entry.getValue(), true);
+            String refError = validateRef(ref);
+            if (refError != null) {
+                // which of the text values the ref cannot carry is not known, so all of them are left out
+                error = firstError(error, refError);
+                ref = getRef(entry.getValue(), false);
+            }
+            String branch = validateRef(ref) == null ? ref : null;
             if (init) {
                 entry.getKey().initBranch(branch);
             } else {
@@ -506,9 +517,9 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Checks the assembled ref the way the push dialog does before it builds a push target out of it. Values
-     * which are no valid ref names occur regularly while the user is still typing a branch name (e.g.
-     * "refs/for/release/" on the way to "refs/for/release/1.0").
+     * Checks the assembled ref the way the push dialog does before it builds a push target out of it. It
+     * catches the characters which are invalid in a ref name, which the checks per field let through (e.g.
+     * the topic "bug~1").
      */
     private static String validateRef(String ref) {
         if (GitRefNameValidator.getInstance().checkInput(ref)) {

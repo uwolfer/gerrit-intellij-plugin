@@ -71,6 +71,13 @@ public class PushOptionValidator {
     }
 
     /**
+     * Tells whether a push option value passes {@link #validateOption(String, String)}.
+     */
+    public static boolean isValidOption(String value) {
+        return !INVALID_OPTION_CHARS.matcher(value).find();
+    }
+
+    /**
      * Tells whether the branch can be part of a ref name. An empty value can: the branch of the push
      * target is used then.
      *

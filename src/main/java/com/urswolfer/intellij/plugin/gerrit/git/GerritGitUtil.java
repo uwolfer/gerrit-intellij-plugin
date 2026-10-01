@@ -140,34 +140,34 @@ public final class GerritGitUtil {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
-                Optional<Pair<GitRemote, String>> fetchTarget = determineFetchTarget(
-                    project,
-                    gitRepository,
-                    fetchInfo,
-                    commitHash,
-                    commitIsFetched
-                );
-                if (!fetchTarget.isPresent()) {
-                    return;
-                }
-
-                fetch(project, gitRepository, fetchTarget.get(), fetchCallback);
+                fetchIfMissing(project, gitRepository, fetchInfo, commitIsFetched, fetchCallback);
             }
         });
     }
 
+    // The callers work with the commit hash, so a commit which is already local needs no fetch.
     @VisibleForTesting
-    void fetch(Project project,
-               GitRepository gitRepository,
-               Pair<GitRemote, String> target,
-               @Nullable Callable<Void> fetchCallback) {
-        GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, target.first, target.second);
-        // a failed fetch leaves the commit missing or FETCH_HEAD pointing to an earlier fetch,
-        // so the callers would fail or work with a different change
-        if (!result.showNotificationIfFailed()) {
+    void fetchIfMissing(Project project,
+                        GitRepository gitRepository,
+                        FetchInfo fetchInfo,
+                        boolean commitIsFetched,
+                        @Nullable Callable<Void> fetchCallback) {
+        if (commitIsFetched) {
+            runCallback(fetchCallback);
             return;
         }
+        Optional<GitRemote> remote = getRemoteForChange(project, gitRepository, fetchInfo);
+        if (!remote.isPresent()) {
+            return;
+        }
+        GitFetchResult result = GitFetchSupport.fetchSupport(project).fetch(gitRepository, remote.get(), fetchInfo.ref);
+        // a failed fetch leaves the commit missing, so the callers would fail
+        if (result.showNotificationIfFailed()) {
+            runCallback(fetchCallback);
+        }
+    }
 
+    private static void runCallback(@Nullable Callable<Void> fetchCallback) {
         try {
             if (fetchCallback != null) {
                 fetchCallback.call();
@@ -175,36 +175,6 @@ public final class GerritGitUtil {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @VisibleForTesting
-    Optional<Pair<GitRemote, String>> determineFetchTarget(
-        Project project,
-        GitRepository gitRepository,
-        FetchInfo fetchInfo,
-        String commitHash,
-        boolean commitIsFetched
-    ) {
-        if (commitIsFetched) {
-            return Optional.of(Pair.create(createSelfFetchRemote(), commitHash));
-        }
-
-        return getRemoteForChange(project, gitRepository, fetchInfo).map(remote -> Pair.create(remote, fetchInfo.ref));
-    }
-
-    private static GitRemote createSelfFetchRemote() {
-        // fetch from "." (the repo's own working directory) instead of an absolute path: under WSL2,
-        // IntelliJ's absolute path is a Windows UNC path that's meaningless to git running inside the
-        // Linux subsystem, while "." always resolves correctly since it's relative to the process's cwd
-        String workingDirectory = ".";
-
-        return new GitRemote(
-            workingDirectory,
-            Collections.emptyList(),
-            Collections.emptySet(),
-            Collections.emptyList(),
-            Collections.emptyList()
-        );
     }
 
     public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {

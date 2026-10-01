@@ -17,7 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.SuggestedReviewerInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
@@ -139,23 +138,15 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
         }
 
         private Optional<LookupElementBuilder> buildLookupElement(SuggestedReviewerInfo suggestedReviewer) {
-            String presentableText;
-            String reviewerName;
             if (suggestedReviewer.account != null) {
-                AccountInfo account = suggestedReviewer.account;
-                if (account.email != null) {
-                    presentableText = String.format("%s <%s>", account.name, account.email);
-                } else {
-                    presentableText = String.format("%s (%s)", account.name, account._accountId);
-                }
-                reviewerName = presentableText;
-            } else if (suggestedReviewer.group != null) {
-                presentableText = String.format("%s (group)", suggestedReviewer.group.name);
-                reviewerName = suggestedReviewer.group.name;
-            } else {
-                return Optional.empty();
+                return Optional.of(AccountLookup.lookupElement(suggestedReviewer.account, ","));
             }
-            return Optional.of(LookupElementBuilder.create(reviewerName + ',').withPresentableText(presentableText));
+            if (suggestedReviewer.group != null) {
+                String groupName = suggestedReviewer.group.name;
+                return Optional.of(LookupElementBuilder.create(groupName + ',')
+                    .withPresentableText(String.format("%s (group)", groupName)));
+            }
+            return Optional.empty();
         }
 
         @Nullable

@@ -28,11 +28,13 @@ import com.google.gerrit.extensions.common.ChangeMessageInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.changes.issueLinks.IssueLinkHtmlRenderer;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.AccountLookup;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 
@@ -156,8 +158,13 @@ public class GerritChangeDetailsPanel {
                     .append("</head><body><table>")
                     .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
                     .append("<tr valign=\"top\"><td><i>Change #:</i></td><td><b>").append(changeInfo._number).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? changeInfo.owner.name : "").append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? changeInfo.owner.name : "").append("</td></tr>");
+            // only when set: newer Gerrit versions disable the assignee or no longer have it
+            if (changeInfo.assignee != null) {
+                sb.append("<tr valign=\"top\"><td><i>Assignee:</i></td><td>")
+                    .append(StringUtil.escapeXmlEntities(AccountLookup.identifier(changeInfo.assignee))).append("</td></tr>");
+            }
+            sb.append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Uploaded:</i></td><td>")

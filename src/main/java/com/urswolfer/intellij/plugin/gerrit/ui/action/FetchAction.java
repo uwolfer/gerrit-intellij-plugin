@@ -38,7 +38,15 @@ public class FetchAction {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
+    public interface FetchCallback {
+        void fetched(GitRepository repository, String commitHash) throws Exception;
+    }
+
     public void fetchChange(ChangeInfo selectedChange, final Project project, final Callable<Void> fetchCallback) {
+        fetchChange(selectedChange, project, (repository, commitHash) -> fetchCallback.call());
+    }
+
+    public void fetchChange(ChangeInfo selectedChange, final Project project, final FetchCallback fetchCallback) {
         gerritUtil.getChangeDetails(selectedChange._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
@@ -57,7 +65,10 @@ public class FetchAction {
                 if (firstFetchInfo == null) {
                     return;
                 }
-                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, fetchCallback);
+                gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, () -> {
+                    fetchCallback.fetched(gitRepository.get(), commitHash);
+                    return null;
+                });
             }
         });
     }

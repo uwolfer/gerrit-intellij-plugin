@@ -346,6 +346,10 @@ public final class GerritGitUtil {
         return success && isCommit;
     }
 
+    public Optional<GitCommit> loadCommit(Project project, GitRepository repository, String commitHash) throws VcsException {
+        return GitHistoryUtils.history(project, repository.getRoot(), commitHash, "--max-count=1").stream().findFirst();
+    }
+
     @NotNull
     private Pair<List<GitCommit>, List<GitCommit>> loadCommitsToCompare(@NotNull GitRepository repository, @NotNull final String branchName, @NotNull final Project project) {
         final List<GitCommit> headToBranch;

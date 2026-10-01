@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit;
 
 import com.intellij.util.xmlb.annotations.Attribute;
 import com.intellij.util.xmlb.annotations.Tag;
+import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -37,6 +38,7 @@ public final class GerritAccount {
     @Attribute("login") public String login = "";
     @Attribute("host") public String host = "";
     @Attribute("cloneBaseUrl") public String cloneBaseUrl = "";
+    @Attribute("gitilesUrl") public String gitilesUrl = "";
 
     /**
      * Set on the account taken over from a version which had no accounts, and kept set for as long as the account
@@ -64,6 +66,10 @@ public final class GerritAccount {
 
     public String getCloneBaseUrlOrHost() {
         return cloneBaseUrl == null || cloneBaseUrl.isEmpty() ? host : cloneBaseUrl;
+    }
+
+    public String getGitilesUrlOrDefault() {
+        return GitilesUrls.getBaseUrl(gitilesUrl, host);
     }
 
     @Override

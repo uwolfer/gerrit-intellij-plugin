@@ -58,6 +58,39 @@ public class UrlUtilsTest {
     }
 
     @Test
+    public void testCreateUriFromScpLikeUrl() throws Exception {
+        Assert.assertEquals(UrlUtils.createUriFromGitConfigString("git@gerrit.example.com:tools/gerrit").toString(),
+            "ssh://git@gerrit.example.com/tools/gerrit");
+        Assert.assertEquals(UrlUtils.createUriFromGitConfigString("gerrit.example.com:/srv/project").toString(),
+            "ssh://gerrit.example.com/srv/project");
+    }
+
+    @Test
+    public void testScpLikeUrlHasSameHost() throws Exception {
+        Assert.assertTrue(UrlUtils.urlHasSameHost("git@gerrit.example.com:test.git", "https://gerrit.example.com/"));
+    }
+
+    @Test
+    public void testHostWithPortIsNotScpLike() throws Exception {
+        Assert.assertEquals(UrlUtils.createUriFromGitConfigString("gerrit.example.com:29418/project").toString(),
+            "git://gerrit.example.com:29418/project");
+    }
+
+    @Test
+    public void testWindowsDriveIsNotScpLike() throws Exception {
+        Assert.assertEquals(UrlUtils.createUriFromGitConfigString("C:\\repos\\project").getScheme(), "git");
+    }
+
+    @Test
+    public void testStripAuthenticationPrefix() throws Exception {
+        Assert.assertEquals(UrlUtils.stripAuthenticationPrefix("https://gerrit.example.com/a/tools/gerrit", "a/tools/gerrit"),
+            "tools/gerrit");
+        // only HTTP has the prefix
+        Assert.assertEquals(UrlUtils.stripAuthenticationPrefix("ssh://gerrit.example.com:29418/a/project", "a/project"),
+            "a/project");
+    }
+
+    @Test
     public void testUrlSpace() throws Exception {
         URI uriFromGitConfigString = UrlUtils.createUriFromGitConfigString("ssh://username@gerrit.example.com:39528/SDT Framework/act");
         Assert.assertEquals(uriFromGitConfigString.toString(), "ssh://username@gerrit.example.com:39528/SDT%20Framework/act");

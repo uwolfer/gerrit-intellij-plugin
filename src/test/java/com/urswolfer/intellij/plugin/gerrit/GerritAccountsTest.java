@@ -63,6 +63,7 @@ public class GerritAccountsTest {
     public void testAccountsRoundTripThroughTheSerializer() {
         GerritAccount account = GerritAccount.create("https://gerrit.example.com", "jdoe", "https://clone.example.com");
         account.usesLegacyPasswordKey = true;
+        account.gitilesUrl = "https://gitiles.example.com";
 
         GerritAccounts.AccountsState state = new GerritAccounts.AccountsState();
         state.seeded = true;
@@ -79,6 +80,7 @@ public class GerritAccountsTest {
         Assert.assertEquals(read.get(0).login, "jdoe");
         Assert.assertEquals(read.get(0).host, "https://gerrit.example.com");
         Assert.assertEquals(read.get(0).cloneBaseUrl, "https://clone.example.com");
+        Assert.assertEquals(read.get(0).gitilesUrl, "https://gitiles.example.com");
         Assert.assertTrue(read.get(0).usesLegacyPasswordKey);
     }
 

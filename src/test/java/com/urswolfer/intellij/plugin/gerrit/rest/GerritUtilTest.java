@@ -146,4 +146,10 @@ public class GerritUtilTest {
                         "http://gerrit.server"
                 ));
     }
+
+    @Test
+    public void testProjectNameOfScpLikeUrl() {
+        Assert.assertEquals(GerritUtil.getProjectName("https://gerrit.server", "", "git@gerrit.server:tools/gerrit"),
+                "tools/gerrit");
+    }
 }

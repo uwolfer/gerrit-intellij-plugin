@@ -53,6 +53,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitCommit;
 import git4idea.GitLocalBranch;
+import git4idea.GitRevisionNumber;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
 import git4idea.commands.Git;
@@ -81,7 +82,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -189,20 +189,13 @@ public final class GerritGitUtil {
             for (String baseUrl : gerritBaseUrls) {
                 try {
                     if (UrlUtils.urlHasSameHost(url, baseUrl)) {
-                        projectNames.add(stripAuthenticationPrefix(url, GerritUtil.getProjectName(baseUrl, null, url)));
+                        projectNames.add(UrlUtils.stripAuthenticationPrefix(url, GerritUtil.getProjectName(baseUrl, null, url)));
                     }
                 } catch (IllegalArgumentException e) {
                     // java.net.URI rejects some remotes git accepts; they are matched by the weaker rules only
                 }
             }
             return projectNames;
-        }
-
-        private static String stripAuthenticationPrefix(String url, String projectName) {
-            // over HTTP Gerrit reserves "/a/" for authenticated access, so there it is never part of a project name
-            String lowerCaseUrl = url.toLowerCase(Locale.ROOT);
-            boolean http = lowerCaseUrl.startsWith("http://") || lowerCaseUrl.startsWith("https://");
-            return http && projectName.startsWith("a/") ? projectName.substring(2) : projectName;
         }
 
         private static RemoteMatch max(RemoteMatch a, RemoteMatch b) {
@@ -552,6 +545,40 @@ public final class GerritGitUtil {
         if (!gitCommandResult.success()) {
             throw new VcsException(listener.getHtmlMessage());
         }
+    }
+
+    /**
+     * @return the newest commit HEAD shares with {@code ref}, or {@code null} if they share none
+     */
+    @Nullable
+    public String getMergeBase(GitRepository repository, String ref) throws VcsException {
+        GitRevisionNumber mergeBase = GitHistoryUtils.getMergeBase(repository.getProject(), repository.getRoot(), "HEAD", ref);
+        return mergeBase != null ? mergeBase.asString() : null;
+    }
+
+    /**
+     * @param path relative to the repository root
+     */
+    public boolean existsInRevision(GitRepository repository, String revision, String path) throws VcsException {
+        GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.LS_TREE);
+        h.setSilent(true);
+        h.addParameters("--name-only", revision);
+        h.endOptions();
+        h.addParameters(path);
+        return !Git.getInstance().runCommand(h).getOutputOrThrow().isEmpty();
+    }
+
+    /**
+     * @param path relative to the repository root
+     * @return whether the file on disk is not what {@code revision} has, committed or not
+     */
+    public boolean differsFromRevision(GitRepository repository, String revision, String path) throws VcsException {
+        GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.DIFF);
+        h.setSilent(true);
+        h.addParameters("--name-only", revision);
+        h.endOptions();
+        h.addParameters(path);
+        return !Git.getInstance().runCommand(h).getOutputOrThrow().isEmpty();
     }
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {

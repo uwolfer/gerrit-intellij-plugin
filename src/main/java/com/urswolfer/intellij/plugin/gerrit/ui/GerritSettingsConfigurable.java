@@ -76,7 +76,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
                 !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
                 !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()) ||
-                !Comparing.equal(gerritSettings.getCloneBaseUrl(), settingsPane.getCloneBaseUrl(), true));
+                !Comparing.equal(gerritSettings.getCloneBaseUrl(), settingsPane.getCloneBaseUrl(), true) ||
+                !Comparing.equal(gerritSettings.getGitilesUrl(), settingsPane.getGitilesUrl(), true));
     }
 
     private boolean isPasswordModified() {
@@ -101,6 +102,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
             gerritSettings.setCloneBaseUrl(settingsPane.getCloneBaseUrl());
+            gerritSettings.setGitilesUrl(settingsPane.getGitilesUrl());
 
             GerritUpdatesNotificationComponent.configurationChanged();
         }
@@ -123,6 +125,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setShowTopicColumn(gerritSettings.getShowTopicColumn());
             settingsPane.setShowProjectColumn(gerritSettings.getShowProjectColumn());
             settingsPane.setCloneBaseUrl(gerritSettings.getCloneBaseUrl());
+            settingsPane.setGitilesUrl(gerritSettings.getGitilesUrl());
         }
     }
 

@@ -67,6 +67,7 @@ import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -444,15 +445,27 @@ public final class GerritUtil {
         List<String> projectNames = new ArrayList<>();
         for (GitRemote remote : remotes) {
             for (String remoteUrl : remote.getUrls()) {
-                remoteUrl = UrlUtils.stripGitExtension(remoteUrl);
-                String projectName = getProjectName(GerritSettings.getInstance().getHost(), GerritSettings.getInstance().getCloneBaseUrl(),
-                    remoteUrl);
-                if (projectName != null && !projectName.isEmpty() && remoteUrl.endsWith(projectName)) {
+                String projectName = getProjectName(remoteUrl);
+                if (projectName != null) {
                     projectNames.add(projectName);
                 }
             }
         }
         return projectNames;
+    }
+
+    /**
+     * @return the Gerrit project a remote url points to, or {@code null} if it does not point to one
+     */
+    @Nullable
+    public String getProjectName(String remoteUrl) {
+        String strippedUrl = UrlUtils.stripGitExtension(remoteUrl);
+        String projectName = getProjectName(GerritSettings.getInstance().getHost(), GerritSettings.getInstance().getCloneBaseUrl(),
+            strippedUrl);
+        if (projectName == null || projectName.isEmpty() || !strippedUrl.endsWith(projectName)) {
+            return null;
+        }
+        return UrlUtils.stripAuthenticationPrefix(strippedUrl, projectName);
     }
 
     public void getProjectHead(final String projectName, final Project project, final Consumer<String> consumer) {

@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.git;
 
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
@@ -159,182 +160,214 @@ public class GerritGitUtilTest {
     }
 
     @Test
-    public void testRepositoryForGerritProjectMatchesRemoteUrl() {
+    public void testRepositoryForChangeMatchesRemoteUrl() {
         GitRepository repository = repository("/work/app", "ssh://gerrit.example.com:29418/app.git");
 
-        assertRepository(Collections.singletonList(repository), "/work/app", "app", repository);
+        assertRepository(Collections.singletonList(repository), "/work/app", change("app"), repository);
     }
 
     @Test
-    public void testRepositoryForGerritProjectMatchesRemoteName() {
-        GitRepository repository = repository("/work/app", remote("app", "https://github.com/example/mirror"));
+    public void testRepositoryForChangeMatchesRemoteName() {
+        GitRepository repository = repository("/work/app", null, null, remote("app", "https://github.com/example/mirror"));
 
-        assertRepository(Collections.singletonList(repository), "/work/app", "app", repository);
+        assertRepository(Collections.singletonList(repository), "/work/app", change("app"), repository);
     }
 
     @Test
-    public void testRepositoryForGerritProjectWithoutMatch() {
+    public void testRepositoryForChangeWithoutMatch() {
         GitRepository repository = repository("/work/app", "https://gerrit.example.com/app");
 
-        Assert.assertFalse(GerritGitUtil.getRepositoryForGerritProject(
-            Collections.singletonList(repository), "/work/app", GERRIT_HOST, null, "other").isPresent());
+        Assert.assertFalse(GerritGitUtil.getRepositoryForChange(
+            Collections.singletonList(repository), "/work/app", GERRIT_HOST, null, change("other")).isPresent());
     }
 
     @Test
-    public void testRepositoryForGerritProjectKeepsAcceptingSuffixMatch() {
+    public void testRepositoryForChangeKeepsAcceptingSuffixMatch() {
         GitRepository repository = repository("/work/my-app", "https://gerrit.example.com/my-app");
 
-        assertRepository(Collections.singletonList(repository), "/work/my-app", "app", repository);
+        assertRepository(Collections.singletonList(repository), "/work/my-app", change("app"), repository);
     }
 
     @Test
-    public void testRepositoryForGerritProjectKeepsMatchingWithoutGerritHost() {
+    public void testRepositoryForChangeKeepsMatchingWithoutGerritHost() {
         GitRepository repository = repository("/work/app", "https://gerrit.example.com/app");
 
-        Optional<GitRepository> match = GerritGitUtil.getRepositoryForGerritProject(
-            Collections.singletonList(repository), "/work/app", "", null, "app");
+        Optional<GitRepository> match = GerritGitUtil.getRepositoryForChange(
+            Collections.singletonList(repository), "/work/app", "", null, change("app"));
         Assert.assertSame(match.orElse(null), repository);
     }
 
     @Test
-    public void testRepositoryForGerritProjectToleratesRemoteUnparseableAsUri() {
+    public void testRepositoryForChangeToleratesRemoteUnparseableAsUri() {
         GitRepository repository = repository("/work/app", "https://gerrit.example.com/{group}/app");
 
-        assertRepository(Collections.singletonList(repository), "/work/app", "app", repository);
+        assertRepository(Collections.singletonList(repository), "/work/app", change("app"), repository);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPrefersProjectRootAmongSameRemotes() {
+    public void testRepositoryForChangePrefersProjectRootAmongSameRemotes() {
         String url = "https://gerrit.example.com/app";
         GitRepository main = repository("/work/app", url);
         GitRepository submodule = repository("/work/app/modules/lib", url);
 
-        assertRepository(Arrays.asList(submodule, main), "/work/app", "app", main);
+        assertRepository(Arrays.asList(submodule, main), "/work/app", change("app"), main);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPrefersOutermostAmongSameRemotes() {
+    public void testRepositoryForChangePrefersOutermostAmongSameRemotes() {
         String url = "https://gerrit.example.com/app";
         GitRepository main = repository("/work/app", url);
         GitRepository submodule = repository("/work/app/modules/lib", url);
 
-        assertRepository(Arrays.asList(submodule, main), "/work", "app", main);
+        assertRepository(Arrays.asList(submodule, main), "/work", change("app"), main);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPrefersProjectRootOverEnclosingRepository() {
+    public void testRepositoryForChangePrefersProjectRootOverEnclosingRepository() {
         String url = "https://gerrit.example.com/app";
         GitRepository enclosing = repository("/work", url);
         GitRepository main = repository("/work/app", url);
 
-        assertRepository(Arrays.asList(enclosing, main), "/work/app", "app", main);
+        assertRepository(Arrays.asList(enclosing, main), "/work/app", change("app"), main);
     }
 
     @Test
-    public void testRepositoryForGerritProjectDoesNotPreferProjectRootOfOtherProject() {
+    public void testRepositoryForChangePrefersRootTrackingChangeBranch() {
+        String url = "https://gerrit.example.com/app";
+        GitRepository main = trackingRepository("/work/app", url, "master");
+        GitRepository submodule = trackingRepository("/work/app/modules/lib", url, "lib");
+
+        assertRepository(Arrays.asList(main, submodule), "/work/app", change("app", "lib"), submodule);
+        assertRepository(Arrays.asList(submodule, main), "/work/app", change("app", "master"), main);
+        assertRepository(Arrays.asList(submodule, main), "/work/app", change("app", "other"), main);
+    }
+
+    @Test
+    public void testRepositoryForChangeDoesNotPreferProjectRootOfOtherProject() {
         GitRepository main = repository("/work/app", "https://gerrit.example.com/app");
         GitRepository nested = repository("/work/app/lib", "https://gerrit.example.com/lib");
 
-        assertRepository(Arrays.asList(main, nested), "/work/app", "lib", nested);
+        assertRepository(Arrays.asList(main, nested), "/work/app", change("lib"), nested);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPrefersSegmentOverSuffixMatch() {
+    public void testRepositoryForChangePrefersSegmentOverSuffixMatch() {
         GitRepository main = repository("/work/my-app", "https://gerrit.example.com/my-app");
         GitRepository nested = repository("/work/my-app/app", "gerrit.example.com:app");
 
-        assertRepository(Arrays.asList(main, nested), "/work/my-app", "app", nested);
+        assertRepository(Arrays.asList(main, nested), "/work/my-app", change("app"), nested);
     }
 
     @Test
-    public void testRepositoryForGerritProjectDoesNotTakeNestedProjectNameForExactMatch() {
+    public void testRepositoryForChangeDoesNotTakeNestedProjectNameForExactMatch() {
         GitRepository main = repository("/work/team-app", "https://gerrit.example.com/team/app");
         GitRepository dependency = repository("/work/team-app/deps/app", "https://gerrit.example.com/app");
 
-        assertRepository(Arrays.asList(main, dependency), "/work/team-app", "app", dependency);
-        assertRepository(Arrays.asList(main, dependency), "/work/team-app", "team/app", main);
+        assertRepository(Arrays.asList(main, dependency), "/work/team-app", change("app"), dependency);
+        assertRepository(Arrays.asList(main, dependency), "/work/team-app", change("team/app"), main);
     }
 
     @Test
-    public void testRepositoryForGerritProjectMatchesAuthenticatedHttpUrlExactly() {
+    public void testRepositoryForChangeMatchesAuthenticatedHttpUrlExactly() {
         GitRepository main = repository("/work/team-app", "https://gerrit.example.com/team/app");
         GitRepository dependency = repository("/work/team-app/deps/app", "https://gerrit.example.com/a/app");
 
-        assertRepository(Arrays.asList(main, dependency), "/work/team-app", "app", dependency);
+        assertRepository(Arrays.asList(main, dependency), "/work/team-app", change("app"), dependency);
     }
 
     @Test
-    public void testRepositoryForGerritProjectMatchesCloneBaseUrlExactly() {
+    public void testRepositoryForChangeMatchesCloneBaseUrlExactly() {
         GitRepository main = repository("/work/team-app", "https://gerrit.example.com/team/app");
         GitRepository dependency = repository("/work/team-app/deps/app", "ssh://git.example.com:29418/app");
 
-        Optional<GitRepository> match = GerritGitUtil.getRepositoryForGerritProject(Arrays.asList(main, dependency),
-            "/work/team-app", GERRIT_HOST, "ssh://git.example.com:29418/", "app");
+        Optional<GitRepository> match = GerritGitUtil.getRepositoryForChange(Arrays.asList(main, dependency),
+            "/work/team-app", GERRIT_HOST, "ssh://git.example.com:29418/", change("app"));
         Assert.assertSame(match.orElse(null), dependency);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPrefersGerritHostOverMirror() {
+    public void testRepositoryForChangePrefersGerritHostOverMirror() {
         GitRepository mirror = repository("/work/app", "https://github.com/org/app");
         GitRepository gerrit = repository("/work/app-gerrit", "https://gerrit.example.com/app");
 
-        assertRepository(Arrays.asList(mirror, gerrit), "/work/app", "app", gerrit);
+        assertRepository(Arrays.asList(mirror, gerrit), "/work/app", change("app"), gerrit);
     }
 
     @Test
-    public void testRepositoryForGerritProjectPicksAmongUnrelatedRootsByPath() {
+    public void testRepositoryForChangePicksAmongUnrelatedRootsByPath() {
         String url = "https://gerrit.example.com/app";
         GitRepository first = repository("/work/app-1", url);
         GitRepository second = repository("/work/app-2", url);
 
-        assertRepository(Arrays.asList(second, first), "/work", "app", first);
-        assertRepository(Arrays.asList(first, second), null, "app", first);
+        assertRepository(Arrays.asList(second, first), "/work", change("app"), first);
+        assertRepository(Arrays.asList(first, second), null, change("app"), first);
     }
 
     @Test
-    public void testRepositoryForGerritProjectMatchesScpLikeUrlExactly() {
+    public void testRepositoryForChangeMatchesScpLikeUrlExactly() {
         GitRepository main = repository("/work/team-app", "git@gerrit.example.com:team/app");
         GitRepository dependency = repository("/work/team-app/deps/app", "git@gerrit.example.com:app");
 
-        assertRepository(Arrays.asList(main, dependency), "/work/team-app", "app", dependency);
-        assertRepository(Arrays.asList(main, dependency), "/work/team-app", "team/app", main);
+        assertRepository(Arrays.asList(main, dependency), "/work/team-app", change("app"), dependency);
+        assertRepository(Arrays.asList(main, dependency), "/work/team-app", change("team/app"), main);
     }
 
     @Test
-    public void testRepositoryForGerritProjectDemotesOtherProjectOnGerritHost() {
+    public void testRepositoryForChangeDemotesOtherProjectOnGerritHost() {
         GitRepository otherProject = repository("/work/app", "https://gerrit.example.com/team/app");
         GitRepository mirror = repository("/work/app-mirror", "https://github.com/org/app");
 
-        assertRepository(Arrays.asList(otherProject, mirror), "/work/app", "app", mirror);
-        assertRepository(Collections.singletonList(otherProject), "/work/app", "app", otherProject);
+        assertRepository(Arrays.asList(otherProject, mirror), "/work/app", change("app"), mirror);
+        assertRepository(Collections.singletonList(otherProject), "/work/app", change("app"), otherProject);
     }
 
     @Test
-    public void testRepositoryForGerritProjectResolvesRemoteAgainstHostWithContextPath() {
+    public void testRepositoryForChangeResolvesRemoteAgainstHostWithContextPath() {
         GitRepository mirror = repository("/work/app", "https://github.com/org/app");
         GitRepository gerrit = repository("/work/app-gerrit", "https://gerrit.example.com/gerrit/app");
 
-        Optional<GitRepository> match = GerritGitUtil.getRepositoryForGerritProject(Arrays.asList(mirror, gerrit), "/work/app",
-            "https://gerrit.example.com/gerrit", "ssh://gerrit.example.com:29418/", "app");
+        Optional<GitRepository> match = GerritGitUtil.getRepositoryForChange(Arrays.asList(mirror, gerrit), "/work/app",
+            "https://gerrit.example.com/gerrit", "ssh://gerrit.example.com:29418/", change("app"));
         Assert.assertSame(match.orElse(null), gerrit);
     }
 
     @Test
-    public void testRepositoryForGerritProjectStripsAuthenticationPrefixOnlyOverHttp() {
+    public void testRepositoryForChangeStripsAuthenticationPrefixOnlyOverHttp() {
         GitRepository prefixed = repository("/work/a-app", "ssh://gerrit.example.com:29418/a/app");
         GitRepository plain = repository("/work/app", "https://gerrit.example.com/app");
 
-        assertRepository(Arrays.asList(prefixed, plain), "/work/a-app", "app", plain);
-        assertRepository(Arrays.asList(prefixed, plain), "/work/a-app", "a/app", prefixed);
+        assertRepository(Arrays.asList(prefixed, plain), "/work/a-app", change("app"), plain);
+        assertRepository(Arrays.asList(prefixed, plain), "/work/a-app", change("a/app"), prefixed);
+    }
+
+    @Test
+    public void testRepositoryForChangeIgnoresBranchTrackedOnOtherRemote() {
+        GitRemote gerritRemote = remote("origin", "https://gerrit.example.com/app");
+        GitRemote mirrorRemote = remote("github", "https://github.com/org/app");
+        GitRepository mirrorTracking = repository("/work/app-2", mirrorRemote, "master", gerritRemote, mirrorRemote);
+        GitRepository main = repository("/work/app", "https://gerrit.example.com/app");
+
+        assertRepository(Arrays.asList(mirrorTracking, main), "/work/app", change("app", "master"), main);
     }
 
     private static final String GERRIT_HOST = "https://gerrit.example.com";
 
     private static void assertRepository(List<GitRepository> repositories, String projectBasePath,
-                                         String gerritProjectName, GitRepository expected) {
-        Optional<GitRepository> repository = GerritGitUtil.getRepositoryForGerritProject(
-            repositories, projectBasePath, GERRIT_HOST, null, gerritProjectName);
+                                         ChangeInfo change, GitRepository expected) {
+        Optional<GitRepository> repository =
+            GerritGitUtil.getRepositoryForChange(repositories, projectBasePath, GERRIT_HOST, null, change);
         Assert.assertSame(repository.orElse(null), expected);
+    }
+
+    private static ChangeInfo change(String project) {
+        return change(project, "master");
+    }
+
+    private static ChangeInfo change(String project, String branch) {
+        ChangeInfo change = new ChangeInfo();
+        change.project = project;
+        change.branch = branch;
+        return change;
     }
 
     private static GitRemote remote(String name, String url) {
@@ -348,17 +381,30 @@ public class GerritGitUtilTest {
     }
 
     private static GitRepository repository(String rootPath, String url) {
-        return repository(rootPath, remote("origin", url));
+        return repository(rootPath, null, null, remote("origin", url));
     }
 
-    private static GitRepository repository(String rootPath, GitRemote... remotes) {
+    private static GitRepository trackingRepository(String rootPath, String url, String trackedBranch) {
+        GitRemote remote = remote("origin", url);
+        return repository(rootPath, remote, trackedBranch, remote);
+    }
+
+    private static GitRepository repository(String rootPath, GitRemote trackedRemote, String trackedBranch,
+                                            GitRemote... remotes) {
         VirtualFile root = EasyMock.createMock(VirtualFile.class);
         EasyMock.expect(root.getPath()).andReturn(rootPath).anyTimes();
         EasyMock.replay(root);
 
-        GitRepository repository = EasyMock.createMock(GitRepository.class);
+        // nice, so that a root without a tracked branch answers null like a detached submodule does
+        GitRepository repository = EasyMock.createNiceMock(GitRepository.class);
         EasyMock.expect(repository.getRoot()).andReturn(root).anyTimes();
         EasyMock.expect(repository.getRemotes()).andReturn(Arrays.asList(remotes)).anyTimes();
+        if (trackedBranch != null) {
+            GitLocalBranch localBranch = new GitLocalBranch(trackedBranch);
+            EasyMock.expect(repository.getCurrentBranch()).andReturn(localBranch).anyTimes();
+            EasyMock.expect(repository.getBranchTrackInfo(trackedBranch)).andReturn(new GitBranchTrackInfo(
+                localBranch, new GitStandardRemoteBranch(trackedRemote, trackedBranch), true)).anyTimes();
+        }
         EasyMock.replay(repository);
         return repository;
     }

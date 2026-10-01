@@ -84,6 +84,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
@@ -100,19 +102,19 @@ public final class GerritGitUtil {
         return repositoryManager.getRepositories();
     }
 
-    public Optional<GitRepository> getRepositoryForGerritProject(Project project, String gerritProjectName) {
+    public Optional<GitRepository> getRepositoryForChange(Project project, ChangeInfo change) {
         GerritSettings settings = GerritSettings.getInstance();
-        return getRepositoryForGerritProject(getRepositories(project), project.getBasePath(),
-            settings.getHost(), settings.getCloneBaseUrl(), gerritProjectName);
+        return getRepositoryForChange(getRepositories(project), project.getBasePath(),
+            settings.getHost(), settings.getCloneBaseUrl(), change);
     }
 
     @VisibleForTesting
-    static Optional<GitRepository> getRepositoryForGerritProject(Iterable<GitRepository> repositories,
-                                                                 @Nullable String projectBasePath,
-                                                                 @Nullable String gerritHost,
-                                                                 @Nullable String cloneBaseUrl,
-                                                                 String gerritProjectName) {
-        ProjectMatcher matcher = new ProjectMatcher(gerritProjectName, gerritHost, cloneBaseUrl);
+    static Optional<GitRepository> getRepositoryForChange(Iterable<GitRepository> repositories,
+                                                          @Nullable String projectBasePath,
+                                                          @Nullable String gerritHost,
+                                                          @Nullable String cloneBaseUrl,
+                                                          ChangeInfo change) {
+        ProjectMatcher matcher = new ProjectMatcher(change.project, gerritHost, cloneBaseUrl);
         // a weaker match is still accepted on its own, but it must not win over a root whose remote really is the
         // project: "my-app" and "team/app" both end with "app"
         List<GitRepository> candidates = new ArrayList<>();
@@ -127,7 +129,9 @@ public final class GerritGitUtil {
                 candidates.add(repository);
             }
         }
-        return pickPreferredRepository(candidates, projectBasePath);
+        RemoteMatch candidateMatch = best;
+        return pickPreferredRepository(candidates, projectBasePath, change.branch,
+            remote -> matcher.match(remote) == candidateMatch);
     }
 
     private enum RemoteMatch { NONE, SUFFIX, SEGMENT, EXACT }
@@ -204,22 +208,42 @@ public final class GerritGitUtil {
     }
 
     private static Optional<GitRepository> pickPreferredRepository(List<GitRepository> candidates,
-                                                                   @Nullable String projectBasePath) {
+                                                                   @Nullable String projectBasePath,
+                                                                   @Nullable String branch,
+                                                                   Predicate<GitRemote> isMatchingRemote) {
         // several roots can carry the same project, e.g. submodules kept as branches of the main repository; the
-        // root the IDE project was opened on is the one the user works in, and failing that the outermost one, as a
-        // submodule is nested inside its superproject
+        // branch a root tracks tells them apart, failing that the root the IDE project was opened on is the one the
+        // user works in, and then the outermost one, as a submodule is nested inside its superproject
+        List<GitRepository> onBranch = candidates.stream()
+            .filter(candidate -> tracksBranch(candidate, branch, isMatchingRemote))
+            .collect(Collectors.toList());
+        List<GitRepository> preferred = onBranch.isEmpty() ? candidates : onBranch;
         if (projectBasePath != null) {
-            for (GitRepository candidate : candidates) {
+            for (GitRepository candidate : preferred) {
                 if (FileUtil.pathsEqual(rootPath(candidate), projectBasePath)) {
                     return Optional.of(candidate);
                 }
             }
         }
-        return candidates.stream()
-            .filter(candidate -> candidates.stream().noneMatch(other ->
+        return preferred.stream()
+            .filter(candidate -> preferred.stream().noneMatch(other ->
                 FileUtil.isAncestor(rootPath(other), rootPath(candidate), true)))
             // the platform keeps its roots in a hash map, so its order must not decide
             .min(Comparator.comparing(GerritGitUtil::rootPath));
+    }
+
+    private static boolean tracksBranch(GitRepository repository,
+                                        @Nullable String branch,
+                                        Predicate<GitRemote> isMatchingRemote) {
+        GitLocalBranch currentBranch = repository.getCurrentBranch();
+        if (branch == null || currentBranch == null) {
+            return false;
+        }
+        // CheckoutAction sets this upstream on the branch it creates, so a checked out change keeps its root
+        GitBranchTrackInfo trackInfo = repository.getBranchTrackInfo(currentBranch.getName());
+        return trackInfo != null
+            && isMatchingRemote.test(trackInfo.getRemote())
+            && trackInfo.getRemoteBranch().getNameForRemoteOperations().equals(branch);
     }
 
     private static String rootPath(GitRepository repository) {
@@ -357,7 +381,7 @@ public final class GerritGitUtil {
         new Task.Backgroundable(project, "Cherry-picking...", false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
-                    Optional<GitRepository> gitRepositoryOptional = getRepositoryForGerritProject(project, changeInfo.project);
+                    Optional<GitRepository> gitRepositoryOptional = getRepositoryForChange(project, changeInfo);
                     if (!gitRepositoryOptional.isPresent()) {
                         NotificationBuilder notification = new NotificationBuilder(project, "Error",
                             String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));

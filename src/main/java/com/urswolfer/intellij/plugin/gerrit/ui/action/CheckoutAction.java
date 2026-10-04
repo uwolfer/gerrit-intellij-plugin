@@ -27,16 +27,18 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.intellij.vcs.log.Hash;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import git4idea.GitLocalBranch;
 import git4idea.GitVcs;
 import git4idea.branch.GitBrancher;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import git4idea.validators.GitNewBranchNameValidator;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -72,27 +74,35 @@ public class CheckoutAction extends AbstractChangeAction {
                     @Override
                     public void fetched(final GitRepository repository, final String commitHash) {
                         final GitBrancher brancher = project.getService(GitBrancher.class);
-                        String branchName = buildBranchName(project, changeDetails);
-                        String checkedOutBranchName = branchName;
                         final List<GitRepository> gitRepositories = Collections.singletonList(repository);
                         FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
                         final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
                         if (!remote.isPresent()) {
                             return;
                         }
-                        boolean validName = false;
-                        int i = 0;
-                        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
-                        while (!validName && i < 100) { // do not loop endless - stop after 100 tries because most probably something went wrong
-                            checkedOutBranchName = branchName + (i != 0 ? "_" + i : "");
-                            validName = newBranchNameValidator.checkInput(checkedOutBranchName);
-                            i++;
+                        // FetchAction loads the change again, so a patch set uploaded in between is unknown here
+                        RevisionInfo revisionInfo = changeDetails.revisions.get(commitHash);
+                        if (revisionInfo == null) {
+                            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error",
+                                    "Change " + changeDetails._number + " got a new patch set. Refresh and try again."));
+                            return;
                         }
-                        final String finalCheckedOutBranchName = checkedOutBranchName;
+                        String branchName = ReviewBranchName.build(changeDetails, revisionInfo._number);
+                        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
+                        final ReviewBranchName.Target target = ReviewBranchName.resolve(branchName, commitHash,
+                                name -> headOf(repository, name), newBranchNameValidator::checkInput);
+                        if (target == null) {
+                            String blocking = ReviewBranchName.blockingBranch(branchName, name -> headOf(repository, name) != null);
+                            String message = blocking == null
+                                    ? "Could not find a free branch name for " + branchName + "."
+                                    : "Branch " + blocking + " prevents creating " + branchName + ". Rename or delete it to check out this patch set.";
+                            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error", message));
+                            return;
+                        }
                         ApplicationManager.getApplication().invokeLater(new Runnable() {
                             @Override
                             public void run() {
-                                brancher.checkoutNewBranchStartingFrom(finalCheckedOutBranchName, commitHash, gitRepositories, new Runnable() {
+                                Runnable setUpstream = new Runnable() {
                                     @Override
                                     public void run() {
                                         GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
@@ -107,7 +117,12 @@ public class CheckoutAction extends AbstractChangeAction {
                                             }
                                         });
                                     }
-                                });
+                                };
+                                if (target.exists) {
+                                    brancher.checkout(target.name, false, gitRepositories, setUpstream);
+                                } else {
+                                    brancher.checkoutNewBranchStartingFrom(target.name, commitHash, gitRepositories, setUpstream);
+                                }
                             }
                         }
                         );
@@ -118,18 +133,13 @@ public class CheckoutAction extends AbstractChangeAction {
         });
     }
 
-    private String buildBranchName(Project project, ChangeInfo changeDetails) {
-        RevisionInfo revisionInfo = changeDetails.revisions.get(
-            SelectedRevisions.getInstance(project).get(changeDetails));
-        String topic = changeDetails.topic;
-        if (topic == null) {
-            topic = Integer.toString(changeDetails._number);
+    @Nullable
+    private static String headOf(GitRepository repository, String branchName) {
+        GitLocalBranch branch = repository.getBranches().findLocalBranch(branchName);
+        if (branch == null) {
+            return null;
         }
-        String branchName = "review/" + changeDetails.owner.name.toLowerCase() + '/' + topic;
-        if (revisionInfo._number != changeDetails.revisions.size()) {
-            branchName += "-patch" + revisionInfo._number;
-        }
-        return branchName.replace(" ", "_").replace("?", "_");
+        Hash hash = repository.getBranches().getHash(branch);
+        return hash == null ? "" : hash.asString();
     }
-
 }

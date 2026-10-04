@@ -63,6 +63,11 @@ public class FeatureMergeActionInputTest {
 
     @Test
     public void testReviewCheckoutNamesResolveNumericChangeIds() {
+        Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123/2").intValue(), 123);
+        Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123/2_1").intValue(), 123);
+        Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/topic-123/2").intValue(), 123);
+        Assert.assertNull(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/topic/2"));
+        Assert.assertNull(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123/2/1"));
         Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123").intValue(), 123);
         Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123_2").intValue(), 123);
         Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber("review/jdoe/123-patch2").intValue(), 123);

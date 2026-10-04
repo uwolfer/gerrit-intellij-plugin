@@ -21,6 +21,9 @@ final class FeatureMergeBranchResolver {
 
     private static final String REFS_REMOTES_PREFIX = "refs/remotes/";
     private static final Pattern REVIEW_CHANGE = Pattern.compile(
+            "^review/[^/]+/(?:[^/]+-)?(\\d+)/\\d+(?:_\\d+)?$");
+    // checkouts made before the patch set became a path segment
+    private static final Pattern LEGACY_REVIEW_CHANGE = Pattern.compile(
             "^review/[^/]+/(\\d+)(?:-patch\\d+)?(?:_\\d+)?$");
 
     private FeatureMergeBranchResolver() {
@@ -95,9 +98,13 @@ final class FeatureMergeBranchResolver {
 
     @Nullable
     static Integer reviewChangeNumber(@Nullable String branchName) {
-        Matcher matcher = REVIEW_CHANGE.matcher(trimToEmpty(branchName));
+        String branch = trimToEmpty(branchName);
+        Matcher matcher = REVIEW_CHANGE.matcher(branch);
         if (!matcher.matches()) {
-            return null;
+            matcher = LEGACY_REVIEW_CHANGE.matcher(branch);
+            if (!matcher.matches()) {
+                return null;
+            }
         }
         try {
             return Integer.valueOf(matcher.group(1));

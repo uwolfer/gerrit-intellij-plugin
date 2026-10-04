@@ -40,12 +40,7 @@ import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsShortCommitDetails;
-import com.intellij.vcs.log.VcsUser;
-import com.intellij.vcs.log.VcsUserRegistry;
-import com.intellij.vcs.log.impl.HashImpl;
-import com.intellij.vcs.log.impl.VcsShortCommitDetailsImpl;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -374,7 +369,8 @@ public final class GerritGitUtil {
         }
     }
 
-    public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId) {
+    public void cherryPickChange(final Project project, final ChangeInfo changeInfo, final String revisionId,
+                                 final boolean autoCommit) {
         FileDocumentManager.getInstance().saveAllDocuments();
         ChangeListManagerEx.getInstanceEx(project).blockModalNotifications();
 
@@ -390,14 +386,20 @@ public final class GerritGitUtil {
                     }
                     GitRepository gitRepository = gitRepositoryOptional.get();
 
-                    final VirtualFile virtualFile = gitRepository.getRoot();
+                    // the conflict dialog names the commit's author and subject
+                    Optional<GitCommit> gitCommit;
+                    try {
+                        gitCommit = loadCommit(project, gitRepository, revisionId);
+                    } catch (VcsException e) {
+                        gitCommit = Optional.empty();
+                    }
+                    if (!gitCommit.isPresent()) {
+                        NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+                            String.format("Could not load commit '%s'.", revisionId)));
+                        return;
+                    }
 
-                    final String notLoaded = "Not loaded";
-                    VcsUser notLoadedUser = project.getService(VcsUserRegistry.class).createUser(notLoaded, notLoaded);
-                    VcsShortCommitDetails gitCommit = new VcsShortCommitDetailsImpl(
-                        HashImpl.build(revisionId), Collections.<Hash>emptyList(), 0, virtualFile, notLoaded, notLoadedUser, notLoadedUser, 0);
-
-                    cherryPick(gitRepository, gitCommit, project);
+                    cherryPick(gitRepository, gitCommit.get(), autoCommit, project);
                 } finally {
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         public void run() {
@@ -414,19 +416,27 @@ public final class GerritGitUtil {
      * A lot of this code is based on: git4idea.cherrypick.GitCherryPicker#cherryPick() (which is private)
      */
     private boolean cherryPick(@NotNull GitRepository repository, @NotNull VcsShortCommitDetails commit,
-                               @NotNull Project project) {
+                               boolean autoCommit, @NotNull Project project) {
         GitSimpleEventDetector conflictDetector = new GitSimpleEventDetector(CHERRY_PICK_CONFLICT);
         GitSimpleEventDetector localChangesOverwrittenDetector = new GitSimpleEventDetector(LOCAL_CHANGES_OVERWRITTEN_BY_CHERRY_PICK);
         GitUntrackedFilesOverwrittenByOperationDetector untrackedFilesDetector =
                 new GitUntrackedFilesOverwrittenByOperationDetector(repository.getRoot());
-        GitCommandResult result = Git.getInstance().cherryPick(repository, commit.getId().asString(), false, true,
+        // in a commit, -x would only name a patch set commit which is on no branch
+        GitCommandResult result = Git.getInstance().cherryPick(repository, commit.getId().asString(), autoCommit, !autoCommit,
                 conflictDetector, localChangesOverwrittenDetector, untrackedFilesDetector);
         if (result.success()) {
             return true;
         } else if (conflictDetector.hasHappened()) {
-            return new CherryPickConflictResolver(project, repository.getRoot(),
+            boolean resolved = new CherryPickConflictResolver(project, repository.getRoot(),
                     commit.getId().toShortString(), commit.getAuthor().getName(),
                     commit.getSubject()).merge();
+            if (autoCommit) {
+                // git stops short of the commit on a conflict, so it is up to the user
+                NotificationService.getInstance().notifyWarning(new NotificationBuilder(project, "Cherry-picked with conflicts",
+                        resolved ? "Commit the resolved changes to complete the cherry-pick."
+                                 : "Resolve the conflicts and commit the changes to complete the cherry-pick."));
+            }
+            return resolved;
         } else if (untrackedFilesDetector.wasMessageDetected()) {
             String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
                     "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
@@ -438,6 +448,13 @@ public final class GerritGitUtil {
         } else if (localChangesOverwrittenDetector.hasHappened()) {
             NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
                     "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed."));
+            return false;
+        } else if (result.getErrorOutputAsJoinedString().contains("previous cherry-pick is now empty")) {
+            // git leaves the empty cherry-pick in progress, and its MERGE_MSG would become the next commit's message
+            FileUtil.delete(repository.getRepositoryFiles().getCherryPickHead());
+            FileUtil.delete(repository.getRepositoryFiles().getMergeMessageFile());
+            NotificationService.getInstance().notifyInformation(new NotificationBuilder(project, "Nothing to Cherry-Pick",
+                    "The changes are already on the current branch."));
             return false;
         } else {
             NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",

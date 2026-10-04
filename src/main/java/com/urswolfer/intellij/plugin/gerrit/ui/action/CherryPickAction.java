@@ -34,9 +34,15 @@ import java.util.concurrent.Callable;
 public class CherryPickAction extends AbstractChangeAction {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final FetchAction fetchAction = new FetchAction();
+    private final boolean autoCommit;
 
     public CherryPickAction() {
-        super("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", DvcsImplIcons.CherryPick);
+        this("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", false);
+    }
+
+    protected CherryPickAction(String text, String description, boolean autoCommit) {
+        super(text, description, DvcsImplIcons.CherryPick);
+        this.autoCommit = autoCommit;
     }
 
     @Override
@@ -57,7 +63,7 @@ public class CherryPickAction extends AbstractChangeAction {
                             @Override
                             public void run() {
                                 gerritGitUtil.cherryPickChange(project, changeInfo,
-                                    SelectedRevisions.getInstance(project).get(changeInfo));
+                                    SelectedRevisions.getInstance(project).get(changeInfo), autoCommit);
                             }
                         });
                         return null;

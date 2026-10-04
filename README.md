@@ -26,7 +26,7 @@ Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for the
 
 *Compiled with Java 11*
 
-Only Gerrit 2.6 or newer is supported (missing / incomplete REST API in older versions).
+Only Gerrit 2.8 or newer is supported (missing / incomplete REST API in older versions).
 
 Installation
 ------------

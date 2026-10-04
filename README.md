@@ -58,6 +58,14 @@ By default, you will only see changes to Git repositories that are configured in
 * Set the 'Clone Base URL' if it differs from the Gerrit web url. Or:
 * Add a remote whose name equals the Gerrit project name with Gerrit web url as remote url.
 
+### Error-message when clicking a change: "No repository found for Gerrit project"
+The list can contain changes of Gerrit projects which are not part of your IDE project, e.g. with the option
+"List all Gerrit changes (instead of changes from currently open project only)". Voting and submitting work for these
+changes, but showing a change's files and diff, checking it out and cherry-picking it need a local clone: the plugin
+fetches the change into the Git repository of its Gerrit project. Clone the project and add it as a Git repository to
+your IDE project to see its diff. Reviewing without a local clone is tracked in
+[#76](https://github.com/uwolfer/gerrit-intellij-plugin/issues/76).
+
 ### Error-message when clicking a change: "VcsException: fatal: bad object"
 In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.
 You need to install the plugin <code>download-commands</code>. When you run the Gerrit update procedure, it asks you to install

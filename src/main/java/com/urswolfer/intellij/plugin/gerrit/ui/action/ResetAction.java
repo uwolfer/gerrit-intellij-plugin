@@ -38,6 +38,8 @@ import git4idea.reset.GitResetMode;
 import git4idea.reset.GitResetOperation;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -89,9 +91,18 @@ public class ResetAction extends AbstractChangeAction {
         GitVcsSettings settings = GitVcsSettings.getInstance(project);
         GitResetMode defaultMode = ObjectUtils.notNull(settings.getResetMode(), GitResetMode.getDefault());
         Map<GitRepository, VcsFullCommitDetails> commits = Collections.singletonMap(repository, commit);
-        // The constructor is protected because the platform only opens this dialog from its own log action;
-        // an anonymous subclass is the way in without copying the dialog.
-        GitNewResetDialog dialog = new GitNewResetDialog(project, commits, defaultMode) {};
+        GitNewResetDialog dialog;
+        try {
+            // The constructor is protected in 2020.3, where the platform only opens this dialog from its own log
+            // action, and public in 2026.2, where the class is final: neither a subclass nor a plain call links
+            // against both.
+            Constructor<GitNewResetDialog> constructor =
+                GitNewResetDialog.class.getDeclaredConstructor(Project.class, Map.class, GitResetMode.class);
+            constructor.setAccessible(true);
+            dialog = constructor.newInstance(project, commits, defaultMode);
+        } catch (ReflectiveOperationException e) {
+            throw unchecked(e);
+        }
         if (!dialog.showAndGet()) {
             return;
         }
@@ -102,9 +113,28 @@ public class ResetAction extends AbstractChangeAction {
         new Task.Backgroundable(project, "Resetting...", true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
-                new GitResetOperation(project, hashes, selectedMode, indicator).execute();
+                GitResetOperation operation = new GitResetOperation(project, hashes, selectedMode, indicator);
+                try {
+                    // execute() returns void in 2020.3 and boolean in 2026.2, and the return type is part of
+                    // the method descriptor a compiled call links against.
+                    GitResetOperation.class.getMethod("execute").invoke(operation);
+                } catch (ReflectiveOperationException e) {
+                    throw unchecked(e);
+                }
             }
         }.queue();
+    }
+
+    /*
+     * Fails the way a plain call would: what the platform threw, ProcessCanceledException included, or the API
+     * drift itself, ends up in the IDE error reporter, which names this plugin.
+     */
+    private static RuntimeException unchecked(ReflectiveOperationException e) {
+        Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+        if (cause instanceof Error) {
+            throw (Error) cause;
+        }
+        return cause instanceof RuntimeException ? (RuntimeException) cause : new IllegalStateException(cause);
     }
 
     private void notifyError(Project project, String message) {

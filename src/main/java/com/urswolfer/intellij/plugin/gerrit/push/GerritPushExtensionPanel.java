@@ -236,8 +236,9 @@ public class GerritPushExtensionPanel extends JPanel {
                 9);
 
         patchsetDescriptionTextField = addTextField(
-                "Patch Set Description (Gerrit 3.4+):",
-                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed. Spaces can be used: the description is encoded before it is added to the push reference.",
+                "Patch Set Description:",
+                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed. Spaces can be used: the description is encoded before it is added to the push reference. " +
+                        "Gerrit older than 3.4 adds it to the change as a message instead.",
                 10);
 
         reviewersTextField = addTextField(

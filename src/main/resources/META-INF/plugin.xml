@@ -592,9 +592,13 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
     </action>
+    <action id="Gerrit.CherryPickCommit" text="Cherry-Pick"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickCommitAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
+    </action>
     <action id="Gerrit.CherryPick" text="Cherry-Pick (No Commit)"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPickCommit"/>
     </action>
     <action id="Gerrit.Reset" text="Reset Current Branch to Here..."
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ResetAction">

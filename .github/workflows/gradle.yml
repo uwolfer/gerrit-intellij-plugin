@@ -21,3 +21,44 @@ jobs:
       uses: gradle/actions/setup-gradle@v6
     - name: Execute Gradle build
       run: ./gradlew build
+
+  verify-latest-ide:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up JDK 17
+      uses: actions/setup-java@v6
+      with:
+        java-version: 17
+        distribution: 'temurin'
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+    - name: Read latest IDE version
+      id: ide
+      run: echo "version=$(sed -n 's/^latestIdeaVersion=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
+    - name: Restore verifier downloads
+      id: verifier-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: |
+          ~/.cache/pluginVerifier/ides
+          ~/.pluginVerifier/loaded-plugins
+        key: plugin-verifier-${{ runner.os }}-${{ steps.ide.outputs.version }}
+    - name: Verify plugin against latest IDE
+      run: ./gradlew buildPlugin runPluginVerifier
+    # saved separately because a plain actions/cache only saves on success, and a
+    # report shows the IDE download completed even when the verification failed
+    - name: Save verifier downloads
+      if: always() && steps.verifier-cache.outputs.cache-hit != 'true' && hashFiles('build/reports/pluginVerifier/**') != ''
+      uses: actions/cache/save@v6
+      with:
+        path: |
+          ~/.cache/pluginVerifier/ides
+          ~/.pluginVerifier/loaded-plugins
+        key: ${{ steps.verifier-cache.outputs.cache-primary-key }}
+    - name: Upload verifier report
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: plugin-verifier-report
+        path: build/reports/pluginVerifier

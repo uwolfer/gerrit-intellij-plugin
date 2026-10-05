@@ -68,6 +68,7 @@ import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -778,11 +779,26 @@ public final class GerritUtil {
     }
 
     public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {
+        return getFirstFetchInfo(revisionInfo, () -> GerritSettings.getInstance().getHost());
+    }
+
+    /**
+     * Gerrit fills in the fetch information only with a plugin which provides download schemes, such as
+     * download-commands, installed. Since Gerrit 2.11 every patch set can still be fetched by its ref. Remotes are
+     * matched against the clone base URL anyway, so the host makes the ones on it match as well.
+     */
+    @VisibleForTesting
+    static FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo, Supplier<String> gerritUrl) {
         if (revisionInfo == null) {
             return null;
         }
-        Iterator<FetchInfo> fetchInfos = revisionInfo.fetch.values().iterator();
-        return fetchInfos.hasNext() ? fetchInfos.next() : null;
+        if (revisionInfo.fetch != null) {
+            Iterator<FetchInfo> fetchInfos = revisionInfo.fetch.values().iterator();
+            if (fetchInfos.hasNext()) {
+                return fetchInfos.next();
+            }
+        }
+        return revisionInfo.ref != null ? new FetchInfo(gerritUrl.get(), revisionInfo.ref) : null;
     }
 
     @SuppressWarnings("UnresolvedPropertyKey")

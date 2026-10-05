@@ -212,7 +212,7 @@ public class RepositoryChangesBrowserProvider {
             Map<String, RevisionInfo> revisions = selectedChange.revisions;
             final String revisionId = selectedRevisions.get(selectedChange);
             RevisionInfo currentRevision = revisions.get(revisionId);
-            RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, notificationService, project, gitRepository)
+            RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, project, gitRepository)
                 .addRevision(revisionId, currentRevision);
             // the diff is built in the background, while the user may pick another revision, base or change
             final Optional<Pair<String, RevisionInfo>> base = baseRevision;

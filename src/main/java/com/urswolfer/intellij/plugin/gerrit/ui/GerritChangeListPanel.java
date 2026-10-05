@@ -188,6 +188,21 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         });
     }
 
+    /**
+     * Adds a listener that would be called once no change is selected anymore, as when the changes were replaced.
+     */
+    public void addSelectionClearedListener(final @NotNull Runnable listener) {
+        table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(final ListSelectionEvent e) {
+                ListSelectionModel lsm = (ListSelectionModel) e.getSource();
+                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting()) {
+                    listener.run();
+                }
+            }
+        });
+    }
+
     public TableView<ChangeInfo> getTable() {
         return table;
     }

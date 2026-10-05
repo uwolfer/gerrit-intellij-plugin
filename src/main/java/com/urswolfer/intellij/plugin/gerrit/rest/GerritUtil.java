@@ -552,10 +552,27 @@ public final class GerritUtil {
         getChangeDetails(null, changeNr, project, consumer);
     }
 
+    /**
+     * Calls the consumer only once the change got loaded, an error is shown otherwise.
+     */
     public void getChangeDetails(final String projectName,
                                  final int changeNr,
                                  final Project project,
                                  final Consumer<ChangeInfo> consumer) {
+        getChangeDetailsOrNull(projectName, changeNr, project, changeInfo -> {
+            if (changeInfo != null) {
+                consumer.consume(changeInfo);
+            }
+        });
+    }
+
+    /**
+     * Hands {@code null} to the consumer if the change cannot be loaded, for a caller which can go on without it.
+     */
+    public void getChangeDetailsOrNull(final String projectName,
+                                       final int changeNr,
+                                       final Project project,
+                                       final Consumer<ChangeInfo> consumer) {
         Supplier<ChangeInfo> supplier = new Supplier<ChangeInfo>() {
             @Override
             public ChangeInfo get() {
@@ -585,7 +602,7 @@ public final class GerritUtil {
                     }
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit change.", project);
-                    return new ChangeInfo();
+                    return null;
                 }
             }
         };

@@ -199,7 +199,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             return;
         }
 
-        gerritUtil.getChangeDetails(gerritProject, reviewChangeNumber, project, new Consumer<ChangeInfo>() {
+        gerritUtil.getChangeDetailsOrNull(gerritProject, reviewChangeNumber, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeInfo) {
                 String sourceBranch = changeInfo == null

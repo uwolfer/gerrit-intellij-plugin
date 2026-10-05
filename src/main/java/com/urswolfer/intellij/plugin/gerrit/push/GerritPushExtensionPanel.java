@@ -339,9 +339,6 @@ public class GerritPushExtensionPanel extends JPanel {
      */
     private String getRef(String branch, boolean withTextOptions) {
         StringBuilder ref = new StringBuilder();
-        if (!pushToGerritCheckBox.isSelected()) {
-            return ref.append(branch).toString();
-        }
         ref.append(draftChangeCheckBox.isSelected() ? DRAFTS_REF_PREFIX : REVIEW_REF_PREFIX);
         String branchName = getTrimmedText(branchTextField);
         if (!branchName.isEmpty() && isUsableBranch(branchName)) {
@@ -500,14 +497,22 @@ public class GerritPushExtensionPanel extends JPanel {
     private void updateDestinationBranches(boolean init) {
         String error = validateSettings();
         for (Map.Entry<GerritPushTargetUpdater, String> entry : pushTargets.entrySet()) {
-            String ref = getRef(entry.getValue(), true);
-            String refError = validateRef(ref);
-            if (refError != null) {
-                // which of the text values the ref cannot carry is not known, so all of them are left out
-                error = firstError(error, refError);
-                ref = getRef(entry.getValue(), false);
+            String branch;
+            if (pushToGerritCheckBox.isSelected()) {
+                String ref = getRef(entry.getValue(), true);
+                String refError = validateRef(ref);
+                if (refError != null) {
+                    // which of the text values the ref cannot carry is not known, so all of them are left out
+                    error = firstError(error, refError);
+                    ref = getRef(entry.getValue(), false);
+                }
+                branch = validateRef(ref) == null ? ref : null;
+            } else {
+                // The row gets back what the IDE proposed, untouched until "Push to Gerrit" was checked. The
+                // branch the settings are applied to is no substitute: for a Gerrit push spec the IDE proposes
+                // "refs/for/master", and "master" would push to the branch directly, bypassing the review.
+                branch = init ? null : entry.getKey().getInitialBranch();
             }
-            String branch = validateRef(ref) == null ? ref : null;
             if (init) {
                 entry.getKey().initBranch(branch);
             } else {

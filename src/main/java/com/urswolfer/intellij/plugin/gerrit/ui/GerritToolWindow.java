@@ -198,17 +198,18 @@ public class GerritToolWindow implements Disposable {
         }
         int load = ++changesLoad;
         boolean lookup = changesFilters.isShowingLookup();
+        String query = changesFilters.getQuery();
         Consumer<LoadChangesProxy> consumer = proxy -> {
             // loads run concurrently; one started earlier must not replace what a later one shows
             if (load == changesLoad) {
-                changeListPanel.load(proxy, lookup);
+                changeListPanel.load(proxy, lookup, query);
             }
         };
         if (lookup) {
             // a full hash is unique, and the projects of the repositories are not always known from their remotes
-            gerritUtil.getChanges(changesFilters.getQuery(), project, consumer);
+            gerritUtil.getChanges(query, project, consumer);
         } else {
-            gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
+            gerritUtil.getChangesForProject(query, project, consumer);
         }
     }
 

@@ -55,10 +55,22 @@ public class LoadChangesProxy {
      * event dispatch thread as well, which would deadlock. Such a call is skipped instead.
      */
     public void getNextPage(final Consumer<List<ChangeInfo>> consumer) {
+        load(PAGE_SIZE, consumer);
+    }
+
+    /**
+     * Load the first changes into the provided consumer, as many as a page holds but at least the provided number,
+     * so that a reload keeps the changes which were loaded by scrolling down. Later pages continue after them.
+     */
+    public void getFirstChanges(int minimum, final Consumer<List<ChangeInfo>> consumer) {
+        load(Math.max(PAGE_SIZE, minimum), consumer);
+    }
+
+    private void load(int limit, final Consumer<List<ChangeInfo>> consumer) {
         if (!hasMore || !loading.compareAndSet(false, true)) {
             return;
         }
-        Changes.QueryRequest myRequest = queryRequest.withLimit(PAGE_SIZE).withStart(changes.size());
+        Changes.QueryRequest myRequest = queryRequest.withLimit(limit).withStart(changes.size());
         // remove sortkey handling once we drop Gerrit < 2.9 support
         if (sortkey != null) {
             myRequest.withSortkey(sortkey);

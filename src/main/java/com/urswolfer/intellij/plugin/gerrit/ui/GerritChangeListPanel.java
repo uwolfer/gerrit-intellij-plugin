@@ -84,6 +84,7 @@ public class GerritChangeListPanel extends JPanel {
     private final List<Runnable> selectionClearedListeners = new ArrayList<>();
     private boolean replacingChanges;
     private LoadChangesProxy loadChangesProxy = null;
+    private String listedQuery;
 
     private Project project;
 
@@ -132,16 +133,20 @@ public class GerritChangeListPanel extends JPanel {
     /**
      * @param lookup whether the changes were looked up for commits: the only one found is selected, which shows its
      *               details
+     * @param query  when it is the one of the listed changes, at least as many are loaded again, so that one which was
+     *               loaded by scrolling down stays listed and selected
      */
-    public void load(LoadChangesProxy proxy, boolean lookup) {
+    public void load(LoadChangesProxy proxy, boolean lookup, String query) {
         loadChangesProxy = proxy;
-        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+        int minimum = query.equals(listedQuery) ? changes.size() : 0;
+        proxy.getFirstChanges(minimum, new Consumer<List<ChangeInfo>>() {
             @Override
             public void consume(List<ChangeInfo> changeInfos) {
                 // the pages of a load arrive in the background; a later load may already have replaced this one
                 if (proxy != loadChangesProxy) {
                     return;
                 }
+                listedQuery = query;
                 setChanges(changeInfos);
                 // a commit without a change is the usual reason for an empty lookup, a failed query the other
                 setupEmptyTableHint(lookup ? "No change found for the selected commits. " : "No changes to display. ");

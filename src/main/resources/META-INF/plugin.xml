@@ -51,6 +51,7 @@
           <li>Abandon changes</li>
           <li>Publish and delete draft changes</li>
           <li>Open files and commits in Gitiles</li>
+          <li>Show the Gerrit changes of commits selected in the VCS log</li>
         </ul>
       </p>
 
@@ -647,6 +648,11 @@
     <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="last"/>
+    </action>
+
+    <action id="Gerrit.OpenCommitInGerrit" text="Open in Gerrit Tool Window"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenCommitInGerritAction">
+      <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
     </action>
 
     <action id="Gerrit.OpenInGitiles" text="Open in Gitiles"

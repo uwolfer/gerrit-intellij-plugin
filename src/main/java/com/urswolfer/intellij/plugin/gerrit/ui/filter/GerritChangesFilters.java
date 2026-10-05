@@ -27,12 +27,13 @@ import java.util.stream.Collectors;
  * @author Thomas Forrer
  */
 public class GerritChangesFilters implements AbstractChangesFilter.Listener {
+    private final FulltextFilter fulltextFilter = new FulltextFilter();
     private final List<AbstractChangesFilter> filters;
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
 
     public GerritChangesFilters() {
         filters = List.of(
-                new FulltextFilter(),
+                fulltextFilter,
                 new StatusFilter(),
                 new BranchFilter(),
                 new AssigneeFilter(),
@@ -52,10 +53,27 @@ public class GerritChangesFilters implements AbstractChangesFilter.Listener {
 
     @Override
     public void filterChanged() {
+        // any other filter changed: back to the user's own filters, without the generated query
+        fulltextFilter.endLookup();
         eventDispatcher.getMulticaster().filtersChanged();
     }
 
+    /**
+     * Shows what the query finds, whatever the other filters are set to, until the user changes any filter; only the
+     * search field is taken over, and gets back the user's text then. Does not notify the listeners.
+     */
+    public void showLookup(String query) {
+        fulltextFilter.showLookup(query);
+    }
+
+    public boolean isShowingLookup() {
+        return fulltextFilter.isShowingLookup();
+    }
+
     public String getQuery() {
+        if (fulltextFilter.isShowingLookup()) {
+            return fulltextFilter.getSearchQueryPart();
+        }
         return filters.stream()
                 .map(AbstractChangesFilter::getSearchQueryPart)
                 .filter(Objects::nonNull)

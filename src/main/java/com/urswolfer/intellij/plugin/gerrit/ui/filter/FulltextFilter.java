@@ -36,10 +36,59 @@ import java.awt.event.KeyEvent;
 public class FulltextFilter extends AbstractChangesFilter {
 
     private String value = "";
+    /**
+     * The query generated for a lookup, or empty without one.
+     */
+    private String lookup = "";
+    /**
+     * What the user had entered before the lookup took the field over.
+     */
+    private String ownValue = "";
+    private SearchFieldAction action;
 
     @Override
     public AnAction getAction(final Project project) {
-        return new SearchFieldAction();
+        action = new SearchFieldAction();
+        return action;
+    }
+
+    /**
+     * Shows a generated query in the field, without notifying the listeners.
+     */
+    void showLookup(String query) {
+        if (!isShowingLookup()) {
+            ownValue = action != null ? action.field.getText().trim() : value; // including what is not applied yet
+        }
+        lookup = query;
+        setText(query);
+    }
+
+    /**
+     * Gives the field back what the user had entered, without notifying the listeners. Text typed over the lookup
+     * but not applied yet stays, and is what the filter goes by.
+     */
+    void endLookup() {
+        if (!isShowingLookup()) {
+            return;
+        }
+        String text = action != null ? action.field.getText().trim() : lookup;
+        if (text.equals(lookup) || text.isEmpty()) { // as emptying the field and applying it would
+            setText(ownValue);
+        } else {
+            value = text;
+        }
+        lookup = "";
+    }
+
+    private void setText(String text) {
+        value = text;
+        if (action != null) {
+            action.field.setText(text);
+        }
+    }
+
+    boolean isShowingLookup() {
+        return !lookup.isEmpty();
     }
 
     @Override
@@ -99,6 +148,14 @@ public class FulltextFilter extends AbstractChangesFilter {
                 protected void onFieldCleared() {
                     apply();
                 }
+
+                @Override
+                public void addCurrentTextToHistory() {
+                    // also called when the history popup opens; a generated query would crowd out the user's own
+                    if (!lookup.equals(getText().trim())) {
+                        super.addCurrentTextToHistory();
+                    }
+                }
             };
             JLabel label = new JLabel("Filter: ");
             label.setForeground(UIUtil.getInactiveTextColor());
@@ -111,8 +168,16 @@ public class FulltextFilter extends AbstractChangesFilter {
 
         private void apply() {
             String newValue = field.getText().trim();
-            if (!newValue.equals(value)) {
+            // the user's own text may well equal the generated one
+            boolean endsLookup = isShowingLookup() && !newValue.equals(lookup);
+            if (isShowingLookup() && newValue.isEmpty()) {
+                // emptying the lookup goes back to what was there before it
+                newValue = ownValue;
+                field.setText(ownValue);
+            }
+            if (endsLookup || !newValue.equals(value)) {
                 value = newValue;
+                lookup = ""; // what the user enters is theirs, and ends the lookup
                 fireFilterChanged();
             }
         }

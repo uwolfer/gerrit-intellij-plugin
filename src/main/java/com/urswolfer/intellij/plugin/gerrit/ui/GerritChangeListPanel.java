@@ -72,7 +72,7 @@ import java.util.TreeSet;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -125,8 +125,11 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         add(scrollPane);
     }
 
-    @Override
-    public void consume(LoadChangesProxy proxy) {
+    /**
+     * @param lookup whether the changes were looked up for commits: the only one found is selected, which shows its
+     *               details
+     */
+    public void load(LoadChangesProxy proxy, boolean lookup) {
         loadChangesProxy = proxy;
         proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
             @Override
@@ -136,16 +139,21 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
                     return;
                 }
                 setChanges(changeInfos);
-                setupEmptyTableHint();
+                // a commit without a change is the usual reason for an empty lookup, a failed query the other
+                setupEmptyTableHint(lookup ? "No change found for the selected commits. " : "No changes to display. ");
+                // at its current patch set, which reviews and the other actions go to
+                if (lookup && changeInfos.size() == 1) {
+                    table.setSelection(changeInfos);
+                }
             }
         });
     }
 
-    private void setupEmptyTableHint() {
+    private void setupEmptyTableHint(String lead) {
         StatusText emptyText = table.getEmptyText();
         emptyText.clear();
         emptyText.appendText(
-            "No changes to display. " +
+            lead +
             "If you expect changes, there might be a configuration issue. " +
             "Click "
         );

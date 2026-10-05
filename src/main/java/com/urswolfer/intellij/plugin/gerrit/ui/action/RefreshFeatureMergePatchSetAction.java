@@ -62,7 +62,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
         gerritUtil.createMergePatchSet(change.id, input, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo refreshedChange) {
-                reloadChanges(toolWindow, project);
+                ActionUtil.reloadChanges(toolWindow, project);
                 notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Patch Set Refreshed",
                         "Created a new patch set for change " + refreshedChange._number));
             }
@@ -83,12 +83,6 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
     private static boolean hasSingleSelection(AnActionEvent e) {
         Component component = e.getData(PlatformDataKeys.CONTEXT_COMPONENT);
         return component instanceof TableView && ((TableView) component).getSelectedRowCount() == 1;
-    }
-
-    private static void reloadChanges(GerritToolWindow toolWindow, Project project) {
-        if (toolWindow != null) {
-            toolWindow.reloadChanges(project, false);
-        }
     }
 
     private static class RefreshMergeDialog extends DialogWrapper {

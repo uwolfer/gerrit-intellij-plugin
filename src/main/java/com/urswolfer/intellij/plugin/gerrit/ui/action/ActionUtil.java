@@ -19,7 +19,10 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.table.TableView;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.util.Optional;
@@ -43,5 +46,11 @@ public class ActionUtil {
         }
         final ChangeInfo selectedChange = (ChangeInfo) selectedObject;
         return Optional.ofNullable(selectedChange);
+    }
+
+    public static void reloadChanges(@Nullable GerritToolWindow toolWindow, @Nullable Project project) {
+        if (toolWindow != null && project != null) {
+            toolWindow.reloadChanges(project, false);
+        }
     }
 }

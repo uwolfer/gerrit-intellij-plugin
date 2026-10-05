@@ -106,7 +106,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     private void addVersionedComment(final Project project) {
         if (editor == null || filePath == null) return;
 
-        final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit);
+        final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit, replyToComment);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupListener() {
             @Override

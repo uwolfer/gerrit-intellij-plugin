@@ -29,6 +29,7 @@ import com.intellij.ui.EditorTextField;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -61,7 +62,8 @@ public class CommentForm extends JPanel {
                        Editor editor,
                        String filePath,
                        Side commentSide,
-                       Comment commentToEdit) {
+                       Comment commentToEdit,
+                       Comment replyToComment) {
         super(new BorderLayout());
 
         this.filePath = filePath;
@@ -90,8 +92,19 @@ public class CommentForm extends JPanel {
 
         if (commentToEdit != null) {
             reviewTextField.setText(commentToEdit.message);
-            resolvedCheckBox.setSelected(!TRUE.equals(commentToEdit.unresolved));
         }
+        resolvedCheckBox.setSelected(isInitiallyResolved(commentToEdit, replyToComment));
+    }
+
+    /**
+     * A reply is sent with the state of the check box, so it starts out as the comment replied to: unchecked, it
+     * reopened every resolved thread somebody answered.
+     */
+    static boolean isInitiallyResolved(@Nullable Comment commentToEdit, @Nullable Comment replyToComment) {
+        if (commentToEdit != null) {
+            return !TRUE.equals(commentToEdit.unresolved);
+        }
+        return replyToComment != null && !TRUE.equals(replyToComment.unresolved);
     }
 
     private void addButtons() {

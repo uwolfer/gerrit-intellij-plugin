@@ -55,6 +55,7 @@ import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -116,6 +117,8 @@ public class RepositoryChangesBrowserProvider {
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
         private Project project;
         private int changesUpdate;
+        private List<String> builtDiff;
+        private int builtUpdate;
 
         public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
             super(project);
@@ -150,22 +153,35 @@ public class RepositoryChangesBrowserProvider {
         }
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
+            // its diff only starts loading once its details are there; a reload selects the same change again, whose
+            // diff may still be building and stays valid
+            if (selectedChange == null || !selectedChange.id.equals(changeInfo.id)) {
+                changesUpdate++;
+            }
             selectedChange = changeInfo;
-            changesUpdate++; // its diff only starts loading once its details are there
             gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
                     if (selectedChange != null && selectedChange.id.equals(changeDetails.id)) {
                         selectedChange = changeDetails;
-                        baseRevision = Optional.empty();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
+                        baseRevision = selectBaseRevisionAction.getSelectedValue();
                         for (GerritChangeNodeDecorator decorator : changeNodeDecorators()) {
                             decorator.onChangeSelected(project, selectedChange);
                         }
-                        updateChangesBrowser();
+                        // the diff between the same commits is still the same; building it again would fetch and run
+                        // git once more for every reload
+                        if (builtUpdate != changesUpdate || !diffToDisplay().equals(builtDiff)) {
+                            updateChangesBrowser();
+                        }
                     }
                 }
             });
+        }
+
+        private List<String> diffToDisplay() {
+            return Arrays.asList(selectedChange.id, selectedRevisions.get(selectedChange),
+                baseRevision.map(revision -> revision.getFirst()).orElse(null));
         }
 
         private void clearSelectedChange() {
@@ -181,6 +197,9 @@ public class RepositoryChangesBrowserProvider {
             if (selectedChange == null) { // "Diff against: Base" can still be picked once the change is gone
                 return;
             }
+            // without a repository there is nothing built, so a reload after the mappings changed tries again; a
+            // failing fetch or git call is not retried, as it would report its error again after every action
+            builtDiff = null;
             getViewer().setEmptyText("Loading...");
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
@@ -198,6 +217,8 @@ public class RepositoryChangesBrowserProvider {
             // the diff is built in the background, while the user may pick another revision, base or change
             final Optional<Pair<String, RevisionInfo>> base = baseRevision;
             final int update = ++changesUpdate;
+            builtDiff = diffToDisplay();
+            builtUpdate = update;
             if (base.isPresent()) {
                 revisionFetcher.addRevision(base.get().first, base.get().getSecond());
             }

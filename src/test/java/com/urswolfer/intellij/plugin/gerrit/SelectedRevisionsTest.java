@@ -21,7 +21,9 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Optional;
 
 public class SelectedRevisionsTest {
 
@@ -45,6 +47,36 @@ public class SelectedRevisionsTest {
         ChangeInfo withEmptyRevisions = new ChangeInfo();
         withEmptyRevisions.revisions = new LinkedHashMap<String, RevisionInfo>();
         Assert.assertNull(SelectedRevisions.getNewestRevision(withEmptyRevisions));
+    }
+
+    @Test
+    public void testRetainKeepsTheSelectionsWhichStillApply() throws Exception {
+        SelectedRevisions selectedRevisions = new SelectedRevisions();
+        selectedRevisions.put("listed", "aaa");
+        selectedRevisions.put("revisionGone", "bbb");
+        selectedRevisions.put("notListed", "ccc");
+        selectedRevisions.put("newPatchSet", "fff");
+
+        selectedRevisions.retain(
+            Arrays.asList(change("listed", "aaa", "ddd"), change("revisionGone", "bbb", "eee"),
+                change("notListed", "ccc"), change("newPatchSet", "fff", "ggg")),
+            Arrays.asList(change("listed", "aaa", "ddd"), change("revisionGone", "eee"),
+                change("newPatchSet", "fff", "ggg", "hhh")));
+
+        Assert.assertEquals(selectedRevisions.get("listed"), Optional.of("aaa"));
+        Assert.assertEquals(selectedRevisions.get("revisionGone"), Optional.empty());
+        Assert.assertEquals(selectedRevisions.get("notListed"), Optional.empty());
+        Assert.assertEquals(selectedRevisions.get("newPatchSet"), Optional.empty());
+    }
+
+    private static ChangeInfo change(String id, String... revisions) {
+        ChangeInfo changeInfo = new ChangeInfo();
+        changeInfo.id = id;
+        changeInfo.revisions = new LinkedHashMap<String, RevisionInfo>();
+        for (int i = 0; i < revisions.length; i++) {
+            changeInfo.revisions.put(revisions[i], revision(i + 1));
+        }
+        return changeInfo;
     }
 
     private static RevisionInfo revision(int number) {

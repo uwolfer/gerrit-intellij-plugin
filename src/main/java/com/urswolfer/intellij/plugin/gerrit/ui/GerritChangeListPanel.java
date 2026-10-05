@@ -60,8 +60,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -79,6 +81,8 @@ public class GerritChangeListPanel extends JPanel {
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
+    private final List<Runnable> selectionClearedListeners = new ArrayList<>();
+    private boolean replacingChanges;
     private LoadChangesProxy loadChangesProxy = null;
 
     private Project project;
@@ -197,14 +201,16 @@ public class GerritChangeListPanel extends JPanel {
     }
 
     /**
-     * Adds a listener that would be called once no change is selected anymore, as when the changes were replaced.
+     * Adds a listener that would be called once no change is selected anymore, as when the selected change is no
+     * longer listed after the changes were replaced.
      */
     public void addSelectionClearedListener(final @NotNull Runnable listener) {
+        selectionClearedListeners.add(listener);
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting()) {
+                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting() && !replacingChanges) {
                     listener.run();
                 }
             }
@@ -216,11 +222,42 @@ public class GerritChangeListPanel extends JPanel {
     }
 
     public void setChanges(@NotNull List<ChangeInfo> changes) {
+        ChangeInfo previouslySelected = table.getSelectedObject();
+        List<ChangeInfo> previousChanges = new ArrayList<>(this.changes);
         this.changes.clear();
         this.changes.addAll(changes);
-        initModel();
+        // the new model drops the selection; whether that empties the panels depends on the change still being listed
+        replacingChanges = true;
+        try {
+            initModel();
+        } finally {
+            replacingChanges = false;
+        }
         table.repaint();
-        selectedRevisions.clear();
+        selectedRevisions.retain(previousChanges, changes);
+        reselect(previouslySelected);
+    }
+
+    /**
+     * Selects the reloaded instance of the change, so that the details and the changes browser get its new state too.
+     */
+    private void reselect(@Nullable ChangeInfo previouslySelected) {
+        if (previouslySelected == null) {
+            return;
+        }
+        Optional<ChangeInfo> reloaded = findChange(previouslySelected.id);
+        if (reloaded.isPresent()) {
+            // not scrolled to: the user may have scrolled away from it to look at other changes
+            table.setSelection(Collections.singletonList(reloaded.get()));
+        } else {
+            for (Runnable listener : selectionClearedListeners) {
+                listener.run();
+            }
+        }
+    }
+
+    public Optional<ChangeInfo> findChange(String changeId) {
+        return changes.stream().filter(change -> change.id.equals(changeId)).findFirst();
     }
 
     public void addChanges(@NotNull List<ChangeInfo> changes) {

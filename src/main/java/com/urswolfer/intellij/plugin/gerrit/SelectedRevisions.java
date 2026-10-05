@@ -25,10 +25,12 @@ import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -65,13 +67,16 @@ public final class SelectedRevisions {
      * @return the selected revision for the provided change info object
      */
     public String get(ChangeInfo changeInfo) {
-        String currentRevision = changeInfo.currentRevision;
-        if (currentRevision == null) {
-            // don't know why with some changes currentRevision is not set,
-            // the revisions map however is usually populated
-            currentRevision = getNewestRevision(changeInfo);
+        return get(changeInfo.id).orElse(currentRevision(changeInfo));
+    }
+
+    private static String currentRevision(ChangeInfo changeInfo) {
+        if (changeInfo.currentRevision != null) {
+            return changeInfo.currentRevision;
         }
-        return get(changeInfo.id).orElse(currentRevision);
+        // don't know why with some changes currentRevision is not set,
+        // the revisions map however is usually populated
+        return getNewestRevision(changeInfo);
     }
 
     /**
@@ -91,15 +96,39 @@ public final class SelectedRevisions {
         eventDispatcher.getMulticaster().selectedRevisionChanged(changeId);
     }
 
-    public void clear() {
-        map.clear();
-        eventDispatcher.getMulticaster().selectedRevisionChanged(null);
+    /**
+     * Forgets the selections which no longer apply after the list has been reloaded: those of changes which are not
+     * listed any more, those of a revision the change no longer has, and those of a change which got a new patch set,
+     * so that a review does not end up on an outdated one without the user noticing.
+     */
+    public void retain(Collection<ChangeInfo> previousChanges, Collection<ChangeInfo> reloadedChanges) {
+        Map<String, String> previousCurrentRevisions = currentRevisions(previousChanges);
+        Map<String, ChangeInfo> reloaded = new HashMap<>();
+        for (ChangeInfo change : reloadedChanges) {
+            reloaded.put(change.id, change);
+        }
+        boolean removed = map.entrySet().removeIf(selection -> {
+            ChangeInfo change = reloaded.get(selection.getKey());
+            return change == null || change.revisions == null || !change.revisions.containsKey(selection.getValue())
+                || !Objects.equals(currentRevision(change), previousCurrentRevisions.get(change.id));
+        });
+        if (removed) {
+            eventDispatcher.getMulticaster().selectedRevisionChanged(null);
+        }
+    }
+
+    private static Map<String, String> currentRevisions(Collection<ChangeInfo> changes) {
+        Map<String, String> currentRevisions = new HashMap<>();
+        for (ChangeInfo change : changes) {
+            currentRevisions.put(change.id, currentRevision(change));
+        }
+        return currentRevisions;
     }
 
     public interface Listener extends EventListener {
         /**
-         * @param changeId the change for which the selected revision changed, or {@code null} if all selections were
-         *                 cleared
+         * @param changeId the change for which the selected revision changed, or {@code null} if selections which no
+         *                 longer apply after a reload were dropped
          */
         void selectedRevisionChanged(@Nullable String changeId);
     }

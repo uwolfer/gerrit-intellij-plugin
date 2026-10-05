@@ -1,8 +1,9 @@
 name: Java CI with Gradle
 
 on:
-  - push
-  - pull_request
+  push:
+    branches: [intellij2020.3]
+  pull_request:
 
 permissions:
   contents: read

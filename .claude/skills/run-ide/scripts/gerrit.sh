@@ -94,7 +94,7 @@ seed() {
     git push -q origin HEAD:refs/for/master
     curl -sS --fail-with-body -u reviewer:reviewer -H 'Content-Type: application/json' \
         -d '{"message":"Looks fine","labels":{"Code-Review":1},
-                  "comments":{"hello.txt":[{"line":2,"message":"Capitalise World?"}]}}' \
+                  "comments":{"hello.txt":[{"line":2,"message":"Capitalise World?","unresolved":true}]}}' \
         "$URL/a/changes/demo~master~$(change_id)/revisions/current/review" >&2
 
     git reset -q --hard HEAD~1

@@ -95,6 +95,15 @@ sandbox needs the account once: on the Gerrit settings page enter
 `http://localhost:8080`, `admin` and `secret`, then OK. The first start of a new
 IDE shows a theme tour; dismiss it with "Skip".
 
+Coordinates seen on the 1600x1000 display (2020.3), from a screenshot of each
+state: the Gerrit tool window tab is at 357,969; drag its top edge (y 659) up to
+enlarge it; the first change row is at y 298 and the next 21 below. A context
+menu opens at the clicked row, so measure its items from that row. The first
+item of a menu for the row at y 319 is "Compare with Branch" at y 330, 21 apart.
+
+Gerrit 3.14 has no assignee endpoint (`PUT /changes/N/assignee` is a 404), so
+"Set Assignee" can only be checked for its dialog and error balloon here.
+
 ## Noise that is not the plugin's
 
 * Balloons about `JAVA_TOOL_OPTIONS` (the sandbox's proxy) and, on new IDEs,

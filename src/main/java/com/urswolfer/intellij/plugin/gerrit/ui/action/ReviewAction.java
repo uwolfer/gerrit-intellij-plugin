@@ -64,7 +64,9 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
             return;
         }
         final ChangeInfo changeDetails = selectedChange.get();
-        gerritUtil.getComments(changeDetails._number, SelectedRevisions.getInstance(project).get(changeDetails), project, false, true,
+        // the review goes to the patch set shown now, even if a reload resets the selected one while the dialog is open
+        final String revision = SelectedRevisions.getInstance(project).get(changeDetails);
+        gerritUtil.getComments(changeDetails._number, revision, project, false, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
             @Override
             public void consume(Map<String, List<CommentInfo>> draftComments) {
@@ -97,7 +99,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
                 final boolean finalSubmitChange = submitChange;
                 gerritUtil.postReview(changeDetails.id,
-                        SelectedRevisions.getInstance(project).get(changeDetails),
+                        revision,
                         reviewInput,
                         project,
                         new Consumer<Void>() {

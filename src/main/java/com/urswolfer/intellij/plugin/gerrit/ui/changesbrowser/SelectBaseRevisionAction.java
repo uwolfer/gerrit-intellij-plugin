@@ -91,9 +91,17 @@ public class SelectBaseRevisionAction extends BasePopupAction {
         }
     }
 
+    /**
+     * Keeps the base revision when the same change is selected again after the list has been reloaded, as long as the
+     * change still has that revision.
+     */
     public void setSelectedChange(ChangeInfo selectedChange) {
+        boolean sameChange = this.selectedChange.isPresent() && this.selectedChange.get().id.equals(selectedChange.id);
         this.selectedChange = Optional.of(selectedChange);
-        selectedValue = Optional.empty();
+        if (!sameChange || !selectedValue.isPresent() || selectedChange.revisions == null
+                || !selectedChange.revisions.containsKey(selectedValue.get().getFirst())) {
+            selectedValue = Optional.empty();
+        }
         updateLabel();
     }
 
@@ -106,6 +114,10 @@ public class SelectBaseRevisionAction extends BasePopupAction {
         updateLabel();
     }
 
+    public Optional<Pair<String, RevisionInfo>> getSelectedValue() {
+        return selectedValue;
+    }
+
     public void addRevisionSelectedListener(Listener listener) {
         this.listeners.add(listener);
     }
@@ -116,13 +128,17 @@ public class SelectBaseRevisionAction extends BasePopupAction {
         return new DumbAwareUpdateInBackgroundAction(actionLabel) {
             @Override
             public void actionPerformed(AnActionEvent e) {
+                // the popup can still be open when its change is no longer listed
+                if (!selectedChange.isPresent()) {
+                    return;
+                }
                 updateSelectedValue(infoPair);
                 updateLabel();
             }
 
             @Override
             public void update(AnActionEvent e) {
-                e.getPresentation().setEnabled(!isSameRevisionAsSelected());
+                e.getPresentation().setEnabled(selectedChange.isPresent() && !isSameRevisionAsSelected());
             }
 
             private boolean isSameRevisionAsSelected() {

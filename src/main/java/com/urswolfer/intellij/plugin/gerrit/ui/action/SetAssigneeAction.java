@@ -55,6 +55,7 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
             return;
         }
         ChangeInfo changeInfo = selectedChange.get();
+        GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
 
         SetAssigneeDialog dialog = new SetAssigneeDialog(project, GerritApiProvider.getInstance().get(), changeInfo);
         if (!dialog.showAndGet()) {
@@ -65,12 +66,10 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
         if (assignee.equals(currentAssignee(changeInfo))) {
             return;
         }
-        GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
         gerritUtil.setAssignee(changeInfo.id, assignee, project, newAssignee -> {
-            // the list row is what the dialog prefills from next time, and the list itself is not reloaded
-            changeInfo.assignee = newAssignee;
+            // the list row is what the dialog prefills from next time
             if (toolWindow != null) {
-                toolWindow.reloadChangeDetails(changeInfo, project);
+                toolWindow.updateChange(changeInfo.id, change -> change.assignee = newAssignee, project);
             }
         });
     }

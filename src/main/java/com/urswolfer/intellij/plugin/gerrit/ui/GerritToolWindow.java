@@ -46,6 +46,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Urs Wolfer
@@ -155,11 +156,18 @@ public class GerritToolWindow implements Disposable {
     }
 
     /**
-     * Refreshes the details panel without reloading the list, which would lose the selection.
+     * Applies a modification Gerrit has confirmed to the listed change, for one which does not justify reloading the
+     * list. The change is looked up by its id because a reload replaces every listed instance.
      */
-    public void reloadChangeDetails(ChangeInfo changeInfo, Project project) {
-        if (changeListPanel.getTable().getSelectedObject() == changeInfo) {
-            changeSelected(changeInfo, project);
+    public void updateChange(String changeId, Consumer<ChangeInfo> update, Project project) {
+        Optional<ChangeInfo> listed = changeListPanel.findChange(changeId);
+        if (!listed.isPresent()) {
+            return;
+        }
+        update.consume(listed.get());
+        changeListPanel.getTable().repaint();
+        if (changeListPanel.getTable().getSelectedObject() == listed.get()) {
+            changeSelected(listed.get(), project);
         }
     }
 

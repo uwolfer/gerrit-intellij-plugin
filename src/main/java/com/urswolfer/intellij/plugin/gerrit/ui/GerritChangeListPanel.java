@@ -105,14 +105,17 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             @Override
             public void adjustmentValueChanged(AdjustmentEvent e) {
-                if (loadChangesProxy != null) {
+                LoadChangesProxy proxy = loadChangesProxy;
+                if (proxy != null) {
                     int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
                     if (lowerEnd == e.getAdjustable().getMaximum()) {
                         // a load which is already running is skipped by the proxy
-                        loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+                        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
                             @Override
                             public void consume(List<ChangeInfo> changeInfos) {
-                                addChanges(changeInfos);
+                                if (proxy == loadChangesProxy) {
+                                    addChanges(changeInfos);
+                                }
                             }
                         });
                     }
@@ -128,6 +131,10 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
             @Override
             public void consume(List<ChangeInfo> changeInfos) {
+                // the pages of a load arrive in the background; a later load may already have replaced this one
+                if (proxy != loadChangesProxy) {
+                    return;
+                }
                 setChanges(changeInfos);
                 setupEmptyTableHint();
             }

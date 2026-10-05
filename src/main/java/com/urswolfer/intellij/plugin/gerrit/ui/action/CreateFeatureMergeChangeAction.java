@@ -259,7 +259,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         gerritUtil.createMergeChange(input, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeInfo) {
-                reloadChanges(toolWindow, project);
+                ActionUtil.reloadChanges(toolWindow, project);
                 notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Change Created",
                         "Created change " + changeInfo._number + ": " + changeInfo.subject));
             }
@@ -272,12 +272,6 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
 
     private void notifyError(Project project, String message) {
         notificationService.notifyError(new NotificationBuilder(project, "Create Feature Merge Change", message));
-    }
-
-    private static void reloadChanges(GerritToolWindow toolWindow, Project project) {
-        if (toolWindow != null) {
-            toolWindow.reloadChanges(project, false);
-        }
     }
 
     private class CreateMergeDialog extends DialogWrapper {

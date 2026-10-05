@@ -63,6 +63,7 @@ public class FetchAction {
 
                 FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
                 if (firstFetchInfo == null) {
+                    gerritGitUtil.notifyNoFetchInfo(project);
                     return;
                 }
                 gerritGitUtil.fetchChange(project, gitRepository.get(), firstFetchInfo, commitHash, () -> {

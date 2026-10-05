@@ -22,8 +22,6 @@ import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
-import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.repo.GitRepository;
 
 import java.util.LinkedHashMap;
@@ -39,7 +37,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RevisionFetcher {
     private final GerritUtil gerritUtil;
     private final GerritGitUtil gerritGitUtil;
-    private final NotificationService notificationService;
     private final Project project;
     private final GitRepository gitRepository;
 
@@ -47,12 +44,10 @@ public class RevisionFetcher {
 
     public RevisionFetcher(GerritUtil gerritUtil,
                            GerritGitUtil gerritGitUtil,
-                           NotificationService notificationService,
                            Project project,
                            GitRepository gitRepository) {
         this.gerritUtil = gerritUtil;
         this.gerritGitUtil = gerritGitUtil;
-        this.notificationService = notificationService;
         this.project = project;
         this.gitRepository = gitRepository;
     }
@@ -78,19 +73,10 @@ public class RevisionFetcher {
     private void fetchChange(String commitHash, RevisionInfo revisionInfo, FetchCallback fetchCallback) {
         FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(revisionInfo);
         if (fetchInfo == null) {
-            notifyError();
+            gerritGitUtil.notifyNoFetchInfo(project);
         } else {
             gerritGitUtil.fetchChange(project, gitRepository, fetchInfo, commitHash, fetchCallback);
         }
-    }
-
-    private void notifyError() {
-        NotificationBuilder notification = new NotificationBuilder(
-                project, "Cannot fetch changes",
-                "No fetch information provided. If you are using Gerrit 2.8 or later, " +
-                        "you need to install the plugin 'download-commands' in Gerrit."
-        );
-        notificationService.notifyError(notification);
     }
 
     /**

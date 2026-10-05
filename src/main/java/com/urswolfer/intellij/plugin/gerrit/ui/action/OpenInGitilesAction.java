@@ -41,11 +41,11 @@ import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes.GerritProject;
 import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
-import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
 import git4idea.repo.GitBranchTrackInfo;
 import git4idea.repo.GitRemote;
@@ -54,13 +54,8 @@ import git4idea.repo.GitRepositoryManager;
 import icons.MyIcons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Opens a file, a revision of a file or a commit of a Gerrit project in Gitiles, wherever the IDE offers one.
@@ -152,7 +147,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
         if (repository == null) {
             return null;
         }
-        GerritProject gerritProject = getGerritProject(repository, baseUrl);
+        GerritProject gerritProject = GerritRemotes.getGerritProject(repository, baseUrl);
         String relativePath = getRelativePath(repository.getRoot(), path.getPath());
         if (gerritProject == null || relativePath == null) {
             return null;
@@ -172,7 +167,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
         if (repository == null) {
             return null;
         }
-        GerritProject gerritProject = getGerritProject(repository, baseUrl);
+        GerritProject gerritProject = GerritRemotes.getGerritProject(repository, baseUrl);
         if (gerritProject == null) {
             return null;
         }
@@ -197,7 +192,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
         if (repository.getCurrentRevision() == null) { // nothing committed yet
             return null;
         }
-        GerritProject gerritProject = getGerritProject(repository, baseUrl);
+        GerritProject gerritProject = GerritRemotes.getGerritProject(repository, baseUrl);
         String relativePath = getRelativePath(repository.getRoot(), file.getPath());
         if (gerritProject == null || relativePath == null) {
             return null;
@@ -254,70 +249,6 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
     }
 
     /**
-     * Only remotes on the configured Gerrit lead to a project there; a repository can just as well have a mirror or
-     * a fork among its remotes, or fetch from a mirror and push to Gerrit. The remote the current branch tracks goes
-     * first, as the one pushed to.
-     */
-    @Nullable
-    private static GerritProject getGerritProject(GitRepository repository, String baseUrl) {
-        Set<GitRemote> remotes = new LinkedHashSet<>();
-        GitBranchTrackInfo trackInfo = GitUtil.getTrackInfoForCurrentBranch(repository);
-        if (trackInfo != null) {
-            remotes.add(trackInfo.getRemote());
-        }
-        remotes.addAll(repository.getRemotes());
-
-        GerritSettings settings = GerritSettings.getInstance();
-        Set<String> gerritUrls = new LinkedHashSet<>();
-        for (String gerritUrl : new String[]{settings.getHost(), settings.getCloneBaseUrlOrHost(), baseUrl}) {
-            if (gerritUrl != null && !gerritUrl.isEmpty()) {
-                gerritUrls.add(gerritUrl);
-            }
-        }
-        for (GitRemote remote : remotes) {
-            // fetch URLs first: the tracked branch, and with it the revision a file is linked at, comes from there
-            List<String> remoteUrls = new ArrayList<>(remote.getUrls());
-            remoteUrls.addAll(remote.getPushUrls());
-            for (String remoteUrl : remoteUrls) {
-                String projectName = getProjectName(remoteUrl, gerritUrls);
-                if (projectName != null) {
-                    return new GerritProject(remote, projectName);
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * The Gerrit host, the clone base URL and the Gitiles URL can share a host and still differ in their path, so a
-     * remote is resolved against each one it lives on. The longest path it lives below leaves the shortest name; the
-     * others leave part of that path in front of the project.
-     */
-    @VisibleForTesting
-    @Nullable
-    static String getProjectName(String remoteUrl, Collection<String> gerritUrls) {
-        String url = UrlUtils.stripGitExtension(UrlUtils.normalizeScpLikeUrl(remoteUrl));
-        String best = null;
-        for (String gerritUrl : gerritUrls) {
-            try {
-                if (!UrlUtils.urlHasSameHost(url, gerritUrl)) {
-                    continue;
-                }
-                String projectName = GerritUtil.getProjectName(gerritUrl, null, url);
-                if (projectName == null || projectName.isEmpty() || !url.endsWith(projectName)) {
-                    continue;
-                }
-                projectName = UrlUtils.stripAuthenticationPrefix(url, projectName);
-                if (best == null || projectName.length() < best.length()) {
-                    best = projectName;
-                }
-            } catch (IllegalArgumentException e) { // a url which is not a URI does not point to Gerrit either
-            }
-        }
-        return best;
-    }
-
-    /**
      * @return the path relative to the root, empty for the root itself, or {@code null} if it is not below the root
      */
     @Nullable
@@ -331,16 +262,6 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
             return null;
         }
         return ".".equals(relativePath) ? "" : relativePath;
-    }
-
-    private static final class GerritProject {
-        final GitRemote remote;
-        final String name;
-
-        GerritProject(GitRemote remote, String name) {
-            this.remote = remote;
-            this.name = name;
-        }
     }
 
     private static final class Target {

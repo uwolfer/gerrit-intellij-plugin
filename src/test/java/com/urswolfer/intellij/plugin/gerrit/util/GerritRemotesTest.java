@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.urswolfer.intellij.plugin.gerrit.ui.action;
+package com.urswolfer.intellij.plugin.gerrit.util;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -25,37 +25,37 @@ import java.util.Collections;
 /**
  * @author Urs Wolfer
  */
-public class OpenInGitilesActionTest {
+public class GerritRemotesTest {
 
     @Test
     public void testRemoteBelowTheGerritPathIgnoresAnSshCloneBase() {
-        Assert.assertEquals(OpenInGitilesAction.getProjectName("https://host/r/project",
+        Assert.assertEquals(GerritRemotes.getProjectName("https://host/r/project",
             Arrays.asList("https://host/r", "ssh://host:29418", "https://host/r/plugins/gitiles")), "project");
     }
 
     @Test
     public void testRemoteBelowTheCloneBasePath() {
-        Assert.assertEquals(OpenInGitilesAction.getProjectName("https://host/git/team/app.git",
+        Assert.assertEquals(GerritRemotes.getProjectName("https://host/git/team/app.git",
             Arrays.asList("https://host", "https://host/git")), "team/app");
     }
 
     @Test
     public void testSshRemote() {
-        Assert.assertEquals(OpenInGitilesAction.getProjectName("ssh://jdoe@host:29418/team/app",
+        Assert.assertEquals(GerritRemotes.getProjectName("ssh://jdoe@host:29418/team/app",
             Arrays.asList("https://host/r", "ssh://host:29418")), "team/app");
-        Assert.assertEquals(OpenInGitilesAction.getProjectName("jdoe@host:team/app",
+        Assert.assertEquals(GerritRemotes.getProjectName("jdoe@host:team/app",
             Collections.singletonList("https://host")), "team/app");
     }
 
     @Test
     public void testAuthenticatedHttpRemote() {
-        Assert.assertEquals(OpenInGitilesAction.getProjectName("https://host/r/a/team/app",
+        Assert.assertEquals(GerritRemotes.getProjectName("https://host/r/a/team/app",
             Collections.singletonList("https://host/r")), "team/app");
     }
 
     @Test
     public void testRemoteOnAnotherHost() {
-        Assert.assertNull(OpenInGitilesAction.getProjectName("https://github.com/team/app",
+        Assert.assertNull(GerritRemotes.getProjectName("https://github.com/team/app",
             Collections.singletonList("https://host")));
     }
 }

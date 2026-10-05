@@ -34,6 +34,7 @@ import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.ValidationInfo;
@@ -80,6 +81,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 
 /**
@@ -407,7 +412,18 @@ public class GerritCloneComponent implements VcsCloneComponent {
         return new CheckoutProvider.Listener() {
             @Override
             public void directoryCheckedOut(File directory, VcsKey vcs) {
-                setupCommitMsgHook(parentDirectory, directoryName, project);
+                if (ApplicationManager.getApplication().isDispatchThread()) {
+                    // Up to 2022.1 the platform calls this on the event dispatch thread. The hook must be in place
+                    // before the project opens, so the download is waited for, but behind a progress dialog which
+                    // can be cancelled: the hook is still written once it arrives.
+                    Future<?> hook = ApplicationManager.getApplication().executeOnPooledThread(
+                        () -> setupCommitMsgHook(parentDirectory, directoryName, project));
+                    // the progress dialog cannot be registered with a project closed during the clone
+                    ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> awaitCancellably(hook),
+                        "Setting Up Gerrit Commit-Message Hook...", true, project.isDisposed() ? null : project);
+                } else {
+                    setupCommitMsgHook(parentDirectory, directoryName, project);
+                }
 
                 listener.directoryCheckedOut(directory, vcs);
             }
@@ -417,6 +433,24 @@ public class GerritCloneComponent implements VcsCloneComponent {
                 listener.checkoutCompleted();
             }
         };
+    }
+
+    private static void awaitCancellably(Future<?> future) {
+        while (true) {
+            try {
+                future.get(100, TimeUnit.MILLISECONDS);
+                return;
+            } catch (TimeoutException e) {
+                ProgressManager.checkCanceled();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (ExecutionException e) {
+                // setupCommitMsgHook reports what it expects itself, anything else would get lost here
+                LOG.error(e.getCause());
+                return;
+            }
+        }
     }
 
     private void setupCommitMsgHook(String parentDirectory, String directoryName, Project project) {

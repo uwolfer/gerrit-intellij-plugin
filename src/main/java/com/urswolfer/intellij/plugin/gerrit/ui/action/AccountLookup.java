@@ -44,9 +44,22 @@ public final class AccountLookup {
 
     static LookupElementBuilder lookupElement(AccountInfo account, String insertSuffix) {
         String identifier = identifier(account);
-        return LookupElementBuilder.create(identifier + insertSuffix)
+        List<String> lookupStrings = alternativeLookupStrings(account);
+        // an account inserted by its id is still found by what was typed of its name, "van der" included
+        lookupStrings.add(identifier);
+        return LookupElementBuilder.create(insertedIdentifier(account, insertSuffix) + insertSuffix)
             .withPresentableText(identifier)
-            .withLookupStrings(alternativeLookupStrings(account));
+            .withLookupStrings(lookupStrings);
+    }
+
+    /**
+     * The suffix separates the accounts of a list which is split on it again, so an identifier containing it, as
+     * of the name "Doe, John", would turn into two accounts. The account id is what Gerrit tries first, and the
+     * only value which names exactly one account: an email can be shared, and a username can be numeric.
+     */
+    static String insertedIdentifier(AccountInfo account, String separator) {
+        String identifier = identifier(account);
+        return separator.isEmpty() || !identifier.contains(separator) ? identifier : String.valueOf(account._accountId);
     }
 
     /**

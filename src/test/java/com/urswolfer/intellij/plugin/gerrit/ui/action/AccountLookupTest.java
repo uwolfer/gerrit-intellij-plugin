@@ -51,6 +51,21 @@ public class AccountLookupTest {
     }
 
     @Test
+    public void testInsertedIdentifierLeavesOutNameWithSeparator() {
+        Assert.assertEquals(AccountLookup.insertedIdentifier(account(7, "Doe, John", "jdoe@example.com", "jdoe"), ","),
+            "7");
+        Assert.assertEquals(AccountLookup.insertedIdentifier(account(7, "Doe, John", null, null), ","), "7");
+    }
+
+    @Test
+    public void testInsertedIdentifierKeepsNameWithoutSeparator() {
+        AccountInfo account = account(7, "Jane Doe", "jane@example.com", "jdoe");
+        Assert.assertEquals(AccountLookup.insertedIdentifier(account, ","), "Jane Doe <jane@example.com>");
+        Assert.assertEquals(AccountLookup.insertedIdentifier(account(7, "Doe, John", "jdoe@example.com", null), ""),
+            "Doe, John <jdoe@example.com>");
+    }
+
+    @Test
     public void testAlternativeLookupStringsContainEveryNamePart() {
         AccountInfo account = account(7, "Jane\u00A0van Doe", "jane@example.com", "jdoe");
         Assert.assertEquals(AccountLookup.alternativeLookupStrings(account),

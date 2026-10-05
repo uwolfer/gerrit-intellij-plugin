@@ -19,6 +19,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -261,7 +262,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             public void consume(ChangeInfo changeInfo) {
                 ActionUtil.reloadChanges(toolWindow, project);
                 notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Change Created",
-                        "Created change " + changeInfo._number + ": " + changeInfo.subject));
+                        "Created change " + changeInfo._number + ": " + StringUtil.escapeXmlEntities(changeInfo.subject)));
             }
         });
     }

@@ -24,7 +24,9 @@ public class StarAction extends AbstractLoggedInChangeAction {
         }
         Project project = anActionEvent.getProject();
         ChangeInfo changeInfo = selectedChange.get();
-        gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project);
+        // reloaded rather than updated in place: the query may list changes by their star
+        gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project,
+                reloadChangesAfterwards(anActionEvent));
     }
 
 }

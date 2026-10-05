@@ -33,6 +33,7 @@ import com.intellij.ui.EditorCustomization;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
+import com.intellij.util.Consumer;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
@@ -63,6 +64,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
 
+        Consumer<Void> reloadChanges = reloadChangesAfterwards(anActionEvent);
         AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(), selectedChange.get());
         dialog.show();
         if (!dialog.isOK()) {
@@ -73,7 +75,8 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             // not String#trim(): a pasted name can be surrounded by whitespace which it does not remove
             String reviewerName = Whitespace.trim(reviewer);
             if (!reviewerName.isEmpty()) {
-                gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project);
+                // each one reloads: the last reload to start follows the last reviewer to be added
+                gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project, reloadChanges);
             }
         }
     }

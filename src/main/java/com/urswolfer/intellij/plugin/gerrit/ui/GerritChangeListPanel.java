@@ -516,6 +516,12 @@ public class GerritChangeListPanel extends JPanel {
     }
 
     private static String getAccountTooltip(AccountInfo accountInfo) {
+        if (accountInfo.name == null) {
+            // Gerrit leaves the name out of an account which has none, as often with bots
+            return accountInfo.email != null ? accountInfo.email
+                : accountInfo.username != null ? accountInfo.username
+                : String.valueOf(accountInfo._accountId);
+        }
         if (accountInfo.email != null) {
             return String.format("%s &lt;%s&gt;", accountInfo.name, accountInfo.email);
         } else {
@@ -628,19 +634,19 @@ public class GerritChangeListPanel extends JPanel {
             return null;
         }
 
+        /**
+         * Names the voter of the vote the icon shows: Gerrit fills in an account for each kind of vote at once.
+         */
         private static String getToolTipForLabel(LabelInfo labelInfo) {
             if (labelInfo != null) {
                 AccountInfo accountInfo = null;
                 if (labelInfo.rejected != null) {
                     accountInfo = labelInfo.rejected;
-                }
-                if (labelInfo.approved != null) {
+                } else if (labelInfo.approved != null) {
                     accountInfo = labelInfo.approved;
-                }
-                if (labelInfo.disliked != null) {
+                } else if (labelInfo.disliked != null) {
                     accountInfo = labelInfo.disliked;
-                }
-                if (labelInfo.recommended != null) {
+                } else if (labelInfo.recommended != null) {
                     accountInfo = labelInfo.recommended;
                 }
                 if (accountInfo != null) {

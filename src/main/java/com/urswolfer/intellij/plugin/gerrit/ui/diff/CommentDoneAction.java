@@ -64,14 +64,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        final DraftInput comment = new DraftInput();
-        comment.inReplyTo = fileComment.id;
-        comment.message = "Done";
-        comment.line = fileComment.line;
-        comment.path = fileComment.path;
-        comment.side = fileComment.side;
-        comment.range = fileComment.range;
-
+        final DraftInput comment = createDoneReply(fileComment);
         final Project project = e.getProject();
         gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,
                 new Consumer<CommentInfo>() {
@@ -85,5 +78,18 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
     @Override
     public void update(AnActionEvent e) {
         e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+    }
+
+    static DraftInput createDoneReply(Comment fileComment) {
+        DraftInput comment = new DraftInput();
+        comment.inReplyTo = fileComment.id;
+        comment.message = "Done";
+        comment.line = fileComment.line;
+        comment.path = fileComment.path;
+        comment.side = fileComment.side;
+        comment.range = fileComment.range;
+        // left out, Gerrit copies the state of the comment replied to, which keeps the thread unresolved
+        comment.unresolved = false;
+        return comment;
     }
 }

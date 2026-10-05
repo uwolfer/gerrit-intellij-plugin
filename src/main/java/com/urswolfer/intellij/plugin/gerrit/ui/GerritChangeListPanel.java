@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A table with the list of changes.
@@ -72,13 +73,14 @@ import java.util.TreeSet;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel implements Consumer<LoadChangesProxy> {
+public class GerritChangeListPanel extends JPanel {
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
 
     private final List<ChangeInfo> changes;
     private final TableView<ChangeInfo> table;
+    private final AtomicInteger loadGeneration = new AtomicInteger();
     private LoadChangesProxy loadChangesProxy = null;
 
     private Project project;
@@ -105,14 +107,18 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             @Override
             public void adjustmentValueChanged(AdjustmentEvent e) {
-                if (loadChangesProxy != null) {
+                final LoadChangesProxy proxy = loadChangesProxy;
+                if (proxy != null) {
                     int lowerEnd = e.getAdjustable().getVisibleAmount() + e.getAdjustable().getValue();
                     if (lowerEnd == e.getAdjustable().getMaximum()) {
                         // a load which is already running is skipped by the proxy
-                        loadChangesProxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+                        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
                             @Override
                             public void consume(List<ChangeInfo> changeInfos) {
-                                addChanges(changeInfos);
+                                // the next page of a list which has been reloaded meanwhile does not belong to it
+                                if (proxy == loadChangesProxy) {
+                                    addChanges(changeInfos);
+                                }
                             }
                         });
                     }
@@ -122,16 +128,34 @@ public class GerritChangeListPanel extends JPanel implements Consumer<LoadChange
         add(scrollPane);
     }
 
-    @Override
-    public void consume(LoadChangesProxy proxy) {
-        loadChangesProxy = proxy;
-        proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+    /**
+     * Starts loading the list anew. Loads overlap, e.g. when the filters are changed in quick succession, and can
+     * complete in any order: the returned consumer drops its proxy once a newer load has been started.
+     */
+    public Consumer<LoadChangesProxy> startLoading() {
+        // a reload can be started off the event dispatch thread, e.g. when the repository mappings change
+        final int generation = loadGeneration.incrementAndGet();
+        return new Consumer<LoadChangesProxy>() {
             @Override
-            public void consume(List<ChangeInfo> changeInfos) {
-                setChanges(changeInfos);
-                setupEmptyTableHint();
+            public void consume(final LoadChangesProxy proxy) {
+                if (generation != loadGeneration.get()) {
+                    return;
+                }
+                proxy.getNextPage(new Consumer<List<ChangeInfo>>() {
+                    @Override
+                    public void consume(List<ChangeInfo> changeInfos) {
+                        // a newer load may have been started while this one was running, even if its proxy is not
+                        // there yet; the changes of this one may predate the action which started it
+                        if (generation == loadGeneration.get()) {
+                            // only now: the pages of a load which got replaced must never be added by scrolling
+                            loadChangesProxy = proxy;
+                            setChanges(changeInfos);
+                            setupEmptyTableHint();
+                        }
+                    }
+                });
             }
-        });
+        };
     }
 
     private void setupEmptyTableHint() {

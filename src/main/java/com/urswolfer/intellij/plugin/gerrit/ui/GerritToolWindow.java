@@ -36,7 +36,6 @@ import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 import git4idea.GitUtil;
@@ -141,9 +140,17 @@ public class GerritToolWindow implements Disposable {
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                detailsPanel.setData(changeDetails);
+                // another change may have been selected while the details were loading
+                if (isSelected(changeDetails.id)) {
+                    detailsPanel.setData(changeDetails);
+                }
             }
         });
+    }
+
+    private boolean isSelected(String changeId) {
+        ChangeInfo selected = changeListPanel.getTable().getSelectedObject();
+        return selected != null && selected.id.equals(changeId);
     }
 
     /**
@@ -156,10 +163,10 @@ public class GerritToolWindow implements Disposable {
     }
 
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
-        getChanges(project, requestSettingsIfNonExistent, changeListPanel);
+        getChanges(project, requestSettingsIfNonExistent);
     }
 
-    private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
+    private void getChanges(Project project, boolean requestSettingsIfNonExistent) {
         String apiUrl = gerritSettings.getHost();
         if (apiUrl == null || apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
@@ -172,7 +179,7 @@ public class GerritToolWindow implements Disposable {
                 return;
             }
         }
-        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
+        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, changeListPanel.startLoading());
     }
 
     private ActionToolbar createToolbar(final Project project) {

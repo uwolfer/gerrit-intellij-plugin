@@ -105,11 +105,16 @@ public class CheckoutAction extends AbstractChangeAction {
                                 Runnable setUpstream = new Runnable() {
                                     @Override
                                     public void run() {
+                                        // GitBrancher runs this after a failed or declined checkout as well
+                                        if (!target.name.equals(repository.getCurrentBranchName())) {
+                                            return;
+                                        }
                                         GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
                                             @Override
                                             public void run(@NotNull ProgressIndicator indicator) {
                                                 try {
-                                                    gerritGitUtil.setUpstreamBranch(repository, remote.get().getName() + "/" + changeDetails.branch);
+                                                    gerritGitUtil.setUpstreamBranch(repository, target.name,
+                                                            remote.get().getName() + "/" + changeDetails.branch);
                                                 } catch (VcsException e) {
                                                     NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
                                                     notificationService.notifyError(builder);

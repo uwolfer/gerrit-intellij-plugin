@@ -569,13 +569,14 @@ public final class GerritGitUtil {
         return compareInfo;
     }
 
-    public void setUpstreamBranch(GitRepository repository, String remoteBranch) throws VcsException {
+    public void setUpstreamBranch(GitRepository repository, String localBranch, String remoteBranch) throws VcsException {
         FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
         final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.BRANCH);
         h.setSilent(false);
         h.setStdoutSuppressed(false);
         h.addParameters("-u", "remotes/" + remoteBranch);
         h.endOptions();
+        h.addParameters(localBranch);
         h.addLineListener(listener);
         GitCommandResult gitCommandResult = Git.getInstance().runCommand(new Computable<GitLineHandler>() {
             @Override

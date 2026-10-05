@@ -107,6 +107,7 @@ public class GerritToolWindow implements Disposable {
                 changeSelected(changeInfo, project);
             }
         });
+        changeListPanel.addSelectionClearedListener(detailsPanel::nothingSelected);
         JPanel details = detailsPanel.getComponent();
         detailsSplitter.setSecondComponent(details);
 

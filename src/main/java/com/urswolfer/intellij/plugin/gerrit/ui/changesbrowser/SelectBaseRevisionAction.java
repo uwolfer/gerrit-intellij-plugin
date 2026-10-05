@@ -97,6 +97,15 @@ public class SelectBaseRevisionAction extends BasePopupAction {
         updateLabel();
     }
 
+    /**
+     * Forgets the change without notifying the listeners, which forget it themselves.
+     */
+    public void clearSelectedChange() {
+        selectedChange = Optional.empty();
+        selectedValue = Optional.empty();
+        updateLabel();
+    }
+
     public void addRevisionSelectedListener(Listener listener) {
         this.listeners.add(listener);
     }

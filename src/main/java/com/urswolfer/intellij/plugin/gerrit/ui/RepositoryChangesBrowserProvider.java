@@ -100,6 +100,7 @@ public class RepositoryChangesBrowserProvider {
                 changesBrowser.setSelectedChange(changeInfo);
             }
         });
+        changeListPanel.addSelectionClearedListener(changesBrowser::clearSelectedChange);
         // the comment counts are loaded in background, the nodes displaying them have to be repainted afterwards
         commentCountChangeNodeDecorator.setDataLoadedCallback(new Runnable() {
             @Override
@@ -154,7 +155,7 @@ public class RepositoryChangesBrowserProvider {
             gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
-                    if (selectedChange.id.equals(changeDetails.id)) {
+                    if (selectedChange != null && selectedChange.id.equals(changeDetails.id)) {
                         selectedChange = changeDetails;
                         baseRevision = Optional.empty();
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
@@ -167,7 +168,19 @@ public class RepositoryChangesBrowserProvider {
             });
         }
 
+        private void clearSelectedChange() {
+            selectedChange = null;
+            baseRevision = Optional.empty();
+            changesUpdate++;
+            selectBaseRevisionAction.clearSelectedChange();
+            getViewer().setEmptyText("");
+            setChangesToDisplay(Collections.<Change>emptyList());
+        }
+
         protected void updateChangesBrowser() {
+            if (selectedChange == null) { // "Diff against: Base" can still be picked once the change is gone
+                return;
+            }
             getViewer().setEmptyText("Loading...");
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);

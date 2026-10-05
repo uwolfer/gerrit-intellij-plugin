@@ -19,8 +19,10 @@ permanent:
 * Maven Central through `repo.maven.apache.org` may answer `429 Too Many
   Requests`, which fails the build before it compiles anything. Gradle treats a
   429 as fatal and will not fall through to the next repository, so point it at
-  Google's Maven Central mirror with an init script passed via `-I`. The mirror
-  belongs to the environment, not to the project: keep it outside the
+  Google's Maven Central mirror with an init script. In a sandbox, put it in
+  `${GRADLE_USER_HOME:-~/.gradle}/init.d/` so that every Gradle run there picks
+  it up, including the one `run-ide` starts; elsewhere pass it with `-I`. The
+  mirror belongs to the environment, not to the project: keep it outside the
   repository and never commit it, and do not touch `build.gradle`.
 
   ```groovy
@@ -82,6 +84,11 @@ javap -p -c build/instrumented/instrumentCode/<class>.class | grep setupUI
 And `buildSearchableOptions` starts a headless IDE and walks every
 configurable, so it fails on a settings page which cannot be built, and its
 output under `build/searchableOptions` shows what the platform made of one.
+
+To see a change in a running IDE, against a local Gerrit, follow
+`.claude/skills/run-ide/SKILL.md`. It runs the oldest supported IDE and, after
+a one-time download, the newest one on a virtual display, which is the only way
+to watch the push dialog integration below actually work.
 
 ## Bytecode injection and reflection into the platform
 

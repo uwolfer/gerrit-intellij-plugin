@@ -22,8 +22,10 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -54,25 +56,24 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
 
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
-        submit(anActionEvent);
-    }
-
-    /** Entry point for other actions; {@code actionPerformed} is override-only and must not be invoked. */
-    public void submit(AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getProject();
-
-        final Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
+        Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (!selectedChange.isPresent()) {
             return;
         }
+        submit(selectedChange.get(), anActionEvent.getProject(), anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW));
+    }
+
+    /** Entry point for other actions; {@code actionPerformed} is override-only and must not be invoked. */
+    public void submit(final ChangeInfo change, final Project project, @Nullable final GerritToolWindow toolWindow) {
         SubmitInput submitInput = new SubmitInput();
-        gerritUtil.postSubmit(selectedChange.get().id, submitInput, project, new Consumer<Void>() {
+        gerritUtil.postSubmit(change.id, submitInput, project, new Consumer<Void>() {
             @Override
             public void consume(Void aVoid) {
                 NotificationBuilder notification = new NotificationBuilder(
-                        project, "Change submitted", getSuccessMessage(selectedChange.get())
+                        project, "Change submitted", getSuccessMessage(change)
                 ).hideBalloon();
                 notificationService.notifyInformation(notification);
+                ActionUtil.reloadChanges(toolWindow, project);
             }
         });
     }

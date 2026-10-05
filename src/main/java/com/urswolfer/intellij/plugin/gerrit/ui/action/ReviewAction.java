@@ -24,6 +24,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -66,6 +67,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         final ChangeInfo changeDetails = selectedChange.get();
         // the review goes to the patch set shown now, even if a reload resets the selected one while the dialog is open
         final String revision = SelectedRevisions.getInstance(project).get(changeDetails);
+        final GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
         gerritUtil.getComments(changeDetails._number, revision, project, false, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
             @Override
@@ -110,8 +112,10 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                                         buildSuccessMessage(changeDetails, reviewInput))
                                         .hideBalloon();
                                 notificationService.notifyInformation(notification);
+                                // also when submitting, which reloads once more but may fail
+                                ActionUtil.reloadChanges(toolWindow, project);
                                 if (finalSubmitChange) {
-                                    submitAction.submit(anActionEvent);
+                                    submitAction.submit(changeDetails, project, toolWindow);
                                 }
                             }
                         }

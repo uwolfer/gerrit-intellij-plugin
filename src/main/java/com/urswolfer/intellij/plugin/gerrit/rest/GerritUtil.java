@@ -197,7 +197,8 @@ public final class GerritUtil {
 
     @SuppressWarnings("unchecked")
     public void postPublish(final String changeId,
-                            final Project project) {
+                            final Project project,
+                            final Consumer<Void> consumer) {
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -209,12 +210,13 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, __ -> {}, project, "Failed to publish Gerrit change");
+        accessGerrit(supplier, consumer, project, "Failed to publish Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
     public void delete(final String changeId,
-                       final Project project) {
+                       final Project project,
+                       final Consumer<Void> consumer) {
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -226,13 +228,14 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, __ -> {}, project, "Failed to delete Gerrit change");
+        accessGerrit(supplier, consumer, project, "Failed to delete Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
     public void postAbandon(final String changeId,
                             final AbandonInput abandonInput,
-                            final Project project) {
+                            final Project project,
+                            final Consumer<Void> consumer) {
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -244,13 +247,14 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, __ -> {}, project, "Failed to abandon Gerrit change");
+        accessGerrit(supplier, consumer, project, "Failed to abandon Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
     public void addReviewer(final String changeId,
                             final String reviewerName,
-                            final Project project) {
+                            final Project project,
+                            final Consumer<Void> consumer) {
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -262,7 +266,7 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, __ -> {}, project, "Failed to add reviewer");
+        accessGerrit(supplier, consumer, project, "Failed to add reviewer");
     }
 
     /**
@@ -296,7 +300,8 @@ public final class GerritUtil {
     @SuppressWarnings("unchecked")
     public void changeStarredStatus(final String id,
                                     final boolean starred,
-                                    final Project project) {
+                                    final Project project,
+                                    final Consumer<Void> consumer) {
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
@@ -312,7 +317,7 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, __ -> {}, project, "Failed to star Gerrit change " +
+        accessGerrit(supplier, consumer, project, "Failed to star Gerrit change " +
                 "(not supported for Gerrit versions older than 2.8)");
     }
 

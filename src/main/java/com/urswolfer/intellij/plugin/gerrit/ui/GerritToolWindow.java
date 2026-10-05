@@ -163,11 +163,19 @@ public class GerritToolWindow implements Disposable {
         }
     }
 
-    public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
-        getChanges(project, requestSettingsIfNonExistent, changeListPanel);
+    /**
+     * Shows what the query finds, whatever the filters were set to, and selects the change if it is the only one.
+     */
+    public void showChanges(Project project, String query) {
+        String host = gerritSettings.getHost();
+        if (host == null || host.isEmpty()) { // the filters would show the lookup over a list which never loads
+            return;
+        }
+        changesFilters.showLookup(query);
+        reloadChanges(project, false);
     }
 
-    private void getChanges(Project project, boolean requestSettingsIfNonExistent, Consumer<LoadChangesProxy> consumer) {
+    public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
         String apiUrl = gerritSettings.getHost();
         if (apiUrl == null || apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
@@ -181,12 +189,19 @@ public class GerritToolWindow implements Disposable {
             }
         }
         int load = ++changesLoad;
-        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, proxy -> {
+        boolean lookup = changesFilters.isShowingLookup();
+        Consumer<LoadChangesProxy> consumer = proxy -> {
             // loads run concurrently; one started earlier must not replace what a later one shows
             if (load == changesLoad) {
-                consumer.consume(proxy);
+                changeListPanel.load(proxy, lookup);
             }
-        });
+        };
+        if (lookup) {
+            // a full hash is unique, and the projects of the repositories are not always known from their remotes
+            gerritUtil.getChanges(changesFilters.getQuery(), project, consumer);
+        } else {
+            gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
+        }
     }
 
     private ActionToolbar createToolbar(final Project project) {

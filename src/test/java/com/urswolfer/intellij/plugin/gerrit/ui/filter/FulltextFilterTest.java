@@ -41,4 +41,16 @@ public class FulltextFilterTest {
     public void testEncodeSpaceAsPlus() throws Exception {
         Assert.assertEquals(FulltextFilter.specialEncodeFulltextQuery("owner:self status:open"), "owner:self+status:open");
     }
+
+    @Test
+    public void testEndingTheLookupBringsBackTheOwnQuery() throws Exception {
+        FulltextFilter filter = new FulltextFilter();
+        filter.showLookup("commit:abc");
+        filter.showLookup("commit:abc OR commit:def");
+        Assert.assertTrue(filter.isShowingLookup());
+        Assert.assertEquals(filter.getSearchQueryPart(), "(commit:abc+OR+commit:def)");
+        filter.endLookup();
+        Assert.assertFalse(filter.isShowingLookup());
+        Assert.assertNull(filter.getSearchQueryPart());
+    }
 }

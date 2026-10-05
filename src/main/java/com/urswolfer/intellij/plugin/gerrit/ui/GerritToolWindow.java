@@ -27,6 +27,7 @@ import com.intellij.openapi.actionSystem.Constraints;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -66,6 +67,7 @@ public class GerritToolWindow implements Disposable {
     private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
     private GerritChangeDetailsPanel detailsPanel;
+    private int changesLoad;
 
     /**
      * Nothing to release here: this is the parent the tool window content's listeners are registered against, and
@@ -131,7 +133,9 @@ public class GerritToolWindow implements Disposable {
         VcsRepositoryMappingListener vcsListener = new VcsRepositoryMappingListener() {
             @Override
             public void mappingChanged() {
-                reloadChanges(project, false);
+                // published from a pooled thread; loads are only started on the event dispatch thread
+                ApplicationManager.getApplication().invokeLater(
+                    () -> reloadChanges(project, false), project.getDisposed());
             }
         };
         project.getMessageBus().connect(this).subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
@@ -172,7 +176,13 @@ public class GerritToolWindow implements Disposable {
                 return;
             }
         }
-        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, consumer);
+        int load = ++changesLoad;
+        gerritUtil.getChangesForProject(changesFilters.getQuery(), project, proxy -> {
+            // loads run concurrently; one started earlier must not replace what a later one shows
+            if (load == changesLoad) {
+                consumer.consume(proxy);
+            }
+        });
     }
 
     private ActionToolbar createToolbar(final Project project) {

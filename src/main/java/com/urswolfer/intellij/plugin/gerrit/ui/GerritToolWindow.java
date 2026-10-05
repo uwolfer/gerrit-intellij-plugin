@@ -145,7 +145,10 @@ public class GerritToolWindow implements Disposable {
         gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
-                detailsPanel.setData(changeDetails);
+                // another change may have been selected meanwhile
+                if (changeListPanel.getTable().getSelectedObject() == changeInfo) {
+                    detailsPanel.setData(changeDetails);
+                }
             }
         });
     }

@@ -114,6 +114,7 @@ public class RepositoryChangesBrowserProvider {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
         private Project project;
+        private int changesUpdate;
 
         public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
             super(project);
@@ -149,6 +150,7 @@ public class RepositoryChangesBrowserProvider {
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
             selectedChange = changeInfo;
+            changesUpdate++; // its diff only starts loading once its details are there
             gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
@@ -180,8 +182,11 @@ public class RepositoryChangesBrowserProvider {
             RevisionInfo currentRevision = revisions.get(revisionId);
             RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, notificationService, project, gitRepository)
                 .addRevision(revisionId, currentRevision);
-            if (baseRevision.isPresent()) {
-                revisionFetcher.addRevision(baseRevision.get().first, baseRevision.get().getSecond());
+            // the diff is built in the background, while the user may pick another revision, base or change
+            final Optional<Pair<String, RevisionInfo>> base = baseRevision;
+            final int update = ++changesUpdate;
+            if (base.isPresent()) {
+                revisionFetcher.addRevision(base.get().first, base.get().getSecond());
             }
             revisionFetcher.fetch(new Callable<Void>() {
                 @Override
@@ -191,8 +196,8 @@ public class RepositoryChangesBrowserProvider {
                         VirtualFile gitRepositoryRoot = gitRepository.getRoot();
                         CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider();
                         GitCommit currentCommit = getCommit(gitRepositoryRoot, revisionId);
-                        if (baseRevision.isPresent()) {
-                            GitCommit baseCommit = getCommit(gitRepositoryRoot, baseRevision.get().first);
+                        if (base.isPresent()) {
+                            GitCommit baseCommit = getCommit(gitRepositoryRoot, base.get().first);
                             totalDiff = new CommitDiffBuilder(project, gitRepositoryRoot, baseCommit, currentCommit)
                                 .withChangesProvider(changesProvider).getDiff();
                         } else {
@@ -212,6 +217,9 @@ public class RepositoryChangesBrowserProvider {
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         @Override
                         public void run() {
+                            if (update != changesUpdate) {
+                                return;
+                            }
                             getViewer().setEmptyText("No changes");
                             setChangesToDisplay(new ArrayList<>(totalDiff));
                         }

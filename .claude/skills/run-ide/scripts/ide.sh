@@ -45,6 +45,8 @@ jbr() { # the SDK comes without the runtime it was released with, and needs that
 }
 
 display() {
+    command -v xdotool > /dev/null && command -v import > /dev/null ||
+        { echo "xdotool and import are needed: apt-get install xdotool imagemagick" >&2; exit 1; }
     xdotool getdisplaygeometry > /dev/null 2>&1 && return
     # An Xvfb that died, e.g. with the container, leaves its lock behind; after a
     # container restart the pid in it may belong to something else.
@@ -68,6 +70,9 @@ project() {
     git -C "$tmp" config user.name Administrator
     git -C "$tmp" config user.email admin@example.com
     echo .idea >> "$tmp/.git/info/exclude"
+    # a push from the IDE would otherwise stop at a credentials prompt
+    echo 'http://admin:secret@localhost:8080' > "$WORK/git-credentials"
+    git -C "$tmp" config credential.helper "store --file=$WORK/git-credentials"
     mv "$tmp" "$dir"
 }
 

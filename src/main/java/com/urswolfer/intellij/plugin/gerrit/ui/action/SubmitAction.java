@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -79,7 +80,7 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     }
 
     private String getSuccessMessage(ChangeInfo changeInfo) {
-        return String.format("Change '%s' submitted successfully.", changeInfo.subject);
+        return String.format("Change '%s' submitted successfully.", StringUtil.escapeXmlEntities(changeInfo.subject));
     }
 
 }

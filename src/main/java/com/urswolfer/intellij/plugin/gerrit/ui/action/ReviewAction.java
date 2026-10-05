@@ -22,6 +22,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
@@ -153,7 +154,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
     private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {
         StringBuilder stringBuilder = new StringBuilder(
-                String.format("Review for change '%s' posted", changeInfo.subject)
+                String.format("Review for change '%s' posted", StringUtil.escapeXmlEntities(changeInfo.subject))
         );
         if (!reviewInput.labels.isEmpty()) {
             stringBuilder.append(": ");

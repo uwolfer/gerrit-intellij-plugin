@@ -16,10 +16,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Alarm;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -111,15 +113,7 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("<ul>");
             for (ChangeInfo change : changes) {
-                stringBuilder
-                        .append("<li>")
-                        .append(!notifiedChanges.contains(change.id) ? "<strong>NEW: </strong>" : "")
-                        .append(change.project)
-                        .append(": ")
-                        .append(change.subject)
-                        .append(" (Owner: ").append(change.owner.name).append(')')
-                        .append("</li>");
-
+                stringBuilder.append(listItem(change, !notifiedChanges.contains(change.id)));
                 notifiedChanges.add(change.id);
             }
             stringBuilder.append("</ul>");
@@ -130,6 +124,21 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             );
             notificationService.notifyInformation(notification);
         }
+    }
+
+    /**
+     * The notification renders HTML, so a subject like "Use Optional<String>" has to be escaped. Gerrit leaves out
+     * the name of an account which has none, and some give a blank one.
+     */
+    static String listItem(ChangeInfo change, boolean isNew) {
+        AccountInfo account = change.owner;
+        String owner = !StringUtil.isEmptyOrSpaces(account.name) ? account.name
+            : account.email != null ? account.email
+            : account.username != null ? account.username
+            : String.valueOf(account._accountId);
+        return "<li>" + (isNew ? "<strong>NEW: </strong>" : "")
+            + StringUtil.escapeXmlEntities(change.project) + ": " + StringUtil.escapeXmlEntities(change.subject)
+            + " (Owner: " + StringUtil.escapeXmlEntities(owner) + ")</li>";
     }
 
     private synchronized void cancelPendingNotificationTasks() {

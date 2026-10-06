@@ -450,11 +450,11 @@ public final class GerritUtil {
         if (repositories.isEmpty()) {
             showAddGitRepositoryNotification(project);
         }
-        List<GitRemote> remotes = new ArrayList<>();
+        List<String> projectNames = new ArrayList<>();
         for (GitRepository repository : repositories) {
-            remotes.addAll(repository.getRemotes());
+            projectNames.addAll(getProjectNames(repository.getRemotes()));
         }
-        return appendProjectQueryParts(query, getProjectNames(remotes), MAX_QUERY_LENGTH);
+        return appendProjectQueryParts(query, projectNames, MAX_QUERY_LENGTH);
     }
 
     /**
@@ -485,26 +485,59 @@ public final class GerritUtil {
     }
 
     public List<String> getProjectNames(Collection<GitRemote> remotes) {
-        List<String> projectNames = new ArrayList<>();
-        for (GitRemote remote : remotes) {
-            for (String remoteUrl : remote.getUrls()) {
-                String projectName = getProjectName(remoteUrl);
-                if (projectName != null) {
-                    projectNames.add(projectName);
-                }
-            }
-        }
-        return projectNames;
+        GerritSettings settings = GerritSettings.getInstance();
+        return getProjectNames(remotes, settings.getHost(), settings.getCloneBaseUrl());
     }
 
     /**
-     * @return the Gerrit project a remote url points to, or {@code null} if it does not point to one
+     * A remote on another host, such as a mirror on GitHub, would add its path as a project of the same name. Such
+     * remotes only count when no remote is on the Gerrit host, as one reached through an SSH alias looks the same.
+     */
+    @VisibleForTesting
+    static List<String> getProjectNames(Collection<GitRemote> remotes, String host, @Nullable String cloneBaseUrl) {
+        List<String> onGerritHost = new ArrayList<>();
+        List<String> elsewhere = new ArrayList<>();
+        for (GitRemote remote : remotes) {
+            for (String remoteUrl : remote.getUrls()) {
+                boolean onHost = isOnHost(remoteUrl, host) || isOnHost(remoteUrl, cloneBaseUrl);
+                addProjectName(onHost ? onGerritHost : elsewhere, remoteUrl, host, cloneBaseUrl);
+            }
+            // a remote can fetch from a mirror and push to Gerrit
+            for (String pushUrl : remote.getPushUrls()) {
+                if (isOnHost(pushUrl, host) || isOnHost(pushUrl, cloneBaseUrl)) {
+                    addProjectName(onGerritHost, pushUrl, host, cloneBaseUrl);
+                }
+            }
+        }
+        return onGerritHost.isEmpty() ? elsewhere : onGerritHost;
+    }
+
+    private static void addProjectName(List<String> projectNames, String remoteUrl, String host,
+                                       @Nullable String cloneBaseUrl) {
+        String projectName = getRemoteProjectName(remoteUrl, host, cloneBaseUrl);
+        if (projectName != null) {
+            projectNames.add(projectName);
+        }
+    }
+
+    private static boolean isOnHost(String remoteUrl, @Nullable String hostUrl) {
+        if (hostUrl == null || hostUrl.isEmpty()) {
+            return false;
+        }
+        try {
+            return UrlUtils.urlHasSameHost(remoteUrl, hostUrl);
+        } catch (IllegalArgumentException e) { // a url which is not a URI is on no host
+            return false;
+        }
+    }
+
+    /**
+     * @return the project a remote url would be on the configured Gerrit, whichever host it is on, or {@code null}
      */
     @Nullable
-    public String getProjectName(String remoteUrl) {
+    private static String getRemoteProjectName(String remoteUrl, String host, @Nullable String cloneBaseUrl) {
         String strippedUrl = UrlUtils.stripGitExtension(remoteUrl);
-        String projectName = getProjectName(GerritSettings.getInstance().getHost(), GerritSettings.getInstance().getCloneBaseUrl(),
-            strippedUrl);
+        String projectName = getProjectName(host, cloneBaseUrl, strippedUrl);
         if (projectName == null || projectName.isEmpty() || !strippedUrl.endsWith(projectName)) {
             return null;
         }

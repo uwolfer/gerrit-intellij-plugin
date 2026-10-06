@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import git4idea.repo.GitRemote;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -219,5 +220,57 @@ public class GerritUtilTest {
                 "is:open+(project:a+OR+project:b)",
                 "is:open+(project:c+OR+project:d)",
                 "is:open+(project:e)"));
+    }
+
+    @Test
+    public void testRemoteOnAnotherHostIsIgnored() {
+        Assert.assertEquals(GerritUtil.getProjectNames(Arrays.asList(
+                remote("origin", "git@github.com:example/demo.git"),
+                remote("gerrit", "ssh://user@gerrit.server:29418/demo")),
+                "https://gerrit.server", "ssh://gerrit.server:29418"),
+            Collections.singletonList("demo"));
+    }
+
+    @Test
+    public void testRemoteOnTheCloneBaseHostCounts() {
+        Assert.assertEquals(GerritUtil.getProjectNames(Arrays.asList(
+                remote("mirror", "https://mirror.example/demo"),
+                remote("origin", "ssh://git.example:29418/demo")),
+                "https://review.example", "ssh://git.example:29418"),
+            Collections.singletonList("demo"));
+    }
+
+    @Test
+    public void testRemotesElsewhereCountWithoutOneOnTheGerritHost() {
+        // an SSH alias from ~/.ssh/config does not name the Gerrit host
+        Assert.assertEquals(GerritUtil.getProjectNames(Collections.singletonList(
+                remote("origin", "review:demo")),
+                "https://gerrit.server", null),
+            Collections.singletonList("demo"));
+    }
+
+    @Test
+    public void testRemotePushingToGerritCounts() {
+        GitRemote origin = new GitRemote("origin", Collections.singletonList("https://mirror.example/mirrors/demo"),
+            Collections.singletonList("ssh://gerrit.server:29418/demo"), Collections.emptyList(), Collections.emptyList());
+        Assert.assertEquals(GerritUtil.getProjectNames(Arrays.asList(
+                remote("github", "git@github.com:example/demo.git"), origin),
+                "https://gerrit.server", "ssh://gerrit.server:29418"),
+            Collections.singletonList("demo"));
+    }
+
+    @Test
+    public void testMirrorUrlOfARemoteOnGerritIsIgnored() {
+        GitRemote origin = new GitRemote("origin",
+            Arrays.asList("ssh://gerrit.server:29418/demo", "git@github.com:example/demo-mirror.git"),
+            Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Assert.assertEquals(GerritUtil.getProjectNames(Collections.singletonList(origin),
+                "https://gerrit.server", "ssh://gerrit.server:29418"),
+            Collections.singletonList("demo"));
+    }
+
+    private static GitRemote remote(String name, String url) {
+        return new GitRemote(name, Collections.singletonList(url), Collections.emptyList(),
+            Collections.emptyList(), Collections.emptyList());
     }
 }

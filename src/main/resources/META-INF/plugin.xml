@@ -45,7 +45,7 @@
           <li>Star (and unstar) changes</li>
           <li>File and line based comments<br />
           Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
-           click on comment icon. Comments need to be submitted with "Submit" or any "+/-" action.
+           click on comment icon. Comments are published with "Reply..." or any "+/-" action.
           </li>
           <li>Clone and set up Gerrit projects directly in IDE (commit-message-hook is automatically added)</li>
           <li>Abandon changes</li>

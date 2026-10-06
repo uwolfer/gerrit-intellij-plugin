@@ -30,4 +30,12 @@ public class ReviewActionTest {
         Assert.assertNull(reviewInput.comments);
         Assert.assertEquals(Short.valueOf((short) 2), reviewInput.labels.get("Code-Review"));
     }
+
+    @Test
+    public void testReplyPublishesDraftsWithoutVote() {
+        ReviewInput reviewInput = ReviewAction.createReviewInput(null, 0);
+
+        Assert.assertEquals(ReviewInput.DraftHandling.PUBLISH, reviewInput.drafts);
+        Assert.assertNull(reviewInput.labels);
+    }
 }

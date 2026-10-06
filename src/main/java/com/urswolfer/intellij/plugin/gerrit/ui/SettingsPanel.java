@@ -45,6 +45,8 @@ import java.awt.event.FocusEvent;
  */
 public class SettingsPanel {
     private static final Logger LOG = Logger.getInstance(SettingsPanel.class);
+    private static final int MIN_REFRESH_TIMEOUT = 1;
+    private static final int MAX_REFRESH_TIMEOUT = 24 * 60;
 
     private JTextField loginTextField;
     private JPasswordField passwordField;
@@ -86,6 +88,7 @@ public class SettingsPanel {
             public void actionPerformed(ActionEvent e) {
                 String password = isPasswordModified() ? getPassword()
                     : gerritSettings.getPasswordWithModalProgress(project);
+                fixUrl(hostTextField);
                 String host = getHost();
                 if (host == null || host.isEmpty()) {
                     Messages.showErrorDialog(pane, "Required field URL not specified", "Test Failure");
@@ -158,6 +161,9 @@ public class SettingsPanel {
             }
         });
 
+        // A timeout of 0 or less silently stops the automatic refresh.
+        refreshTimeoutSpinner.setModel(new SpinnerNumberModel(MIN_REFRESH_TIMEOUT, MIN_REFRESH_TIMEOUT, MAX_REFRESH_TIMEOUT, 1));
+
         showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
 
         cloneBaseUrlTextField.addFocusListener(new FocusAdapter() {
@@ -176,8 +182,18 @@ public class SettingsPanel {
         });
     }
 
+    /**
+     * Applies {@link #fixUrl} to every URL field; the focus listeners miss a value that is
+     * submitted without leaving its field.
+     */
+    public void normalizeUrls() {
+        fixUrl(hostTextField);
+        fixUrl(cloneBaseUrlTextField);
+        fixUrl(gitilesUrlTextField);
+    }
+
     public static void fixUrl(JTextField textField) {
-        String text = textField.getText();
+        String text = textField.getText().trim();
         if (text.endsWith("/")) {
             text = text.substring(0, text.length() - 1);
         }
@@ -249,7 +265,8 @@ public class SettingsPanel {
     }
 
     public void setRefreshTimeout(final int refreshTimeout) {
-        refreshTimeoutSpinner.setValue(refreshTimeout);
+        // Settings saved before the spinner was bounded may hold a value it would not accept.
+        refreshTimeoutSpinner.setValue(Math.max(MIN_REFRESH_TIMEOUT, Math.min(MAX_REFRESH_TIMEOUT, refreshTimeout)));
     }
 
     public int getRefreshTimeout() {

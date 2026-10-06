@@ -87,6 +87,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
         comment.line = fileComment.line;
         comment.path = fileComment.path;
         comment.side = fileComment.side;
+        comment.parent = fileComment.parent;
         comment.range = fileComment.range;
         // left out, Gerrit copies the state of the comment replied to, which keeps the thread unresolved
         comment.unresolved = false;

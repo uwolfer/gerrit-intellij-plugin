@@ -36,6 +36,7 @@ public class AddCommentActionBuilder {
         private Editor editor;
         private String filePath;
         private Side commentSide;
+        private Integer parent;
         private Comment commentToEdit;
         private RangeHighlighter lineHighlighter;
         private RangeHighlighter rangeHighlighter;
@@ -53,6 +54,11 @@ public class AddCommentActionBuilder {
             this.editor = editor;
             this.filePath = filePath;
             this.commentSide = commentSide;
+            return this;
+        }
+
+        public Builder onParent(Integer parent) {
+            this.parent = parent;
             return this;
         }
 
@@ -82,7 +88,7 @@ public class AddCommentActionBuilder {
 
         public AddCommentAction get() {
             return new AddCommentAction(text, icon, commentsDiffTool, gerritUtil, gerritSettings, editor, commentBalloonBuilder,
-                    changeInfo, revisionId, filePath, commentSide, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
+                    changeInfo, revisionId, filePath, commentSide, parent, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
         }
     }
 }

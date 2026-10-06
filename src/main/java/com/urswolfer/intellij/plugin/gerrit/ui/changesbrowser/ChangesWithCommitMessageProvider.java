@@ -42,7 +42,11 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
         // through the published interface: VcsChangesLazilyParsedDetails is experimental API
         VcsFullCommitDetails commitDetails = gitCommit;
         Collection<Change> changes = commitDetails.getChanges();
+        changes.add(commitMessageChange(gitCommit));
+        return changes;
+    }
 
+    public static Change commitMessageChange(GitCommit gitCommit) {
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
         FilePath commitMsg = new RemoteFilePath("/COMMIT_MSG", false) {
             @NotNull
@@ -52,11 +56,10 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
             }
         };
 
-        changes.add(new Change(null, new SimpleContentRevision(
+        return new Change(null, new SimpleContentRevision(
             content,
             commitMsg,
             gitCommit.getId().asString()
-        )));
-        return changes;
+        ));
     }
 }

@@ -31,6 +31,7 @@ public class CommentDoneActionTest {
         unresolved.path = "src/Main.java";
         unresolved.line = 12;
         unresolved.side = Side.PARENT;
+        unresolved.parent = 1;
         unresolved.unresolved = true;
 
         DraftInput reply = CommentDoneAction.createDoneReply(unresolved);
@@ -41,5 +42,6 @@ public class CommentDoneActionTest {
         Assert.assertEquals("src/Main.java", reply.path);
         Assert.assertEquals(Integer.valueOf(12), reply.line);
         Assert.assertEquals(Side.PARENT, reply.side);
+        Assert.assertEquals(Integer.valueOf(1), reply.parent);
     }
 }

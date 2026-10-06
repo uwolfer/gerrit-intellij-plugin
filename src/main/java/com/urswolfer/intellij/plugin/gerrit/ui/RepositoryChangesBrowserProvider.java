@@ -50,6 +50,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitCommit;
+import git4idea.changes.GitChangeUtils;
 import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
@@ -115,6 +116,7 @@ public class RepositoryChangesBrowserProvider {
     private final class GerritRepositoryChangesBrowser extends CommittedChangesBrowser {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
+        private Integer baseParent;
         private Project project;
         private int changesUpdate;
         private List<String> builtDiff;
@@ -145,6 +147,7 @@ public class RepositoryChangesBrowserProvider {
             super.updateDiffContext(chain);
             chain.putUserData(GerritUserDataKeys.CHANGE, selectedChange);
             chain.putUserData(GerritUserDataKeys.BASE_REVISION, baseRevision);
+            chain.putUserData(GerritUserDataKeys.BASE_PARENT, baseParent);
         }
 
         @Override
@@ -187,6 +190,7 @@ public class RepositoryChangesBrowserProvider {
         private void clearSelectedChange() {
             selectedChange = null;
             baseRevision = Optional.empty();
+            baseParent = null;
             changesUpdate++;
             selectBaseRevisionAction.clearSelectedChange();
             getViewer().setEmptyText("");
@@ -201,6 +205,7 @@ public class RepositoryChangesBrowserProvider {
             // failing fetch or git call is not retried, as it would report its error again after every action
             builtDiff = null;
             getViewer().setEmptyText("Loading...");
+            baseParent = null;
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
             if (!gitRepositoryOptional.isPresent()) {
@@ -226,6 +231,7 @@ public class RepositoryChangesBrowserProvider {
                 @Override
                 public Void call() throws Exception {
                     final Collection<Change> totalDiff;
+                    final Integer parent;
                     try {
                         VirtualFile gitRepositoryRoot = gitRepository.getRoot();
                         CommitDiffBuilder.ChangesProvider changesProvider = new ChangesWithCommitMessageProvider();
@@ -234,8 +240,17 @@ public class RepositoryChangesBrowserProvider {
                             GitCommit baseCommit = getCommit(gitRepositoryRoot, base.get().first);
                             totalDiff = new CommitDiffBuilder(project, gitRepositoryRoot, baseCommit, currentCommit)
                                 .withChangesProvider(changesProvider).getDiff();
+                            parent = null;
+                        } else if (currentCommit.getParents().size() > 1) {
+                            // the changes git4idea lists for a merge are those against every parent, which leaves
+                            // out all a clean merge brings in; Gerrit shows the first parent unless told otherwise
+                            String firstParent = currentCommit.getParents().get(0).asString();
+                            totalDiff = GitChangeUtils.getDiff(project, gitRepositoryRoot, firstParent, revisionId, null);
+                            totalDiff.add(ChangesWithCommitMessageProvider.commitMessageChange(currentCommit));
+                            parent = 1;
                         } else {
                             totalDiff = changesProvider.provide(currentCommit);
+                            parent = null;
                         }
                     } catch (VcsException e) {
                         LOG.warn("Error getting Git commit details.", e);
@@ -255,6 +270,7 @@ public class RepositoryChangesBrowserProvider {
                                 return;
                             }
                             getViewer().setEmptyText("No changes");
+                            baseParent = parent;
                             setChangesToDisplay(new ArrayList<>(totalDiff));
                         }
                     });

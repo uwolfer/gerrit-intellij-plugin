@@ -19,40 +19,18 @@ permanent:
 * Maven Central through `repo.maven.apache.org` may answer `429 Too Many
   Requests`, which fails the build before it compiles anything. Gradle treats a
   429 as fatal and will not fall through to the next repository, so point it at
-  Google's Maven Central mirror with an init script. In a sandbox, put it in
-  `${GRADLE_USER_HOME:-~/.gradle}/init.d/` so that every Gradle run there picks
-  it up, including the one `run-ide` starts; elsewhere pass it with `-I`. The
-  mirror belongs to the environment, not to the project: keep it outside the
-  repository and never commit it, and do not touch `build.gradle`.
-
-  ```groovy
-  def mirror = 'https://maven-central.storage-download.googleapis.com/maven2'
-  beforeSettings { settings ->
-      settings.pluginManagement.repositories {
-          maven { url mirror }
-          gradlePluginPortal()
-      }
-  }
-  beforeProject { project ->
-      project.buildscript.repositories { maven { url mirror } }
-      project.repositories {
-          maven {
-              url mirror
-              content { // the SDK and the bundled plugins are not on Maven Central
-                  excludeGroupByRegex 'com\\.jetbrains.*'
-                  excludeGroupByRegex 'unzipped\\..*'
-                  excludeGroupByRegex 'org\\.jetbrains\\.intellij.*'
-              }
-          }
-      }
-      // drop the frontend that 429s, or those same groups fall through to it
-      project.afterEvaluate {
-          project.repositories.removeAll { r ->
-              r.hasProperty('url') && r.url.toString().contains('repo.maven.apache.org')
-          }
-      }
-  }
-  ```
+  Google's Maven Central mirror with the init script
+  `.claude/hooks/maven-mirror.init.gradle`. In Claude Code on the web the
+  `SessionStart` hook `.claude/hooks/session-start.sh` installs it into
+  `${GRADLE_USER_HOME:-~/.gradle}/init.d/` whenever the mirror answers, so that
+  every Gradle run there picks it up, including the one `run-ide` starts. It
+  does not ask Maven Central first, as the limit comes and goes within seconds
+  and no answer at session start says what comes later: the cost is that the
+  sandbox builds from the mirror while Maven Central is healthy too. Where the
+  hook did not install it (`ls ~/.gradle/init.d` shows), pass the script with
+  `-I` (`./gradlew -I .claude/hooks/maven-mirror.init.gradle build`), but not
+  on top of the installed copy. The mirror belongs to the environment, not to the
+  project: it stays an init script, and `build.gradle` stays untouched.
 
   One mirror, not a list of them: a second one is only reachable after the
   first answers, and a 429 from the first ends the build either way.

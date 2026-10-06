@@ -86,6 +86,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
 
     public void apply() throws ConfigurationException {
         if (settingsPane != null) {
+            settingsPane.normalizeUrls();
             gerritSettings.setLogin(settingsPane.getLogin());
             if (isPasswordModified()) {
                 gerritSettings.setPasswordWithModalProgress(project, settingsPane.getPassword());

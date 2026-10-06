@@ -53,6 +53,8 @@ public class CommentForm extends JPanel {
     private final Side commentSide;
     private final Comment commentToEdit;
     private final JCheckBox resolvedCheckBox;
+    private final Comment.Range range;
+    private final int line;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
@@ -70,6 +72,16 @@ public class CommentForm extends JPanel {
         this.editor = editor;
         this.commentSide = commentSide;
         this.commentToEdit = commentToEdit;
+
+        // Taken now: stepping to another file of the change and back while the form is open moves the caret to the top.
+        SelectionModel selectionModel = editor.getSelectionModel();
+        if (selectionModel.hasSelection()) {
+            range = handleRangeComment(selectionModel);
+            line = range.endLine; // end line as per specification
+        } else {
+            range = null;
+            line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+        }
 
         SafeHtmlTextEditor safeHtmlTextEditor = new SafeHtmlTextEditor(project);
         reviewTextField = safeHtmlTextEditor.getMessageField();
@@ -148,14 +160,8 @@ public class CommentForm extends JPanel {
         comment.path = PathUtils.ensureSlashSeparators(filePath);
         comment.side = commentSide;
         comment.unresolved = !resolvedCheckBox.isSelected();
-
-        SelectionModel selectionModel = editor.getSelectionModel();
-        if (selectionModel.hasSelection()) {
-            comment.range = handleRangeComment(selectionModel);
-            comment.line = comment.range.endLine; // end line as per specification
-        } else {
-            comment.line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
-        }
+        comment.range = range;
+        comment.line = line;
 
         if (commentToEdit != null) { // preserve: the selection might not exist anymore but we should not loose it
             comment.range = commentToEdit.range;

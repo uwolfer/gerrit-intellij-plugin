@@ -76,14 +76,13 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubUtil
@@ -94,6 +93,12 @@ import java.util.stream.Stream;
 @Service(Service.Level.APP)
 public final class GerritUtil {
     private static final Logger LOG = Logger.getInstance(GerritUtil.class);
+
+    /**
+     * Longest change query sent in one request. Gerrit rejects a URL longer than 16 KB, and a proxy in front of it
+     * often rejects one longer than 8 KB already; the query options make up the rest of the URL.
+     */
+    private static final int MAX_QUERY_LENGTH = 4000;
 
     public static GerritUtil getInstance() {
         return ApplicationManager.getApplication().getService(GerritUtil.class);
@@ -351,17 +356,24 @@ public final class GerritUtil {
     }
 
     public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
-        if (!GerritSettings.getInstance().getListAllChanges()) {
-            query = appendQueryStringForProject(project, query);
+        if (GerritSettings.getInstance().getListAllChanges()) {
+            getChanges(query, project, consumer);
+        } else {
+            getChanges(appendQueryStringForProject(project, query), project, consumer);
         }
-        getChanges(query, project, consumer);
     }
 
     public void getChanges(final String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
+        getChanges(Collections.singletonList(query), project, consumer);
+    }
+
+    private void getChanges(final List<String> queries, final Project project, final Consumer<LoadChangesProxy> consumer) {
         Supplier<LoadChangesProxy> supplier = new Supplier<LoadChangesProxy>() {
             @Override
             public LoadChangesProxy get() {
-                    Changes.QueryRequest queryRequest = gerritApi().changes().query(query)
+                List<Changes.QueryRequest> queryRequests = new ArrayList<>();
+                for (String query : queries) {
+                    queryRequests.add(gerritApi().changes().query(query)
                             .withOptions(EnumSet.of(
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
@@ -370,81 +382,106 @@ public final class GerritUtil {
                                 ListChangesOption.DETAILED_LABELS,
                                 ListChangesOption.LABELS,
                                 ListChangesOption.SUBMITTABLE
-                            ));
-                    return new LoadChangesProxy(queryRequest, GerritUtil.this, project);
+                            )));
+                }
+                return new LoadChangesProxy(queryRequests, GerritUtil.this, project);
             }
         };
         accessGerrit(supplier, consumer, project);
     }
 
     public void getChanges(final Changes.QueryRequest queryRequest, final Project project, Consumer<List<ChangeInfo>> consumer) {
-        Supplier<List<ChangeInfo>> supplier = new Supplier<List<ChangeInfo>>() {
-            @Override
-            public List<ChangeInfo> get() {
-                try {
-                    return queryRequest.get();
-                } catch (RestApiException e) {
-                    // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
-                    if (e instanceof HttpStatusException) {
-                        HttpStatusException httpStatusException = (HttpStatusException) e;
-                        if (httpStatusException.getStatusCode() == 400) {
-                            boolean tryFallback = false;
-                            String message = httpStatusException.getMessage();
-                            if (message.matches(".*Content:.*\"-S\".*")) {
-                                tryFallback = true;
-                                queryRequest.withStart(0); // remove start, trust that sortkey is set
-                            }
-                            if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS|SUBMITTABLE)\".*\"-o\".*")) {
-                                tryFallback = true;
-                                Set<ListChangesOption> options = queryRequest.getOptions();
-                                options.remove(ListChangesOption.CHANGE_ACTIONS);
-                                options.remove(ListChangesOption.CURRENT_ACTIONS);
-                                options.remove(ListChangesOption.SUBMITTABLE);
-                                queryRequest.withOptions(options);
-                            }
-                            if (tryFallback) {
-                                try {
-                                    return queryRequest.get();
-                                } catch (RestApiException ex) {
-                                    notifyError(ex, "Failed to get Gerrit changes.", project);
-                                    return Collections.emptyList();
-                                }
-                            }
+        accessGerrit(() -> {
+            List<ChangeInfo> changeInfos = queryChanges(queryRequest, project);
+            return changeInfos != null ? changeInfos : Collections.<ChangeInfo>emptyList();
+        }, consumer, project);
+    }
+
+    /**
+     * Loads the changes in the background, then hands them to the consumer on the event dispatch thread.
+     */
+    void loadChanges(Supplier<List<ChangeInfo>> loader, Project project, Consumer<List<ChangeInfo>> consumer) {
+        accessGerrit(loader, consumer, project);
+    }
+
+    /**
+     * Runs the query in the calling thread. A failure is reported to the user, and gives null.
+     */
+    @Nullable
+    List<ChangeInfo> queryChanges(Changes.QueryRequest queryRequest, Project project) {
+        try {
+            return queryRequest.get();
+        } catch (RestApiException e) {
+            // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
+            if (e instanceof HttpStatusException) {
+                HttpStatusException httpStatusException = (HttpStatusException) e;
+                if (httpStatusException.getStatusCode() == 400) {
+                    boolean tryFallback = false;
+                    String message = httpStatusException.getMessage();
+                    if (message.matches(".*Content:.*\"-S\".*")) {
+                        tryFallback = true;
+                        queryRequest.withStart(0); // remove start, trust that sortkey is set
+                    }
+                    if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS|SUBMITTABLE)\".*\"-o\".*")) {
+                        tryFallback = true;
+                        Set<ListChangesOption> options = queryRequest.getOptions();
+                        options.remove(ListChangesOption.CHANGE_ACTIONS);
+                        options.remove(ListChangesOption.CURRENT_ACTIONS);
+                        options.remove(ListChangesOption.SUBMITTABLE);
+                        queryRequest.withOptions(options);
+                    }
+                    if (tryFallback) {
+                        try {
+                            return queryRequest.get();
+                        } catch (RestApiException ex) {
+                            notifyError(ex, "Failed to get Gerrit changes.", project);
+                            return null;
                         }
                     }
-                    notifyError(e, "Failed to get Gerrit changes.", project);
-                    return Collections.emptyList();
                 }
             }
-        };
-        accessGerrit(supplier, consumer, project);
+            notifyError(e, "Failed to get Gerrit changes.", project);
+            return null;
+        }
     }
 
-    private String appendQueryStringForProject(Project project, String query) {
-        String projectQueryPart = getProjectQueryPart(project);
-        return Stream.of(query, projectQueryPart)
-            .filter(part -> part != null && !part.isEmpty())
-            .collect(Collectors.joining("+"));
-    }
-
-    private String getProjectQueryPart(Project project) {
+    private List<String> appendQueryStringForProject(Project project, String query) {
         List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
         if (repositories.isEmpty()) {
             showAddGitRepositoryNotification(project);
-            return "";
         }
-
         List<GitRemote> remotes = new ArrayList<>();
         for (GitRepository repository : repositories) {
             remotes.addAll(repository.getRemotes());
         }
-        List<String> projectNames = getProjectNames(remotes);
-        if (projectNames.isEmpty()) {
-            return "";
+        return appendProjectQueryParts(query, getProjectNames(remotes), MAX_QUERY_LENGTH);
+    }
+
+    /**
+     * One query for all projects becomes too long for a request with many repositories, so the projects are split
+     * over as many queries as needed to keep each below the given length.
+     */
+    @VisibleForTesting
+    static List<String> appendProjectQueryParts(String query, Collection<String> projectNames, int maxLength) {
+        String prefix = query == null || query.isEmpty() ? "" : query + "+";
+        List<String> queries = new ArrayList<>();
+        StringBuilder part = new StringBuilder();
+        // a repository has several remotes, or the same remote for fetch and push
+        for (String projectName : new LinkedHashSet<>(projectNames)) {
+            String term = "project:" + Url.encode(projectName);
+            if (part.length() > 0 && prefix.length() + part.length() + "+OR+".length() + term.length() + 2 > maxLength) {
+                queries.add(prefix + "(" + part + ")");
+                part.setLength(0);
+            }
+            part.append(part.length() > 0 ? "+OR+" : "").append(term);
         }
-        return projectNames.stream()
-            .map(projectName -> "project:" + Url.encode(projectName))
-            .collect(Collectors.joining("+OR+", "(", ")"));
+        if (part.length() > 0) {
+            queries.add(prefix + "(" + part + ")");
+        }
+        if (queries.isEmpty()) {
+            queries.add(query == null ? "" : query);
+        }
+        return queries;
     }
 
     public List<String> getProjectNames(Collection<GitRemote> remotes) {

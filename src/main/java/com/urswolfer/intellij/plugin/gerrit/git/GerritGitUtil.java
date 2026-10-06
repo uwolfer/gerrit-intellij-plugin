@@ -279,9 +279,12 @@ public final class GerritGitUtil {
         repositoryUrls.addAll(remote.getUrls());
         repositoryUrls.addAll(remote.getPushUrls());
         for (String repositoryUrl : repositoryUrls) {
-            if (UrlUtils.urlHasSameHost(repositoryUrl, fetchUrl)
-                || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
-                return true;
+            try {
+                if (UrlUtils.urlHasSameHost(repositoryUrl, fetchUrl)
+                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
+                    return true;
+                }
+            } catch (IllegalArgumentException e) { // java.net.URI rejects some remotes git accepts; not one to fetch from
             }
         }
         return false;

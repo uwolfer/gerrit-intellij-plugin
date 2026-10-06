@@ -23,9 +23,11 @@ import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
@@ -40,6 +42,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class SetAssigneeAction extends AbstractLoggedInChangeAction {
+    private static final Logger LOG = Logger.getInstance(SetAssigneeAction.class);
+
     public SetAssigneeAction() {
         super(AllIcons.General.User);
     }
@@ -117,7 +121,9 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
                             }
                         }
                     } catch (RestApiException e) {
-                        throw new RuntimeException(e);
+                        // runs on every keystroke: without Gerrit there are just no suggestions, and an exception
+                        // would be reported as an IDE error each time
+                        LOG.info("Failed to load suggestions: " + ExceptionUtil.getRootCause(e));
                     }
                 }
             };

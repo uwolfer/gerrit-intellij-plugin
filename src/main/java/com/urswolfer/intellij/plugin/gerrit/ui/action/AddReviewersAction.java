@@ -25,6 +25,7 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
@@ -34,6 +35,7 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.Consumer;
+import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
@@ -51,6 +53,8 @@ import java.util.Set;
  * @author Urs Wolfer
  */
 public class AddReviewersAction extends AbstractLoggedInChangeAction {
+    private static final Logger LOG = Logger.getInstance(AddReviewersAction.class);
+
     public AddReviewersAction() {
         super(AllIcons.Toolwindows.ToolWindowTodo);
     }
@@ -133,7 +137,9 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                             }
                         }
                     } catch (RestApiException e) {
-                        throw new RuntimeException(e);
+                        // runs on every keystroke: without Gerrit there are just no suggestions, and an exception
+                        // would be reported as an IDE error each time
+                        LOG.info("Failed to load suggestions: " + ExceptionUtil.getRootCause(e));
                     }
                 }
             };

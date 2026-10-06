@@ -155,8 +155,15 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                 @Nullable final Integer baseParent) {
         FilePath filePath = ChangesUtil.getFilePath(change);
         final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo));
+        // a file renamed since the base patch set has its old name there, and so have its comments; the parent side
+        // of a patch set is not like that, Gerrit files its comments under the name in the patch set
+        FilePath beforePath = ChangesUtil.getBeforePath(change);
+        final String baseFilePath = baseRevision.isPresent() && beforePath != null
+            ? PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, beforePath.getPath(), changeInfo))
+            : relativeFilePath;
 
-        addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision, baseParent);
+        addCommentAction(editor1, editor2, relativeFilePath, baseFilePath, changeInfo, selectedRevisionId, baseRevision,
+            baseParent);
 
         // the diff of an added or a deleted file has one side only: the comments on the other one are shown there as
         // well, or they could neither be seen nor answered, such as a draft an older version has saved on that side
@@ -197,12 +204,12 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                     new Consumer<Map<String, List<CommentInfo>>>() {
                 @Override
                 public void consume(Map<String, List<CommentInfo>> comments) {
-                    List<CommentInfo> fileComments = comments.get(relativeFilePath);
+                    List<CommentInfo> fileComments = comments.get(baseFilePath);
                     if (fileComments != null) {
                         Collections.sort(fileComments, COMMENT_ORDERING);
                         addCommentsGutter(
                                 baseEditor,
-                                relativeFilePath,
+                                baseFilePath,
                                 baseRevision.get().getFirst(),
                                 filter(fileComments, REVISION_COMMENT),
                                 changeInfo,
@@ -217,13 +224,13 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                 relativeFilePath, project);
     }
 
-    private void addCommentAction(EditorEx editor1, EditorEx editor2, String filePath, ChangeInfo changeInfo,
-                                  String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision,
-                                  @Nullable Integer baseParent) {
+    private void addCommentAction(EditorEx editor1, EditorEx editor2, String filePath, String baseFilePath,
+                                  ChangeInfo changeInfo, String selectedRevisionId,
+                                  Optional<Pair<String, RevisionInfo>> baseRevision, @Nullable Integer baseParent) {
         if (baseRevision.isPresent()) {
-            addCommentActionToEditor(editor1, filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION, null);
+            addCommentActionToEditor(editor1, baseFilePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION, null);
         } else {
-            addCommentActionToEditor(editor1, filePath, changeInfo, selectedRevisionId, Side.PARENT, baseParent);
+            addCommentActionToEditor(editor1, baseFilePath, changeInfo, selectedRevisionId, Side.PARENT, baseParent);
         }
         addCommentActionToEditor(editor2, filePath, changeInfo, selectedRevisionId, Side.REVISION, null);
     }

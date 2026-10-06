@@ -19,6 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 public class CherryPickCommitAction extends CherryPickAction {
 
     public CherryPickCommitAction() {
-        super("Cherry-Pick", "Cherry-Pick change as a commit onto the current branch", true);
+        super(true);
     }
 }

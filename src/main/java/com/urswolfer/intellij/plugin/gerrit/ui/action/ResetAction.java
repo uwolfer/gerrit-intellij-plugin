@@ -53,7 +53,7 @@ public class ResetAction extends AbstractChangeAction {
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public ResetAction() {
-        super("Reset Current Branch to Here...", "Reset current branch to the selected patch set", AllIcons.Actions.Rollback);
+        super(AllIcons.Actions.Rollback);
     }
 
     @Override

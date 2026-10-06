@@ -547,6 +547,8 @@
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
 
+  <resource-bundle>messages.GerritBundle</resource-bundle>
+
   <applicationListeners>
     <listener class="com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionStarter"
               topic="com.intellij.ide.AppLifecycleListener"/>
@@ -580,81 +582,80 @@
       <separator/>
     </group>
 
-    <action id="Gerrit.AddComment" text="Add Comment"
-            description="Add a Gerrit comment at the caret position in the diff of a change"
+    <action id="Gerrit.AddComment"
             class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction"/>
 
-    <action id="Gerrit.CompareBranch" text="Compare with Branch"
+    <action id="Gerrit.CompareBranch"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="first"/>
     </action>
-    <action id="Gerrit.CheckoutAction" text="Checkout"
+    <action id="Gerrit.CheckoutAction"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
     </action>
-    <action id="Gerrit.CherryPickCommit" text="Cherry-Pick"
+    <action id="Gerrit.CherryPickCommit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickCommitAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
     </action>
-    <action id="Gerrit.CherryPick" text="Cherry-Pick (No Commit)"
+    <action id="Gerrit.CherryPick"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPickCommit"/>
     </action>
-    <action id="Gerrit.Reset" text="Reset Current Branch to Here..."
+    <action id="Gerrit.Reset"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ResetAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CherryPick"/>
     </action>
-    <action id="Gerrit.Star" text="Star"
+    <action id="Gerrit.Star"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.StarAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Reset"/>
     </action>
-    <action id="Gerrit.AddReviewers" text="Add Reviewers"
+    <action id="Gerrit.AddReviewers"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AddReviewersAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Star"/>
     </action>
-    <action id="Gerrit.SetAssignee" text="Set Assignee..."
+    <action id="Gerrit.SetAssignee"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SetAssigneeAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.AddReviewers"/>
     </action>
-    <action id="Gerrit.Publish" text="Publish Draft"
+    <action id="Gerrit.Publish"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.PublishAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.SetAssignee"/>
     </action>
-    <action id="Gerrit.Delete" text="Delete Draft"
+    <action id="Gerrit.Delete"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.DeleteAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Publish"/>
     </action>
-    <group id="Gerrit.Review" text="Review"
+    <group id="Gerrit.Review"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.ReviewActionGroup">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Delete"/>
     </group>
-    <action id="Gerrit.Submit" text="Submit"
+    <action id="Gerrit.Submit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SubmitAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Review"/>
     </action>
-    <action id="Gerrit.Abandon" text="Abandon"
+    <action id="Gerrit.Abandon"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AbandonAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Submit"/>
     </action>
-    <action id="Gerrit.Copy" text="Copy Change-ID"
+    <action id="Gerrit.Copy"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeIdAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Abandon"/>
     </action>
-    <action id="Gerrit.OpenInBrowser" text="Open in Gerrit"
+    <action id="Gerrit.OpenInBrowser"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInBrowserAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="last"/>
     </action>
-    <action id="Gerrit.RefreshFeatureMergePatchSet" text="Refresh Feature Merge Patch Set"
+    <action id="Gerrit.RefreshFeatureMergePatchSet"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshFeatureMergePatchSetAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="before" relative-to-action="Gerrit.OpenInBrowser"/>
     </action>
 
-    <action id="Gerrit.OpenCommitInGerrit" text="Open in Gerrit Tool Window"
+    <action id="Gerrit.OpenCommitInGerrit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenCommitInGerritAction">
       <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
     </action>
 
-    <action id="Gerrit.OpenInGitiles" text="Open in Gitiles"
+    <action id="Gerrit.OpenInGitiles"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInGitilesAction">
       <!-- within the "Open In" submenu of the editor, editor tab and project view -->
       <override-text place="EditorTabPopup" text="Gitiles"/>
@@ -667,15 +668,15 @@
       <add-to-group group-id="VcsSelectionHistoryDialog.Popup" anchor="last"/>
     </action>
 
-    <action id="Gerrit.Refresh" text="Refresh"
+    <action id="Gerrit.Refresh"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshAction">
       <add-to-group group-id="Gerrit.Toolbar" anchor="first"/>
     </action>
-    <action id="Gerrit.Settings" text="Settings"
+    <action id="Gerrit.Settings"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.SettingsAction">
       <add-to-group group-id="Gerrit.Toolbar" anchor="last"/>
     </action>
-    <action id="Gerrit.CreateFeatureMergeChange" text="Create Feature Merge Change"
+    <action id="Gerrit.CreateFeatureMergeChange"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CreateFeatureMergeChangeAction">
       <add-to-group group-id="Gerrit.Toolbar" anchor="before" relative-to-action="Gerrit.Settings"/>
     </action>

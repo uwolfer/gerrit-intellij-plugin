@@ -52,7 +52,7 @@ import java.util.Set;
  */
 public class AddReviewersAction extends AbstractLoggedInChangeAction {
     public AddReviewersAction() {
-        super("Add Reviewers", "Add Reviewers to Change", AllIcons.Toolwindows.ToolWindowTodo);
+        super(AllIcons.Toolwindows.ToolWindowTodo);
     }
 
     @Override

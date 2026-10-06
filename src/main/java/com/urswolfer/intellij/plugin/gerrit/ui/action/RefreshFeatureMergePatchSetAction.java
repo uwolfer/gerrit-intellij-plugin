@@ -31,7 +31,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public RefreshFeatureMergePatchSetAction() {
-        super("Refresh Feature Merge Patch Set", "Recreate the selected merge using current branch tips", AllIcons.Actions.Refresh);
+        super(AllIcons.Actions.Refresh);
     }
 
     @Override

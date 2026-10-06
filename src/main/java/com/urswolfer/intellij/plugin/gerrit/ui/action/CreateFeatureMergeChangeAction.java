@@ -53,7 +53,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public CreateFeatureMergeChangeAction() {
-        super("Create Feature Merge Change", "Create a work-in-progress Gerrit merge change", AllIcons.Vcs.Merge);
+        super(AllIcons.Vcs.Merge);
     }
 
     @Override

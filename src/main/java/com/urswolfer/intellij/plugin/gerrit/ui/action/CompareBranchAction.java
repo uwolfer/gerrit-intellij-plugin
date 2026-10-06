@@ -40,7 +40,7 @@ public class CompareBranchAction extends AbstractChangeAction {
     private final FetchAction fetchAction = new FetchAction();
 
     public CompareBranchAction() {
-        super("Compare with Branch", "Compare change with current branch", AllIcons.Actions.Diff);
+        super(AllIcons.Actions.Diff);
     }
 
     @Override

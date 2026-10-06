@@ -33,7 +33,7 @@ import java.util.Optional;
 public class PublishAction extends AbstractLoggedInChangeAction {
 
     public PublishAction() {
-        super("Publish Draft", "Publish Draft Change", AllIcons.Actions.Forward);
+        super(AllIcons.Actions.Forward);
     }
 
     @Override

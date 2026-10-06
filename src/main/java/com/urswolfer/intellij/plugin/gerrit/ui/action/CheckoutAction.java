@@ -53,7 +53,7 @@ public class CheckoutAction extends AbstractChangeAction {
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public CheckoutAction() {
-        super("Checkout", "Checkout change", AllIcons.Actions.CheckOut);
+        super(AllIcons.Actions.CheckOut);
     }
 
     @Override

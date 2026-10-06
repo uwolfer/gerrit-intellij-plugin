@@ -41,7 +41,7 @@ import java.util.Optional;
 
 public class SetAssigneeAction extends AbstractLoggedInChangeAction {
     public SetAssigneeAction() {
-        super("Set Assignee...", "Set or remove the assignee of the change", AllIcons.General.User);
+        super(AllIcons.General.User);
     }
 
     @Override

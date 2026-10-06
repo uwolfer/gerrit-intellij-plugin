@@ -32,7 +32,7 @@ public class SettingsAction extends AnAction implements DumbAware, UpdateInBackg
 
 
     public SettingsAction() {
-        super("Settings", "Open Gerrit Plugin Settings", AllIcons.General.Settings);
+        super(AllIcons.General.Settings);
     }
 
     @Override

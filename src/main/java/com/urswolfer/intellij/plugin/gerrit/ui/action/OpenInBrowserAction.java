@@ -31,7 +31,7 @@ public class OpenInBrowserAction extends AbstractChangeAction {
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     public OpenInBrowserAction() {
-        super("Open in Gerrit", "Open corresponding link in browser", MyIcons.Gerrit);
+        super(MyIcons.Gerrit);
     }
 
     @Override

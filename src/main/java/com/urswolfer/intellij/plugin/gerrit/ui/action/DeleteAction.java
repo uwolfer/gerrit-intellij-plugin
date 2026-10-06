@@ -31,7 +31,7 @@ import java.util.Optional;
 public class DeleteAction extends AbstractLoggedInChangeAction {
 
     public DeleteAction() {
-        super("Delete Draft", "Delete Draft Change", AllIcons.Actions.Cancel);
+        super(AllIcons.Actions.Cancel);
     }
 
     @Override

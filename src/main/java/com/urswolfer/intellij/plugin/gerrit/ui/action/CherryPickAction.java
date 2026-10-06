@@ -37,11 +37,11 @@ public class CherryPickAction extends AbstractChangeAction {
     private final boolean autoCommit;
 
     public CherryPickAction() {
-        this("Cherry-Pick (No Commit)", "Cherry-Pick change into active changelist without committing", false);
+        this(false);
     }
 
-    protected CherryPickAction(String text, String description, boolean autoCommit) {
-        super(text, description, DvcsImplIcons.CherryPick);
+    protected CherryPickAction(boolean autoCommit) {
+        super(DvcsImplIcons.CherryPick);
         this.autoCommit = autoCommit;
     }
 

@@ -44,17 +44,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
+      with:
+        fetch-depth: 2
+    # skipped by step rather than by a paths filter, so that the job still
+    # reports a result a required check can wait for
+    - name: Look for changes the verifier can see
+      id: changes
+      run: |
+        # HEAD is the merge commit of the pull request, HEAD^1 its base
+        if [ "$GITHUB_EVENT_NAME" = pull_request ] &&
+           ! git diff --name-only HEAD^1 HEAD | grep -qvE '\.md$|^\.claude/|^LICENSE$'; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+        fi
     - name: Set up JDK 17
+      if: steps.changes.outputs.skip != 'true'
       uses: actions/setup-java@v6
       with:
         java-version: 17
         distribution: 'temurin'
     - name: Setup Gradle
+      if: steps.changes.outputs.skip != 'true'
       uses: gradle/actions/setup-gradle@v6
     - name: Read latest IDE version
+      if: steps.changes.outputs.skip != 'true'
       id: ide
       run: echo "version=$(sed -n 's/^latestIdeaVersion=//p' gradle.properties)" >> "$GITHUB_OUTPUT"
     - name: Restore verifier downloads
+      if: steps.changes.outputs.skip != 'true'
       id: verifier-cache
       uses: actions/cache/restore@v6
       with:
@@ -63,7 +79,9 @@ jobs:
           ~/.pluginVerifier/loaded-plugins
         key: plugin-verifier-${{ runner.os }}-${{ steps.ide.outputs.version }}
     - name: Verify plugin against latest IDE
-      run: ./gradlew buildPlugin runPluginVerifier
+      if: steps.changes.outputs.skip != 'true'
+      # the build job already runs buildSearchableOptions, and the verifier does not need it
+      run: ./gradlew buildPlugin runPluginVerifier -x buildSearchableOptions
     # saved separately because a plain actions/cache only saves on success, and a
     # report shows the IDE download completed even when the verification failed
     - name: Save verifier downloads
@@ -75,7 +93,7 @@ jobs:
           ~/.pluginVerifier/loaded-plugins
         key: ${{ steps.verifier-cache.outputs.cache-primary-key }}
     - name: Upload verifier report
-      if: always()
+      if: always() && steps.changes.outputs.skip != 'true'
       uses: actions/upload-artifact@v7
       with:
         name: plugin-verifier-report

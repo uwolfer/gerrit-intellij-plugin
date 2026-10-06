@@ -67,6 +67,7 @@ public class SettingsPanel {
     private JBTextField gitilesUrlTextField;
 
     private boolean passwordModified;
+    private boolean updatingPassword;
 
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
@@ -108,7 +109,6 @@ public class SettingsPanel {
                     Messages.showErrorDialog(pane, String.format("Can't login to %s: %s", host, gerritUtil.getErrorTextFromException(ex)),
                             "Login Failure");
                 }
-                setPassword(password);
             }
         });
 
@@ -122,17 +122,33 @@ public class SettingsPanel {
         passwordField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                passwordModified = true;
+                onPasswordEdited();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                passwordModified = true;
+                onPasswordEdited();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                passwordModified = true;
+                onPasswordEdited();
+            }
+        });
+        // The field holds a placeholder while the stored password is untouched; selecting it makes
+        // the first keystroke replace it instead of being appended to it (and saved as the password).
+        // Deferred, because the mouse press that gave the field focus moves the caret and would
+        // drop the selection.
+        passwordField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (!passwordModified) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (!passwordModified) {
+                            passwordField.selectAll();
+                        }
+                    });
+                }
             }
         });
 
@@ -166,7 +182,7 @@ public class SettingsPanel {
             text = text.substring(0, text.length() - 1);
         }
         if (!text.isEmpty() && !text.contains("://")) {
-            text = "http://" + text;
+            text = "https://" + text;
         }
         textField.setText(text);
     }
@@ -184,8 +200,19 @@ public class SettingsPanel {
     }
 
     public void setPassword(final String password) {
-        // Show password as blank if password is empty
-        passwordField.setText(StringUtil.isEmpty(password) ? null : password);
+        updatingPassword = true;
+        try {
+            // Show password as blank if password is empty
+            passwordField.setText(StringUtil.isEmpty(password) ? null : password);
+        } finally {
+            updatingPassword = false;
+        }
+    }
+
+    private void onPasswordEdited() {
+        if (!updatingPassword) {
+            passwordModified = true;
+        }
     }
 
     public String getLogin() {

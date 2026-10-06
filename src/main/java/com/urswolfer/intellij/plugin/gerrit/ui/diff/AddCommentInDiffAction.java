@@ -38,7 +38,7 @@ public class AddCommentInDiffAction extends AnAction implements DumbAware, Updat
     public void actionPerformed(AnActionEvent e) {
         AddCommentAction addCommentAction = findAddCommentAction(e);
         if (addCommentAction != null) {
-            addCommentAction.actionPerformed(e);
+            addCommentAction.addVersionedComment(e.getProject());
         }
     }
 
@@ -46,11 +46,7 @@ public class AddCommentInDiffAction extends AnAction implements DumbAware, Updat
     public void update(AnActionEvent e) {
         AddCommentAction addCommentAction = findAddCommentAction(e);
         e.getPresentation().setVisible(addCommentAction != null);
-        if (addCommentAction == null) {
-            e.getPresentation().setEnabled(false);
-            return;
-        }
-        addCommentAction.update(e);
+        e.getPresentation().setEnabled(addCommentAction != null && addCommentAction.canComment());
     }
 
     @Nullable

@@ -19,7 +19,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.api.changes.NotifyHandling;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
@@ -31,10 +30,6 @@ import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -69,95 +64,59 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         // the review goes to the patch set shown now, even if a reload resets the selected one while the dialog is open
         final String revision = SelectedRevisions.getInstance(project).get(changeDetails);
         final GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
-        gerritUtil.getComments(changeDetails._number, revision, project, false, true,
-                new Consumer<Map<String, List<CommentInfo>>>() {
-            @Override
-            public void consume(Map<String, List<CommentInfo>> draftComments) {
-                final ReviewInput reviewInput = new ReviewInput();
-                reviewInput.label(label, rating);
+        final ReviewInput reviewInput = createReviewInput(label, rating);
 
-                for (Map.Entry<String, List<CommentInfo>> entry : draftComments.entrySet()) {
-                    for (CommentInfo commentInfo : entry.getValue()) {
-                        addComment(reviewInput, entry.getKey(), commentInfo);
-                    }
-                }
-
-                boolean submitChange = false;
-                if (showDialog) {
-                    final ReviewDialog dialog = new ReviewDialog(project);
-                    dialog.show();
-                    if (!dialog.isOK()) {
-                        return;
-                    }
-                    final String message = dialog.getReviewPanel().getMessage();
-                    if (message != null && !message.isEmpty()) {
-                        reviewInput.message = message;
-                    }
-                    submitChange = dialog.getReviewPanel().getSubmitChange();
-
-                    if (!dialog.getReviewPanel().getDoNotify()) {
-                        reviewInput.notify = NotifyHandling.NONE;
-                    }
-                }
-
-                final boolean finalSubmitChange = submitChange;
-                gerritUtil.postReview(changeDetails.id,
-                        revision,
-                        reviewInput,
-                        project,
-                        new Consumer<Void>() {
-                            @Override
-                            public void consume(Void result) {
-                                NotificationBuilder notification = new NotificationBuilder(
-                                        project, "Review posted",
-                                        buildSuccessMessage(changeDetails, reviewInput))
-                                        .hideBalloon();
-                                notificationService.notifyInformation(notification);
-                                // also when submitting, which reloads once more but may fail
-                                ActionUtil.reloadChanges(toolWindow, project);
-                                if (finalSubmitChange) {
-                                    submitAction.submit(changeDetails, project, toolWindow);
-                                }
-                            }
-                        }
-                );
+        boolean submitChange = false;
+        if (showDialog) {
+            final ReviewDialog dialog = new ReviewDialog(project);
+            dialog.show();
+            if (!dialog.isOK()) {
+                return;
             }
-        });
-    }
+            final String message = dialog.getReviewPanel().getMessage();
+            if (message != null && !message.isEmpty()) {
+                reviewInput.message = message;
+            }
+            submitChange = dialog.getReviewPanel().getSubmitChange();
 
-    private void addComment(ReviewInput reviewInput, String path, CommentInfo comment) {
-        List<ReviewInput.CommentInput> commentInputs;
-        Map<String, List<ReviewInput.CommentInput>> comments = reviewInput.comments;
-        if (comments == null) {
-            comments = new HashMap<>();
-            reviewInput.comments = comments;
-        }
-        if (comments.containsKey(path)) {
-            commentInputs = comments.get(path);
-        } else {
-            commentInputs = new ArrayList<>();
-            comments.put(path, commentInputs);
+            if (!dialog.getReviewPanel().getDoNotify()) {
+                reviewInput.notify = NotifyHandling.NONE;
+            }
         }
 
-        commentInputs.add(createCommentInput(comment));
+        final boolean finalSubmitChange = submitChange;
+        gerritUtil.postReview(changeDetails.id,
+                revision,
+                reviewInput,
+                project,
+                new Consumer<Void>() {
+                    @Override
+                    public void consume(Void result) {
+                        NotificationBuilder notification = new NotificationBuilder(
+                                project, "Review posted",
+                                buildSuccessMessage(changeDetails, reviewInput))
+                                .hideBalloon();
+                        notificationService.notifyInformation(notification);
+                        // also when submitting, which reloads once more but may fail
+                        ActionUtil.reloadChanges(toolWindow, project);
+                        if (finalSubmitChange) {
+                            submitAction.submit(changeDetails, project, toolWindow);
+                        }
+                    }
+                }
+        );
     }
 
     /**
-     * The state has to be sent along: Gerrit 3.14 answers a published draft without it with a 500
-     * (NullPointerException in PostReview).
+     * The drafts of the revision are published by Gerrit rather than sent along as comments: Gerrit checks a comment
+     * sent along against the files of the revision, which for a merge commit are those against the auto-merge, and
+     * refuses the whole review for a draft on a file which differs from the first parent only.
      */
-    static ReviewInput.CommentInput createCommentInput(CommentInfo comment) {
-        ReviewInput.CommentInput commentInput = new ReviewInput.CommentInput();
-        commentInput.id = comment.id;
-        commentInput.path = comment.path;
-        commentInput.side = comment.side;
-        commentInput.line = comment.line;
-        commentInput.range = comment.range;
-        commentInput.inReplyTo = comment.inReplyTo;
-        commentInput.updated = comment.updated;
-        commentInput.message = comment.message;
-        commentInput.unresolved = comment.unresolved;
-        return commentInput;
+    static ReviewInput createReviewInput(String label, int rating) {
+        ReviewInput reviewInput = new ReviewInput();
+        reviewInput.label(label, rating);
+        reviewInput.drafts = ReviewInput.DraftHandling.PUBLISH;
+        return reviewInput;
     }
 
     private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {

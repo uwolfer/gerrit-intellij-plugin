@@ -58,6 +58,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     private final String filePath;
     private final CommentBalloonBuilder commentBalloonBuilder;
     private final Side commentSide;
+    private final Integer parent;
     private final Comment commentToEdit;
     private final RangeHighlighter lineHighlighter;
     private final RangeHighlighter rangeHighlighter;
@@ -74,6 +75,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
                             String revisionId,
                             String filePath,
                             Side commentSide,
+                            Integer parent,
                             Comment commentToEdit,
                             RangeHighlighter lineHighlighter,
                             RangeHighlighter rangeHighlighter,
@@ -89,6 +91,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         this.editor = editor;
         this.commentBalloonBuilder = commentBalloonBuilder;
         this.commentSide = commentSide;
+        this.parent = parent;
         this.commentToEdit = commentToEdit;
         this.lineHighlighter = lineHighlighter;
         this.rangeHighlighter = rangeHighlighter;
@@ -128,13 +131,16 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     }
 
     private void handleComment(final DraftInput comment, final Project project) {
+        comment.parent = parent;
         if (commentToEdit != null) {
             comment.id = commentToEdit.id;
+            comment.parent = commentToEdit.parent;
         }
 
         if (replyToComment != null) {
             comment.inReplyTo = replyToComment.id;
             comment.side = replyToComment.side;
+            comment.parent = replyToComment.parent;
             comment.line = replyToComment.line;
             comment.range = replyToComment.range;
         }

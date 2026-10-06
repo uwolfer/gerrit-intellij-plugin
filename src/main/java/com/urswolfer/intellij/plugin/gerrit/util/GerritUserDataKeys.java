@@ -29,4 +29,9 @@ import java.util.Optional;
 public interface GerritUserDataKeys {
     Key<ChangeInfo> CHANGE = Key.create("gerrit.Change");
     Key<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = Key.create("gerrit.Change.BaseRevision");
+    /**
+     * The parent of a merge commit which the diff against its base shows. Gerrit places a comment on that side with
+     * this number; without one, the comment belongs to the auto-merge. Not set for a commit with a single parent.
+     */
+    Key<Integer> BASE_PARENT = Key.create("gerrit.Change.BaseParent");
 }

@@ -17,43 +17,17 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.gerrit.extensions.api.changes.ReviewInput;
-import com.google.gerrit.extensions.client.Side;
-import com.google.gerrit.extensions.common.CommentInfo;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
 public class ReviewActionTest {
 
     @Test
-    public void testPublishedDraftKeepsItsState() {
-        CommentInfo draft = draft();
-        draft.unresolved = false;
-        Assert.assertEquals(Boolean.FALSE, ReviewAction.createCommentInput(draft).unresolved);
+    public void testDraftsArePublishedByGerrit() {
+        ReviewInput reviewInput = ReviewAction.createReviewInput("Code-Review", 2);
 
-        draft.unresolved = true;
-        Assert.assertEquals(Boolean.TRUE, ReviewAction.createCommentInput(draft).unresolved);
-    }
-
-    @Test
-    public void testPublishedDraftKeepsItsPlace() {
-        ReviewInput.CommentInput input = ReviewAction.createCommentInput(draft());
-
-        Assert.assertEquals("abc", input.id);
-        Assert.assertEquals("root", input.inReplyTo);
-        Assert.assertEquals("Will do", input.message);
-        Assert.assertEquals("src/Main.java", input.path);
-        Assert.assertEquals(Integer.valueOf(12), input.line);
-        Assert.assertEquals(Side.REVISION, input.side);
-    }
-
-    private static CommentInfo draft() {
-        CommentInfo draft = new CommentInfo();
-        draft.id = "abc";
-        draft.inReplyTo = "root";
-        draft.message = "Will do";
-        draft.path = "src/Main.java";
-        draft.line = 12;
-        draft.side = Side.REVISION;
-        return draft;
+        Assert.assertEquals(ReviewInput.DraftHandling.PUBLISH, reviewInput.drafts);
+        Assert.assertNull(reviewInput.comments);
+        Assert.assertEquals(Short.valueOf((short) 2), reviewInput.labels.get("Code-Review"));
     }
 }

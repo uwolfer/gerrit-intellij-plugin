@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -150,11 +151,12 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                 final Project project,
                                 final ChangeInfo changeInfo,
                                 final String selectedRevisionId,
-                                final Optional<Pair<String, RevisionInfo>> baseRevision) {
+                                final Optional<Pair<String, RevisionInfo>> baseRevision,
+                                @Nullable final Integer baseParent) {
         FilePath filePath = ChangesUtil.getFilePath(change);
         final String relativeFilePath = PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo));
 
-        addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision);
+        addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision, baseParent);
 
         gerritUtil.getComments(changeInfo._number, selectedRevisionId, project, true, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
@@ -175,7 +177,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                         editor1,
                                         relativeFilePath,
                                         selectedRevisionId,
-                                        filter(fileComments, REVISION_COMMENT.negate()),
+                                        filter(fileComments, onBase(baseParent)),
                                         changeInfo,
                                         project
                                 );
@@ -211,25 +213,28 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     }
 
     private void addCommentAction(EditorEx editor1, EditorEx editor2, String filePath, ChangeInfo changeInfo,
-                                  String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision) {
+                                  String selectedRevisionId, Optional<Pair<String, RevisionInfo>> baseRevision,
+                                  @Nullable Integer baseParent) {
         if (baseRevision.isPresent()) {
-            addCommentActionToEditor(editor1, filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION);
+            addCommentActionToEditor(editor1, filePath, changeInfo, baseRevision.get().getFirst(), Side.REVISION, null);
         } else {
-            addCommentActionToEditor(editor1, filePath, changeInfo, selectedRevisionId, Side.PARENT);
+            addCommentActionToEditor(editor1, filePath, changeInfo, selectedRevisionId, Side.PARENT, baseParent);
         }
-        addCommentActionToEditor(editor2, filePath, changeInfo, selectedRevisionId, Side.REVISION);
+        addCommentActionToEditor(editor2, filePath, changeInfo, selectedRevisionId, Side.REVISION, null);
     }
 
     private void addCommentActionToEditor(Editor editor,
                                           String filePath,
                                           ChangeInfo changeInfo,
                                           String revisionId,
-                                          Side commentSide) {
+                                          Side commentSide,
+                                          @Nullable Integer parent) {
         if (editor == null) return;
 
         DefaultActionGroup group = new DefaultActionGroup();
         final AddCommentAction addCommentAction = addCommentActionBuilder
                 .create(this, changeInfo, revisionId, editor, filePath, commentSide)
+                .onParent(parent)
                 .withText("Add Comment")
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
@@ -237,6 +242,14 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         addCommentAction.registerCustomShortcutSet(ADD_COMMENT_SHORTCUT_SET, editor.getContentComponent());
         group.add(addCommentAction);
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
+    }
+
+    /**
+     * The comments on the left side of a diff against the base: a merge commit has a comment on each parent and on
+     * the auto-merge, of which only those on the parent shown fit its lines.
+     */
+    static Predicate<Comment> onBase(@Nullable Integer baseParent) {
+        return REVISION_COMMENT.negate().and(comment -> Objects.equals(comment.parent, baseParent));
     }
 
     private static List<CommentInfo> filter(List<CommentInfo> comments, Predicate<Comment> predicate) {
@@ -312,10 +325,12 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                                   @Nullable EditorEx editor1, EditorEx editor2) {
         ChangeInfo changeInfo = diffContext.getUserData(GerritUserDataKeys.CHANGE);
         Optional<Pair<String, RevisionInfo>> baseRevision = diffContext.getUserData(GerritUserDataKeys.BASE_REVISION);
+        Integer baseParent = diffContext.getUserData(GerritUserDataKeys.BASE_PARENT);
         String selectedRevisionId = changeInfo != null
             ? SelectedRevisions.getInstance(diffContext.getProject()).get(changeInfo) : null;
         Change change = diffRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY);
-        handleComments(editor1, editor2, change, diffContext.getProject(), changeInfo, selectedRevisionId, baseRevision);
+        handleComments(editor1, editor2, change, diffContext.getProject(), changeInfo, selectedRevisionId, baseRevision,
+            baseParent);
     }
 
     private class SimpleCommentsDiffViewer extends SimpleDiffViewer {

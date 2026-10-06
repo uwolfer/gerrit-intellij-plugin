@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Urs Wolfer
+ * Copyright 2026 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,25 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.intellij.ide.BrowserUtil;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.ide.CopyPasteManager;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import icons.MyIcons;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
+import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
+import java.awt.datatransfer.StringSelection;
 import java.util.Optional;
 
 /**
  * @author Urs Wolfer
  */
-public class OpenInBrowserAction extends AbstractChangeAction {
+public class CopyChangeUrlAction extends AbstractChangeAction {
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
+    private final NotificationService notificationService = NotificationService.getInstance();
 
-    public OpenInBrowserAction() {
-        super(MyIcons.Gerrit);
+    public CopyChangeUrlAction() {
+        super(AllIcons.Actions.Copy);
     }
 
     @Override
@@ -41,12 +44,14 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        BrowserUtil.browse(getUrl(gerritSettings.getHost(), selectedChange.get()));
+        String url = OpenInBrowserAction.getUrl(gerritSettings.getHost(), selectedChange.get());
+        CopyPasteManager.getInstance().setContents(new StringSelection(url));
+        NotificationBuilder builder = new NotificationBuilder(anActionEvent.getProject(), "Copy", "Copied change URL to clipboard.");
+        notificationService.notify(builder);
     }
 
     /**
-     * Without a host there is no change to open: the url would come out as a bare change number, and the browser
-     * would be sent to it. The action waits until Gerrit is set up.
+     * Without a host the url would come out as a bare change number.
      */
     @Override
     public void update(AnActionEvent e) {
@@ -54,13 +59,4 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         String host = gerritSettings.getHost();
         e.getPresentation().setEnabled(host != null && !host.isEmpty());
     }
-
-    /**
-     * The short form, which Gerrit redirects to the change on every version and whatever project it belongs to.
-     * The login dialog keeps a trailing slash of the host, and Gerrit refuses "//" with a 400.
-     */
-    static String getUrl(String host, ChangeInfo change) {
-        return String.format("%s/%s", StringUtil.trimTrailing(host, '/'), change._number);
-    }
-
 }

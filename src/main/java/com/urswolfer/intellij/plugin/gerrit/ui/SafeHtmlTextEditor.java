@@ -18,10 +18,18 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
+import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vcs.ui.CommitMessage;
+import com.intellij.ui.AdditionalPageAtBottomEditorCustomization;
+import com.intellij.ui.ColorUtil;
+import com.intellij.ui.EditorCustomization;
 import com.intellij.ui.EditorTextField;
+import com.intellij.ui.EditorTextFieldProvider;
+import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.ui.TabbedPaneImpl;
+import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 
@@ -31,6 +39,8 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -43,7 +53,7 @@ public class SafeHtmlTextEditor extends JPanel {
         TabbedPaneImpl tabbedPane = new TabbedPaneImpl(SwingConstants.TOP);
         tabbedPane.setKeyboardNavigation(TabbedPaneImpl.DEFAULT_PREV_NEXT_SHORTCUTS);
 
-        messageField = new CommitMessage(project).getEditorField();
+        messageField = createMessageField(project);
         messageField.setBorder(BorderFactory.createEmptyBorder());
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);
@@ -77,6 +87,31 @@ public class SafeHtmlTextEditor extends JPanel {
         });
 
         add(tabbedPane, SwingConstants.CENTER);
+    }
+
+    /**
+     * Like the commit message field, but without its right margin and inspections: the commit settings wrapped a
+     * comment with hard line breaks while typing, which Gerrit shows as they are, and warned about a missing blank line
+     * after the first one.
+     */
+    private static EditorTextField createMessageField(Project project) {
+        List<EditorCustomization> features = new ArrayList<>();
+        features.add(SoftWrapsEditorCustomization.ENABLED);
+        features.add(AdditionalPageAtBottomEditorCustomization.DISABLED);
+        ContainerUtil.addIfNotNull(features, SpellCheckingEditorCustomizationProvider.getInstance().getEnabledCustomization());
+        // as the commit message field does: the field takes the background of the dialog, so with an editor scheme
+        // of the other darkness than the UI theme, the text would be dark on dark or light on light
+        features.add(editor -> {
+            EditorColorsManager colorsManager = EditorColorsManager.getInstance();
+            boolean sameDarkness = ColorUtil.isDark(UIUtil.getPanelBackground()) == colorsManager.isDarkEditor();
+            editor.setBackgroundColor(null);
+            editor.setColorsScheme(editor.createBoundColorSchemeDelegate(
+                sameDarkness ? colorsManager.getGlobalScheme() : colorsManager.getSchemeForCurrentUITheme()));
+        });
+        EditorTextField field = EditorTextFieldProvider.getInstance()
+            .getEditorField(FileTypes.PLAIN_TEXT.getLanguage(), project, features);
+        field.setFontInheritedFromLAF(false);
+        return field;
     }
 
     public EditorTextField getMessageField() {

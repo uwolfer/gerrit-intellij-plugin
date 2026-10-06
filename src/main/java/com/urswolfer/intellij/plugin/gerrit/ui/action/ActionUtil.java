@@ -18,13 +18,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.table.TableView;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import org.jetbrains.annotations.Nullable;
 
-import java.awt.*;
 import java.util.Optional;
 
 /**
@@ -34,18 +32,11 @@ public class ActionUtil {
 
     private ActionUtil() {}
 
-    public static Optional<ChangeInfo> getSelectedChange(AnActionEvent anActionEvent) {
-        Component component = anActionEvent.getData(PlatformDataKeys.CONTEXT_COMPONENT);
-        if (!(component instanceof TableView)) {
+    public static Optional<ChangeInfo> getSelectedChange(@Nullable AnActionEvent anActionEvent) {
+        if (anActionEvent == null) {
             return Optional.empty();
         }
-        final TableView table = (TableView) component;
-        Object selectedObject = table.getSelectedObject();
-        if (!(selectedObject instanceof ChangeInfo)) {
-            return Optional.empty();
-        }
-        final ChangeInfo selectedChange = (ChangeInfo) selectedObject;
-        return Optional.ofNullable(selectedChange);
+        return Optional.ofNullable(anActionEvent.getData(GerritChangeListPanel.SELECTED_CHANGE));
     }
 
     public static void reloadChanges(@Nullable GerritToolWindow toolWindow, @Nullable Project project) {

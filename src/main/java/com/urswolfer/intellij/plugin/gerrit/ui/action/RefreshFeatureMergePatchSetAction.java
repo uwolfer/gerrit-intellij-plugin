@@ -15,7 +15,6 @@ import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
-import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -38,7 +37,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selected = getSelectedChange(e);
-        e.getPresentation().setEnabled(e.getPresentation().isEnabled() && hasSingleSelection(e) && selected.isPresent()
+        e.getPresentation().setEnabled(e.getPresentation().isEnabled() && selected.isPresent()
                 && selected.get().status == ChangeStatus.NEW);
     }
 
@@ -46,7 +45,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
     public void actionPerformed(AnActionEvent e) {
         final Project project = e.getData(PlatformDataKeys.PROJECT);
         Optional<ChangeInfo> selected = getSelectedChange(e);
-        if (project == null || !hasSingleSelection(e) || !selected.isPresent()
+        if (project == null || !selected.isPresent()
                 || selected.get().status != ChangeStatus.NEW) {
             return;
         }
@@ -78,11 +77,6 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
         input.merge.sourceBranch = source;
         input.merge.allowConflicts = false;
         return input;
-    }
-
-    private static boolean hasSingleSelection(AnActionEvent e) {
-        Component component = e.getData(PlatformDataKeys.CONTEXT_COMPONENT);
-        return component instanceof TableView && ((TableView) component).getSelectedRowCount() == 1;
     }
 
     private static class RefreshMergeDialog extends DialogWrapper {

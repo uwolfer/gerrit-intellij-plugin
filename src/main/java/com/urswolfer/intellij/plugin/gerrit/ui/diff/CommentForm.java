@@ -53,8 +53,8 @@ public class CommentForm extends JPanel {
     private final Side commentSide;
     private final Comment commentToEdit;
     private final JCheckBox resolvedCheckBox;
-    private final Comment.Range range;
-    private final int line;
+    private Comment.Range range;
+    private int line;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
@@ -73,15 +73,7 @@ public class CommentForm extends JPanel {
         this.commentSide = commentSide;
         this.commentToEdit = commentToEdit;
 
-        // Taken now: stepping to another file of the change and back while the form is open moves the caret to the top.
-        SelectionModel selectionModel = editor.getSelectionModel();
-        if (selectionModel.hasSelection()) {
-            range = handleRangeComment(selectionModel);
-            line = range.endLine; // end line as per specification
-        } else {
-            range = null;
-            line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
-        }
+        readPosition();
 
         SafeHtmlTextEditor safeHtmlTextEditor = new SafeHtmlTextEditor(project);
         reviewTextField = safeHtmlTextEditor.getMessageField();
@@ -160,6 +152,12 @@ public class CommentForm extends JPanel {
         comment.path = PathUtils.ensureSlashSeparators(filePath);
         comment.side = commentSide;
         comment.unresolved = !resolvedCheckBox.isSelected();
+
+        // The editor stays usable while the form is open, so a selection made now counts. Stepping to another file of
+        // the change and back replaces the editor, though; then the position from when the form was opened is kept.
+        if (!editor.isDisposed()) {
+            readPosition();
+        }
         comment.range = range;
         comment.line = line;
 
@@ -170,6 +168,17 @@ public class CommentForm extends JPanel {
         }
 
         return comment;
+    }
+
+    private void readPosition() {
+        SelectionModel selectionModel = editor.getSelectionModel();
+        if (selectionModel.hasSelection()) {
+            range = handleRangeComment(selectionModel);
+            line = range.endLine; // end line as per specification
+        } else {
+            range = null;
+            line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
+        }
     }
 
     @NotNull

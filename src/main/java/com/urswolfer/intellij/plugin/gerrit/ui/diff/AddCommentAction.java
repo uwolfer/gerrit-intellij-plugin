@@ -25,6 +25,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -34,8 +35,10 @@ import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.util.Objects;
 
 /**
  * @author Urs Wolfer
@@ -140,11 +143,42 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
                 new Consumer<CommentInfo>() {
                     @Override
                     public void consume(CommentInfo commentInfo) {
-                        if (commentToEdit != null) {
-                            commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+                        Editor currentEditor = currentEditor();
+                        if (currentEditor == null) {
+                            return; // the diff was closed, it shows the comment when it is opened again
                         }
-                        commentsDiffTool.addComment(editor, changeInfo, revisionId, project, commentInfo);
+                        if (commentToEdit != null) {
+                            if (currentEditor == editor) {
+                                commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
+                            } else {
+                                commentsDiffTool.removeComment(project, currentEditor, commentToEdit.id);
+                            }
+                        }
+                        commentsDiffTool.addComment(currentEditor, changeInfo, revisionId, project, commentInfo);
                     }
                 });
+    }
+
+    /**
+     * The diff window builds new editors when it steps to another file of the change, so the editor the comment was
+     * started in is released if the user stepped away and back while the form was open.
+     */
+    @Nullable
+    private Editor currentEditor() {
+        if (!editor.isDisposed()) {
+            return editor;
+        }
+        for (Editor candidate : EditorFactory.getInstance().getAllEditors()) {
+            AddCommentAction action = candidate.getUserData(CommentsDiffTool.ADD_COMMENT_ACTION);
+            if (action != null
+                && candidate.getProject() == editor.getProject()
+                && action.changeInfo._number == changeInfo._number
+                && Objects.equals(action.revisionId, revisionId)
+                && Objects.equals(action.filePath, filePath)
+                && CommentsDiffTool.sideOf(action.commentSide) == CommentsDiffTool.sideOf(commentSide)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 }

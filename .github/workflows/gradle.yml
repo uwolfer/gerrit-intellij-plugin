@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# A newer push cancels the build of an older one. Pull requests get a group
+# of their own per run, so they are neither serialized nor cancelled.
+concurrency:
+  group: ${{ github.event_name == 'push' && format('push-{0}', github.ref) || format('pr-{0}', github.run_id) }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -146,7 +146,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     }
 
     private void handleComments(@Nullable final EditorEx editor1,
-                                final EditorEx editor2,
+                                @Nullable final EditorEx editor2,
                                 Change change,
                                 final Project project,
                                 final ChangeInfo changeInfo,
@@ -158,6 +158,11 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
 
         addCommentAction(editor1, editor2, relativeFilePath, changeInfo, selectedRevisionId, baseRevision, baseParent);
 
+        // the diff of an added or a deleted file has one side only: the comments on the other one are shown there as
+        // well, or they could neither be seen nor answered, such as a draft an older version has saved on that side
+        final EditorEx revisionEditor = editor2 != null ? editor2 : editor1;
+        final EditorEx baseEditor = editor1 != null ? editor1 : editor2;
+
         gerritUtil.getComments(changeInfo._number, selectedRevisionId, project, true, true,
                 new Consumer<Map<String, List<CommentInfo>>>() {
                     @Override
@@ -165,7 +170,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                         List<CommentInfo> fileComments = comments.get(relativeFilePath);
                         if (fileComments != null) {
                             addCommentsGutter(
-                                    editor2,
+                                    revisionEditor,
                                     relativeFilePath,
                                     selectedRevisionId,
                                     filter(fileComments, REVISION_COMMENT),
@@ -174,7 +179,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                             );
                             if (!baseRevision.isPresent()) {
                                 addCommentsGutter(
-                                        editor1,
+                                        baseEditor,
                                         relativeFilePath,
                                         selectedRevisionId,
                                         filter(fileComments, onBase(baseParent)),
@@ -196,7 +201,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
                     if (fileComments != null) {
                         Collections.sort(fileComments, COMMENT_ORDERING);
                         addCommentsGutter(
-                                editor1,
+                                baseEditor,
                                 relativeFilePath,
                                 baseRevision.get().getFirst(),
                                 filter(fileComments, REVISION_COMMENT),
@@ -322,7 +327,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     }
 
     private void handleDiffViewer(DiffContext diffContext, ContentDiffRequest diffRequest,
-                                  @Nullable EditorEx editor1, EditorEx editor2) {
+                                  @Nullable EditorEx editor1, @Nullable EditorEx editor2) {
         ChangeInfo changeInfo = diffContext.getUserData(GerritUserDataKeys.CHANGE);
         Optional<Pair<String, RevisionInfo>> baseRevision = diffContext.getUserData(GerritUserDataKeys.BASE_REVISION);
         Integer baseParent = diffContext.getUserData(GerritUserDataKeys.BASE_PARENT);
@@ -353,7 +358,9 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         @Override
         protected void onInit() {
             super.onInit();
-            handleDiffViewer(myContext, myRequest, null, getEditor());
+            // the one side of a deleted file is its old content, which comments on the base belong to
+            com.intellij.diff.util.Side side = getSide();
+            handleDiffViewer(myContext, myRequest, side.select(getEditor(), null), side.select(null, getEditor()));
         }
     }
 

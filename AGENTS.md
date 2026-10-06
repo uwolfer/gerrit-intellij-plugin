@@ -96,16 +96,33 @@ The push-dialog integration is the most fragile code here.
 
 `GerritPushExtension` rewrites `git4idea.push.GitPushSupport` with javassist at
 application startup, because the platform offers no extension point for the push
-dialog. `GerritPushTargetPanel` then reaches into private platform state:
+dialog. `createOptionsPanel` is the only method it rewrites, and the new body
+refers to private members of the platform (`mySettings`, `myVcs`,
+`GitVersionSpecialty`). It also copies the classes the panel uses, listed in
+`CLASSES_FOR_GIT_PLUGIN`, into the Git plugin class loader: a class which is
+missing from that list is a `NoClassDefFoundError` in the push dialog.
+`GerritPushTargetUpdater` finds the repository rows by looking in the tree of
+the dialog, with `com.intellij.dvcs.push` classes: public, but the dialog's own
+UI and not an extension point.
 
-* `GitPushTargetPanel.myFireOnChangeAction` and `myTargetEditor`
-* `val$repoPanel` and `val$repoNode` — synthetic fields of the anonymous
-  `Runnable` held in `myFireOnChangeAction`
+`GerritPushExtensionTest` checks the two things above that would otherwise
+only fail at startup: that the rewrite compiles against the Git plugin, and
+that the list holds every class of the plugin or of the Gerrit REST client
+which the copied classes use. It runs against the SDK the build uses.
+`-PideaVersion=<latest>` fails while resolving `git4idea`, so the newest IDE
+still has to be checked by hand, as `.claude/skills/run-ide/SKILL.md`
+describes.
 
-None of this is API. Field names, the anonymous class and the
-`createTargetPanel` signature change without notice between IDE releases, and
-the failure is a startup error rather than a compile error. When you touch this
-code, say in the commit message which platform version you checked it against.
+`ResetAction` is the other place which reaches into the platform: it calls the
+constructor of `GitNewResetDialog`, protected in 2020.3 and public in 2026.2,
+and `GitResetOperation.execute`, whose return type differs between IDE
+releases, by reflection. No test covers it and it fails only when the action
+runs, so try Reset in the IDE after a platform upgrade.
+
+None of this is a documented extension point. Names and signatures change
+without notice between IDE releases, and the push dialog fails with a startup
+error rather than a compile error. When you touch this code, say in the commit
+message which platform version you checked it against.
 
 Crash reports pointing into `javassist.*` are usually javassist bugs. Check what
 the *reporting* version bundled before reading plugin code:

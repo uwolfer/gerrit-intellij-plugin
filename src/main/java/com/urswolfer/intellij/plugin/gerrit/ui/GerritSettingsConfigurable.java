@@ -17,9 +17,12 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.text.StringUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -97,6 +100,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
             gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
             gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
+            boolean pushToGerritChanged = gerritSettings.getPushToGerrit() != settingsPane.getPushToGerrit();
             gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
             gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
             gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
@@ -106,7 +110,23 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setGitilesUrl(settingsPane.getGitilesUrl());
 
             GerritUpdatesNotificationComponent.configurationChanged();
+
+            if (pushToGerritChanged) {
+                askForRestart();
+            }
         }
+    }
+
+    // The push dialog is patched at startup, so the new default is not used before a restart.
+    private void askForRestart() {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            int answer = Messages.showYesNoDialog(project,
+                    "The default push target changes after the IDE has been restarted. Restart now?",
+                    NAME, "Restart", "Later", Messages.getQuestionIcon());
+            if (answer == Messages.YES) {
+                ApplicationManagerEx.getApplicationEx().restart(true);
+            }
+        });
     }
 
     public void reset() {

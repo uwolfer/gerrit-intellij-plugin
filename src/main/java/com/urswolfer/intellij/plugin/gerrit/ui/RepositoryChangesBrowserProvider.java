@@ -125,6 +125,9 @@ public class RepositoryChangesBrowserProvider {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
         private Integer baseParent;
+        // what the listed files are of; the selected change moves on at once, while its files are still loading
+        private ChangeInfo listedChange;
+        private String listedRevision;
         private Project project;
         private int changesUpdate;
         private List<String> builtDiff;
@@ -217,7 +220,8 @@ public class RepositoryChangesBrowserProvider {
             if (showingDiff) {
                 diffChain = chain;
             }
-            chain.putUserData(GerritUserDataKeys.CHANGE, selectedChange);
+            chain.putUserData(GerritUserDataKeys.CHANGE, listedChange);
+            chain.putUserData(GerritUserDataKeys.REVISION, listedRevision);
             chain.putUserData(GerritUserDataKeys.BASE_REVISION, baseRevision);
             chain.putUserData(GerritUserDataKeys.BASE_PARENT, baseParent);
         }
@@ -263,6 +267,8 @@ public class RepositoryChangesBrowserProvider {
             selectedChange = null;
             baseRevision = Optional.empty();
             baseParent = null;
+            listedChange = null;
+            listedRevision = null;
             changesUpdate++;
             selectBaseRevisionAction.clearSelectedChange();
             getViewer().setEmptyText("");
@@ -278,6 +284,8 @@ public class RepositoryChangesBrowserProvider {
             builtDiff = null;
             getViewer().setEmptyText("Loading...");
             baseParent = null;
+            listedChange = null;
+            listedRevision = null;
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
             if (!gitRepositoryOptional.isPresent()) {
@@ -286,8 +294,9 @@ public class RepositoryChangesBrowserProvider {
             }
             final GitRepository gitRepository = gitRepositoryOptional.get();
 
-            Map<String, RevisionInfo> revisions = selectedChange.revisions;
-            final String revisionId = selectedRevisions.get(selectedChange);
+            final ChangeInfo change = selectedChange;
+            Map<String, RevisionInfo> revisions = change.revisions;
+            final String revisionId = selectedRevisions.get(change);
             RevisionInfo currentRevision = revisions.get(revisionId);
             RevisionFetcher revisionFetcher = new RevisionFetcher(gerritUtil, gerritGitUtil, project, gitRepository)
                 .addRevision(revisionId, currentRevision);
@@ -343,6 +352,8 @@ public class RepositoryChangesBrowserProvider {
                             }
                             getViewer().setEmptyText("No changes");
                             baseParent = parent;
+                            listedChange = change;
+                            listedRevision = revisionId;
                             setChangesToDisplay(new ArrayList<>(totalDiff));
                         }
                     });

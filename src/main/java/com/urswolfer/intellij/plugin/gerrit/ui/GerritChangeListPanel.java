@@ -29,6 +29,8 @@ import com.google.gerrit.extensions.common.LabelInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.DataKey;
+import com.intellij.openapi.actionSystem.DataProvider;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.PopupHandler;
@@ -74,7 +76,13 @@ import java.util.TreeSet;
  * @author Kirill Likhodedov
  * @author Urs Wolfer
  */
-public class GerritChangeListPanel extends JPanel {
+public class GerritChangeListPanel extends JPanel implements DataProvider {
+    /**
+     * The change selected in the list. Newer IDEs update actions in the background, where the table must not be
+     * read; the platform asks the panel for this key on the EDT and passes the result on.
+     */
+    public static final DataKey<ChangeInfo> SELECTED_CHANGE = DataKey.create("Gerrit.SelectedChange");
+
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -220,6 +228,15 @@ public class GerritChangeListPanel extends JPanel {
                 }
             }
         });
+    }
+
+    @Nullable
+    @Override
+    public Object getData(@NotNull String dataId) {
+        if (SELECTED_CHANGE.is(dataId)) {
+            return table.getSelectedObject();
+        }
+        return null;
     }
 
     public TableView<ChangeInfo> getTable() {

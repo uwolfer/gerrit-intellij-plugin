@@ -34,8 +34,8 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
     private final GerritPushExtensionPanel gerritPushExtensionPanel;
     private GitPushOptionsPanel gitPushOptionsPanel;
 
-    public GerritPushOptionsPanel(boolean pushToGerrit) {
-        gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit);
+    public GerritPushOptionsPanel(boolean pushToGerrit, String projectKey) {
+        gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit, projectKey);
     }
 
     @SuppressWarnings("UnusedDeclaration") // javassist call

@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -74,14 +75,29 @@ public class GerritPushExtensionPanel extends JPanel {
     private final Map<GerritPushTargetUpdater, String> pushTargets = new LinkedHashMap<>();
     private JTree registeredTree;
 
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault) {
+    /**
+     * What was chosen last for "Push to Gerrit" in a push dialog of a project, by the key of the project. Every
+     * dialog gets a panel of its own, hence the static: a user who ticks the box expects the following push of
+     * that project to go to Gerrit as well, and not directly to the branch. Until the box is clicked, the
+     * setting decides. Other projects are left alone, a plain Git project must not get the box ticked.
+     */
+    private static final Map<String, Boolean> LAST_PUSH_TO_GERRIT = new ConcurrentHashMap<>();
+
+    private final String projectKey;
+
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault, String projectKey) {
+        this.projectKey = projectKey;
         createLayout();
 
-        pushToGerritCheckBox.setSelected(pushToGerritByDefault);
+        pushToGerritCheckBox.setSelected(LAST_PUSH_TO_GERRIT.getOrDefault(projectKey, pushToGerritByDefault));
         pushToGerritCheckBox.addActionListener(new SettingsStateActionListener());
         setSettingsEnabled(pushToGerritCheckBox.isSelected());
 
         addChangeListener();
+    }
+
+    JCheckBox getPushToGerritCheckBox() {
+        return pushToGerritCheckBox;
     }
 
     @Override
@@ -101,7 +117,7 @@ public class GerritPushExtensionPanel extends JPanel {
     public void removeNotify() {
         super.removeNotify();
 
-        // the rows belong to the closed push dialog; the next one gets its own
+        // the rows belong to the push dialog this panel was removed from
         registeredTree = null;
         pushTargets.clear();
     }
@@ -109,9 +125,8 @@ public class GerritPushExtensionPanel extends JPanel {
     /**
      * Collects the repository rows of the push dialog and applies the Gerrit push settings to them.
      *
-     * This panel belongs to the push support of the project, so it is shown in every push dialog which gets
-     * opened. The rows of a dialog are collected once: a repeated registration would undo a push target which
-     * the user has edited by hand.
+     * The rows of a dialog are collected once: a repeated registration would undo a push target which the user
+     * has edited by hand.
      */
     private void registerPushTargets() {
         JTree tree = GerritPushTargetUpdater.findPushDialogTree(this);
@@ -133,8 +148,8 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Returns the branch the Gerrit push settings are applied to. A ref which already contains them (the push
-     * dialog was opened again, or the repository is configured with a Gerrit push spec) is reduced to it.
+     * Returns the branch the Gerrit push settings are applied to. A ref which already contains them (the
+     * repository is configured with a Gerrit push spec) is reduced to it.
      */
     private static String getBranchName(String ref) {
         return ref.replaceAll("^(" + REVIEW_REF_PREFIX + "|" + DRAFTS_REF_PREFIX + ")", "").replaceAll("%.*$", "");
@@ -583,6 +598,7 @@ public class GerritPushExtensionPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             setSettingsEnabled(pushToGerritCheckBox.isSelected());
+            LAST_PUSH_TO_GERRIT.put(projectKey, pushToGerritCheckBox.isSelected());
         }
     }
 }

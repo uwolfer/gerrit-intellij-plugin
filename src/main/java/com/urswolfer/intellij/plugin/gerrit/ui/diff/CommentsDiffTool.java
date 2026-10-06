@@ -100,8 +100,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     private static final TextAttributesKey COMMENT_RANGE_ATTRIBUTES = TextAttributesKey.createTextAttributesKey(
         "GERRIT_COMMENT_RANGE", EditorColors.SEARCH_RESULT_ATTRIBUTES);
 
-    private static final Predicate<Comment> REVISION_COMMENT =
-        comment -> comment.side == null || comment.side.equals(Side.REVISION);
+    private static final Predicate<Comment> REVISION_COMMENT = comment -> sideOf(comment.side) == Side.REVISION;
 
     // descending, as icons are added to the left of existing icons
     private static final Comparator<Comment> COMMENT_ORDERING =
@@ -290,6 +289,22 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         if (rangeHighlighter != null) {
             HighlightManager highlightManager = HighlightManager.getInstance(project);
             highlightManager.removeSegmentHighlighter(editor, rangeHighlighter);
+        }
+    }
+
+    static Side sideOf(@Nullable Side side) {
+        return side != null ? side : Side.REVISION; // Gerrit leaves the side out of a comment on the revision
+    }
+
+    void removeComment(Project project, Editor editor, String commentId) {
+        for (RangeHighlighter highlighter : editor.getMarkupModel().getAllHighlighters()) {
+            if (highlighter.getGutterIconRenderer() instanceof CommentGutterIconRenderer) {
+                CommentGutterIconRenderer renderer = (CommentGutterIconRenderer) highlighter.getGutterIconRenderer();
+                if (commentId.equals(renderer.getComment().id)) {
+                    removeComment(project, editor, highlighter, renderer.getRangeHighlighter());
+                    return;
+                }
+            }
         }
     }
 

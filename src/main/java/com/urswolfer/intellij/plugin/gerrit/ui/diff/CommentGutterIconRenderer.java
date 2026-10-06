@@ -80,6 +80,14 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         this.addCommentActionBuilder = addCommentActionBuilder;
     }
 
+    Comment getComment() {
+        return fileComment;
+    }
+
+    RangeHighlighter getRangeHighlighter() {
+        return rangeHighlighter;
+    }
+
     @NotNull
     @Override
     public Icon getIcon() {

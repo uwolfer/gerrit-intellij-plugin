@@ -98,19 +98,22 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         this.replyToComment = replyToComment;
     }
 
+    @Override
     public void actionPerformed(AnActionEvent e) {
-        final Project project = e.getProject();
-        if (project == null) return;
-        addVersionedComment(project);
+        addVersionedComment(e.getProject());
     }
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(canComment());
     }
 
-    private void addVersionedComment(final Project project) {
-        if (editor == null || filePath == null) return;
+    boolean canComment() {
+        return gerritSettings.isLoginAndPasswordAvailable();
+    }
+
+    void addVersionedComment(@Nullable Project project) {
+        if (project == null || editor == null || filePath == null) return;
 
         final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit, replyToComment);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");

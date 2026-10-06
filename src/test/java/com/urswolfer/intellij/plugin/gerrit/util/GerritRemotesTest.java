@@ -40,6 +40,12 @@ public class GerritRemotesTest {
     }
 
     @Test
+    public void testRemoteWithTrailingSlash() {
+        Assert.assertEquals(GerritRemotes.getProjectName("https://host/team/app/",
+            Collections.singletonList("https://host")), "team/app");
+    }
+
+    @Test
     public void testSshRemote() {
         Assert.assertEquals(GerritRemotes.getProjectName("ssh://jdoe@host:29418/team/app",
             Arrays.asList("https://host/r", "ssh://host:29418")), "team/app");

@@ -110,6 +110,10 @@ public class UrlUtilsTest {
             "https://gerrit.example.com/myproject");
         Assert.assertEquals(UrlUtils.stripGitExtension("ssh://gerrit.example.com:29418/tools/build.git"),
             "ssh://gerrit.example.com:29418/tools/build");
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://gerrit.example.com/myproject/"),
+            "https://gerrit.example.com/myproject");
+        Assert.assertEquals(UrlUtils.stripGitExtension("https://gerrit.example.com/myproject//"),
+            "https://gerrit.example.com/myproject");
     }
 
     @Test

@@ -76,15 +76,19 @@ public class UrlUtils {
     }
 
     /**
-     * Removes the ".git" some repositories end their name with. Only at the end: any other occurrence belongs to a
-     * host or project name (e.g. "gerrit.gitlab.example.com" or "my.github-actions") and must be kept.
+     * Removes trailing slashes and the ".git" some repositories end their name with. Only at the end: any other
+     * ".git" belongs to a host or project name (e.g. "gerrit.gitlab.example.com" or "my.github-actions") and must
+     * be kept.
      */
     public static String stripGitExtension(String url) {
-        String strippedUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        String strippedUrl = url;
+        while (strippedUrl.endsWith("/")) {
+            strippedUrl = strippedUrl.substring(0, strippedUrl.length() - 1);
+        }
         if (strippedUrl.endsWith(GIT_EXTENSION)) {
             return strippedUrl.substring(0, strippedUrl.length() - GIT_EXTENSION.length());
         }
-        return url;
+        return strippedUrl;
     }
 
     public static String encodePatchSetDescription(String text) {

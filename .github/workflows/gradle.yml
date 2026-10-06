@@ -11,6 +11,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
     - uses: actions/checkout@v7
     - name: Set up JDK 17
@@ -22,6 +25,20 @@ jobs:
       uses: gradle/actions/setup-gradle@v6
     - name: Execute Gradle build
       run: ./gradlew build
+    # the token of a pull request from a fork cannot create check runs
+    - name: Show test failures on the pull request
+      if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      uses: mikepenz/action-junit-report@v6
+      with:
+        report_paths: build/test-results/test/*.xml
+        check_name: Test results
+        require_tests: false
+    - name: Upload test report
+      if: failure()
+      uses: actions/upload-artifact@v7
+      with:
+        name: test-report
+        path: build/reports/tests/test
 
   verify-latest-ide:
     runs-on: ubuntu-latest

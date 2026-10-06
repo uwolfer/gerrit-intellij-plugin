@@ -37,9 +37,8 @@ public class GerritPushExtensionTest {
     public void testGitPushSupportRewriteCompilesAgainstGitPlugin() throws Exception {
         ClassPool classPool = new ClassPool(true);
         CtClass gitPushSupport = classPool.get("git4idea.push.GitPushSupport");
-        CtClass gerritPushOptionsPanel = classPool.get(GerritPushOptionsPanel.class.getName());
 
-        GerritPushExtension.rewriteGitPushSupport(gitPushSupport, gerritPushOptionsPanel, true);
+        GerritPushExtension.rewriteGitPushSupport(gitPushSupport, true);
     }
 
     @Test

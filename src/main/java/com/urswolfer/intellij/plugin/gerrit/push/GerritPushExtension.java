@@ -82,9 +82,8 @@ public final class GerritPushExtension {
     private static void modifyGitBranchPanel(ClassPool classPool, ClassLoader classLoader) {
         try {
             CtClass gitPushSupportClass = classPool.get("git4idea.push.GitPushSupport");
-            CtClass gerritPushOptionsPanelClass = classPool.get("com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel");
 
-            rewriteGitPushSupport(gitPushSupportClass, gerritPushOptionsPanelClass, GerritSettings.getInstance().getPushToGerrit());
+            rewriteGitPushSupport(gitPushSupportClass, GerritSettings.getInstance().getPushToGerrit());
 
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
@@ -99,14 +98,14 @@ public final class GerritPushExtension {
      * Kept apart from loading the class so that a test can compile it against the Git plugin of an IDE: the body
      * refers to private members of the platform, and javassist is the first to notice when one of them is renamed.
      */
-    static void rewriteGitPushSupport(CtClass gitPushSupportClass, CtClass gerritPushOptionsPanelClass, boolean pushToGerrit)
+    static void rewriteGitPushSupport(CtClass gitPushSupportClass, boolean pushToGerrit)
             throws CannotCompileException, NotFoundException {
-        gitPushSupportClass.addField(new CtField(gerritPushOptionsPanelClass, "gerritPushOptionsPanel", gitPushSupportClass),
-                "new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ");");
-
+        // A panel per push dialog, like the platform has it: a panel kept in a field would show the options
+        // of the previous push (private, WIP, topic, ...) in every following dialog of the session.
         CtMethod createOptionsPanelMethod = gitPushSupportClass.getDeclaredMethod("createOptionsPanel");
         createOptionsPanelMethod.setBody(
             "{" +
+                "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel gerritPushOptionsPanel = new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ", myVcs.getProject().getLocationHash());" +
                 "gerritPushOptionsPanel.initPanel(mySettings.getPushTagMode(), git4idea.config.GitVersionSpecialty.SUPPORTS_FOLLOW_TAGS.existsIn(myVcs.getVersion()), git4idea.config.GitVersionSpecialty.PRE_PUSH_HOOK.existsIn(myVcs.getVersion()));" +
                 "return gerritPushOptionsPanel;" +
             "}"

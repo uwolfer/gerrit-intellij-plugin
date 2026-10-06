@@ -19,12 +19,15 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.diff.chains.DiffRequestChain;
+import com.intellij.diff.editor.ChainDiffVirtualFile;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
+import com.intellij.openapi.fileEditor.impl.EditorWindow;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.VcsException;
@@ -55,13 +58,18 @@ import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.Frame;
+import java.awt.Window;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
@@ -121,6 +129,9 @@ public class RepositoryChangesBrowserProvider {
         private int changesUpdate;
         private List<String> builtDiff;
         private int builtUpdate;
+        private Window diffWindow;
+        private DiffRequestChain diffChain;
+        private boolean showingDiff;
 
         public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
             super(project);
@@ -142,9 +153,70 @@ public class RepositoryChangesBrowserProvider {
             }, parent);
         }
 
+        /**
+         * The platform opens another diff on every call, so each double click added a window, or an editor tab where
+         * diffs open in the editor. Like the diff preview of the platform's commit view, the diff opened last is
+         * replaced instead. It is closed rather than switched to the file, as it may show another one by now.
+         *
+         * TODO once the minimum IDE has ChangesBrowserBase.setShowDiffActionPreview (2020.3 has not, 2026.2 has):
+         * hand the browser an EditorTabPreview there and drop this override and closeDiff(). The diff then switches
+         * to the file in place, like the platform's commit view, and keeps its state. The DiffPreview API differs
+         * between 2020.3 and 2026.2, so it cannot be used before.
+         */
+        @Override
+        public void showDiff() {
+            closeDiff();
+            // DiffDialogHints could hand over the window, but asking for it makes the platform open a window also where
+            // diffs open in an editor tab; so the window is the frame which appeared while the diff opened
+            Set<Window> windows = new HashSet<>(Arrays.asList(Window.getWindows()));
+            showingDiff = true;
+            try {
+                super.showDiff();
+            } finally {
+                showingDiff = false;
+            }
+            diffWindow = Arrays.stream(Window.getWindows())
+                .filter(window -> window instanceof Frame && window.isShowing() && !windows.contains(window))
+                .findFirst()
+                .orElse(null);
+        }
+
+        private void closeDiff() {
+            Window window = diffWindow;
+            DiffRequestChain chain = diffChain;
+            diffWindow = null;
+            diffChain = null;
+            // a comment form is a popup of the diff window, and the comment being written in it would be gone with it
+            if (window != null && Arrays.stream(window.getOwnedWindows()).anyMatch(Window::isShowing)) {
+                return;
+            }
+            boolean closed = false;
+            if (chain != null) {
+                // in every editor window, as the tab may have been moved to its own; such a window closes once empty
+                FileEditorManagerEx fileEditorManager = FileEditorManagerEx.getInstanceEx(project);
+                for (VirtualFile file : fileEditorManager.getOpenFiles()) {
+                    if (file instanceof ChainDiffVirtualFile && ((ChainDiffVirtualFile) file).getChain() == chain) {
+                        for (EditorWindow editorWindow : fileEditorManager.getWindows()) {
+                            if (editorWindow.isFileOpen(file)) {
+                                fileEditorManager.closeFile(file, editorWindow);
+                                closed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!closed && window != null && window.isDisplayable()) {
+                // as if its close button was clicked, so that the platform releases the diff as it does then
+                window.dispatchEvent(new WindowEvent(window, WindowEvent.WINDOW_CLOSING));
+            }
+        }
+
         @Override
         protected void updateDiffContext(@NotNull DiffRequestChain chain) {
             super.updateDiffContext(chain);
+            if (showingDiff) {
+                diffChain = chain;
+            }
             chain.putUserData(GerritUserDataKeys.CHANGE, selectedChange);
             chain.putUserData(GerritUserDataKeys.BASE_REVISION, baseRevision);
             chain.putUserData(GerritUserDataKeys.BASE_PARENT, baseParent);

@@ -37,6 +37,7 @@ public final class GerritApiProvider {
         new CertificateManagerClientBuilderExtension(),
         new LoggerHttpClientBuilderExtension(),
         new ProxyHttpClientBuilderExtension(),
+        new TimeoutClientBuilderExtension(),
         new UserAgentClientBuilderExtension()
     };
 

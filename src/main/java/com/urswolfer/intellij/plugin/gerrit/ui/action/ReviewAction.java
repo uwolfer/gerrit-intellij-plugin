@@ -139,6 +139,14 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
             comments.put(path, commentInputs);
         }
 
+        commentInputs.add(createCommentInput(comment));
+    }
+
+    /**
+     * The state has to be sent along: Gerrit 3.14 answers a published draft without it with a 500
+     * (NullPointerException in PostReview).
+     */
+    static ReviewInput.CommentInput createCommentInput(CommentInfo comment) {
         ReviewInput.CommentInput commentInput = new ReviewInput.CommentInput();
         commentInput.id = comment.id;
         commentInput.path = comment.path;
@@ -148,8 +156,8 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         commentInput.inReplyTo = comment.inReplyTo;
         commentInput.updated = comment.updated;
         commentInput.message = comment.message;
-
-        commentInputs.add(commentInput);
+        commentInput.unresolved = comment.unresolved;
+        return commentInput;
     }
 
     private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {

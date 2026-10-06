@@ -20,29 +20,45 @@ import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * Loads the changes of one or more queries page by page. Several queries are merged newest first, the order Gerrit
+ * lists changes in, so that splitting a long query does not change what the list shows.
+ *
  * @author Thomas Forrer
  */
 public class LoadChangesProxy {
     private static final int PAGE_SIZE = 25;
 
-    private final Changes.QueryRequest queryRequest;
+    private static final Comparator<ChangeInfo> NEWEST_FIRST = Comparator
+        .comparing((ChangeInfo change) -> change.updated, Comparator.nullsFirst(Comparator.naturalOrder()))
+        .thenComparingInt(change -> change._number)
+        .reversed();
+
+    private final List<Source> sources = new ArrayList<>();
+    private final Set<Integer> listed = new HashSet<>();
     private final GerritUtil gerritUtil;
     private final Project project;
-    private String sortkey;
-    private boolean hasMore = true;
-    private final List<ChangeInfo> changes = new ArrayList<>();
+    private volatile boolean hasMore = true;
     private final AtomicBoolean loading = new AtomicBoolean(false);
 
-    public LoadChangesProxy(Changes.QueryRequest queryRequest,
+    public LoadChangesProxy(List<Changes.QueryRequest> queryRequests,
                             GerritUtil gerritUtil,
                             Project project) {
-        this.queryRequest = queryRequest;
+        for (Changes.QueryRequest queryRequest : queryRequests) {
+            sources.add(new Source(queryRequest));
+        }
         this.gerritUtil = gerritUtil;
         this.project = project;
     }
@@ -70,29 +86,123 @@ public class LoadChangesProxy {
         if (!hasMore || !loading.compareAndSet(false, true)) {
             return;
         }
-        Changes.QueryRequest myRequest = queryRequest.withLimit(limit).withStart(changes.size());
-        // remove sortkey handling once we drop Gerrit < 2.9 support
-        if (sortkey != null) {
-            myRequest.withSortkey(sortkey);
-        }
-        Consumer<List<ChangeInfo>> myConsumer = new Consumer<List<ChangeInfo>>() {
+        gerritUtil.loadChanges(() -> {
+            try {
+                return next(limit);
+            } catch (RuntimeException e) {
+                // the consumer, which would reset it, is not called then
+                loading.set(false);
+                throw e;
+            }
+        }, project, new Consumer<List<ChangeInfo>>() {
             @Override
             public void consume(List<ChangeInfo> changeInfos) {
                 try {
-                    if (changeInfos != null && !changeInfos.isEmpty()) {
-                        ChangeInfo lastChangeInfo = changeInfos.get(changeInfos.size() - 1);
-                        hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
-                        sortkey = lastChangeInfo._sortkey;
-                        changes.addAll(changeInfos);
-                    } else {
-                        hasMore = false;
-                    }
                     consumer.consume(changeInfos);
                 } finally {
                     loading.set(false);
                 }
             }
-        };
-        gerritUtil.getChanges(myRequest, project, myConsumer);
+        });
+    }
+
+    /**
+     * Takes the newest change of all queries until the page is full. A query is asked for more only once the
+     * changes it returned so far are taken, so a single query is still one request per page. With several queries,
+     * each is asked for at most a page, as most of what a query returns waits for the next page anyway.
+     */
+    @VisibleForTesting
+    List<ChangeInfo> next(int limit) {
+        List<ChangeInfo> page = new ArrayList<>();
+        while (page.size() < limit) {
+            int wanted = limit - page.size();
+            int fetchLimit = sources.size() > 1 ? Math.min(wanted, PAGE_SIZE) : wanted;
+            Source newest = null;
+            for (Source source : sources) {
+                ChangeInfo head = source.head(fetchLimit);
+                if (source.failed) {
+                    // the failure is already reported; stop rather than report it again for each query
+                    sources.forEach(Source::stop);
+                    newest = null;
+                    break;
+                }
+                if (head != null && (newest == null || NEWEST_FIRST.compare(head, newest.pending.peek()) < 0)) {
+                    newest = source;
+                }
+            }
+            if (newest == null) {
+                break;
+            }
+            ChangeInfo change = newest.pending.poll();
+            listed.add(change._number);
+            page.add(change);
+        }
+        hasMore = sources.stream().anyMatch(source -> source.hasMore || !source.pending.isEmpty());
+        return page;
+    }
+
+    @VisibleForTesting
+    boolean hasMore() {
+        return hasMore;
+    }
+
+    private final class Source {
+        private final Changes.QueryRequest queryRequest;
+        private final Deque<ChangeInfo> pending = new ArrayDeque<>();
+        private int fetched;
+        private String sortkey;
+        private boolean hasMore = true;
+        private boolean failed;
+
+        private Source(Changes.QueryRequest queryRequest) {
+            this.queryRequest = queryRequest;
+        }
+
+        /**
+         * The next change of this query which is not listed yet, fetching up to the provided number when none is left.
+         */
+        @Nullable
+        private ChangeInfo head(int limit) {
+            while (true) {
+                // a change updated while paging moves up, so a later page of its query has it again
+                while (!pending.isEmpty() && listed.contains(pending.peek()._number)) {
+                    pending.poll();
+                }
+                if (!pending.isEmpty() || !hasMore) {
+                    return pending.peek();
+                }
+                fetch(limit);
+                if (failed) {
+                    return null;
+                }
+            }
+        }
+
+        private void fetch(int limit) {
+            Changes.QueryRequest request = queryRequest.withLimit(limit).withStart(fetched);
+            // remove sortkey handling once we drop Gerrit < 2.9 support
+            if (sortkey != null) {
+                request.withSortkey(sortkey);
+            }
+            List<ChangeInfo> changeInfos = gerritUtil.queryChanges(request, project);
+            if (changeInfos == null) {
+                failed = true;
+                return;
+            }
+            if (changeInfos.isEmpty()) {
+                hasMore = false;
+                return;
+            }
+            ChangeInfo lastChangeInfo = changeInfos.get(changeInfos.size() - 1);
+            hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
+            sortkey = lastChangeInfo._sortkey;
+            fetched += changeInfos.size();
+            pending.addAll(changeInfos);
+        }
+
+        private void stop() {
+            hasMore = false;
+            pending.clear();
+        }
     }
 }

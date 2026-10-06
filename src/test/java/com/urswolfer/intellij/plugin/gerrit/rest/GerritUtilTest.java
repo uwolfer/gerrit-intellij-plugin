@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 
@@ -192,5 +193,31 @@ public class GerritUtilTest {
 
         Assert.assertNull(GerritUtil.getFirstFetchInfo(revisionInfo, () -> "https://gerrit.server"));
         Assert.assertNull(GerritUtil.getFirstFetchInfo(null, () -> "https://gerrit.server"));
+    }
+
+    @Test
+    public void testProjectQueryForEachProjectOnce() {
+        Assert.assertEquals(
+            GerritUtil.appendProjectQueryParts("is:open", Arrays.asList("a", "b/c", "a"), 4000),
+            Collections.singletonList("is:open+(project:a+OR+project:b%2Fc)"));
+    }
+
+    @Test
+    public void testProjectQueryWithoutProjects() {
+        Assert.assertEquals(GerritUtil.appendProjectQueryParts("is:open", Collections.emptyList(), 4000),
+            Collections.singletonList("is:open"));
+        Assert.assertEquals(GerritUtil.appendProjectQueryParts("", Collections.singletonList("a"), 4000),
+            Collections.singletonList("(project:a)"));
+    }
+
+    @Test
+    public void testLongProjectQueryIsSplit() {
+        // "is:open+(project:a+OR+project:b)" is 32 characters
+        Assert.assertEquals(
+            GerritUtil.appendProjectQueryParts("is:open", Arrays.asList("a", "b", "c", "d", "e"), 32),
+            Arrays.asList(
+                "is:open+(project:a+OR+project:b)",
+                "is:open+(project:c+OR+project:d)",
+                "is:open+(project:e)"));
     }
 }

@@ -24,6 +24,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.EnumComboBoxModel;
 import com.intellij.ui.GuiUtils;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.util.ui.UIUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -55,7 +56,6 @@ public class SettingsPanel {
     private JButton testButton;
     private JBTextField hostTextField;
     private JSpinner refreshTimeoutSpinner;
-    private JPanel settingsPane;
     private JPanel pane;
     private JCheckBox notificationOnNewReviewsCheckbox;
     private JCheckBox automaticRefreshCheckbox;
@@ -65,8 +65,13 @@ public class SettingsPanel {
     private JCheckBox showChangeIdColumnCheckBox;
     private JCheckBox showTopicColumnCheckBox;
     private JComboBox showProjectColumnComboBox;
-    private JTextField cloneBaseUrlTextField;
+    private JBTextField cloneBaseUrlTextField;
     private JBTextField gitilesUrlTextField;
+    private JLabel minutesLabel;
+    private JLabel listAllHint;
+    private JLabel pushHint;
+    private JLabel cloneBaseUrlHint;
+    private JLabel gitilesUrlHint;
 
     private boolean passwordModified;
     private boolean updatingPassword;
@@ -80,6 +85,10 @@ public class SettingsPanel {
         this.project = project;
 
         hostTextField.getEmptyText().setText("https://review.example.org");
+        for (JLabel hint : new JLabel[]{listAllHint, pushHint, cloneBaseUrlHint, gitilesUrlHint}) {
+            hint.setForeground(UIUtil.getContextHelpForeground());
+            hint.setFont(UIUtil.getLabelFont(UIUtil.FontSize.SMALL));
+        }
 
         gerritLoginInfoTextField.setText(LoginPanel.LOGIN_CREDENTIALS_INFO);
         gerritLoginInfoTextField.setBackground(pane.getBackground());
@@ -166,6 +175,7 @@ public class SettingsPanel {
 
         showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
 
+        cloneBaseUrlTextField.getEmptyText().setText("https://git.example.org");
         cloneBaseUrlTextField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent e) {
@@ -205,6 +215,7 @@ public class SettingsPanel {
 
     private void updateAutomaticRefresh() {
         GuiUtils.enableChildren(refreshTimeoutSpinner, automaticRefreshCheckbox.isSelected());
+        minutesLabel.setEnabled(automaticRefreshCheckbox.isSelected());
     }
 
     public JComponent getPanel() {

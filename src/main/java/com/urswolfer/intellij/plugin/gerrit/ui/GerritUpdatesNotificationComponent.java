@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.text.StringUtil;
@@ -39,6 +40,7 @@ import java.util.Set;
  *
  * @author Urs Wolfer
  */
+@Service(Service.Level.PROJECT)
 public final class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>>, Disposable {
     private final Project project;
     private final GerritUtil gerritUtil = GerritUtil.getInstance();

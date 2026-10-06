@@ -528,24 +528,11 @@ public final class GerritGitUtil {
     }
 
     public boolean checkIfCommitIsFetched(GitRepository repository, String commitHash) {
-        FormattedGitLineHandlerListener listener = new FormattedGitLineHandlerListener();
-        final GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.SHOW);
-        h.setSilent(false);
-        h.setStdoutSuppressed(false);
-        h.addParameters(commitHash);
-        h.addParameters("--format=short");
-        h.endOptions();
-        h.addLineListener(listener);
-        GitCommandResult gitCommandResult = Git.getInstance().runCommand(new Computable<GitLineHandler>() {
-            @Override
-            public GitLineHandler compute() {
-                return h;
-            }
-        });
-        boolean success = gitCommandResult.success();
-        List<String> output = gitCommandResult.getOutput();
-        boolean isCommit = !output.isEmpty() && output.get(0).startsWith("commit");
-        return success && isCommit;
+        // silent: it runs on every selection of a change, and a commit which is not fetched yet is no error
+        GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.CAT_FILE);
+        h.setSilent(true);
+        h.addParameters("-e", commitHash);
+        return Git.getInstance().runCommand(h).success();
     }
 
     public Optional<GitCommit> loadCommit(Project project, GitRepository repository, String commitHash) throws VcsException {

@@ -55,7 +55,6 @@ import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.PopupHandler;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
@@ -129,6 +128,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
     @Override
     public boolean canShow(@NotNull DiffContext context, @NotNull DiffRequest request) {
         if (context.getUserData(GerritUserDataKeys.CHANGE) == null) return false;
+        if (context.getUserData(GerritUserDataKeys.REVISION) == null) return false;
         if (context.getUserData(GerritUserDataKeys.BASE_REVISION) == null) return false;
         if (request.getUserData(ChangeDiffRequestProducer.CHANGE_KEY) == null) return false;
         return SimpleDiffViewer.canShowRequest(context, request)
@@ -338,8 +338,7 @@ public class CommentsDiffTool implements FrameDiffTool, SuppressiveDiffTool {
         ChangeInfo changeInfo = diffContext.getUserData(GerritUserDataKeys.CHANGE);
         Optional<Pair<String, RevisionInfo>> baseRevision = diffContext.getUserData(GerritUserDataKeys.BASE_REVISION);
         Integer baseParent = diffContext.getUserData(GerritUserDataKeys.BASE_PARENT);
-        String selectedRevisionId = changeInfo != null
-            ? SelectedRevisions.getInstance(diffContext.getProject()).get(changeInfo) : null;
+        String selectedRevisionId = diffContext.getUserData(GerritUserDataKeys.REVISION);
         Change change = diffRequest.getUserData(ChangeDiffRequestProducer.CHANGE_KEY);
         handleComments(editor1, editor2, change, diffContext.getProject(), changeInfo, selectedRevisionId, baseRevision,
             baseParent);

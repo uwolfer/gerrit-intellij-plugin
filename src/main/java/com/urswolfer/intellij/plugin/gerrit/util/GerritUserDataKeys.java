@@ -28,6 +28,10 @@ import java.util.Optional;
  */
 public interface GerritUserDataKeys {
     Key<ChangeInfo> CHANGE = Key.create("gerrit.Change");
+    /**
+     * The commit of the patch set the diff shows; the one selected in the change list can change while it is open.
+     */
+    Key<String> REVISION = Key.create("gerrit.Change.Revision");
     Key<Optional<Pair<String, RevisionInfo>>> BASE_REVISION = Key.create("gerrit.Change.BaseRevision");
     /**
      * The parent of a merge commit which the diff against its base shows. Gerrit places a comment on that side with

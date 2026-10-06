@@ -68,6 +68,7 @@ public class GerritToolWindow implements Disposable {
     private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
     private GerritChangeDetailsPanel detailsPanel;
+    private String detailsChangeId;
     private int changesLoad;
 
     /**
@@ -108,7 +109,10 @@ public class GerritToolWindow implements Disposable {
                 changeSelected(changeInfo, project);
             }
         });
-        changeListPanel.addSelectionClearedListener(detailsPanel::nothingSelected);
+        changeListPanel.addSelectionClearedListener(() -> {
+            detailsChangeId = null;
+            detailsPanel.nothingSelected();
+        });
         JPanel details = detailsPanel.getComponent();
         detailsSplitter.setSecondComponent(details);
 
@@ -144,12 +148,26 @@ public class GerritToolWindow implements Disposable {
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
-        gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
+        // the details of the change selected before would stay until this one's come, and for good when they do not;
+        // those of the same change, selected again after a reload, stay until they are replaced
+        if (!changeInfo.id.equals(detailsChangeId)) {
+            detailsChangeId = null;
+            detailsPanel.loading();
+        }
+        gerritUtil.getChangeDetailsOrNull(null, changeInfo._number, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeDetails) {
                 // another change may have been selected meanwhile
-                if (changeListPanel.getTable().getSelectedObject() == changeInfo) {
+                if (changeListPanel.getTable().getSelectedObject() != changeInfo) {
+                    return;
+                }
+                if (changeDetails == null) {
+                    if (detailsChangeId == null) {
+                        detailsPanel.failed();
+                    }
+                } else {
                     detailsPanel.setData(changeDetails);
+                    detailsChangeId = changeDetails.id;
                 }
             }
         });

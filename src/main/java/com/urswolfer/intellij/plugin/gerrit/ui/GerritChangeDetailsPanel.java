@@ -63,6 +63,7 @@ import java.util.Set;
 public class GerritChangeDetailsPanel {
     private static final String NOTHING_SELECTED = "nothingSelected";
     private static final String LOADING = "loading";
+    private static final String FAILED = "failed";
     private static final String DATA = "data";
     private static final ThreadLocal<DecimalFormat> APPROVAL_VALUE_FORMAT = new ThreadLocal<DecimalFormat>() {
         @Override
@@ -81,6 +82,7 @@ public class GerritChangeDetailsPanel {
         panel = new JPanel(new CardLayout());
         panel.add(UIVcsUtil.errorPanel("Nothing selected", false), NOTHING_SELECTED);
         panel.add(UIVcsUtil.errorPanel("Loading...", false), LOADING);
+        panel.add(UIVcsUtil.errorPanel("The change could not be loaded", false), FAILED);
 
         presentationData = new MyPresentationData(project);
 
@@ -114,6 +116,10 @@ public class GerritChangeDetailsPanel {
 
     public void loading() {
         ((CardLayout) panel.getLayout()).show(panel, LOADING);
+    }
+
+    public void failed() {
+        ((CardLayout) panel.getLayout()).show(panel, FAILED);
     }
 
     public void setData(@NotNull final ChangeInfo changeInfo) {

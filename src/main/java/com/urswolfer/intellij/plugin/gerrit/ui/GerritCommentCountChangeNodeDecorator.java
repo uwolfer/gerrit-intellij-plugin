@@ -40,14 +40,13 @@ import java.util.*;
 /**
  * @author Thomas Forrer
  */
-public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator {
+public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator, Disposable {
     private static final Logger LOG = Logger.getInstance(GerritCommentCountChangeNodeDecorator.class);
 
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     private final SelectedRevisions selectedRevisions;
     private final Project project;
-    private final Disposable parent;
 
     private ChangeInfo selectedChange;
     /**
@@ -66,9 +65,12 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private Runnable dataLoadedCallback;
 
+    /** Own flag, as the Disposer forgets what it has disposed, e.g. on a major GC. */
+    private volatile boolean disposed;
+
     public GerritCommentCountChangeNodeDecorator(Project project, Disposable parent) {
         this.project = project;
-        this.parent = parent;
+        Disposer.register(parent, this);
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
@@ -77,7 +79,12 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     loadData();
                 }
             }
-        }, parent);
+        }, this);
+    }
+
+    @Override
+    public void dispose() {
+        disposed = true;
     }
 
     /**
@@ -167,7 +174,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     }
 
     private boolean isObsolete(long generation) {
-        return generation != loadGeneration || project.isDisposed() || Disposer.isDisposed(parent);
+        return generation != loadGeneration || project.isDisposed() || disposed;
     }
 
     private String getAffectedFilePath(Change change) {

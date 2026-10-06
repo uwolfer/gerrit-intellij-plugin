@@ -13,7 +13,7 @@ import java.util.Optional;
 public class StarAction extends AbstractLoggedInChangeAction {
 
     public StarAction() {
-        super("Star", "Switch star status of change", AllIcons.Nodes.Favorite);
+        super(AllIcons.Nodes.Favorite);
     }
 
     @Override

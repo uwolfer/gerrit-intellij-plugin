@@ -37,7 +37,7 @@ import java.util.Optional;
 public class AbandonAction extends AbstractLoggedInChangeAction {
 
     public AbandonAction() {
-        super("Abandon", "Abandon Change", AllIcons.Actions.Cancel);
+        super(AllIcons.Actions.Cancel);
     }
 
     @Override

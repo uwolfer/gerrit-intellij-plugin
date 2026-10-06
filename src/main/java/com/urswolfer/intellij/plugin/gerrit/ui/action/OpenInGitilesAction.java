@@ -68,7 +68,7 @@ import java.util.List;
 public class OpenInGitilesAction extends AnAction implements DumbAware {
 
     public OpenInGitilesAction() {
-        super("Open in Gitiles", "Open the corresponding Gitiles link in browser", MyIcons.Gerrit);
+        super(MyIcons.Gerrit);
     }
 
     @Override

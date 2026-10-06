@@ -56,7 +56,7 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     public ReviewActionGroup() {
-        super("Review", "Review Change", AllIcons.Debugger.Watch);
+        getTemplatePresentation().setIcon(AllIcons.Debugger.Watch);
     }
 
     @Override

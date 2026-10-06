@@ -34,7 +34,7 @@ public class CopyChangeIdAction extends AbstractChangeAction {
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public CopyChangeIdAction() {
-        super("Copy", "Copy Change-ID", AllIcons.Actions.Copy);
+        super(AllIcons.Actions.Copy);
     }
 
     @Override

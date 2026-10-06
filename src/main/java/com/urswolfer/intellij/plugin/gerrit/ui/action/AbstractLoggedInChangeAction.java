@@ -29,6 +29,10 @@ import javax.swing.*;
 public abstract class AbstractLoggedInChangeAction extends AbstractChangeAction {
     protected final GerritSettings gerritSettings = GerritSettings.getInstance();
 
+    public AbstractLoggedInChangeAction(Icon icon) {
+        super(icon);
+    }
+
     public AbstractLoggedInChangeAction(String text, String description, Icon icon) {
         super(text, description, icon);
     }

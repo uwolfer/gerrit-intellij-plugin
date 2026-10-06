@@ -28,6 +28,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.vcs.log.CommitId;
 import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
@@ -63,13 +64,8 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
 
     private static final String TOOL_WINDOW_ID = "Gerrit";
 
-    /**
-     * Not just "Open in Gerrit", which the change list's action already calls opening a change in the browser.
-     */
-    private static final String TEXT = "Open in Gerrit Tool Window";
-
     public OpenCommitInGerritAction() {
-        super(TEXT, "Show the Gerrit changes of the selected commits in the Gerrit tool window", MyIcons.Gerrit);
+        super(MyIcons.Gerrit);
     }
 
     @Override
@@ -89,7 +85,8 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
         e.getPresentation().setVisible(!getGerritRoots(project, roots).isEmpty());
         e.getPresentation().setEnabled(!tooMany);
         // a menu shows nothing else of a disabled action
-        e.getPresentation().setText(tooMany ? String.format("%s (At Most %d Commits)", TEXT, MAX_COMMITS) : TEXT);
+        String text = GerritBundle.message("action.Gerrit.OpenCommitInGerrit.text");
+        e.getPresentation().setText(tooMany ? GerritBundle.message("action.Gerrit.OpenCommitInGerrit.tooMany", text, MAX_COMMITS) : text);
     }
 
     @Override

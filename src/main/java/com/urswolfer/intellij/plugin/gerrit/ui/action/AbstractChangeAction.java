@@ -36,6 +36,11 @@ import java.util.Optional;
 public abstract class AbstractChangeAction extends AnAction implements DumbAware, UpdateInBackground {
     protected final GerritUtil gerritUtil = GerritUtil.getInstance();
 
+    public AbstractChangeAction(Icon icon) {
+        super(icon);
+    }
+
+    /** For actions which are built at runtime, and so cannot take their text from the bundle. */
     public AbstractChangeAction(String text, String description, Icon icon) {
         super(text, description, icon);
     }

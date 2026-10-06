@@ -30,7 +30,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponen
  */
 public class RefreshAction extends AnAction implements DumbAware, UpdateInBackground {
     public RefreshAction() {
-        super("Refresh", "Refresh changes list", AllIcons.Actions.Refresh);
+        super(AllIcons.Actions.Refresh);
     }
 
     @Override

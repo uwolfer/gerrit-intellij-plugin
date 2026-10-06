@@ -507,7 +507,7 @@ public class GerritPushExtensionPanel extends JPanel {
 
     /**
      * Writes the ref built out of the Gerrit push settings into the checked repository rows of the push
-     * dialog, and shows the first value which cannot be used.
+     * dialog, but those which push to a host without Gerrit, and shows the first value which cannot be used.
      */
     private void updateDestinationBranches(boolean init) {
         String error = validateSettings();

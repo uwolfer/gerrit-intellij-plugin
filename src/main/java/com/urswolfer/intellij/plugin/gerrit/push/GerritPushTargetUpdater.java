@@ -23,7 +23,9 @@ import com.intellij.dvcs.push.ui.PushLog;
 import com.intellij.dvcs.push.ui.RepositoryNode;
 import com.intellij.dvcs.push.ui.RepositoryWithBranchPanel;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.push.GitPushTarget;
+import git4idea.repo.GitRemote;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.JComponent;
@@ -33,8 +35,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * Writes the Gerrit push ref into the row of one repository of the push dialog.
@@ -44,9 +49,17 @@ import java.util.List;
  * target out of it. The rows are not handed to the plugin anywhere, so they are looked up in the tree of the
  * push dialog the Gerrit push settings are shown in.
  *
+ * A repository which pushes to a host without Gerrit, such as a submodule from GitHub, gets no Gerrit ref. This
+ * depends on the remote the row pushes to, which the user can change in the dialog.
+ *
  * @author Urs Wolfer
  */
 public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarget> {
+    // Hosts which serve no Gerrit. Any other host may be Gerrit under another name (an SSH host alias, a CNAME),
+    // and a Gerrit repository left without its refs/for/... ref would be pushed past the review.
+    private static final Set<String> NON_GERRIT_HOSTS = Set.of(
+        "github.com", "www.github.com", "ssh.github.com", "gitlab.com", "altssh.gitlab.com",
+        "bitbucket.org", "altssh.bitbucket.org", "codeberg.org", "dev.azure.com", "ssh.dev.azure.com");
 
     private final JTree tree;
     private final RepositoryNode repositoryNode;
@@ -54,15 +67,19 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     private final String initialBranch;
 
     private String branch;
+    private GitRemote remote;
+    private boolean nonGerritHost;
 
     private GerritPushTargetUpdater(JTree tree,
                                     RepositoryNode repositoryNode,
                                     RepositoryWithBranchPanel repositoryPanel,
-                                    String initialBranch) {
+                                    GitPushTarget target) {
         this.tree = tree;
         this.repositoryNode = repositoryNode;
         this.repositoryPanel = repositoryPanel;
-        this.initialBranch = initialBranch;
+        this.initialBranch = target.getBranch().getNameForRemoteOperations();
+        this.remote = target.getBranch().getRemote();
+        this.nonGerritHost = pushesToNonGerritHost(remote);
     }
 
     /**
@@ -108,10 +125,34 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
             if (!(target instanceof GitPushTarget)) {
                 continue;
             }
-            updaters.add(new GerritPushTargetUpdater(tree, repositoryNode, repositoryPanel,
-                    ((GitPushTarget) target).getBranch().getNameForRemoteOperations()));
+            updaters.add(new GerritPushTargetUpdater(tree, repositoryNode, repositoryPanel, (GitPushTarget) target));
         }
         return updaters;
+    }
+
+    static boolean pushesToNonGerritHost(GitRemote remote) {
+        // without a push URL of its own, a remote pushes to its fetch URL
+        Collection<String> pushUrls = remote.getPushUrls().isEmpty() ? remote.getUrls() : remote.getPushUrls();
+        if (pushUrls.isEmpty()) {
+            return false;
+        }
+        for (String pushUrl : pushUrls) {
+            String host;
+            try {
+                host = UrlUtils.createUriFromGitConfigString(pushUrl).getHost();
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+            if (host == null) {
+                return false;
+            }
+            host = host.toLowerCase(Locale.ROOT);
+            // and Azure DevOps under its former name, with a host per organization
+            if (!NON_GERRIT_HOSTS.contains(host) && !host.endsWith(".visualstudio.com")) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -149,17 +190,47 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     }
 
     private void updateBranchTextField() {
-        if (branch == null) {
+        // a row on a host without Gerrit only gets back what the IDE proposed, e.g. once "Push to Gerrit" is off
+        if (branch == null || nonGerritHost && !branch.equals(initialBranch)) {
             return;
         }
+        writeBranch(branch);
+    }
+
+    private void writeBranch(String branch) {
         repositoryNode.forceUpdateUiModelWithTypedText(branch);
         repositoryNode.fireOnChange();
         // tell the tree to repaint the changed row
         ((DefaultTreeModel) tree.getModel()).nodeChanged(repositoryNode);
     }
 
+    /**
+     * Follows the remote the user picks for this row. The IDE resets the branch of a row it has not seen edited,
+     * so a remote which may be Gerrit gets the Gerrit ref again, or the row would be pushed past the review. It
+     * keeps one it has seen edited, so a host without Gerrit gets back what the IDE proposed instead of the
+     * Gerrit ref. Written once the IDE has told every listener about the change, as writing notifies them again.
+     */
     @Override
-    public void onTargetChanged(PushTarget newTarget) {}
+    public void onTargetChanged(PushTarget newTarget) {
+        if (!(newTarget instanceof GitPushTarget)) {
+            return;
+        }
+        GitRemote newRemote = ((GitPushTarget) newTarget).getBranch().getRemote();
+        if (newRemote.equals(remote)) {
+            return;
+        }
+        remote = newRemote;
+        nonGerritHost = pushesToNonGerritHost(newRemote);
+        if (!repositoryNode.isChecked()) {
+            return;
+        }
+        if (!nonGerritHost) {
+            SwingUtilities.invokeLater(this::updateBranchTextField);
+        } else if (branch != null && !branch.equals(initialBranch)
+                && branch.equals(((GitPushTarget) newTarget).getBranch().getNameForRemoteOperations())) {
+            SwingUtilities.invokeLater(() -> writeBranch(initialBranch));
+        }
+    }
 
     /**
      * Writes the last usable ref built out of the Gerrit push settings into a row the user has just checked:

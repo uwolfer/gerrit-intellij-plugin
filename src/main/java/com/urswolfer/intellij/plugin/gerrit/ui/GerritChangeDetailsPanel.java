@@ -21,6 +21,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import static java.lang.Boolean.TRUE;
 import static javax.swing.JEditorPane.HONOR_DISPLAY_PROPERTIES;
 
+import com.google.gerrit.extensions.client.ReviewerState;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -37,6 +38,7 @@ import com.intellij.vcsUtil.UIVcsUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.AccountLookup;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.HyperlinkEvent;
@@ -44,8 +46,12 @@ import javax.swing.event.HyperlinkListener;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Parts based on:
@@ -135,6 +141,48 @@ public class GerritChangeDetailsPanel {
         return panel;
     }
 
+    /**
+     * Returns the reviewers who have not voted on any label. A label lists the reviewers with a value of 0 where
+     * they have not voted on it, so voters are told apart by account and not by the entries of one label.
+     *
+     * Without Gerrit's list of reviewers (servers older than 2.12 do not send it), the accounts on the labels
+     * are taken as the reviewers.
+     */
+    static List<AccountInfo> getReviewersWithoutVote(@Nullable Collection<AccountInfo> reviewers,
+                                                     Map<String, LabelInfo> labels) {
+        Map<Integer, AccountInfo> labelAccounts = new LinkedHashMap<>();
+        Set<Integer> voters = new HashSet<>();
+        for (LabelInfo labelInfo : labels.values()) {
+            if (labelInfo.all != null) {
+                for (ApprovalInfo approvalInfo : labelInfo.all) {
+                    labelAccounts.putIfAbsent(approvalInfo._accountId, approvalInfo);
+                    if (isVote(approvalInfo) && approvalInfo._accountId != null) {
+                        voters.add(approvalInfo._accountId);
+                    }
+                }
+            }
+        }
+        List<AccountInfo> withoutVote = new ArrayList<>();
+        for (AccountInfo reviewer : reviewers != null ? reviewers : labelAccounts.values()) {
+            if (!voters.contains(reviewer._accountId)) {
+                withoutVote.add(reviewer);
+            }
+        }
+        return withoutVote;
+    }
+
+    private static boolean isVote(ApprovalInfo approvalInfo) {
+        return approvalInfo.value != null && approvalInfo.value != 0;
+    }
+
+    static String accountName(AccountInfo account) {
+        String name = !StringUtil.isEmptyOrSpaces(account.name) ? account.name
+            : account.email != null ? account.email
+            : account.username != null ? account.username
+            : String.valueOf(account._accountId);
+        return StringUtil.escapeXmlEntities(name);
+    }
+
     private static class MyPresentationData {
         private String startPattern;
         private static final String endPattern = "</table></body></html>";
@@ -179,36 +227,40 @@ public class GerritChangeDetailsPanel {
 
         private void addLabels(ChangeInfo changeInfo, StringBuilder sb) {
             if (changeInfo.labels != null) {
-                List<ApprovalInfo> ccAccounts = null;
                 for (Map.Entry<String, LabelInfo> labelInfoEntry : changeInfo.labels.entrySet()) {
                     sb.append("<tr valign=\"top\"><td><i>").append(labelInfoEntry.getKey()).append(":</i></td><td>");
                     List<ApprovalInfo> all = labelInfoEntry.getValue().all;
-                    if (ccAccounts == null) {
-                        if (all != null) {
-                            ccAccounts = new ArrayList<>(all);
-                        } else {
-                            ccAccounts = new ArrayList<>();
-                        }
-                    }
                     if (all != null) {
                         for (ApprovalInfo approvalInfo : all) {
-                            if (approvalInfo.value != null && approvalInfo.value != 0) {
-                                sb.append("<b>").append(approvalInfo.name).append("</b>").append(": ");
+                            if (isVote(approvalInfo)) {
+                                sb.append("<b>").append(accountName(approvalInfo)).append("</b>").append(": ");
                                 sb.append(APPROVAL_VALUE_FORMAT.get().format(approvalInfo.value)).append("<br/>");
-                                ccAccounts.remove(approvalInfo); // remove accounts from CC which are already listed in a review section
                             }
                         }
                     }
                     sb.append("</td></tr>");
                 }
-                if (ccAccounts != null && !ccAccounts.isEmpty()) {
-                    sb.append("<tr valign=\"top\"><td><i>").append("CC").append(":</i></td><td>");
-                    for (ApprovalInfo approvalInfo : ccAccounts) {
-                        sb.append("<b>").append(approvalInfo.name).append("</b>").append("<br/>");
-                    }
-                    sb.append("</td></tr>");
-                }
             }
+            // Gerrit's own list, as the labels lack the CCs and, once a change is closed, the reviewers who never voted
+            Map<ReviewerState, Collection<AccountInfo>> reviewers = changeInfo.reviewers;
+            Collection<AccountInfo> currentReviewers = reviewers != null
+                ? reviewers.getOrDefault(ReviewerState.REVIEWER, List.of()) : null;
+            addAccounts("Not voted", getReviewersWithoutVote(currentReviewers,
+                changeInfo.labels != null ? changeInfo.labels : Map.of()), sb);
+            if (reviewers != null) {
+                addAccounts("CC", reviewers.get(ReviewerState.CC), sb);
+            }
+        }
+
+        private static void addAccounts(String title, Collection<? extends AccountInfo> accounts, StringBuilder sb) {
+            if (accounts == null || accounts.isEmpty()) {
+                return;
+            }
+            sb.append("<tr valign=\"top\"><td><i>").append(title).append(":</i></td><td>");
+            for (AccountInfo account : accounts) {
+                sb.append("<b>").append(accountName(account)).append("</b>").append("<br/>");
+            }
+            sb.append("</td></tr>");
         }
 
         private void addMessages(ChangeInfo changeInfo, StringBuilder sb) {

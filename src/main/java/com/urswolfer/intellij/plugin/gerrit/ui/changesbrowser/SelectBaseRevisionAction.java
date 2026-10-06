@@ -78,6 +78,10 @@ public class SelectBaseRevisionAction extends BasePopupAction {
         anActionConsumer.consume(new DumbAwareUpdateInBackgroundAction("Base") {
             @Override
             public void actionPerformed(AnActionEvent e) {
+                // while the details of a change load, there is none to diff and Base is what is shown anyway
+                if (!selectedChange.isPresent()) {
+                    return;
+                }
                 removeSelectedValue();
                 updateLabel();
             }

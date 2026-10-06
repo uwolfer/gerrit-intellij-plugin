@@ -236,11 +236,21 @@ public class RepositoryChangesBrowserProvider {
             // diff may still be building and stays valid
             if (selectedChange == null || !selectedChange.id.equals(changeInfo.id)) {
                 changesUpdate++;
+                // the files and patch sets of the change selected before are not this one's, and stay for good when
+                // its details do not come
+                forgetListedChange("Loading...");
             }
             selectedChange = changeInfo;
-            gerritUtil.getChangeDetails(changeInfo._number, project, new Consumer<ChangeInfo>() {
+            gerritUtil.getChangeDetailsOrNull(null, changeInfo._number, project, new Consumer<ChangeInfo>() {
                 @Override
                 public void consume(ChangeInfo changeDetails) {
+                    if (changeDetails == null) {
+                        // shown only while nothing is listed, so the files of an earlier load stay
+                        if (selectedChange != null && selectedChange.id.equals(changeInfo.id)) {
+                            getViewer().setEmptyText("The change could not be loaded");
+                        }
+                        return;
+                    }
                     if (selectedChange != null && selectedChange.id.equals(changeDetails.id)) {
                         selectedChange = changeDetails;
                         selectBaseRevisionAction.setSelectedChange(selectedChange);
@@ -265,13 +275,17 @@ public class RepositoryChangesBrowserProvider {
 
         private void clearSelectedChange() {
             selectedChange = null;
+            changesUpdate++;
+            forgetListedChange("");
+        }
+
+        private void forgetListedChange(String emptyText) {
             baseRevision = Optional.empty();
             baseParent = null;
             listedChange = null;
             listedRevision = null;
-            changesUpdate++;
             selectBaseRevisionAction.clearSelectedChange();
-            getViewer().setEmptyText("");
+            getViewer().setEmptyText(emptyText);
             setChangesToDisplay(Collections.<Change>emptyList());
         }
 

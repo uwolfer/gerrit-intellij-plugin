@@ -16,8 +16,10 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
+import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import org.junit.Assert;
 import org.testng.annotations.Test;
@@ -75,6 +77,28 @@ public class GerritChangeDetailsPanelTest {
         account.username = "ci-bot";
 
         Assert.assertEquals("ci-bot", GerritChangeDetailsPanel.accountName(account));
+    }
+
+    @Test
+    public void testStatusOfWorkInProgress() {
+        Assert.assertEquals("NEW, WIP", GerritChangeDetailsPanel.status(change(ChangeStatus.NEW, true)));
+    }
+
+    @Test
+    public void testStatusOfAbandonedWorkInProgress() {
+        Assert.assertEquals("ABANDONED", GerritChangeDetailsPanel.status(change(ChangeStatus.ABANDONED, true)));
+    }
+
+    @Test
+    public void testStatusOfReadyChange() {
+        Assert.assertEquals("NEW", GerritChangeDetailsPanel.status(change(ChangeStatus.NEW, null)));
+    }
+
+    private static ChangeInfo change(ChangeStatus status, Boolean workInProgress) {
+        ChangeInfo change = new ChangeInfo();
+        change.status = status;
+        change.workInProgress = workInProgress;
+        return change;
     }
 
     private static LabelInfo label(ApprovalInfo... approvals) {

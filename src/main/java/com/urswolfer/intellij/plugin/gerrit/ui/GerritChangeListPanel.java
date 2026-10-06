@@ -50,6 +50,7 @@ import git4idea.GitUtil;
 import git4idea.repo.GitRepositoryManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -512,20 +513,28 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         return change.subject.substring(0, Math.min(change.subject.length(), 80));
     }
 
-    private static String getStatus(ChangeInfo change) {
+    /**
+     * A change can be work in progress and have a merge conflict at once, and the Gerrit web UI shows both.
+     */
+    @VisibleForTesting
+    static String getStatus(ChangeInfo change) {
         if (ChangeStatus.MERGED.equals(change.status)) {
             return "Merged";
         }
         if (ChangeStatus.ABANDONED.equals(change.status)) {
             return "Abandoned";
         }
-        if (change.mergeable != null && !change.mergeable) {
-            return "Merge Conflict";
+        List<String> status = new ArrayList<>();
+        if (Boolean.TRUE.equals(change.workInProgress)) {
+            status.add("WIP");
         }
-        if (ChangeStatus.DRAFT.equals(change.status)) {
+        if (change.mergeable != null && !change.mergeable) {
+            status.add("Merge Conflict");
+        }
+        if (status.isEmpty() && ChangeStatus.DRAFT.equals(change.status)) {
             return "Draft";
         }
-        return "";
+        return String.join(", ", status);
     }
 
     private static String getOwner(ChangeInfo change) {

@@ -537,7 +537,12 @@ public final class GerritUtil {
     @Nullable
     private static String getRemoteProjectName(String remoteUrl, String host, @Nullable String cloneBaseUrl) {
         String strippedUrl = UrlUtils.stripGitExtension(remoteUrl);
-        String projectName = getProjectName(host, cloneBaseUrl, strippedUrl);
+        String projectName;
+        try {
+            projectName = getProjectName(host, cloneBaseUrl, strippedUrl);
+        } catch (IllegalArgumentException e) { // java.net.URI rejects some remotes git accepts, such as "/repos/[old]"
+            return null;
+        }
         if (projectName == null || projectName.isEmpty() || !strippedUrl.endsWith(projectName)) {
             return null;
         }

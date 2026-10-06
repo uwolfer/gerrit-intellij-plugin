@@ -110,6 +110,16 @@ public class GerritGitUtilTest {
         Assert.assertEquals(remotes, Arrays.asList(HTTP_REMOTE, SSH_REMOTE));
     }
 
+    @Test
+    public void testGetRemotesForChangeSkipsRemoteWhichIsNotAUri() {
+        GitRemote archive = remote("archive", "/home/me/repos/myProject [old]");
+        GitRepository gitRepository = createRepository(null, archive, HTTP_REMOTE);
+
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+
+        Assert.assertEquals(remotes, Collections.singletonList(HTTP_REMOTE));
+    }
+
     private static boolean fetchIfMissingAndCheckCallback(Project project, GitRepository gitRepository, boolean commitIsFetched) {
         AtomicBoolean callbackRan = new AtomicBoolean();
         new GerritGitUtil().fetchIfMissing(project, gitRepository, FETCH_INFO, commitIsFetched, () -> {

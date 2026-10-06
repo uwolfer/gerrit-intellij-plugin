@@ -232,6 +232,15 @@ public class GerritUtilTest {
     }
 
     @Test
+    public void testRemoteWhichIsNotAUriIsIgnored() {
+        Assert.assertEquals(GerritUtil.getProjectNames(Arrays.asList(
+                remote("archive", "/home/me/repos/demo [old]"),
+                remote("origin", "https://gerrit.server/demo")),
+                "https://gerrit.server", null),
+            Collections.singletonList("demo"));
+    }
+
+    @Test
     public void testRemoteOnTheCloneBaseHostCounts() {
         Assert.assertEquals(GerritUtil.getProjectNames(Arrays.asList(
                 remote("mirror", "https://mirror.example/demo"),

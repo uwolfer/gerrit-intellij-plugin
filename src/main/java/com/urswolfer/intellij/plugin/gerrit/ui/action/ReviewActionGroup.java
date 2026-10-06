@@ -78,6 +78,7 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
                 labels.add(createLabelGroup(entry));
             }
         }
+        labels.add(ReviewAction.reply());
         return labels.toArray(new AnAction[labels.size()]);
     }
 

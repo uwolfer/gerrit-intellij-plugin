@@ -19,10 +19,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.api.changes.NotifyHandling;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
@@ -46,10 +48,24 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
     private boolean showDialog;
 
     public ReviewAction(String label, int rating, Icon icon, boolean showDialog) {
-        super((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""), "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon);
+        this((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""),
+            "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon, label, rating, showDialog);
+    }
+
+    private ReviewAction(String text, String description, Icon icon, String label, int rating, boolean showDialog) {
+        super(text, description, icon);
         this.label = label;
         this.rating = rating;
         this.showDialog = showDialog;
+    }
+
+    /**
+     * Publishes the drafts with a message but without a vote, as Gerrit's Reply does: also where the user may not vote,
+     * e.g. on their own change, and no label is offered.
+     */
+    static ReviewAction reply() {
+        return new ReviewAction(GerritBundle.message("action.Gerrit.Reply.text"),
+            GerritBundle.message("action.Gerrit.Reply.description"), AllIcons.Actions.Back, null, 0, true);
     }
 
     @Override
@@ -114,7 +130,9 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
      */
     static ReviewInput createReviewInput(String label, int rating) {
         ReviewInput reviewInput = new ReviewInput();
-        reviewInput.label(label, rating);
+        if (label != null) {
+            reviewInput.label(label, rating);
+        }
         reviewInput.drafts = ReviewInput.DraftHandling.PUBLISH;
         return reviewInput;
     }
@@ -123,7 +141,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         StringBuilder stringBuilder = new StringBuilder(
                 String.format("Review for change '%s' posted", StringUtil.escapeXmlEntities(changeInfo.subject))
         );
-        if (!reviewInput.labels.isEmpty()) {
+        if (reviewInput.labels != null && !reviewInput.labels.isEmpty()) {
             stringBuilder.append(": ");
             stringBuilder.append(reviewInput.labels.entrySet().stream()
                     .map(label -> label.getKey() + ": " + label.getValue())

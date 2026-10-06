@@ -21,6 +21,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import static java.lang.Boolean.TRUE;
 import static javax.swing.JEditorPane.HONOR_DISPLAY_PROPERTIES;
 
+import com.google.gerrit.extensions.client.ChangeStatus;
 import com.google.gerrit.extensions.client.ReviewerState;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ApprovalInfo;
@@ -183,6 +184,16 @@ public class GerritChangeDetailsPanel {
         return StringUtil.escapeXmlEntities(name);
     }
 
+    /**
+     * Only an open change is work in progress: Gerrit keeps the flag of a change abandoned while it was.
+     */
+    static String status(ChangeInfo changeInfo) {
+        if (ChangeStatus.NEW.equals(changeInfo.status) && TRUE.equals(changeInfo.workInProgress)) {
+            return changeInfo.status + ", WIP";
+        }
+        return String.valueOf(changeInfo.status);
+    }
+
     private static class MyPresentationData {
         private String startPattern;
         private static final String endPattern = "</table></body></html>";
@@ -221,7 +232,7 @@ public class GerritChangeDetailsPanel {
                     .append("<tr valign=\"top\"><td><i>Updated:</i></td><td>")
                     .append(changeInfo.updated != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.updated) : "")
                     .append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(changeInfo.status).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(status(changeInfo)).append("</td></tr>")
                     .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
         }
 

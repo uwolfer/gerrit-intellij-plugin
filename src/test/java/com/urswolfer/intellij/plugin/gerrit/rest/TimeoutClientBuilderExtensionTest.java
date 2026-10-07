@@ -16,31 +16,36 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.HttpRequest;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.message.BasicHttpRequest;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.message.BasicHttpRequest;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TimeoutClientBuilderExtensionTest {
 
+    /** What GerritHttpClientFactory sets as the default config of the HTTP client. */
+    private static final RequestConfig CLIENT_DEFAULT = RequestConfig.custom()
+        .setConnectTimeout(300000).setSocketTimeout(300000).setConnectionRequestTimeout(300000).build();
+
     @Test
     public void testConnectTimeoutAddedToTheConfigOfTheRequest() {
         // the REST client sets this on each API request
-        RequestConfig config = process(RequestConfig.custom().setNormalizeUri(false).build());
+        RequestConfig config = process(RequestConfig.custom().setNormalizeUri(false).build(),
+            new HttpPost("http://gerrit/a/changes/7/submit"));
 
         Assert.assertEquals(config.getConnectTimeout(), 10000);
-        Assert.assertEquals(config.getSocketTimeout(), -1);
         Assert.assertFalse(config.isNormalizeUri());
     }
 
     @Test
-    public void testOtherTimeoutsKept() {
-        RequestConfig config = process(RequestConfig.custom()
-            .setConnectTimeout(300000).setSocketTimeout(300000).setConnectionRequestTimeout(300000).build());
+    public void testOtherTimeoutsOfAChangeKept() {
+        RequestConfig config = process(CLIENT_DEFAULT, new HttpPost("http://gerrit/a/changes/7/submit"));
 
         Assert.assertEquals(config.getConnectTimeout(), 10000);
         Assert.assertEquals(config.getSocketTimeout(), 300000);
@@ -48,47 +53,45 @@ public class TimeoutClientBuilderExtensionTest {
     }
 
     @Test
-    public void testSuggestionsGetAReadTimeout() {
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/a/changes/7/suggest_reviewers?q=rita&n=20")).getSocketTimeout(), 5000);
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/a/accounts/?suggest&q=rita&n=20")).getSocketTimeout(), 5000);
+    public void testNoReadTimeoutOfAChangeKept() {
+        Assert.assertEquals(process(RequestConfig.custom().setSocketTimeout(0).build(),
+            new HttpPost("http://gerrit/a/changes/7/submit")).getSocketTimeout(), 0);
     }
 
     @Test
-    public void testSuggestionsOfAHostWithTrailingSlashGetAReadTimeout() {
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new BasicHttpRequest("GET", "//accounts/?suggest&q=rita&n=20")).getSocketTimeout(), 5000);
+    public void testReadsGetAReadTimeout() {
+        Assert.assertEquals(socketTimeout(new HttpGet("http://gerrit/a/changes/?q=status:open")), 5000);
+        Assert.assertEquals(socketTimeout(new HttpGet("http://gerrit/a/accounts/?suggest&q=rita&n=20")), 5000);
     }
 
     @Test
-    public void testAuthenticationGetsAReadTimeout() {
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/accounts/self")).getSocketTimeout(), 5000);
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/login/")).getSocketTimeout(), 5000);
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpPost("http://gerrit/login/")).getSocketTimeout(), 5000);
+    public void testRequestsAheadOfAnApiRequestGetAReadTimeout() {
+        // they come with the default config of the REST client, not with the one of an API request
+        Assert.assertEquals(process(CLIENT_DEFAULT, new HttpGet("http://gerrit/accounts/self")).getSocketTimeout(),
+            5000);
+        Assert.assertEquals(process(CLIENT_DEFAULT, new HttpGet("http://gerrit/login/")).getSocketTimeout(), 5000);
+        Assert.assertEquals(process(CLIENT_DEFAULT, new HttpPost("http://gerrit/login/")).getSocketTimeout(), 5000);
+        // a host saved with a trailing slash
+        Assert.assertEquals(process(CLIENT_DEFAULT, new BasicHttpRequest("POST", "//login/")).getSocketTimeout(),
+            5000);
     }
 
     @Test
-    public void testOtherRequestsGetNoReadTimeout() {
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/a/accounts/?q=suggestion")).getSocketTimeout(), -1);
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpGet("http://gerrit/a/changes/?q=status:open")).getSocketTimeout(), -1);
-        Assert.assertEquals(process(RequestConfig.DEFAULT,
-            new HttpPost("http://gerrit/a/changes/7/suggest_reviewers")).getSocketTimeout(), -1);
+    public void testChangesGetALongReadTimeoutSetExplicitly() {
+        // set rather than left unset, so that a TLS connection does not keep the connect timeout for reading
+        Assert.assertEquals(socketTimeout(new HttpPost("http://gerrit/a/changes/7/submit")), 7000);
+        Assert.assertEquals(socketTimeout(new HttpPut("http://gerrit/a/changes/7/topic")), 7000);
+        Assert.assertEquals(socketTimeout(new HttpDelete("http://gerrit/a/changes/7/topic")), 7000);
     }
 
-    private static RequestConfig process(RequestConfig requestConfig) {
-        return process(requestConfig, new HttpGet("http://gerrit/"));
+    private static int socketTimeout(HttpRequest request) {
+        return process(RequestConfig.custom().setNormalizeUri(false).build(), request).getSocketTimeout();
     }
 
     private static RequestConfig process(RequestConfig requestConfig, HttpRequest request) {
         HttpClientContext context = HttpClientContext.create();
         context.setRequestConfig(requestConfig);
-        new TimeoutClientBuilderExtension.TimeoutInterceptor(10000, 5000).process(request, context);
+        new TimeoutClientBuilderExtension.TimeoutInterceptor(10000, 5000, 7000).process(request, context);
         return context.getRequestConfig();
     }
 }

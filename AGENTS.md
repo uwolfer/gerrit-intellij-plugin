@@ -67,6 +67,8 @@ To see a change in a running IDE, against a local Gerrit, follow
 `.claude/skills/run-ide/SKILL.md`. It runs the oldest supported IDE and, after
 a one-time download, the newest one on a virtual display, which is the only way
 to watch the push dialog integration below actually work.
+`.claude/skills/run-ide/scripts/smoke.sh [latest]` drives the main paths
+through it, push dialog included, and checks each against Gerrit.
 
 ## Bytecode injection and reflection into the platform
 
@@ -88,8 +90,8 @@ only fail at startup: that the rewrite compiles against the Git plugin, and
 that the list holds every class of the plugin or of the Gerrit REST client
 which the copied classes use. It runs against the SDK the build uses.
 `-PideaVersion=<latest>` fails while resolving `git4idea`, so the newest IDE
-still has to be checked by hand, as `.claude/skills/run-ide/SKILL.md`
-describes.
+is checked with `.claude/skills/run-ide/scripts/smoke.sh latest` instead: it
+fails when the push dialog does, or on an error which names the plugin.
 
 `ResetAction` is the other place which reaches into the platform: it calls the
 constructor of `GitNewResetDialog`, protected in 2020.3 and public in 2026.2,

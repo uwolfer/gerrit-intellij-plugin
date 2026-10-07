@@ -18,5 +18,7 @@
 -Dide.show.tips.on.startup.default.value=false
 -Dide.newUsersOnboarding=false
 -Dide.experimental.ui=false
+-Dide.experimental.ui.onboarding=false
 -Didea.log.debug.categories=#com.urswolfer
 -Dide.browser.jcef.enabled=false
+-Drobot-server.port=8082

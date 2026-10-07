@@ -57,6 +57,7 @@ public final class GerritPushExtension {
             "com.urswolfer.intellij.plugin.gerrit.util.Whitespace");
 
     private static boolean installed = false;
+    private static volatile ClassLoader gitPluginClassLoader;
 
     private GerritPushExtension() {
     }
@@ -75,6 +76,8 @@ public final class GerritPushExtension {
             classPool.appendClassPath(new LoaderClassPath(gerritPluginClassLoader));
 
             copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
+            gitPluginClassLoader = gitIdeaPluginClassLoader;
+            setPushToGerritByDefault(GerritSettings.getInstance().getPushToGerrit());
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
 
@@ -90,7 +93,7 @@ public final class GerritPushExtension {
         try {
             CtClass gitPushSupportClass = classPool.get("git4idea.push.GitPushSupport");
 
-            rewriteGitPushSupport(gitPushSupportClass, GerritSettings.getInstance().getPushToGerrit());
+            rewriteGitPushSupport(gitPushSupportClass);
 
             gitPushSupportClass.toClass(classLoader, GitPushOperation.class.getProtectionDomain());
             gitPushSupportClass.detach();
@@ -102,17 +105,38 @@ public final class GerritPushExtension {
     }
 
     /**
+     * Makes the push dialogs opened from now on use the setting, without an IDE restart. Does nothing while the
+     * push dialog is not injected: the value is applied once it is.
+     */
+    public static void setPushToGerritByDefault(boolean pushToGerrit) {
+        ClassLoader loader = gitPluginClassLoader;
+        if (loader != null) {
+            setPushToGerritByDefault(loader, pushToGerrit);
+        }
+    }
+
+    // The panel class of the Git plugin class loader is not the one this plugin loaded, so it is set by reflection.
+    static void setPushToGerritByDefault(ClassLoader loader, boolean pushToGerrit) {
+        try {
+            Class<?> panelClass = Class.forName(GerritPushOptionsPanel.class.getName(), true, loader);
+            panelClass.getMethod("setPushToGerritByDefault", boolean.class).invoke(null, pushToGerrit);
+        } catch (ReflectiveOperationException | LinkageError e) {
+            LOG.warn("Failed to apply the push to Gerrit default.", e);
+        }
+    }
+
+    /**
      * Kept apart from loading the class so that a test can compile it against the Git plugin of an IDE: the body
      * refers to private members of the platform, and javassist is the first to notice when one of them is renamed.
      */
-    static void rewriteGitPushSupport(CtClass gitPushSupportClass, boolean pushToGerrit)
+    static void rewriteGitPushSupport(CtClass gitPushSupportClass)
             throws CannotCompileException, NotFoundException {
         // A panel per push dialog, like the platform has it: a panel kept in a field would show the options
         // of the previous push (private, WIP, topic, ...) in every following dialog of the session.
         CtMethod createOptionsPanelMethod = gitPushSupportClass.getDeclaredMethod("createOptionsPanel");
         createOptionsPanelMethod.setBody(
             "{" +
-                "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel gerritPushOptionsPanel = new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ", myVcs.getProject());" +
+                "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel gerritPushOptionsPanel = new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel.pushToGerritByDefault, myVcs.getProject());" +
                 "gerritPushOptionsPanel.initPanel(mySettings.getPushTagMode(), git4idea.config.GitVersionSpecialty.SUPPORTS_FOLLOW_TAGS.existsIn(myVcs.getVersion()), git4idea.config.GitVersionSpecialty.PRE_PUSH_HOOK.existsIn(myVcs.getVersion()));" +
                 "return gerritPushOptionsPanel;" +
             "}"

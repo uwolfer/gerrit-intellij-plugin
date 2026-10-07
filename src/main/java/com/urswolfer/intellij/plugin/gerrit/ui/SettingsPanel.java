@@ -81,7 +81,6 @@ public class SettingsPanel {
     private JComboBox showProjectColumnComboBox;
     private JLabel minutesLabel;
     private JLabel listAllHint;
-    private JLabel pushHint;
 
     private final Project project;
 
@@ -97,7 +96,7 @@ public class SettingsPanel {
     public SettingsPanel(Project project) {
         this.project = project;
 
-        styleHints(listAllHint, pushHint);
+        styleHints(listAllHint);
 
         automaticRefreshCheckbox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {

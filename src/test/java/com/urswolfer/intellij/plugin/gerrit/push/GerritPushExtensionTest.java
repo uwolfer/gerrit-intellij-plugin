@@ -38,7 +38,18 @@ public class GerritPushExtensionTest {
         ClassPool classPool = new ClassPool(true);
         CtClass gitPushSupport = classPool.get("git4idea.push.GitPushSupport");
 
-        GerritPushExtension.rewriteGitPushSupport(gitPushSupport, true);
+        GerritPushExtension.rewriteGitPushSupport(gitPushSupport);
+    }
+
+    @Test
+    public void testDefaultIsSetInTheGivenClassLoader() {
+        boolean before = GerritPushOptionsPanel.pushToGerritByDefault;
+        try {
+            GerritPushExtension.setPushToGerritByDefault(GerritPushExtension.class.getClassLoader(), !before);
+            Assert.assertEquals(GerritPushOptionsPanel.pushToGerritByDefault, !before);
+        } finally {
+            GerritPushOptionsPanel.pushToGerritByDefault = before;
+        }
     }
 
     @Test

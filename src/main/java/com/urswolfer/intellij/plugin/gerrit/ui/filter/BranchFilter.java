@@ -110,7 +110,7 @@ public class BranchFilter extends AbstractChangesFilter {
     }
 
     private String getNameForRepository(GitRepository repository) {
-        List<String> projectNames = gerritUtil.getProjectNames(repository.getRemotes());
+        List<String> projectNames = gerritUtil.getProjectNames(repository.getProject(), repository.getRemotes());
         return projectNames.isEmpty() ? "" : projectNames.get(0);
     }
 

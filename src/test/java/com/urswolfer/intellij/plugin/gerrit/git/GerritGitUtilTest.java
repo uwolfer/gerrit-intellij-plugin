@@ -96,7 +96,7 @@ public class GerritGitUtilTest {
     public void testGetRemotesForChangeKeepsConfigOrderWithoutTrackedRemote() {
         GitRepository gitRepository = createRepository(null, SSH_REMOTE, HTTP_REMOTE);
 
-        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO, () -> "");
 
         Assert.assertEquals(remotes, Arrays.asList(SSH_REMOTE, HTTP_REMOTE));
     }
@@ -105,7 +105,7 @@ public class GerritGitUtilTest {
     public void testGetRemotesForChangePutsTrackedRemoteFirst() {
         GitRepository gitRepository = createRepository(HTTP_REMOTE, SSH_REMOTE, HTTP_REMOTE);
 
-        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO, () -> "");
 
         Assert.assertEquals(remotes, Arrays.asList(HTTP_REMOTE, SSH_REMOTE));
     }
@@ -115,7 +115,7 @@ public class GerritGitUtilTest {
         GitRemote archive = remote("archive", "/home/me/repos/myProject [old]");
         GitRepository gitRepository = createRepository(null, archive, HTTP_REMOTE);
 
-        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO);
+        List<GitRemote> remotes = new GerritGitUtil().getRemotesForChange(gitRepository, FETCH_INFO, () -> "");
 
         Assert.assertEquals(remotes, Collections.singletonList(HTTP_REMOTE));
     }

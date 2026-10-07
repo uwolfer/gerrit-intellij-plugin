@@ -46,7 +46,7 @@ public class AddCommentInDiffAction extends AnAction implements DumbAware, Updat
     public void update(AnActionEvent e) {
         AddCommentAction addCommentAction = findAddCommentAction(e);
         e.getPresentation().setVisible(addCommentAction != null);
-        e.getPresentation().setEnabled(addCommentAction != null && addCommentAction.canComment());
+        e.getPresentation().setEnabled(addCommentAction != null && addCommentAction.canComment(e.getProject()));
     }
 
     @Nullable

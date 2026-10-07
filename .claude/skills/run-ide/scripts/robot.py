@@ -20,7 +20,8 @@ Components are found by XPath over the Swing tree, as `tree` prints it, e.g.
 //div[contains(@class,'StripeButton') and @accessiblename='Gerrit'] (match classes with contains():
 StripeButton became SquareStripeButton in newer IDEs).
 
-  robot.py login [URL LOGIN PASSWORD]  the account on the Gerrit settings page (default: the seeded Gerrit)
+  robot.py login [URL LOGIN PASSWORD]  that account on the Gerrit settings page, added or edited, and used by the
+                                       project (default: the seeded Gerrit)
   robot.py focus                       the IDE frame, for keys to reach it
   robot.py tree [WORD]                 visible components, indented; only lines with WORD
   robot.py find XPATH                  id, class and screen bounds of each showing match
@@ -225,14 +226,27 @@ def login(url='http://localhost:8080', user='admin', password='secret'):
         var project = com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0];
         com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, 'Gerrit');
     });''')
-    page = "//div[@class='JPasswordField']"
-    until(lambda: find(page), 60, 'the Gerrit settings page')  # a first start may still open the project
+    accounts = "//div[@accessiblename='Gerrit Accounts']//div[@class='JBList']"
+    until(lambda: find(accounts), 60, 'the Gerrit settings page')  # a first start may still open the project
+    # the account of this instance and login is edited rather than added a second time
+    account = '%s@%s' % (user, url)
+    if account in retrieve(ROWS, one(accounts)).split('\n'):
+        main(['item', accounts, account, '--double'])
+    else:
+        main(['click', "//div[@class='ActionButton' and @accessiblename='Add']"])
+    dialog = "//div[@class='MyDialog' and contains(@accessiblename,'Gerrit Account')]"
+    until(lambda: find(dialog), 30, 'the account dialog')
     for field, value in (("@class='JBTextField' and @accessiblename='Web URL:'", url),
-                         ("@class='JTextField' and @accessiblename='Login *:'", user),
+                         ("@class='JBTextField' and @accessiblename='Login:'", user),
                          ("@class='JPasswordField'", password)):
-        main(['click', '//div[%s]' % field])
+        main(['click', '%s//div[%s]' % (dialog, field)])
         main(['key', 'ctrl+A'])  # typing replaces what a previous login left
         main(['type', value])
+    main(['click', "%s//div[@class='JButton' and @accessiblename='OK']" % dialog])
+    until(lambda: not find(dialog), 30, 'the account dialog to close')
+    # the account just added or edited is the selected one; the project uses it from now on
+    main(['click', "//div[@class='ActionButton' and @accessiblename='Use for This Project']"])
+    page = "//div[@accessiblename='Gerrit Accounts']"
     main(['click', "//div[@class='JButton' and @accessiblename='OK']"])
     until(lambda: not find(page), 30, 'the settings dialog to close; did OK not save?')  # a busy IDE takes a while
 

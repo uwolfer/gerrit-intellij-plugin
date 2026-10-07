@@ -33,6 +33,7 @@ import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.Nullable;
@@ -105,11 +106,11 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(canComment());
+        e.getPresentation().setEnabled(canComment(e.getProject()));
     }
 
-    boolean canComment() {
-        return gerritSettings.isLoginAndPasswordAvailable();
+    boolean canComment(@Nullable Project project) {
+        return project != null && GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable();
     }
 
     void addVersionedComment(@Nullable Project project) {

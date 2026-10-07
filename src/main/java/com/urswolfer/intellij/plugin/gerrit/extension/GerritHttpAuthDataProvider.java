@@ -20,7 +20,9 @@ package com.urswolfer.intellij.plugin.gerrit.extension;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.AuthData;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.remote.GitHttpAuthDataProvider;
 import org.jetbrains.annotations.NotNull;
@@ -36,38 +38,58 @@ import java.net.URI;
  */
 public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
 
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
-
     @Override
     public @Nullable AuthData getAuthData(@NotNull Project project, @NotNull String url) {
-        if (!isGerritUrl(url)) {
+        GerritAccount account = accountFor(project, url);
+        if (account == null || StringUtil.isEmptyOrSpaces(account.login)) {
             return null;
         }
-        String login = gerritSettings.getLogin();
-        if (StringUtil.isEmptyOrSpaces(login)) {
-            return null;
-        }
-        String password = gerritSettings.getPassword();
+        String password = GerritAccounts.getInstance().getPassword(account);
         if (StringUtil.isEmptyOrSpaces(password)) {
             return null;
         }
-        return new AuthData(login, password);
+        return new AuthData(account.login, password);
     }
 
     @Override
     public void forgetPassword(@NotNull Project project, @NotNull String url, @NotNull AuthData authData) {
-        if (isGerritUrl(url)) {
-            gerritSettings.forgetPassword();
+        GerritAccount account = accountFor(project, url);
+        if (account != null) {
+            GerritAccounts.getInstance().forgetPassword(account);
         }
+    }
+
+    /**
+     * The url says which instance git talks to, and it need not be the one of the project: a submodule can live on
+     * another, and a project with several accounts to choose between may not have chosen yet. The account of the
+     * project goes first; another one only when it is the only one on that instance, as two logins there leave no
+     * way to tell whose credentials git wants.
+     */
+    @Nullable
+    private GerritAccount accountFor(Project project, String url) {
+        GerritAccount own = GerritProjectAccount.getInstance(project).get();
+        if (own != null && isGerritUrl(own, url)) {
+            return own;
+        }
+        GerritAccount match = null;
+        for (GerritAccount account : GerritAccounts.getInstance().getAccounts()) {
+            if (isGerritUrl(account, url)) {
+                if (match != null) {
+                    return null;
+                }
+                match = account;
+            }
+        }
+        return match;
     }
 
     /**
      * Git asks for the credentials of a repository url (e.g. "https://gerrit.example.com/my-project"), which is never
      * equal to the configured Gerrit url: they have the origin in common.
      */
-    private boolean isGerritUrl(String url) {
-        return hasSameOrigin(url, gerritSettings.getHost())
-            || hasSameOrigin(url, gerritSettings.getCloneBaseUrl());
+    private boolean isGerritUrl(GerritAccount account, String url) {
+        return hasSameOrigin(url, account.host)
+            || hasSameOrigin(url, account.cloneBaseUrl);
     }
 
     /**

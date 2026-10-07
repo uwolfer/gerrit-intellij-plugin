@@ -37,6 +37,7 @@ import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.Consumer;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +70,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
         }
 
         Consumer<Void> reloadChanges = reloadChangesAfterwards(anActionEvent);
-        AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(), selectedChange.get());
+        AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()), selectedChange.get());
         dialog.show();
         if (!dialog.isOK()) {
             return;

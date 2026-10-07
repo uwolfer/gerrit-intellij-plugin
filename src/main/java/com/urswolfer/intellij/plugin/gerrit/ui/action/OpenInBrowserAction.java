@@ -19,8 +19,9 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import icons.MyIcons;
 
 import java.util.Optional;
@@ -29,8 +30,6 @@ import java.util.Optional;
  * @author Urs Wolfer
  */
 public class OpenInBrowserAction extends AbstractChangeAction {
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
-
     public OpenInBrowserAction() {
         super(MyIcons.Gerrit);
     }
@@ -41,18 +40,23 @@ public class OpenInBrowserAction extends AbstractChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        BrowserUtil.browse(getUrl(gerritSettings.getHost(), selectedChange.get()));
+        Project project = anActionEvent.getProject();
+        if (project == null) {
+            return;
+        }
+        BrowserUtil.browse(getUrl(GerritProjectAccount.getInstance(project).getHost(), selectedChange.get()));
     }
 
     /**
      * Without a host there is no change to open: the url would come out as a bare change number, and the browser
-     * would be sent to it. The action waits until Gerrit is set up.
+     * would be sent to it. The action waits until the project knows the instance its changes live on.
      */
     @Override
     public void update(AnActionEvent e) {
         super.update(e);
-        String host = gerritSettings.getHost();
-        e.getPresentation().setEnabled(host != null && !host.isEmpty());
+        Project project = e.getProject();
+        e.getPresentation().setEnabled(project != null
+            && !GerritProjectAccount.getInstance(project).getHost().isEmpty());
     }
 
     /**

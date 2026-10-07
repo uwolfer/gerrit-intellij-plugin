@@ -71,7 +71,7 @@ public class RevisionFetcher {
     }
 
     private void fetchChange(String commitHash, RevisionInfo revisionInfo, FetchCallback fetchCallback) {
-        FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(revisionInfo);
+        FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(project, revisionInfo);
         if (fetchInfo == null) {
             gerritGitUtil.notifyNoFetchInfo(project);
         } else {

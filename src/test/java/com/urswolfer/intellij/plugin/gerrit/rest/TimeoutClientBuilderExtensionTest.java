@@ -17,7 +17,10 @@
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.HttpRequest;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -44,10 +47,48 @@ public class TimeoutClientBuilderExtensionTest {
         Assert.assertEquals(config.getConnectionRequestTimeout(), 300000);
     }
 
+    @Test
+    public void testSuggestionsGetAReadTimeout() {
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/a/changes/7/suggest_reviewers?q=rita&n=20")).getSocketTimeout(), 5000);
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/a/accounts/?suggest&q=rita&n=20")).getSocketTimeout(), 5000);
+    }
+
+    @Test
+    public void testSuggestionsOfAHostWithTrailingSlashGetAReadTimeout() {
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new BasicHttpRequest("GET", "//accounts/?suggest&q=rita&n=20")).getSocketTimeout(), 5000);
+    }
+
+    @Test
+    public void testAuthenticationGetsAReadTimeout() {
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/accounts/self")).getSocketTimeout(), 5000);
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/login/")).getSocketTimeout(), 5000);
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpPost("http://gerrit/login/")).getSocketTimeout(), 5000);
+    }
+
+    @Test
+    public void testOtherRequestsGetNoReadTimeout() {
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/a/accounts/?q=suggestion")).getSocketTimeout(), -1);
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpGet("http://gerrit/a/changes/?q=status:open")).getSocketTimeout(), -1);
+        Assert.assertEquals(process(RequestConfig.DEFAULT,
+            new HttpPost("http://gerrit/a/changes/7/suggest_reviewers")).getSocketTimeout(), -1);
+    }
+
     private static RequestConfig process(RequestConfig requestConfig) {
+        return process(requestConfig, new HttpGet("http://gerrit/"));
+    }
+
+    private static RequestConfig process(RequestConfig requestConfig, HttpRequest request) {
         HttpClientContext context = HttpClientContext.create();
         context.setRequestConfig(requestConfig);
-        new TimeoutClientBuilderExtension.TimeoutInterceptor(10000).process(new HttpGet("http://gerrit/"), context);
+        new TimeoutClientBuilderExtension.TimeoutInterceptor(10000, 5000).process(request, context);
         return context.getRequestConfig();
     }
 }

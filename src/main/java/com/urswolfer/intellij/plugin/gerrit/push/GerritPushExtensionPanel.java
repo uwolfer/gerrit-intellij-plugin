@@ -111,6 +111,11 @@ public class GerritPushExtensionPanel extends JPanel {
      */
     private static volatile Function<Project, TextCompletionProvider> accountCompletion;
 
+    /** A new default has to win over the boxes clicked so far, as it did when only a restart changed it. */
+    static void forgetClickedBoxes() {
+        LAST_PUSH_TO_GERRIT.clear();
+    }
+
     private final String projectKey;
 
     public GerritPushExtensionPanel(boolean pushToGerritByDefault, String projectKey, @Nullable Project project) {

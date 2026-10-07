@@ -32,6 +32,21 @@ import java.awt.*;
  * @author Urs Wolfer
  */
 public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
+    /**
+     * The "push to Gerrit by default" setting for the push dialogs opened from now on. The rewritten
+     * {@code GitPushSupport} reads it from the copy of this class in the Git plugin class loader, which cannot see
+     * the settings service, so {@link GerritPushExtension#setPushToGerritByDefault} calls
+     * {@link #setPushToGerritByDefault} there.
+     */
+    public static volatile boolean pushToGerritByDefault;
+
+    public static void setPushToGerritByDefault(boolean pushToGerrit) {
+        if (pushToGerrit != pushToGerritByDefault) {
+            GerritPushExtensionPanel.forgetClickedBoxes();
+        }
+        pushToGerritByDefault = pushToGerrit;
+    }
+
     private final GerritPushExtensionPanel gerritPushExtensionPanel;
     private GitPushOptionsPanel gitPushOptionsPanel;
 

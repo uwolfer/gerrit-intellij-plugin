@@ -43,6 +43,25 @@ public class GerritPushExtensionPanelTest {
         Assert.assertFalse(panel(false, "plain-git-project").getPushToGerritCheckBox().isSelected());
     }
 
+    @Test
+    public void testNewDefaultWinsOverClickedBoxes() {
+        boolean before = GerritPushOptionsPanel.pushToGerritByDefault;
+        try {
+            GerritPushOptionsPanel.setPushToGerritByDefault(false);
+            // ticked and unticked again: remembered as off, which is what the new default must not be held to
+            panel(false, "clicked-before").getPushToGerritCheckBox().doClick();
+            panel(false, "clicked-before").getPushToGerritCheckBox().doClick();
+
+            GerritPushOptionsPanel.setPushToGerritByDefault(false); // unchanged: nothing is forgotten
+            Assert.assertFalse(panel(false, "clicked-before").getPushToGerritCheckBox().isSelected());
+
+            GerritPushOptionsPanel.setPushToGerritByDefault(true);
+            Assert.assertTrue(panel(true, "clicked-before").getPushToGerritCheckBox().isSelected());
+        } finally {
+            GerritPushOptionsPanel.setPushToGerritByDefault(before);
+        }
+    }
+
     private static GerritPushExtensionPanel panel(boolean pushToGerritByDefault, String projectKey) {
         return new GerritPushExtensionPanel(pushToGerritByDefault, projectKey, null);
     }

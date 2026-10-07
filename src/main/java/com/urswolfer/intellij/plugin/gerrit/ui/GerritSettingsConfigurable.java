@@ -18,17 +18,16 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Comparing;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -128,8 +127,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
             gerritSettings.setRefreshTimeout(settingsPane.getRefreshTimeout());
             gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
-            boolean pushToGerritChanged = gerritSettings.getPushToGerrit() != settingsPane.getPushToGerrit();
             gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
+            GerritPushExtension.setPushToGerritByDefault(settingsPane.getPushToGerrit());
             gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
             gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
             gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
@@ -140,23 +139,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 ApplicationManager.getApplication().getMessageBus()
                         .syncPublisher(GerritListSettingsListener.TOPIC).listSettingsChanged();
             }
-
-            if (pushToGerritChanged) {
-                askForRestart();
-            }
         }
-    }
-
-    // The push dialog is patched at startup, so the new default is not used before a restart.
-    private void askForRestart() {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            int answer = Messages.showYesNoDialog(project,
-                    "The default push target changes after the IDE has been restarted. Restart now?",
-                    NAME, "Restart", "Later", Messages.getQuestionIcon());
-            if (answer == Messages.YES) {
-                ApplicationManagerEx.getApplicationEx().restart(true);
-            }
-        });
     }
 
     private void applyAccounts() {

@@ -92,6 +92,21 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>2.1.0</li>
+          <ul>
+            <li>add change actions: "Cherry-Pick", "Reset Current Branch to Here", "Set Assignee", "Copy URL",
+            "Open in Gitiles" and replying to a change without voting</li>
+            <li>show work-in-progress changes, reviewers without a vote apart from CCs, and the voter behind a label icon</li>
+            <li>connect to Gerrit through a SOCKS proxy and give up after the IDE's timeout</li>
+            <li>fetch changes without the download-commands plugin and fall back to other Gerrit remotes</li>
+            <li>diff a merge change against its first parent</li>
+            <li>fix the Reset action on IntelliJ 2026.2</li>
+            <li>fix password field and Test button in settings</li>
+            <li>fix comments on deleted or renamed files, and on the line they were started on</li>
+            <li>fix the change list and details being replaced by an older or late load</li>
+            <li>fix reviewers whose name has a comma and unescaped change subjects in notifications</li>
+            <li>fix the IDE freezing while waiting for the commit-msg hook</li>
+          </ul>
           <li>2.0.1</li>
           <ul>
             <li>add "Create Feature Merge Change" action</li>

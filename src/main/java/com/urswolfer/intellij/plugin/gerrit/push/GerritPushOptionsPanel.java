@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.intellij.dvcs.push.VcsPushOptionValue;
 import com.intellij.dvcs.push.VcsPushOptionsPanel;
+import com.intellij.openapi.project.Project;
 import git4idea.push.GitPushOptionsPanel;
 import git4idea.push.GitPushTagMode;
 import org.jetbrains.annotations.Nullable;
@@ -34,8 +35,8 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
     private final GerritPushExtensionPanel gerritPushExtensionPanel;
     private GitPushOptionsPanel gitPushOptionsPanel;
 
-    public GerritPushOptionsPanel(boolean pushToGerrit, String projectKey) {
-        gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit, projectKey);
+    public GerritPushOptionsPanel(boolean pushToGerrit, Project project) {
+        gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit, project.getLocationHash(), project);
     }
 
     @SuppressWarnings("UnusedDeclaration") // javassist call

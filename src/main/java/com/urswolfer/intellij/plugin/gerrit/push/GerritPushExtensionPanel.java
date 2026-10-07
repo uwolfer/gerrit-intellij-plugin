@@ -22,11 +22,15 @@ import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.util.textCompletion.TextCompletionProvider;
+import com.intellij.util.textCompletion.TextFieldWithCompletion;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
@@ -36,10 +40,11 @@ import git4idea.commands.GitCommandResult;
 import git4idea.commands.GitLineHandler;
 import git4idea.repo.GitRepository;
 import git4idea.validators.GitRefNameValidator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -54,12 +59,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritPushExtensionPanel extends JPanel {
+    private static final Logger LOG = Logger.getInstance(GerritPushExtensionPanel.class);
+
+    private static final int FIELD_WIDTH = 250;
 
     private static final String GITREVIEW_FILENAME = ".gitreview";
     private static final String REVIEW_REF_PREFIX = "refs/for/";
@@ -78,8 +87,8 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField branchTextField;
     private JTextField topicTextField;
     private JTextField hashTagTextField;
-    private JTextField reviewersTextField;
-    private JTextField ccTextField;
+    private JComponent reviewersTextField;
+    private JComponent ccTextField;
     private JTextField patchsetDescriptionTextField;
     private JLabel validationLabel;
     private JLabel noNewChangesLabel;
@@ -95,17 +104,29 @@ public class GerritPushExtensionPanel extends JPanel {
      */
     private static final Map<String, Boolean> LAST_PUSH_TO_GERRIT = new ConcurrentHashMap<>();
 
+    /**
+     * Creates the completion of the reviewers and CC fields. This class is copied into the class loader of the Git
+     * plugin, which knows neither the Gerrit plugin nor its REST client, so the completion is handed over from the
+     * Gerrit plugin, as types of the platform and the JDK which both class loaders share.
+     */
+    private static volatile Function<Project, TextCompletionProvider> accountCompletion;
+
     private final String projectKey;
 
-    public GerritPushExtensionPanel(boolean pushToGerritByDefault, String projectKey) {
+    public GerritPushExtensionPanel(boolean pushToGerritByDefault, String projectKey, @Nullable Project project) {
         this.projectKey = projectKey;
-        createLayout();
+        createLayout(project);
 
         pushToGerritCheckBox.setSelected(LAST_PUSH_TO_GERRIT.getOrDefault(projectKey, pushToGerritByDefault));
         pushToGerritCheckBox.addActionListener(new SettingsStateActionListener());
         setSettingsEnabled(pushToGerritCheckBox.isSelected());
 
         addChangeListener();
+    }
+
+    @SuppressWarnings("unused") // called by reflection, on the copy in the Git plugin class loader
+    public static void setAccountCompletion(Function<Project, TextCompletionProvider> accountCompletion) {
+        GerritPushExtensionPanel.accountCompletion = accountCompletion;
     }
 
     JCheckBox getPushToGerritCheckBox() {
@@ -208,7 +229,7 @@ public class GerritPushExtensionPanel extends JPanel {
         return branchName;
     }
 
-    private void createLayout() {
+    private void createLayout(@Nullable Project project) {
         JPanel mainPanel = new JPanel();
         mainPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -276,15 +297,17 @@ public class GerritPushExtensionPanel extends JPanel {
                         "Gerrit older than 3.4 adds it to the change as a message instead.",
                 10);
 
-        reviewersTextField = addTextField(
-                "Reviewers (user names, comma separated):",
+        reviewersTextField = addField(
+                "Reviewers (comma separated):",
                 "Users which will be added as reviewers.",
-                11);
+                11,
+                createAccountField(project));
 
-        ccTextField = addTextField(
-                "CC (user names, comma separated):",
+        ccTextField = addField(
+                "CC (comma separated):",
                 "Users which will receive carbon copies of the notification message.",
-                12);
+                12,
+                createAccountField(project));
 
         validationLabel = new JLabel();
         validationLabel.setForeground(JBColor.RED);
@@ -312,6 +335,10 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private JTextField addTextField(String label, String toolTipText, int row) {
+        return addField(label, toolTipText, row, new JTextField());
+    }
+
+    private <T extends JComponent> T addField(String label, String toolTipText, int row, T field) {
         indentedSettingPanel.add(
                 new JLabel(label),
                 new GridConstraints(row, 0, 1, 1,
@@ -322,18 +349,59 @@ public class GerritPushExtensionPanel extends JPanel {
                         null, null, null)
         );
 
-        JTextField textField = new JTextField();
-        textField.setToolTipText(toolTipText);
+        field.setToolTipText(toolTipText);
         indentedSettingPanel.add(
-                textField,
+                field,
                 new GridConstraints(row, 1, 1, 1,
                         GridConstraints.ANCHOR_WEST,
                         GridConstraints.FILL_HORIZONTAL,
                         GridConstraints.SIZEPOLICY_WANT_GROW,
                         GridConstraints.SIZEPOLICY_FIXED,
-                        new Dimension(250, 0), null, null)
+                        new Dimension(FIELD_WIDTH, 0), null, null)
         );
-        return textField;
+        return field;
+    }
+
+    /**
+     * A field which suggests accounts, or a plain one where there is nothing to ask for them: no project, or a panel
+     * which was not handed the completion (unit tests).
+     */
+    private static JComponent createAccountField(@Nullable Project project) {
+        Function<Project, TextCompletionProvider> completion = accountCompletion;
+        if (project == null || completion == null) {
+            return new JTextField();
+        }
+        try {
+            // no completion hint: an empty field has nothing to suggest
+            TextFieldWithCompletion field =
+                    new TextFieldWithCompletion(project, completion.apply(project), "", true, true, false);
+            // an editor is as wide as its text, which would push a long list of accounts out of the dialog
+            field.setPreferredWidth(FIELD_WIDTH);
+            // the editor covers the field, so the tooltip of the field itself never shows
+            field.addSettingsProvider(editor -> editor.getContentComponent().setToolTipText(field.getToolTipText()));
+            return field;
+        } catch (ProcessCanceledException e) {
+            throw e;
+        } catch (RuntimeException | LinkageError e) {
+            // this runs in the rewritten GitPushSupport#createOptionsPanel: a field the platform cannot build any
+            // more must cost the suggestions, not the push dialog
+            LOG.warn("Failed to add account suggestions to Gerrit push UI.", e);
+            return new JTextField();
+        }
+    }
+
+    private static String getText(JComponent field) {
+        return field instanceof TextFieldWithCompletion
+                ? ((TextFieldWithCompletion) field).getText()
+                : ((JTextField) field).getText();
+    }
+
+    private static void addDocumentListener(JComponent field, ChangeTextActionListener listener) {
+        if (field instanceof TextFieldWithCompletion) {
+            ((TextFieldWithCompletion) field).addDocumentListener(listener);
+        } else {
+            ((JTextField) field).getDocument().addDocumentListener(listener);
+        }
     }
 
     private void addChangeListener() {
@@ -352,8 +420,8 @@ public class GerritPushExtensionPanel extends JPanel {
         topicTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         hashTagTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
         patchsetDescriptionTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
-        reviewersTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
-        ccTextField.getDocument().addDocumentListener(gerritPushTextChangeListener);
+        addDocumentListener(reviewersTextField, gerritPushTextChangeListener);
+        addDocumentListener(ccTextField, gerritPushTextChangeListener);
     }
 
     /**
@@ -400,10 +468,10 @@ public class GerritPushExtensionPanel extends JPanel {
             if (!patchsetDescription.isEmpty()) {
                 gerritSpecs.add("m=" + UrlUtils.encodePatchSetDescription(patchsetDescription));
             }
-            for (String reviewer : splitCommaSeparated(reviewersTextField.getText())) {
+            for (String reviewer : splitCommaSeparated(getText(reviewersTextField))) {
                 addOption(gerritSpecs, "r", reviewer);
             }
-            for (String cc : splitCommaSeparated(ccTextField.getText())) {
+            for (String cc : splitCommaSeparated(getText(ccTextField))) {
                 addOption(gerritSpecs, "cc", cc);
             }
         }
@@ -459,9 +527,9 @@ public class GerritPushExtensionPanel extends JPanel {
                     validateUserNames(reviewersTextField, "Reviewer name"),
                     validateUserNames(ccTextField, "CC user name"));
         } else {
-            for (JTextField textField : List.of(branchTextField, topicTextField, hashTagTextField,
+            for (JComponent field : List.of(branchTextField, topicTextField, hashTagTextField,
                     reviewersTextField, ccTextField)) {
-                markInvalid(textField, false);
+                markInvalid(field, false);
             }
         }
         return error;
@@ -483,12 +551,12 @@ public class GerritPushExtensionPanel extends JPanel {
         return error;
     }
 
-    private String validateUserNames(JTextField textField, String label) {
+    private String validateUserNames(JComponent field, String label) {
         String error = null;
-        for (String item : splitCommaSeparated(textField.getText())) {
+        for (String item : splitCommaSeparated(getText(field))) {
             error = firstError(error, PushOptionValidator.validateOption(label, item));
         }
-        markInvalid(textField, error != null);
+        markInvalid(field, error != null);
         return error;
     }
 
@@ -662,9 +730,19 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     /**
-     * Updates destination branch text field after every text-field config change.
+     * Updates destination branch text field after every text-field config change, of the Swing text fields and of
+     * the editor based ones which suggest accounts.
      */
-    private class ChangeTextActionListener implements DocumentListener {
+    private class ChangeTextActionListener
+            implements javax.swing.event.DocumentListener, com.intellij.openapi.editor.event.DocumentListener {
+        @Override
+        public void documentChanged(@NotNull com.intellij.openapi.editor.event.DocumentEvent event) {
+            // not within the write action and the command of the typing: the push targets of the rows are editors
+            // as well, and their change would become part of what undo reverts in this field. Not the IDE's
+            // invokeLater either: its default modality would hold it back until the push dialog is closed.
+            SwingUtilities.invokeLater(this::handleChange);
+        }
+
         @Override
         public void insertUpdate(DocumentEvent e) {
             handleChange();

@@ -32,6 +32,8 @@ public final class Whitespace {
 
     private static final Pattern SINGLE_CHARACTER = Pattern.compile(REGEX_CLASS);
 
+    private static final Pattern LEADING = Pattern.compile("^(?:" + REGEX_CLASS + ")+");
+
     private static final Pattern SURROUNDING =
         Pattern.compile("^(?:" + REGEX_CLASS + ")+|(?:" + REGEX_CLASS + ")+$");
 
@@ -43,6 +45,10 @@ public final class Whitespace {
      */
     public static String trim(String value) {
         return SURROUNDING.matcher(value).replaceAll("");
+    }
+
+    public static String trimLeading(String value) {
+        return LEADING.matcher(value).replaceFirst("");
     }
 
     public static boolean isWhitespace(char character) {

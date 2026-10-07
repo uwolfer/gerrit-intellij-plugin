@@ -52,17 +52,20 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     private final RepositoryNode repositoryNode;
     private final RepositoryWithBranchPanel repositoryPanel;
     private final String initialBranch;
+    private final String remoteName;
 
     private String branch;
 
     private GerritPushTargetUpdater(JTree tree,
                                     RepositoryNode repositoryNode,
                                     RepositoryWithBranchPanel repositoryPanel,
-                                    String initialBranch) {
+                                    String initialBranch,
+                                    String remoteName) {
         this.tree = tree;
         this.repositoryNode = repositoryNode;
         this.repositoryPanel = repositoryPanel;
         this.initialBranch = initialBranch;
+        this.remoteName = remoteName;
     }
 
     /**
@@ -108,8 +111,9 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
             if (!(target instanceof GitPushTarget)) {
                 continue;
             }
+            GitPushTarget gitPushTarget = (GitPushTarget) target;
             updaters.add(new GerritPushTargetUpdater(tree, repositoryNode, repositoryPanel,
-                    ((GitPushTarget) target).getBranch().getNameForRemoteOperations()));
+                    gitPushTarget.getBranch().getNameForRemoteOperations(), gitPushTarget.getBranch().getRemote().getName()));
         }
         return updaters;
     }
@@ -119,6 +123,24 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
      */
     public String getInitialBranch() {
         return initialBranch;
+    }
+
+    public String getRemoteName() {
+        return remoteName;
+    }
+
+    /**
+     * The name the push dialog shows for the repository, see {@code DvcsUtil#getShortRepositoryName}.
+     */
+    public String getRepositoryName() {
+        return repositoryPanel.getRepositoryName();
+    }
+
+    /**
+     * The local branch, or the revision, which is pushed.
+     */
+    public String getSourceName() {
+        return repositoryPanel.getSourceName();
     }
 
     /**

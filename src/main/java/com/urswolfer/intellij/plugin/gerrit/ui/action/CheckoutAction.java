@@ -70,70 +70,75 @@ public class CheckoutAction extends AbstractChangeAction {
         getChangeDetail(selectedChange.get(), project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(final ChangeInfo changeDetails) {
-                FetchAction.FetchCallback fetchCallback = new FetchAction.FetchCallback() {
+                fetchAction.fetchChange(selectedChange.get(), project,
+                    (repository, commitHash) -> checkout(project, changeDetails, repository, commitHash, null));
+            }
+        });
+    }
+
+    /**
+     * @param onCheckedOut runs once the patch set is checked out, but not when the checkout failed or was declined
+     */
+    void checkout(final Project project, final ChangeInfo changeDetails, final GitRepository repository,
+                  final String commitHash, @Nullable final Runnable onCheckedOut) {
+        final GitBrancher brancher = project.getService(GitBrancher.class);
+        final List<GitRepository> gitRepositories = Collections.singletonList(repository);
+        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
+        final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
+        if (!remote.isPresent()) {
+            return;
+        }
+        // FetchAction loads the change again, so a patch set uploaded in between is unknown here
+        RevisionInfo revisionInfo = changeDetails.revisions.get(commitHash);
+        if (revisionInfo == null) {
+            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error",
+                    "Change " + changeDetails._number + " got a new patch set. Refresh and try again."));
+            return;
+        }
+        String branchName = ReviewBranchName.build(changeDetails, revisionInfo._number);
+        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
+        final ReviewBranchName.Target target = ReviewBranchName.resolve(branchName, commitHash,
+                name -> headOf(repository, name), newBranchNameValidator::checkInput);
+        if (target == null) {
+            String blocking = ReviewBranchName.blockingBranch(branchName, name -> headOf(repository, name) != null);
+            String message = blocking == null
+                    ? "Could not find a free branch name for " + branchName + "."
+                    : "Branch " + blocking + " prevents creating " + branchName + ". Rename or delete it to check out this patch set.";
+            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error", message));
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Runnable setUpstream = new Runnable() {
                     @Override
-                    public void fetched(final GitRepository repository, final String commitHash) {
-                        final GitBrancher brancher = project.getService(GitBrancher.class);
-                        final List<GitRepository> gitRepositories = Collections.singletonList(repository);
-                        FetchInfo firstFetchInfo = gerritUtil.getFirstFetchInfo(project, changeDetails);
-                        final Optional<GitRemote> remote = gerritGitUtil.getRemoteForChange(project, repository, firstFetchInfo);
-                        if (!remote.isPresent()) {
+                    public void run() {
+                        // GitBrancher runs this after a failed or declined checkout as well
+                        if (!target.name.equals(repository.getCurrentBranchName())) {
                             return;
                         }
-                        // FetchAction loads the change again, so a patch set uploaded in between is unknown here
-                        RevisionInfo revisionInfo = changeDetails.revisions.get(commitHash);
-                        if (revisionInfo == null) {
-                            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error",
-                                    "Change " + changeDetails._number + " got a new patch set. Refresh and try again."));
-                            return;
-                        }
-                        String branchName = ReviewBranchName.build(changeDetails, revisionInfo._number);
-                        GitNewBranchNameValidator newBranchNameValidator = GitNewBranchNameValidator.newInstance(gitRepositories);
-                        final ReviewBranchName.Target target = ReviewBranchName.resolve(branchName, commitHash,
-                                name -> headOf(repository, name), newBranchNameValidator::checkInput);
-                        if (target == null) {
-                            String blocking = ReviewBranchName.blockingBranch(branchName, name -> headOf(repository, name) != null);
-                            String message = blocking == null
-                                    ? "Could not find a free branch name for " + branchName + "."
-                                    : "Branch " + blocking + " prevents creating " + branchName + ". Rename or delete it to check out this patch set.";
-                            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error", message));
-                            return;
-                        }
-                        ApplicationManager.getApplication().invokeLater(new Runnable() {
+                        GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
                             @Override
-                            public void run() {
-                                Runnable setUpstream = new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        // GitBrancher runs this after a failed or declined checkout as well
-                                        if (!target.name.equals(repository.getCurrentBranchName())) {
-                                            return;
-                                        }
-                                        GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
-                                            @Override
-                                            public void run(@NotNull ProgressIndicator indicator) {
-                                                try {
-                                                    gerritGitUtil.setUpstreamBranch(repository, target.name,
-                                                            remote.get().getName() + "/" + changeDetails.branch);
-                                                } catch (VcsException e) {
-                                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
-                                                    notificationService.notifyError(builder);
-                                                }
-                                            }
-                                        });
-                                    }
-                                };
-                                if (target.exists) {
-                                    brancher.checkout(target.name, false, gitRepositories, setUpstream);
-                                } else {
-                                    brancher.checkoutNewBranchStartingFrom(target.name, commitHash, gitRepositories, setUpstream);
+                            public void run(@NotNull ProgressIndicator indicator) {
+                                try {
+                                    gerritGitUtil.setUpstreamBranch(repository, target.name,
+                                            remote.get().getName() + "/" + changeDetails.branch);
+                                } catch (VcsException e) {
+                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
+                                    notificationService.notifyError(builder);
                                 }
                             }
+                        });
+                        if (onCheckedOut != null) {
+                            onCheckedOut.run();
                         }
-                        );
                     }
                 };
-                fetchAction.fetchChange(selectedChange.get(), project, fetchCallback);
+                if (target.exists) {
+                    brancher.checkout(target.name, false, gitRepositories, setUpstream);
+                } else {
+                    brancher.checkoutNewBranchStartingFrom(target.name, commitHash, gitRepositories, setUpstream);
+                }
             }
         });
     }

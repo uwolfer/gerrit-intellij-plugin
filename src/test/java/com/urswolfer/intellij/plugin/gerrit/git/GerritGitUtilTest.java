@@ -19,7 +19,10 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.changes.Change;
+import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vfs.VirtualFile;
 import git4idea.GitLocalBranch;
 import git4idea.GitStandardRemoteBranch;
@@ -43,6 +46,42 @@ public class GerritGitUtilTest {
     private static final FetchInfo FETCH_INFO = new FetchInfo("https://gerrit.example.com/myProject", CHANGE_REF);
     private static final GitRemote SSH_REMOTE = remote("ssh", "ssh://gerrit.example.com:29418/myProject");
     private static final GitRemote HTTP_REMOTE = remote("http", "https://gerrit.example.com/myProject");
+
+    @Test
+    public void testFilesAfterLeavesOutDeletedFiles() {
+        FilePath added = EasyMock.createNiceMock(FilePath.class);
+        FilePath modified = EasyMock.createNiceMock(FilePath.class);
+        FilePath renamedFrom = EasyMock.createNiceMock(FilePath.class);
+        FilePath renamedTo = EasyMock.createNiceMock(FilePath.class);
+        FilePath deleted = EasyMock.createNiceMock(FilePath.class);
+        EasyMock.replay(added, modified, renamedFrom, renamedTo, deleted);
+        List<Change> changes = Arrays.asList(
+            change(null, added),
+            change(modified, modified),
+            change(renamedFrom, renamedTo),
+            change(deleted, null));
+
+        Assert.assertEquals(GerritGitUtil.filesAfter(changes), Arrays.asList(added, modified, renamedTo));
+    }
+
+    // a Change built outside the IDE fails on looking up its file status
+    private static Change change(FilePath before, FilePath after) {
+        Change change = EasyMock.createNiceMock(Change.class);
+        EasyMock.expect(change.getBeforeRevision()).andStubReturn(revision(before));
+        EasyMock.expect(change.getAfterRevision()).andStubReturn(revision(after));
+        EasyMock.replay(change);
+        return change;
+    }
+
+    private static ContentRevision revision(FilePath file) {
+        if (file == null) {
+            return null;
+        }
+        ContentRevision revision = EasyMock.createNiceMock(ContentRevision.class);
+        EasyMock.expect(revision.getFile()).andStubReturn(file);
+        EasyMock.replay(revision);
+        return revision;
+    }
 
     @Test
     public void testFetchIfMissingRunsCallbackWithoutFetchingLocalCommit() {

@@ -19,13 +19,12 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.SuggestedReviewerInfo;
-import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.lookup.CharFilter;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.fileTypes.FileTypes;
 import com.intellij.openapi.project.Project;
@@ -35,7 +34,6 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.Consumer;
-import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
@@ -54,7 +52,7 @@ import java.util.Set;
  * @author Urs Wolfer
  */
 public class AddReviewersAction extends AbstractLoggedInChangeAction {
-    private static final Logger LOG = Logger.getInstance(AddReviewersAction.class);
+    private static final String SEPARATOR = ",";
 
     public AddReviewersAction() {
         super(AllIcons.Toolwindows.ToolWindowTodo);
@@ -76,7 +74,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
         String content = dialog.reviewTextField.getText();
-        for (String reviewer : content.split(",")) {
+        for (String reviewer : content.split(SEPARATOR)) {
             // not String#trim(): a pasted name can be surrounded by whitespace which it does not remove
             String reviewerName = Whitespace.trim(reviewer);
             if (!reviewerName.isEmpty()) {
@@ -109,12 +107,18 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
         }
 
         private void buildTextFieldCompletion(final GerritApi gerritApi, final ChangeInfo changeInfo) {
+            AccountCompletion completion = new AccountCompletion();
             TextFieldCompletionProviderDumbAware completionProvider = new TextFieldCompletionProviderDumbAware(true) {
                 @NotNull
                 @Override
                 protected String getPrefix(@NotNull String currentTextPrefix) {
-                    int text = currentTextPrefix.lastIndexOf(',');
-                    return text == -1 ? currentTextPrefix : currentTextPrefix.substring(text + 1).trim();
+                    return AccountCompletion.prefix(currentTextPrefix, SEPARATOR);
+                }
+
+                @Nullable
+                @Override
+                public CharFilter.Result acceptChar(char c) {
+                    return AccountCompletion.acceptChar(c, SEPARATOR);
                 }
 
                 @Override
@@ -122,25 +126,10 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                                                      int offset,
                                                      @NotNull final String prefix,
                                                      @NotNull final CompletionResultSet result) {
-                    if (prefix.isEmpty()) {
-                        return;
-                    }
-                    try {
-                        List<SuggestedReviewerInfo> suggestedReviewers = gerritApi.changes()
-                            .id(changeInfo._number).suggestReviewers(prefix).withLimit(20).get();
-                        if (result.isStopped()) {
-                            return;
-                        }
-                        for (SuggestedReviewerInfo suggestedReviewer : suggestedReviewers) {
-                            Optional<LookupElementBuilder> lookupElementBuilderOptional = buildLookupElement(suggestedReviewer);
-                            if (lookupElementBuilderOptional.isPresent()) {
-                                result.addElement(lookupElementBuilderOptional.get());
-                            }
-                        }
-                    } catch (RestApiException e) {
-                        // runs on every keystroke: without Gerrit there are just no suggestions, and an exception
-                        // would be reported as an IDE error each time
-                        LOG.info("Failed to load suggestions: " + ExceptionUtil.getRootCause(e));
+                    List<SuggestedReviewerInfo> suggestedReviewers = completion.fetch(prefix, result, query ->
+                        gerritApi.changes().id(changeInfo._number).suggestReviewers(query).withLimit(20).get());
+                    for (SuggestedReviewerInfo suggestedReviewer : suggestedReviewers) {
+                        buildLookupElement(suggestedReviewer).ifPresent(result::addElement);
                     }
                 }
             };
@@ -149,11 +138,11 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
 
         private Optional<LookupElementBuilder> buildLookupElement(SuggestedReviewerInfo suggestedReviewer) {
             if (suggestedReviewer.account != null) {
-                return Optional.of(AccountLookup.lookupElement(suggestedReviewer.account, ","));
+                return Optional.of(AccountLookup.lookupElement(suggestedReviewer.account, SEPARATOR));
             }
             if (suggestedReviewer.group != null) {
                 String groupName = suggestedReviewer.group.name;
-                return Optional.of(LookupElementBuilder.create(groupName + ',')
+                return Optional.of(LookupElementBuilder.create(groupName + SEPARATOR)
                     .withPresentableText(String.format("%s (group)", groupName)));
             }
             return Optional.empty();

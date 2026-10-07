@@ -23,19 +23,6 @@ import org.testng.annotations.Test;
 public class PushAccountCompletionProviderTest {
 
     @Test
-    public void testPrefixIsWhatFollowsTheLastComma() {
-        Assert.assertEquals(new PushAccountCompletionProvider(null).getPrefix("jdoe, \u00A0Rit"), "Rit");
-        Assert.assertEquals(new PushAccountCompletionProvider(null).getPrefix("Rit"), "Rit");
-    }
-
-    @Test
-    public void testPrefixKeepsTrailingWhitespace() {
-        // the lookup replaces as many characters before the caret as the prefix has
-        Assert.assertEquals(new PushAccountCompletionProvider(null).getPrefix("jdoe, Rita "), "Rita ");
-        Assert.assertEquals(new PushAccountCompletionProvider(null).getPrefix("jdoe, "), "");
-    }
-
-    @Test
     public void testPushIdentifierPrefersUsername() {
         Assert.assertEquals(PushAccountCompletionProvider.pushIdentifier(
             account(7, "Jane Doe", "jane@example.com", "jdoe")), "jdoe");

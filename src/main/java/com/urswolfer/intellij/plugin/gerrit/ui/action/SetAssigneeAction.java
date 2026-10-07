@@ -19,15 +19,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui.action;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.SuggestedReviewerInfo;
-import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.codeInsight.completion.CompletionResultSet;
+import com.intellij.codeInsight.lookup.CharFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
@@ -43,8 +41,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class SetAssigneeAction extends AbstractLoggedInChangeAction {
-    private static final Logger LOG = Logger.getInstance(SetAssigneeAction.class);
-
     public SetAssigneeAction() {
         super(AllIcons.General.User);
     }
@@ -100,31 +96,32 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
 
         private static TextFieldCompletionProviderDumbAware createCompletionProvider(final GerritApi gerritApi,
                                                                                     final ChangeInfo changeInfo) {
+            AccountCompletion completion = new AccountCompletion();
             return new TextFieldCompletionProviderDumbAware(true) {
+                @NotNull
+                @Override
+                protected String getPrefix(@NotNull String currentTextPrefix) {
+                    return AccountCompletion.prefix(currentTextPrefix, "");
+                }
+
+                @Nullable
+                @Override
+                public CharFilter.Result acceptChar(char c) {
+                    return AccountCompletion.acceptChar(c, "");
+                }
+
                 @Override
                 protected void addCompletionVariants(@NotNull String text,
                                                      int offset,
                                                      @NotNull String prefix,
                                                      @NotNull CompletionResultSet result) {
-                    if (prefix.isEmpty()) {
-                        return;
-                    }
-                    try {
-                        List<SuggestedReviewerInfo> suggestions = gerritApi.changes()
-                            .id(changeInfo._number).suggestReviewers(prefix).withLimit(20).get();
-                        if (result.isStopped()) {
-                            return;
+                    List<SuggestedReviewerInfo> suggestions = completion.fetch(prefix, result, query ->
+                        gerritApi.changes().id(changeInfo._number).suggestReviewers(query).withLimit(20).get());
+                    for (SuggestedReviewerInfo suggestion : suggestions) {
+                        // groups are suggested as reviewers, but only an account can be assigned
+                        if (suggestion.account != null) {
+                            result.addElement(AccountLookup.lookupElement(suggestion.account, ""));
                         }
-                        for (SuggestedReviewerInfo suggestion : suggestions) {
-                            // groups are suggested as reviewers, but only an account can be assigned
-                            if (suggestion.account != null) {
-                                result.addElement(AccountLookup.lookupElement(suggestion.account, ""));
-                            }
-                        }
-                    } catch (RestApiException e) {
-                        // runs on every keystroke: without Gerrit there are just no suggestions, and an exception
-                        // would be reported as an IDE error each time
-                        LOG.info("Failed to load suggestions: " + ExceptionUtil.getRootCause(e));
                     }
                 }
             };

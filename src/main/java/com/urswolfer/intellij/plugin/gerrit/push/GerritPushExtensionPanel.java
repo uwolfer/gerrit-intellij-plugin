@@ -16,15 +16,25 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
+import com.intellij.dvcs.DvcsUtil;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import git4idea.GitUtil;
+import git4idea.commands.Git;
+import git4idea.commands.GitCommand;
+import git4idea.commands.GitCommandResult;
+import git4idea.commands.GitLineHandler;
+import git4idea.repo.GitRepository;
 import git4idea.validators.GitRefNameValidator;
 
 import javax.swing.*;
@@ -72,6 +82,8 @@ public class GerritPushExtensionPanel extends JPanel {
     private JTextField ccTextField;
     private JTextField patchsetDescriptionTextField;
     private JLabel validationLabel;
+    private JLabel noNewChangesLabel;
+    private String noNewChangesKey;
     private final Map<GerritPushTargetUpdater, String> pushTargets = new LinkedHashMap<>();
     private JTree registeredTree;
 
@@ -120,6 +132,7 @@ public class GerritPushExtensionPanel extends JPanel {
         // the rows belong to the push dialog this panel was removed from
         registeredTree = null;
         pushTargets.clear();
+        noNewChangesKey = null;
     }
 
     /**
@@ -155,12 +168,15 @@ public class GerritPushExtensionPanel extends JPanel {
         return ref.replaceAll("^(" + REVIEW_REF_PREFIX + "|" + DRAFTS_REF_PREFIX + ")", "").replaceAll("%.*$", "");
     }
 
+    private Project getProject() {
+        DataContext dataContext = DataManager.getInstance().getDataContext(this);
+        return dataContext != null ? CommonDataKeys.PROJECT.getData(dataContext) : null;
+    }
+
     private Optional<String> getGitReviewBranchName() {
         Optional<String> branchName = Optional.empty();
 
-        DataContext dataContext = DataManager.getInstance().getDataContext(this);
-        Optional<Project> openedProject = dataContext != null ?
-            Optional.ofNullable(CommonDataKeys.PROJECT.getData(dataContext)) : Optional.empty();
+        Optional<Project> openedProject = Optional.ofNullable(getProject());
 
         if (openedProject.isPresent()) {
             String gitReviewFilePath = openedProject.get().getBasePath() + File.separator + GITREVIEW_FILENAME;
@@ -199,6 +215,10 @@ public class GerritPushExtensionPanel extends JPanel {
 
         pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
         mainPanel.add(pushToGerritCheckBox);
+
+        noNewChangesLabel = new JLabel(AllIcons.General.Warning);
+        noNewChangesLabel.setVisible(false);
+        mainPanel.add(noNewChangesLabel);
 
         indentedSettingPanel = new JPanel(new GridLayoutManager(14, 2));
 
@@ -355,12 +375,7 @@ public class GerritPushExtensionPanel extends JPanel {
     private String getRef(String branch, boolean withTextOptions) {
         StringBuilder ref = new StringBuilder();
         ref.append(draftChangeCheckBox.isSelected() ? DRAFTS_REF_PREFIX : REVIEW_REF_PREFIX);
-        String branchName = getTrimmedText(branchTextField);
-        if (!branchName.isEmpty() && isUsableBranch(branchName)) {
-            ref.append(branchName);
-        } else {
-            ref.append(branch);
-        }
+        ref.append(getTargetBranch(branch));
         List<String> gerritSpecs = new ArrayList<>();
         if (privateCheckBox.isSelected()) {
             gerritSpecs.add("private");
@@ -397,6 +412,11 @@ public class GerritPushExtensionPanel extends JPanel {
             ref.append('%').append(gerritSpec);
         }
         return ref.toString();
+    }
+
+    private String getTargetBranch(String branch) {
+        String branchName = getTrimmedText(branchTextField);
+        return !branchName.isEmpty() && isUsableBranch(branchName) ? branchName : branch;
     }
 
     private static void addOption(List<String> gerritSpecs, String option, String value) {
@@ -535,6 +555,80 @@ public class GerritPushExtensionPanel extends JPanel {
             }
         }
         validationLabel.setText(error == null ? "" : error);
+        updateNoNewChangesHint();
+    }
+
+    /**
+     * Warns when a push to review cannot create any change: the source is already on another branch of the
+     * remote, e.g. after a feature branch was submitted and then merged into the local branch with a
+     * fast-forward. The push dialog lists nothing then, as for a ref it does not know (refs/for/...) it shows
+     * the commits which are on no branch of the remote, and Gerrit answers "no new changes". Unchecking "Push to
+     * Gerrit" lists the commits again, which is easy to misread as the review push having lost them.
+     *
+     * Git is asked again only when the source, the remote or the target branch changes, not on every keystroke.
+     */
+    private void updateNoNewChangesHint() {
+        Project project = pushToGerritCheckBox.isSelected() && !pushTargets.isEmpty() ? getProject() : null;
+        List<String[]> checks = new ArrayList<>();
+        if (project != null) {
+            for (Map.Entry<GerritPushTargetUpdater, String> entry : pushTargets.entrySet()) {
+                GerritPushTargetUpdater target = entry.getKey();
+                // Gerrit takes refs/for/refs/heads/master as well, its remote-tracking branch is origin/master
+                String targetBranch = getTargetBranch(entry.getValue()).replaceFirst("^refs/heads/", "");
+                checks.add(new String[]{target.getRepositoryName(), target.getSourceName(), target.getRemoteName(),
+                        targetBranch});
+            }
+        }
+        String key = checks.stream().map(check -> String.join("\n", check)).collect(Collectors.joining("\n\n"));
+        if (key.equals(noNewChangesKey)) {
+            return;
+        }
+        noNewChangesKey = key;
+        noNewChangesLabel.setVisible(false);
+        if (checks.isEmpty()) {
+            return;
+        }
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String hint = findNoNewChanges(project, checks, checks.size() > 1);
+            // not the IDE's invokeLater: its default modality would hold it back until the push dialog is closed
+            SwingUtilities.invokeLater(() -> {
+                if (key.equals(noNewChangesKey) && hint != null) {
+                    noNewChangesLabel.setText(hint);
+                    noNewChangesLabel.setVisible(true);
+                }
+            });
+        });
+    }
+
+    private static String findNoNewChanges(Project project, List<String[]> checks, boolean nameRepository) {
+        for (GitRepository repository : GitUtil.getRepositoryManager(project).getRepositories()) {
+            for (String[] check : checks) {
+                if (!DvcsUtil.getShortRepositoryName(repository).equals(check[0])) {
+                    continue;
+                }
+                String source = check[1];
+                String remote = check[2];
+                GitLineHandler handler = new GitLineHandler(project, repository.getRoot(), GitCommand.BRANCH);
+                handler.setSilent(true);
+                handler.addParameters("-r", "--contains", source);
+                GitCommandResult result = Git.getInstance().runCommand(handler);
+                if (!result.success()) {
+                    continue;
+                }
+                List<String> containing = result.getOutput().stream()
+                        .map(String::trim)
+                        .filter(branch -> branch.startsWith(remote + "/") && !branch.contains(" -> "))
+                        .collect(Collectors.toList());
+                if (!containing.isEmpty() && !containing.contains(remote + "/" + check[3])) {
+                    return String.format("<html>Nothing new for Gerrit: %s is already on %s, so Gerrit would answer " +
+                                    "\"no new changes\".<br>To merge it through review, use \"Create Feature Merge " +
+                                    "Change\" or merge with --no-ff.</html>",
+                            StringUtil.escapeXmlEntities(nameRepository ? check[0] + ": " + source : source),
+                            StringUtil.escapeXmlEntities(containing.get(0)));
+                }
+            }
+        }
+        return null;
     }
 
     /**

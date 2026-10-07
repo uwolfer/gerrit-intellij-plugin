@@ -20,6 +20,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 
 import javax.swing.*;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -28,9 +29,9 @@ public class ReviewDialog extends DialogWrapper {
 
     private final ReviewPanel reviewPanel;
 
-    public ReviewDialog(Project project) {
+    public ReviewDialog(Project project, int changeNr, String revision, List<DraftComment> drafts) {
         super(project, true);
-        reviewPanel = new ReviewPanel(project);
+        reviewPanel = new ReviewPanel(project, changeNr, revision, drafts);
         setTitle("Review Change");
         setOKButtonText("Review");
         init();

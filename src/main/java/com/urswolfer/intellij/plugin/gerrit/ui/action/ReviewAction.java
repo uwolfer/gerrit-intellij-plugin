@@ -26,12 +26,15 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.ui.DraftComment;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
 import javax.swing.*;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -84,9 +87,13 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
         boolean submitChange = false;
         if (showDialog) {
-            final ReviewDialog dialog = new ReviewDialog(project);
+            final ReviewDialog dialog = new ReviewDialog(project, changeDetails._number, revision,
+                loadDrafts(project, changeDetails, revision));
             dialog.show();
             if (!dialog.isOK()) {
+                if (dialog.getReviewPanel().isDraftsChanged()) {
+                    ActionUtil.reloadChanges(toolWindow, project);
+                }
                 return;
             }
             final String message = dialog.getReviewPanel().getMessage();
@@ -121,6 +128,25 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                     }
                 }
         );
+    }
+
+    /**
+     * Only those of the revision, which are the ones the review publishes. Without them the dialog still opens: the
+     * review publishes them anyway, as it did before they were listed.
+     */
+    private List<DraftComment> loadDrafts(Project project, ChangeInfo changeDetails, String revision) {
+        if (revision == null) {
+            return Collections.emptyList();
+        }
+        try {
+            return DraftComment.sorted(
+                gerritUtil.getDraftCommentsWithModalProgress(changeDetails._number, revision, project));
+        } catch (RuntimeException e) {
+            notificationService.notifyError(new NotificationBuilder(project,
+                GerritBundle.message("review.drafts.loadFailed"),
+                gerritUtil.getErrorTextFromException(e.getCause() != null ? e.getCause() : e)));
+            return Collections.emptyList();
+        }
     }
 
     /**

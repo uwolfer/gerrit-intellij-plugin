@@ -18,9 +18,11 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.EditorTextField;
+import com.intellij.ui.JBSplitter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 
 /**
  * @author Urs Wolfer
@@ -29,13 +31,24 @@ public class ReviewPanel extends JPanel {
     private final EditorTextField messageField;
     private final JCheckBox notifyCheckBox;
     private final JCheckBox submitCheckBox;
+    private final DraftCommentsPanel draftsPanel;
 
-    public ReviewPanel(Project project) {
+    public ReviewPanel(Project project, int changeNr, String revision, List<DraftComment> drafts) {
         super(new BorderLayout());
 
         SafeHtmlTextEditor editor = new SafeHtmlTextEditor(project);
         messageField = editor.getMessageField();
-        add(editor, BorderLayout.CENTER);
+        if (drafts.isEmpty()) {
+            draftsPanel = null;
+            add(editor, BorderLayout.CENTER);
+        } else {
+            draftsPanel = new DraftCommentsPanel(project, changeNr, revision, drafts);
+            // the message and the drafts share what height there is, as the user divides it
+            JBSplitter splitter = new JBSplitter(true, "Gerrit.ReviewDialog.DraftsProportion", 0.5f);
+            splitter.setFirstComponent(editor);
+            splitter.setSecondComponent(draftsPanel);
+            add(splitter, BorderLayout.CENTER);
+        }
 
         JPanel southPanel = new JPanel();
         BoxLayout southLayout = new BoxLayout(southPanel, BoxLayout.Y_AXIS);
@@ -61,6 +74,10 @@ public class ReviewPanel extends JPanel {
 
     public boolean getSubmitChange() {
         return submitCheckBox.isSelected();
+    }
+
+    public boolean isDraftsChanged() {
+        return draftsPanel != null && draftsPanel.isChanged();
     }
 
     public boolean getDoNotify() {

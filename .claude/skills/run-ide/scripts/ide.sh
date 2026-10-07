@@ -15,8 +15,9 @@
 # limitations under the License.
 #
 # Starts the plugin in an IDE on a virtual display, with the seeded demo project open.
-# Without a directory it runs the SDK the plugin compiles against, from Gradle's cache.
-# Usage: ide.sh start [<unpacked IDE dir>] | stop | errors
+# Without an argument it runs the SDK the plugin compiles against, from Gradle's cache;
+# `latest` downloads latestIdeaVersion from gradle.properties, which CI verifies against.
+# Usage: ide.sh start [latest|<unpacked IDE dir>] | stop | errors
 set -euo pipefail
 
 WORK=${RUN_IDE_WORK:-${XDG_CACHE_HOME:-$HOME/.cache}/gerrit-plugin-run-ide}
@@ -31,17 +32,43 @@ sdk() {
     ls -d "${GRADLE_USER_HOME:-$HOME/.gradle}"/caches/modules-2/files-2.1/com.jetbrains.intellij.idea/idea"${v%%-*}"/"${v#*-}"/*/idea"$v" | head -1
 }
 
+cached() { # cached <dir> <url> tar|zip: unpacked aside, so a cut-off download is not taken for the real one
+    local dir=$1
+    [ ! -d "$dir" ] || return 0
+    rm -rf "$dir.tmp"; mkdir -p "$dir.tmp"
+    local get=(curl -sSfL --connect-timeout 20 --speed-limit 1000 --speed-time 60 "$2")  # gives up on a stall
+    if [ "$3" = zip ]; then
+        command -v unzip > /dev/null || { echo "unzip is needed: apt-get install unzip" >&2; return 1; }
+        "${get[@]}" -o "$dir.tmp/download.zip" && unzip -q "$dir.tmp/download.zip" -d "$dir.tmp" &&
+            rm "$dir.tmp/download.zip" || return 1
+    else
+        "${get[@]}" | tar xz -C "$dir.tmp" || return 1
+    fi
+    mv "$dir.tmp" "$dir"
+}
+
+latest() {
+    local v
+    v=$(sed -n 's/^latestIdeaVersion=\([A-Z]*-\)\{0,1\}//p' "$REPO/gradle.properties")  # e.g. IU-2026.2.3
+    cached "$WORK/ides/$v" "https://download.jetbrains.com/idea/idea-$v.tar.gz" tar || return 1
+    ls -d "$WORK/ides/$v"/idea-* | head -1
+}
+
 jbr() { # the SDK comes without the runtime it was released with, and needs that one
     local ide=$1 name
     [ -d "$ide/jbr" ] && { echo "$ide/jbr"; return; }
     name=$(sed -n 's/^jdkBuild=\(.*\)b\(.*\)$/jbr-\1-linux-x64-b\2/p' "$ide/dependencies.txt")
     [ -n "$name" ] || { echo "$ide has no jbr and names none in dependencies.txt" >&2; return 1; }
-    if [ ! -d "$WORK/$name" ]; then  # unpacked aside, so a broken download is not reused
-        rm -rf "$WORK/$name.tmp"; mkdir -p "$WORK/$name.tmp"
-        curl -sSfL "https://cache-redirector.jetbrains.com/intellij-jbr/$name.tar.gz" | tar xz -C "$WORK/$name.tmp" || return 1
-        mv "$WORK/$name.tmp" "$WORK/$name" || return 1
-    fi
+    cached "$WORK/$name" "https://cache-redirector.jetbrains.com/intellij-jbr/$name.tar.gz" tar || return 1
     echo "$WORK/$name/jbr"
+}
+
+robot() { # JetBrains' Remote Robot server plugin, which serves the IDE's Swing tree over HTTP
+    local v=0.11.23
+    cached "$WORK/robot-server-$v" \
+        "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/com/intellij/remoterobot/robot-server-plugin/$v/robot-server-plugin-$v.zip" \
+        zip || return 1
+    echo "$WORK/robot-server-$v/robot-server-plugin"
 }
 
 display() {
@@ -83,6 +110,11 @@ sandbox() {
     # find their jars rewritten by the next build
     rm -rf "$dir/plugins"; mkdir -p "$dir/plugins"
     cp -r "$REPO/build/idea-sandbox/plugins/gerrit-intellij-plugin" "$dir/plugins/"
+    # without it the IDE still runs, for screenshots and xdotool, where packages.jetbrains.team is blocked
+    local server
+    if ! server=$(robot) || ! cp -r "$server" "$dir/plugins/"; then
+        rm -rf "$dir/plugins/robot-server-plugin"; echo "no Remote Robot: robot.py will not work" >&2
+    fi
     printf 'idea.%s.path=%s\n' config "$dir/config" system "$dir/system" log "$dir/system/log" \
         plugins "$dir/plugins" > "$dir/idea.properties"
     # newer launchers add this file to the IDE's own, 2020.3 reads only this one
@@ -104,14 +136,17 @@ sandbox() {
 EOF
 }
 
+robot_up() { curl -sf --noproxy '*' --max-time 2 -o /dev/null http://127.0.0.1:8082/hello; }
 frame() { xdotool search --name '^demo' > /dev/null; }
 
 start() {
     curl -sf -o /dev/null http://localhost:8080/config/server/version ||
         { echo "Gerrit is not running: gerrit.sh start first" >&2; exit 1; }
     local ide=$1 dir runtime log pid
+    [ "$ide" != latest ] || ide=$(latest)
     [ -z "$ide" ] || [ -x "$ide/bin/idea.sh" ] || { echo "no IDE at $ide" >&2; exit 1; }
     stop  # before its sandbox is rewritten
+    ! robot_up || { echo "127.0.0.1:8082 is taken, by an IDE ide.sh does not know of?" >&2; exit 1; }
     ( cd "$REPO" && ./gradlew prepareSandbox > "$WORK/gradle.log" 2>&1 ) || { tail -20 "$WORK/gradle.log" >&2; exit 1; }
     ide=${ide:-$(sdk)}  # Gradle downloads the SDK on the first run
     ide=$(cd "$ide" && pwd)
@@ -137,7 +172,16 @@ start() {
         wait_for 10 grep -qs "Loaded custom plugins: .*Gerrit" "$log" ||
             { errors >&2; stop; echo "the IDE did not load the plugin" >&2; exit 1; }
         # 2020.3 shows the frame while its untitled "Loading project" dialog is still up for a few seconds
-        wait_for 300 frame && { sleep 5; echo "IDE up: log $log"; return; }
+        if wait_for 300 frame; then
+            # no window manager places it: pinned to the display, so every component is on screen
+            for w in $(xdotool search --name '^demo'); do  # a loading window can be gone by now
+                xdotool windowsize "$w" 1600 1000 windowmove "$w" 0 0 2> /dev/null || true
+            done
+            [ ! -d "$dir/plugins/robot-server-plugin" ] || wait_for 60 robot_up ||
+                echo "the robot server did not answer on 127.0.0.1:8082: robot.py will not work" >&2
+            sleep 5
+            kill -0 "$pid" 2> /dev/null && { echo "IDE up: log $log"; return; }
+        fi
     fi
     tail -20 "$dir/stdout.log" >&2; stop
     echo "IDE did not come up, see $log" >&2; exit 1
@@ -170,5 +214,5 @@ case ${1:-} in
     start) start "${2:-}" ;;
     stop) stop ;;
     errors) errors ;;
-    *) echo "usage: $0 start [<ide dir>] | stop | errors" >&2; exit 2 ;;
+    *) echo "usage: $0 start [latest|<ide dir>] | stop | errors" >&2; exit 2 ;;
 esac

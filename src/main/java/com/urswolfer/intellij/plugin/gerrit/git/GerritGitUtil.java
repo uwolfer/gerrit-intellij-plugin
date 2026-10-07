@@ -41,7 +41,7 @@ import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.VcsShortCommitDetails;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -98,9 +99,16 @@ public final class GerritGitUtil {
     }
 
     public Optional<GitRepository> getRepositoryForChange(Project project, ChangeInfo change) {
-        GerritSettings settings = GerritSettings.getInstance();
+        GerritProjectAccount account = GerritProjectAccount.getInstance(project);
         return getRepositoryForChange(getRepositories(project), project.getBasePath(),
-            settings.getHost(), settings.getCloneBaseUrl(), change);
+            account.getHost(), account.getCloneBaseUrl(), change);
+    }
+
+    /**
+     * Only asked for once the fetch url did not match, so that the account is not looked up for every remote.
+     */
+    private static Supplier<String> cloneBaseUrlOrHost(Project project) {
+        return () -> GerritProjectAccount.getInstance(project).getCloneBaseUrlOrHost();
     }
 
     @VisibleForTesting
@@ -246,7 +254,7 @@ public final class GerritGitUtil {
     }
 
     public Optional<GitRemote> getRemoteForChange(Project project, GitRepository gitRepository, FetchInfo fetchInfo) {
-        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo);
+        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo, cloneBaseUrlOrHost(project));
         if (remotes.isEmpty()) {
             notifyNoRemoteForChange(project, gitRepository);
             return Optional.empty();
@@ -258,10 +266,10 @@ public final class GerritGitUtil {
      * @return the remotes on the Gerrit host, the one the current branch tracks first
      */
     @VisibleForTesting
-    List<GitRemote> getRemotesForChange(GitRepository gitRepository, FetchInfo fetchInfo) {
+    List<GitRemote> getRemotesForChange(GitRepository gitRepository, FetchInfo fetchInfo, Supplier<String> gerritHost) {
         List<GitRemote> remotes = new ArrayList<GitRemote>();
         for (GitRemote remote : gitRepository.getRemotes()) {
-            if (isOnGerritHost(remote, fetchInfo.url)) {
+            if (isOnGerritHost(remote, fetchInfo.url, gerritHost)) {
                 remotes.add(remote);
             }
         }
@@ -274,14 +282,14 @@ public final class GerritGitUtil {
         return remotes;
     }
 
-    private static boolean isOnGerritHost(GitRemote remote, String fetchUrl) {
+    private static boolean isOnGerritHost(GitRemote remote, String fetchUrl, Supplier<String> gerritHost) {
         List<String> repositoryUrls = new ArrayList<String>();
         repositoryUrls.addAll(remote.getUrls());
         repositoryUrls.addAll(remote.getPushUrls());
         for (String repositoryUrl : repositoryUrls) {
             try {
                 if (UrlUtils.urlHasSameHost(repositoryUrl, fetchUrl)
-                    || UrlUtils.urlHasSameHost(repositoryUrl, GerritSettings.getInstance().getCloneBaseUrlOrHost())) {
+                    || UrlUtils.urlHasSameHost(repositoryUrl, gerritHost.get())) {
                     return true;
                 }
             } catch (IllegalArgumentException e) { // java.net.URI rejects some remotes git accepts; not one to fetch from
@@ -338,7 +346,7 @@ public final class GerritGitUtil {
             runCallback(fetchCallback);
             return;
         }
-        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo);
+        List<GitRemote> remotes = getRemotesForChange(gitRepository, fetchInfo, cloneBaseUrlOrHost(project));
         if (remotes.isEmpty()) {
             notifyNoRemoteForChange(project, gitRepository);
             return;

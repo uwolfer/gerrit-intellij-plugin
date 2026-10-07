@@ -28,6 +28,7 @@ import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -61,7 +62,8 @@ public class ReviewActionGroup extends ActionGroup implements UpdateInBackground
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 
     @NotNull

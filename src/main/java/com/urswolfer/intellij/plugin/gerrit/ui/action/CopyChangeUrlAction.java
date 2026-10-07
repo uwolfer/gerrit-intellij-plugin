@@ -20,7 +20,8 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.ide.CopyPasteManager;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
@@ -31,7 +32,6 @@ import java.util.Optional;
  * @author Urs Wolfer
  */
 public class CopyChangeUrlAction extends AbstractChangeAction {
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
     public CopyChangeUrlAction() {
@@ -41,12 +41,13 @@ public class CopyChangeUrlAction extends AbstractChangeAction {
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
-        if (!selectedChange.isPresent()) {
+        Project project = anActionEvent.getProject();
+        if (project == null || !selectedChange.isPresent()) {
             return;
         }
-        String url = OpenInBrowserAction.getUrl(gerritSettings.getHost(), selectedChange.get());
+        String url = OpenInBrowserAction.getUrl(GerritProjectAccount.getInstance(project).getHost(), selectedChange.get());
         CopyPasteManager.getInstance().setContents(new StringSelection(url));
-        NotificationBuilder builder = new NotificationBuilder(anActionEvent.getProject(), "Copy", "Copied change URL to clipboard.");
+        NotificationBuilder builder = new NotificationBuilder(project, "Copy", "Copied change URL to clipboard.");
         notificationService.notify(builder);
     }
 
@@ -56,7 +57,8 @@ public class CopyChangeUrlAction extends AbstractChangeAction {
     @Override
     public void update(AnActionEvent e) {
         super.update(e);
-        String host = gerritSettings.getHost();
-        e.getPresentation().setEnabled(host != null && !host.isEmpty());
+        Project project = e.getProject();
+        e.getPresentation().setEnabled(project != null
+            && !GerritProjectAccount.getInstance(project).getHost().isEmpty());
     }
 }

@@ -29,7 +29,7 @@ import com.intellij.vcs.log.CommitId;
 import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import git4idea.GitUtil;
@@ -71,9 +71,8 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
     @Override
     public void update(@NotNull AnActionEvent e) {
         VcsLog log = e.getData(VcsLogDataKeys.VCS_LOG);
-        String host = GerritSettings.getInstance().getHost();
         Project project = e.getProject();
-        if (project == null || log == null || host == null || host.isEmpty()) {
+        if (project == null || log == null || GerritProjectAccount.getInstance(project).getHost().isEmpty()) {
             e.getPresentation().setEnabledAndVisible(false);
             return;
         }

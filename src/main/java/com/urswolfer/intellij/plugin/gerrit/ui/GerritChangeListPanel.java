@@ -43,6 +43,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
@@ -185,7 +186,18 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     }
 
     public void showSetupHintWhenRequired(final Project project) {
-        if (!gerritSettings.isLoginAndPasswordAvailable()) {
+        GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
+        if (projectAccount.needsChoice()) { // set up, only not for this project: telling to set it up would mislead
+            StatusText emptyText = table.getEmptyText();
+            emptyText.appendText("Press the refresh button to choose the Gerrit account of this project, or open ");
+            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
+                }
+            });
+            emptyText.appendText(".");
+        } else if (!projectAccount.isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
             emptyText.appendText("Open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {

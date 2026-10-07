@@ -54,6 +54,9 @@ import com.intellij.util.Consumer;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccountAuthData;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.LoginDialog;
@@ -105,10 +108,15 @@ public final class GerritUtil {
     }
 
     /**
-     * Looked up per call rather than held in a field, so this class stays constructible outside a running IDE.
+     * Looked up per call rather than held in a field, so this class stays constructible outside a running IDE. A
+     * project without an account gets the api of none, which fails the way an unconfigured host always has.
      */
-    private GerritRestApi gerritApi() {
-        return GerritApiProvider.getInstance().get();
+    private GerritRestApi gerritApi(Project project) {
+        return GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get());
+    }
+
+    private boolean isLoginAndPasswordAvailable(Project project) {
+        return GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable();
     }
 
     public <T> T accessToGerritWithModalProgress(Project project,
@@ -138,7 +146,7 @@ public final class GerritUtil {
             @Override
             public ChangeInfo get() {
                 try {
-                    return gerritApi().changes().create(changeInput).info();
+                    return gerritApi(project).changes().create(changeInput).info();
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
                 }
@@ -155,7 +163,7 @@ public final class GerritUtil {
             @Override
             public ChangeInfo get() {
                 try {
-                    return gerritApi().changes().id(changeId).createMergePatchSet(mergePatchSetInput);
+                    return gerritApi(project).changes().id(changeId).createMergePatchSet(mergePatchSetInput);
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
                 }
@@ -173,7 +181,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).revision(revision).review(reviewInput);
+                    gerritApi(project).changes().id(changeId).revision(revision).review(reviewInput);
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -191,7 +199,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).current().submit(submitInput);
+                    gerritApi(project).changes().id(changeId).current().submit(submitInput);
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -209,7 +217,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).publish();
+                    gerritApi(project).changes().id(changeId).publish();
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -227,7 +235,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).delete();
+                    gerritApi(project).changes().id(changeId).delete();
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -246,7 +254,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).abandon(abandonInput);
+                    gerritApi(project).changes().id(changeId).abandon(abandonInput);
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -265,7 +273,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeId).addReviewer(reviewerName);
+                    gerritApi(project).changes().id(changeId).addReviewer(reviewerName);
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -285,7 +293,7 @@ public final class GerritUtil {
                             final Consumer<AccountInfo> consumer) {
         Supplier<AccountInfo> supplier = () -> {
             try {
-                ChangeApi changeApi = gerritApi().changes().id(changeId);
+                ChangeApi changeApi = gerritApi(project).changes().id(changeId);
                 if (assignee.isEmpty()) {
                     changeApi.deleteAssignee();
                     return null;
@@ -313,9 +321,9 @@ public final class GerritUtil {
             public Void get() {
                 try {
                     if (starred) {
-                        gerritApi().accounts().self().starChange(id);
+                        gerritApi(project).accounts().self().starChange(id);
                     } else {
-                        gerritApi().accounts().self().unstarChange(id);
+                        gerritApi(project).accounts().self().unstarChange(id);
                     }
                     return null;
                 } catch (RestApiException e) {
@@ -332,14 +340,14 @@ public final class GerritUtil {
                             final String revision,
                             final String filePath,
                             final Project project) {
-        if (!GerritSettings.getInstance().isLoginAndPasswordAvailable()) {
+        if (!isLoginAndPasswordAvailable(project)) {
             return;
         }
         Supplier<Void> supplier = new Supplier<Void>() {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeNr).revision(revision).setReviewed(filePath, true);
+                    gerritApi(project).changes().id(changeNr).revision(revision).setReviewed(filePath, true);
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -350,7 +358,7 @@ public final class GerritUtil {
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {
-        Changes.QueryRequest queryRequest = gerritApi().changes().query("is:open+reviewer:self")
+        Changes.QueryRequest queryRequest = gerritApi(project).changes().query("is:open+reviewer:self")
             .withOption(ListChangesOption.DETAILED_ACCOUNTS);
         getChanges(queryRequest, project, consumer);
     }
@@ -373,7 +381,7 @@ public final class GerritUtil {
             public LoadChangesProxy get() {
                 List<Changes.QueryRequest> queryRequests = new ArrayList<>();
                 for (String query : queries) {
-                    queryRequests.add(gerritApi().changes().query(query)
+                    queryRequests.add(gerritApi(project).changes().query(query)
                             .withOptions(EnumSet.of(
                                 ListChangesOption.ALL_REVISIONS,
                                 ListChangesOption.DETAILED_ACCOUNTS,
@@ -452,7 +460,7 @@ public final class GerritUtil {
         }
         List<String> projectNames = new ArrayList<>();
         for (GitRepository repository : repositories) {
-            projectNames.addAll(getProjectNames(repository.getRemotes()));
+            projectNames.addAll(getProjectNames(project, repository.getRemotes()));
         }
         return appendProjectQueryParts(query, projectNames, MAX_QUERY_LENGTH);
     }
@@ -484,9 +492,10 @@ public final class GerritUtil {
         return queries;
     }
 
-    public List<String> getProjectNames(Collection<GitRemote> remotes) {
-        GerritSettings settings = GerritSettings.getInstance();
-        return getProjectNames(remotes, settings.getHost(), settings.getCloneBaseUrl());
+    public List<String> getProjectNames(Project project, Collection<GitRemote> remotes) {
+        GerritAccount account = GerritProjectAccount.getInstance(project).get();
+        return account != null ? getProjectNames(remotes, account.host, account.cloneBaseUrl)
+            : getProjectNames(remotes, "", "");
     }
 
     /**
@@ -554,7 +563,7 @@ public final class GerritUtil {
             @Override
             public String get() {
                 try {
-                    return gerritApi().projects().name(projectName).head();
+                    return gerritApi(project).projects().name(projectName).head();
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
                 }
@@ -571,7 +580,7 @@ public final class GerritUtil {
             public List<String> get() {
                 try {
                     List<String> branches = new ArrayList<>();
-                    for (BranchInfo branchInfo : gerritApi().projects().name(projectName).branches().get()) {
+                    for (BranchInfo branchInfo : gerritApi(project).projects().name(projectName).branches().get()) {
                         if (branchInfo == null || branchInfo.ref == null || branchInfo.ref.isEmpty()) {
                             continue;
                         }
@@ -666,17 +675,17 @@ public final class GerritUtil {
                             ListChangesOption.DETAILED_LABELS);
                     try {
                         if (projectName == null) {
-                            return gerritApi().changes().id(changeNr).get(options);
+                            return gerritApi(project).changes().id(changeNr).get(options);
                         }
-                        return gerritApi().changes().id(projectName, changeNr).get(options);
+                        return gerritApi(project).changes().id(projectName, changeNr).get(options);
                     } catch (HttpStatusException e) {
                         // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
                         if (e.getStatusCode() == 400) {
                             options.remove(ListChangesOption.MESSAGES);
                             if (projectName == null) {
-                                return gerritApi().changes().id(changeNr).get(options);
+                                return gerritApi(project).changes().id(changeNr).get(options);
                             }
-                            return gerritApi().changes().id(projectName, changeNr).get(options);
+                            return gerritApi(project).changes().id(projectName, changeNr).get(options);
                         } else {
                             throw e;
                         }
@@ -706,14 +715,14 @@ public final class GerritUtil {
                 try {
                     Map<String, List<CommentInfo>> comments;
                     if (includePublishedComments) {
-                        comments = gerritApi().changes().id(changeNr).revision(revision).comments();
+                        comments = gerritApi(project).changes().id(changeNr).revision(revision).comments();
                     } else {
                         comments = new HashMap<>();
                     }
 
                     Map<String, List<CommentInfo>> drafts;
-                    if (includeDraftComments && GerritSettings.getInstance().isLoginAndPasswordAvailable()) {
-                        drafts = gerritApi().changes().id(changeNr).revision(revision).drafts();
+                    if (includeDraftComments && isLoginAndPasswordAvailable(project)) {
+                        drafts = gerritApi(project).changes().id(changeNr).revision(revision).drafts();
                     } else {
                         drafts = new HashMap<>();
                     }
@@ -751,10 +760,10 @@ public final class GerritUtil {
                 try {
                     CommentInfo commentInfo;
                     if (draftInput.id != null) {
-                        commentInfo = gerritApi().changes().id(changeNr).revision(revision)
+                        commentInfo = gerritApi(project).changes().id(changeNr).revision(revision)
                                 .draft(draftInput.id).update(draftInput);
                     } else {
-                        DraftApi draftApi = gerritApi().changes().id(changeNr).revision(revision)
+                        DraftApi draftApi = gerritApi(project).changes().id(changeNr).revision(revision)
                                 .createDraft(draftInput);
                         commentInfo = draftApi.get();
                     }
@@ -776,7 +785,7 @@ public final class GerritUtil {
             @Override
             public Void get() {
                 try {
-                    gerritApi().changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
+                    gerritApi(project).changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
                     return null;
                 } catch (RestApiException e) {
                     throw new RuntimeException(e);
@@ -804,7 +813,7 @@ public final class GerritUtil {
      */
     public boolean checkCredentials(final Project project) {
         try {
-            return checkCredentials(project, GerritSettings.getInstance());
+            return checkCredentials(project, new GerritAccountAuthData(GerritProjectAccount.getInstance(project).getId()));
         } catch (Exception e) {
             // this method is a quick-check if we've got valid user setup.
             // if an exception happens, we'll show the reason in the login dialog that will be shown right after checkCredentials failure.
@@ -844,7 +853,7 @@ public final class GerritUtil {
             @Override
             public List<ProjectInfo> compute() throws Exception {
                 ProgressManager.getInstance().getProgressIndicator().setText("Extracting info about available repositories");
-                return gerritApi().projects().list().get();
+                return gerritApi(project).projects().list().get();
             }
         });
     }
@@ -855,11 +864,11 @@ public final class GerritUtil {
         }
         RevisionInfo revisionInfo =
             changeDetails.revisions.get(SelectedRevisions.getInstance(project).get(changeDetails));
-        return getFirstFetchInfo(revisionInfo);
+        return getFirstFetchInfo(project, revisionInfo);
     }
 
-    public FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo) {
-        return getFirstFetchInfo(revisionInfo, () -> GerritSettings.getInstance().getHost());
+    public FetchInfo getFirstFetchInfo(Project project, RevisionInfo revisionInfo) {
+        return getFirstFetchInfo(revisionInfo, () -> GerritProjectAccount.getInstance(project).getHost());
     }
 
     /**
@@ -867,8 +876,7 @@ public final class GerritUtil {
      * download-commands, installed. Since Gerrit 2.11 every patch set can still be fetched by its ref. Remotes are
      * matched against the clone base URL anyway, so the host makes the ones on it match as well.
      */
-    @VisibleForTesting
-    static FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo, Supplier<String> gerritUrl) {
+    public static FetchInfo getFirstFetchInfo(RevisionInfo revisionInfo, Supplier<String> gerritUrl) {
         if (revisionInfo == null) {
             return null;
         }

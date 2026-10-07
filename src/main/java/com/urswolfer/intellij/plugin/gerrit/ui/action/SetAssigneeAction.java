@@ -30,6 +30,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
@@ -61,7 +62,7 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
         ChangeInfo changeInfo = selectedChange.get();
         GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
 
-        SetAssigneeDialog dialog = new SetAssigneeDialog(project, GerritApiProvider.getInstance().get(), changeInfo);
+        SetAssigneeDialog dialog = new SetAssigneeDialog(project, GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()), changeInfo);
         if (!dialog.showAndGet()) {
             return;
         }

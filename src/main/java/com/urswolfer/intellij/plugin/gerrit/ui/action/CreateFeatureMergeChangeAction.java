@@ -22,7 +22,7 @@ import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
@@ -48,7 +48,6 @@ import java.util.Set;
 @SuppressWarnings("ComponentNotRegistered")
 public class CreateFeatureMergeChangeAction extends AnAction implements DumbAware, UpdateInBackground {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
@@ -58,7 +57,8 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(gerritSettings.isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(e.getProject() != null
+            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
     }
 
     @Override
@@ -156,9 +156,9 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                                     @Nullable GitRemoteBranch upstreamBranch) {
         List<String> projectNames;
         if (upstreamBranch == null || upstreamBranch.getRemote() == null) {
-            projectNames = gerritUtil.getProjectNames(repository.getRemotes());
+            projectNames = gerritUtil.getProjectNames(project, repository.getRemotes());
         } else {
-            projectNames = gerritUtil.getProjectNames(Collections.singletonList(upstreamBranch.getRemote()));
+            projectNames = gerritUtil.getProjectNames(project, Collections.singletonList(upstreamBranch.getRemote()));
         }
 
         Set<String> uniqueProjectNames = new LinkedHashSet<String>(projectNames);

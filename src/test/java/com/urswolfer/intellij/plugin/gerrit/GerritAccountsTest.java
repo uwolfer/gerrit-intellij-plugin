@@ -255,6 +255,60 @@ public class GerritAccountsTest {
         Assert.assertNull(store.passwordAt(GerritAccounts.attributesFor(account)));
     }
 
+    /**
+     * Entering a password stops the account from reading the key of an earlier version, but leaves that key for a
+     * downgrade. Removing the account is the last chance to clear it.
+     */
+    @Test
+    public void testRemovingAnAccountWhosePasswordWasReplacedClearsTheOlderKeys() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        store.put(legacySettingsKey(), "old");
+        store.put(legacyClassKey(), "ancient");
+        accounts.setPassword(account, "");
+
+        accounts.remove(account);
+
+        Assert.assertNull(store.passwordAt(legacySettingsKey()));
+        Assert.assertNull(store.passwordAt(legacyClassKey()));
+    }
+
+    /**
+     * An account which still reads the key of an earlier version keeps it, whichever other account goes.
+     */
+    @Test
+    public void testRemovingAnotherAccountLeavesTheOlderKeysToTheOneReadingThem() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount other = GerritAccount.create("https://other.example.com", "jdoe", "");
+        accounts.put(other);
+        store.put(legacySettingsKey(), "old");
+
+        accounts.remove(other);
+
+        Assert.assertEquals(store.passwordAt(legacySettingsKey()), "old");
+        Assert.assertEquals(accounts.getPassword(accounts.getDefaultAccount()), "old");
+    }
+
+    /**
+     * Git forgetting the password of another instance says nothing about the one an earlier version kept for a
+     * downgrade.
+     */
+    @Test
+    public void testForgettingAnotherAccountsPasswordLeavesTheOlderKeys() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        accounts.setPassword(accounts.getDefaultAccount(), "new");
+        GerritAccount other = GerritAccount.create("https://other.example.com", "jdoe", "");
+        accounts.put(other);
+        store.put(legacySettingsKey(), "old");
+
+        accounts.forgetPassword(other);
+
+        Assert.assertEquals(store.passwordAt(legacySettingsKey()), "old");
+    }
+
     private static GerritAccounts seeded(GerritAccounts.CredentialStore store) {
         GerritAccounts accounts = new GerritAccounts();
         accounts.setCredentialStore(store);
@@ -314,6 +368,18 @@ public class GerritAccountsTest {
         state.seeded = seeded;
         state.accounts = java.util.Arrays.asList(accounts);
         return state;
+    }
+
+    /**
+     * The accounts are synced between machines but the credential store is not, so a machine which has not moved
+     * the password yet still has to know that it may be under the key an earlier version used.
+     */
+    @Test
+    public void testTheLegacyKeyMarkerSurvivesBeingCopied() {
+        GerritAccount account = GerritAccount.create("https://gerrit.example.com", "jdoe", "");
+        account.usesLegacyPasswordKey = true;
+
+        Assert.assertTrue(account.copy().usesLegacyPasswordKey);
     }
 
     private static CredentialAttributes constant(String fieldName) throws Exception {

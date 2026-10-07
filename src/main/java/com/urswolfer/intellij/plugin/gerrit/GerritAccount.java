@@ -19,6 +19,8 @@ package com.urswolfer.intellij.plugin.gerrit;
 import com.intellij.util.xmlb.annotations.Attribute;
 import com.intellij.util.xmlb.annotations.Tag;
 import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -64,8 +66,37 @@ public final class GerritAccount {
         return account;
     }
 
+    public GerritAccount copy() {
+        GerritAccount copy = new GerritAccount();
+        copy.id = id;
+        copy.login = login;
+        copy.host = host;
+        copy.cloneBaseUrl = cloneBaseUrl;
+        copy.gitilesUrl = gitilesUrl;
+        copy.usesLegacyPasswordKey = usesLegacyPasswordKey;
+        return copy;
+    }
+
     public String getCloneBaseUrlOrHost() {
         return cloneBaseUrl == null || cloneBaseUrl.isEmpty() ? host : cloneBaseUrl;
+    }
+
+    /**
+     * @return whether the url is on this account's instance, under its web url or its clone base url
+     */
+    public boolean isOnInstance(String url) {
+        return isOnHost(url, host) || isOnHost(url, cloneBaseUrl);
+    }
+
+    private static boolean isOnHost(String url, @Nullable String accountUrl) {
+        if (accountUrl == null || accountUrl.isEmpty()) {
+            return false;
+        }
+        try {
+            return UrlUtils.urlHasSameHost(url, accountUrl);
+        } catch (IllegalArgumentException e) { // java.net.URI rejects some remotes git accepts; on no host then
+            return false;
+        }
     }
 
     public String getGitilesUrlOrDefault() {

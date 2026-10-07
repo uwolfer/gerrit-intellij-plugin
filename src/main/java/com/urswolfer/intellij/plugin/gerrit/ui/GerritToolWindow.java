@@ -30,11 +30,15 @@ import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
@@ -193,8 +197,8 @@ public class GerritToolWindow implements Disposable {
      * Shows what the query finds, whatever the filters were set to, and selects the change if it is the only one.
      */
     public void showChanges(Project project, String query) {
-        String host = gerritSettings.getHost();
-        if (host == null || host.isEmpty()) { // the filters would show the lookup over a list which never loads
+        String host = GerritProjectAccount.getInstance(project).getHost();
+        if (host.isEmpty()) { // the filters would show the lookup over a list which never loads
             return;
         }
         changesFilters.showLookup(query);
@@ -202,8 +206,12 @@ public class GerritToolWindow implements Disposable {
     }
 
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
-        String apiUrl = gerritSettings.getHost();
-        if (apiUrl == null || apiUrl.isEmpty()) {
+        GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
+        if (projectAccount.needsChoice() && (!requestSettingsIfNonExistent || !chooseAccount(project, projectAccount))) {
+            return;
+        }
+        String apiUrl = projectAccount.getHost();
+        if (apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
                 final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
                 dialog.show();
@@ -229,6 +237,25 @@ public class GerritToolWindow implements Disposable {
         } else {
             gerritUtil.getChangesForProject(query, project, consumer);
         }
+    }
+
+    /**
+     * Asking beats the login dialog here: the accounts exist and have their passwords, it is only unknown which of
+     * them this project belongs to.
+     */
+    private boolean chooseAccount(Project project, GerritProjectAccount projectAccount) {
+        List<GerritAccount> accounts = GerritAccounts.getInstance().getAccounts();
+        String[] labels = new String[accounts.size()];
+        for (int i = 0; i < accounts.size(); i++) {
+            labels[i] = accounts.get(i).toString();
+        }
+        int index = Messages.showChooseDialog(project, "Which Gerrit account does this project use?",
+            "Select Gerrit Account", Messages.getQuestionIcon(), labels, labels[0]);
+        if (index < 0) {
+            return false;
+        }
+        projectAccount.set(accounts.get(index));
+        return true;
     }
 
     private ActionToolbar createToolbar(final Project project) {

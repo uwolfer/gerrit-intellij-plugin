@@ -25,6 +25,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Alarm;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -93,8 +94,8 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             return;
         }
 
-        String host = gerritSettings.getHost();
-        String login = gerritSettings.getLogin();
+        String host = GerritProjectAccount.getInstance(project).getHost();
+        String login = GerritProjectAccount.getInstance(project).getLogin();
         if (host == null || host.isEmpty() || login == null || login.isEmpty()) {
             return;
         }

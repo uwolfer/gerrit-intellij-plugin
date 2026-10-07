@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import git4idea.GitUtil;
 import git4idea.repo.GitBranchTrackInfo;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Finds the remote of a repository which leads to a project on the configured Gerrit.
+ * Finds the remote of a repository which leads to a project on the Gerrit its project talks to.
  *
  * @author Urs Wolfer
  */
@@ -56,9 +56,9 @@ public final class GerritRemotes {
         }
         remotes.addAll(repository.getRemotes());
 
-        GerritSettings settings = GerritSettings.getInstance();
+        GerritProjectAccount account = GerritProjectAccount.getInstance(repository.getProject());
         Set<String> gerritUrls = new LinkedHashSet<>();
-        for (String gerritUrl : new String[]{settings.getHost(), settings.getCloneBaseUrlOrHost(), extraUrl}) {
+        for (String gerritUrl : new String[]{account.getHost(), account.getCloneBaseUrlOrHost(), extraUrl}) {
             if (gerritUrl != null && !gerritUrl.isEmpty()) {
                 gerritUrls.add(gerritUrl);
             }

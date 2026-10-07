@@ -64,8 +64,9 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
 
     /**
      * Where the password of the single configured instance was kept before accounts existed, and before that again
-     * under the name of the class which held it. Both are still read, and never written or cleared: a user who skips
-     * a release upgrades from whichever of them their installation last wrote.
+     * under the name of the class which held it. Both are still read and never written, and only cleared along with
+     * the password of the account which reads them, or of the last account: a user who skips a release upgrades from
+     * whichever of them their installation last wrote.
      */
     private static final CredentialAttributes LEGACY_SETTINGS_ATTRIBUTES = new CredentialAttributes(
             CredentialAttributesKt.generateServiceName("Gerrit", GERRIT_SETTINGS_PASSWORD_KEY),
@@ -149,17 +150,6 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
         return current.isEmpty() ? null : current.get(0);
     }
 
-    /**
-     * The default account as far as it is already known, without seeding one from the settings of an earlier
-     * version. Serialization uses this: growing an account while the state is being written would be a surprising
-     * place for it to happen.
-     */
-    @Nullable
-    public GerritAccount peekDefaultAccount() {
-        List<GerritAccount> current = snapshot.accounts;
-        return current.isEmpty() ? null : current.get(0);
-    }
-
     @Nullable
     public GerritAccount findById(@Nullable String id) {
         if (id == null) {
@@ -196,7 +186,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             snapshot = new Snapshot(snapshot.seeded, updated);
         }
         // not through forgetPassword: putting the account back is exactly what it must not do here
-        clearStoredPassword(account);
+        clearPasswordOfRemoved(account);
     }
 
     /**
@@ -259,8 +249,8 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     /**
-     * Reading the credential store blocks and must not happen on the event dispatch thread; UI code goes through the
-     * modal progress in {@link GerritSettings} instead.
+     * Reading the credential store blocks and must not happen on the event dispatch thread; UI code goes through a
+     * modal progress instead, such as {@link GerritProjectAccount#getPasswordWithModalProgress}.
      *
      * The whole lookup runs under the lock: a password set or forgotten between reading the older key and writing
      * what it held to the account's own would otherwise be overwritten, or brought back.
@@ -334,9 +324,24 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     /**
+     * Clears the password of an account which is no longer listed, and the key an earlier version used once no
+     * account is left at all. Entering a password stops an account from reading that key but leaves it for a
+     * downgrade, so removing the last account would otherwise leave the old password behind for good.
+     */
+    public void clearPasswordOfRemoved(@NotNull GerritAccount account) {
+        synchronized (lock) {
+            clearStoredPassword(account);
+            if (snapshot.accounts.isEmpty()) {
+                credentialStore.set(LEGACY_SETTINGS_ATTRIBUTES, null);
+                credentialStore.set(LEGACY_CLASS_ATTRIBUTES, null);
+            }
+        }
+    }
+
+    /**
      * The password of an account which predates them can still be sitting under either of the two keys earlier
-     * versions used. Neither is cleared once it has been read: that is what lets a downgrade, and a machine the
-     * accounts were synced to, still find it.
+     * versions used. Reading does not clear them: that is what lets a downgrade, and a machine the accounts were
+     * synced to, still find it.
      */
     @Nullable
     private String readLegacy() {

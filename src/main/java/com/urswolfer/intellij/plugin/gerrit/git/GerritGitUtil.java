@@ -622,6 +622,8 @@ public final class GerritGitUtil {
     public boolean differsFromRevision(GitRepository repository, String revision, String path) throws VcsException {
         GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.DIFF);
         h.setSilent(true);
+        // git diff reads a path as a glob, so pages/[id].tsx would also stand for a changed pages/i.tsx
+        h.addCustomEnvironmentVariable("GIT_LITERAL_PATHSPECS", "1");
         h.addParameters("--name-only", revision);
         h.endOptions();
         h.addParameters(path);

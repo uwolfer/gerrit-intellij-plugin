@@ -42,11 +42,14 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.StatusText;
+import com.intellij.util.ui.EmptyIcon;
+import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
+import com.urswolfer.intellij.plugin.gerrit.ui.avatar.AvatarIcons;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepositoryManager;
 import org.jetbrains.annotations.NotNull;
@@ -85,6 +88,9 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
      */
     public static final DataKey<ChangeInfo> SELECTED_CHANGE = DataKey.create("Gerrit.SelectedChange");
 
+    private static final int AVATAR_SIZE = 16;
+    private static final int AVATAR_GAP = 4;
+
     private final SelectedRevisions selectedRevisions;
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final GerritSettings gerritSettings;
@@ -99,6 +105,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private Project project;
 
     private final JScrollPane scrollPane;
+    private final AvatarIcons avatarIcons;
 
     public GerritChangeListPanel(Project project) {
         this.project = project;
@@ -106,6 +113,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         this.selectRevisionInfoColumn = new GerritSelectRevisionInfoColumn(project);
         this.gerritSettings = GerritSettings.getInstance();
         this.changes = new ArrayList<>();
+        this.avatarIcons = new AvatarIcons(this, AVATAR_SIZE);
 
         this.table = new TableView<ChangeInfo>();
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -401,11 +409,19 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 }
             }
         );
+        // not for a Gerrit which sends none: the column would keep room for icons which never come
+        boolean showAvatars = gerritSettings.getShowAvatars()
+            && changes.stream().anyMatch(change -> AvatarIcons.hasAvatar(change.owner));
         columnList.add(
             new GerritChangeColumnInfo("Owner", author.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getOwner(change);
+                }
+
+                @Override
+                public int getAdditionalWidth() {
+                    return super.getAdditionalWidth() + (showAvatars ? JBUI.scale(AVATAR_SIZE + AVATAR_GAP) : 0);
                 }
 
                 @Nullable
@@ -416,6 +432,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                             JLabel labelComponent = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                             labelComponent.setToolTipText(getAccountTooltip(changeInfo.owner));
+                            Icon avatar = showAvatars ? avatarIcons.getIcon(changeInfo.owner) : null;
+                            // an owner without one keeps the room, so that the names stay in line
+                            labelComponent.setIcon(showAvatars && avatar == null ? EmptyIcon.create(AVATAR_SIZE) : avatar);
+                            labelComponent.setIconTextGap(JBUI.scale(AVATAR_GAP));
                             return labelComponent;
                         }
                     };

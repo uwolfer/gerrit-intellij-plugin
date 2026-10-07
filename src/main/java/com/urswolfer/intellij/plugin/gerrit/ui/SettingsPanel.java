@@ -78,6 +78,7 @@ public class SettingsPanel {
     private JCheckBox showChangeNumberColumnCheckBox;
     private JCheckBox showChangeIdColumnCheckBox;
     private JCheckBox showTopicColumnCheckBox;
+    private JCheckBox showAvatarsCheckBox;
     private JComboBox showProjectColumnComboBox;
     private JLabel minutesLabel;
     private JLabel listAllHint;
@@ -349,6 +350,14 @@ public class SettingsPanel {
 
     public void setShowTopicColumn(final boolean showTopicColumn) {
         showTopicColumnCheckBox.setSelected(showTopicColumn);
+    }
+
+    public boolean getShowAvatars() {
+        return showAvatarsCheckBox.isSelected();
+    }
+
+    public void setShowAvatars(final boolean showAvatars) {
+        showAvatarsCheckBox.setSelected(showAvatars);
     }
 
     public ShowProjectColumn getShowProjectColumn() {

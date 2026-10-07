@@ -63,6 +63,7 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
         @Property(alwaysWrite = true) @Attribute("ShowChangeNumberColumn") public boolean showChangeNumberColumn = false;
         @Property(alwaysWrite = true) @Attribute("ShowChangeIdColumn") public boolean showChangeIdColumn = false;
         @Property(alwaysWrite = true) @Attribute("ShowTopicColumn") public boolean showTopicColumn = false;
+        @Property(alwaysWrite = true) @Attribute("ShowAvatars") public boolean showAvatars = true;
         @Property(alwaysWrite = true)
         @Attribute(value = "ShowProjectColumn", converter = ShowProjectColumnConverter.class)
         public ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
@@ -187,6 +188,14 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public void setShowTopicColumn(boolean showTopicColumn) {
         state.showTopicColumn = showTopicColumn;
+    }
+
+    public boolean getShowAvatars() {
+        return state.showAvatars;
+    }
+
+    public void setShowAvatars(boolean showAvatars) {
+        state.showAvatars = showAvatars;
     }
 
     /**

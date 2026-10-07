@@ -8,7 +8,10 @@ import org.jdom.Element;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class GerritSettingsTest {
@@ -38,8 +41,19 @@ public class GerritSettingsTest {
         Assert.assertTrue(state.showChangeNumberColumn);
         Assert.assertTrue(state.showChangeIdColumn);
         Assert.assertTrue(state.showTopicColumn);
+        Assert.assertTrue(state.showAvatars, "on for whoever upgrades");
         Assert.assertEquals(state.showProjectColumn, ShowProjectColumn.NEVER);
         Assert.assertEquals(state.cloneBaseUrl, "https://clone.example.com");
+    }
+
+    @Test
+    public void testAvatarsTurnedOffStayOff() throws Exception {
+        String off = LEGACY_SETTINGS_XML.replace(" CloneBaseUrl=", " ShowAvatars=\"false\" CloneBaseUrl=");
+
+        GerritSettings.SettingsState state = deserialize(off);
+
+        Assert.assertFalse(state.showAvatars);
+        Assert.assertEquals(attributesOf(serialize(state)).get("ShowAvatars"), "false");
     }
 
     /**
@@ -50,7 +64,9 @@ public class GerritSettingsTest {
     public void testSettingsAreWrittenUnderTheAttributeNamesOfEarlierVersions() throws Exception {
         Map<String, String> written = attributesOf(serialize(deserialize(LEGACY_SETTINGS_XML)));
 
-        Assert.assertEquals(written, attributesOf(parse(LEGACY_SETTINGS_XML)));
+        Map<String, String> expected = new HashMap<>(attributesOf(parse(LEGACY_SETTINGS_XML)));
+        expected.put("ShowAvatars", "true"); // new, and ignored by earlier versions as any attribute they do not know
+        Assert.assertEquals(written, expected);
     }
 
     /**
@@ -61,10 +77,13 @@ public class GerritSettingsTest {
     public void testDefaultsAreWrittenSoEarlierVersionsDoNotReadThemAsFalse() throws Exception {
         Map<String, String> written = attributesOf(serialize(new GerritSettings.SettingsState()));
 
-        Assert.assertEquals(written.keySet(), attributesOf(parse(LEGACY_SETTINGS_XML)).keySet());
+        Set<String> expected = new HashSet<>(attributesOf(parse(LEGACY_SETTINGS_XML)).keySet());
+        expected.add("ShowAvatars");
+        Assert.assertEquals(written.keySet(), expected);
         Assert.assertEquals(written.get("AutomaticRefresh"), "true");
         Assert.assertEquals(written.get("RefreshTimeout"), "15");
         Assert.assertEquals(written.get("ReviewNotifications"), "true");
+        Assert.assertEquals(written.get("ShowAvatars"), "true");
         Assert.assertEquals(written.get("ShowProjectColumn"), "AUTO");
     }
 

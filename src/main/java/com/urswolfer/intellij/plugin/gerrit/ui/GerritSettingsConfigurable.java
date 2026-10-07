@@ -81,6 +81,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
                 !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
+                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
                 !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()));
     }
 
@@ -91,6 +92,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
                 !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
                 !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
+                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
                 !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn());
     }
 
@@ -132,6 +134,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
             gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
             gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
+            gerritSettings.setShowAvatars(settingsPane.getShowAvatars());
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
 
             GerritUpdatesNotificationComponent.configurationChanged();
@@ -201,6 +204,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setShowChangeNumberColumn(gerritSettings.getShowChangeNumberColumn());
             settingsPane.setShowChangeIdColumn(gerritSettings.getShowChangeIdColumn());
             settingsPane.setShowTopicColumn(gerritSettings.getShowTopicColumn());
+            settingsPane.setShowAvatars(gerritSettings.getShowAvatars());
             settingsPane.setShowProjectColumn(gerritSettings.getShowProjectColumn());
         }
     }

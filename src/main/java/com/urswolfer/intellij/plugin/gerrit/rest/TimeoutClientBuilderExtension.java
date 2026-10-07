@@ -26,8 +26,6 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 
-import java.util.Arrays;
-
 /**
  * Without a timeout, a request to a Gerrit which cannot be reached (a VPN which is down drops the packets instead of
  * refusing them) blocks its thread for minutes, among them the suggestions in a text field, which run on each
@@ -36,73 +34,63 @@ import java.util.Arrays;
  * The REST client sets a config of its own on each API request, which replaces the default config of the HTTP
  * client, timeouts included. An interceptor sees the config the request ends up with, before it connects.
  *
- * Reading is left as the request has it: Gerrit can take long for a request such as a submit, and one reported as
- * failed while Gerrit completes it would be tried again. The suggestions of the text fields are the exception: they
- * are only read, on every keystroke, and nobody waits for an old one. Each that hangs - a Gerrit which accepts the
- * connection and never answers - would keep one of the few connections of the account, until every request of the
- * account waits for one, for good. They get the time the IDE gives its own reads, and so do the session check and
- * the login the REST client sends ahead of a request on the same thread: they change nothing, so ahead of a submit
- * too, one which fails is just tried again.
+ * Reading is bounded too. A Gerrit which accepts the connection and never answers would otherwise keep the request
+ * for good - its thread, and whatever waits for it: a background task which never ends, the IDE behind a modal
+ * progress. A GET changes nothing, so one which fails can safely be sent again: it gets the time the IDE gives its
+ * own reads, also in place of the five minutes of the REST client's default config, which the requests it sends ahead
+ * of an API request come with. So does the login it sends ahead, a POST which changes nothing either. Anything else,
+ * such as a submit, can take Gerrit long, and one reported as failed while Gerrit completes it would be sent again:
+ * it gets five minutes.
  */
 public class TimeoutClientBuilderExtension extends HttpClientBuilderExtension {
 
     @Override
     public HttpClientBuilder extend(HttpClientBuilder httpClientBuilder, GerritAuthData authData) {
-        return httpClientBuilder.addInterceptorLast(
-            new TimeoutInterceptor(HttpRequests.CONNECTION_TIMEOUT, HttpRequests.READ_TIMEOUT));
+        return httpClientBuilder.addInterceptorLast(new TimeoutInterceptor(
+            HttpRequests.CONNECTION_TIMEOUT, HttpRequests.READ_TIMEOUT, CHANGE_READ_TIMEOUT_MS));
     }
+
+    static final int CHANGE_READ_TIMEOUT_MS = 300000;
 
     static class TimeoutInterceptor implements HttpRequestInterceptor {
         private final int connectTimeoutMs;
         private final int readTimeoutMs;
+        private final int changeReadTimeoutMs;
 
-        TimeoutInterceptor(int connectTimeoutMs, int readTimeoutMs) {
+        TimeoutInterceptor(int connectTimeoutMs, int readTimeoutMs, int changeReadTimeoutMs) {
             this.connectTimeoutMs = connectTimeoutMs;
             this.readTimeoutMs = readTimeoutMs;
+            this.changeReadTimeoutMs = changeReadTimeoutMs;
         }
 
         @Override
         public void process(HttpRequest request, HttpContext context) {
             HttpClientContext clientContext = HttpClientContext.adapt(context);
-            RequestConfig.Builder config =
-                RequestConfig.copy(clientContext.getRequestConfig()).setConnectTimeout(connectTimeoutMs);
-            if (isSuggestion(request) || isAuthentication(request)) {
+            RequestConfig requestConfig = clientContext.getRequestConfig();
+            RequestConfig.Builder config = RequestConfig.copy(requestConfig).setConnectTimeout(connectTimeoutMs);
+            if (changesNothing(request)) {
                 config.setSocketTimeout(readTimeoutMs);
+            } else if (requestConfig.getSocketTimeout() < 0) {
+                // not left unset: on HTTPS, the socket factory bounds the handshake by making the connect timeout
+                // the read timeout of the socket, and the connection only replaces it with a socket timeout which is
+                // set - one left unset would bound every read by the connect timeout
+                config.setSocketTimeout(changeReadTimeoutMs);
             }
             clientContext.setRequestConfig(config.build());
         }
     }
 
-    /** /changes/{id}/suggest_reviewers, and /accounts/?suggest */
-    static boolean isSuggestion(HttpRequest request) {
-        if (!"GET".equals(request.getRequestLine().getMethod())) {
-            return false;
-        }
-        String path = path(request);
-        String query = query(request);
-        return path.endsWith("/suggest_reviewers")
-            || path.endsWith("/accounts/")
-                && Arrays.stream(query.split("&")).anyMatch(p -> p.equals("suggest") || p.startsWith("suggest="));
+    static boolean changesNothing(HttpRequest request) {
+        String method = request.getRequestLine().getMethod();
+        return "GET".equals(method) || "HEAD".equals(method)
+            || "POST".equals(method) && path(request).endsWith("/login/");
     }
 
-    /** The session check and the login of the REST client: /accounts/self and /login/ */
-    static boolean isAuthentication(HttpRequest request) {
-        String path = path(request);
-        return path.endsWith("/login/")
-            || "GET".equals(request.getRequestLine().getMethod()) && path.endsWith("/accounts/self");
-    }
-
-    // not java.net.URI: with a host saved as "https://gerrit/", the request line is "//accounts/...", which it reads
-    // as a host named "accounts"
+    // not java.net.URI: with a host saved as "https://gerrit/", the request line is "//login/", which it reads as a
+    // host named "login"
     private static String path(HttpRequest request) {
         String uri = request.getRequestLine().getUri();
         int query = uri.indexOf('?');
         return query == -1 ? uri : uri.substring(0, query);
-    }
-
-    private static String query(HttpRequest request) {
-        String uri = request.getRequestLine().getUri();
-        int query = uri.indexOf('?');
-        return query == -1 ? "" : uri.substring(query + 1);
     }
 }

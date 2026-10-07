@@ -85,6 +85,16 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()));
     }
 
+    /** Whether a setting changed which the list of changes is built from: the accounts and the columns. */
+    private boolean isListModified() {
+        return accountsModified() ||
+                !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
+                !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
+                !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
+                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
+                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn());
+    }
+
     private boolean accountsModified() {
         if (!settingsPane.getRemovedAccountIds().isEmpty() || !settingsPane.getEditedPasswords().isEmpty()) {
             return true;
@@ -111,6 +121,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
 
     public void apply() throws ConfigurationException {
         if (settingsPane != null) {
+            boolean listChanged = isListModified();
             applyAccounts();
 
             gerritSettings.setListAllChanges(settingsPane.getListAllChanges());
@@ -125,6 +136,10 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
 
             GerritUpdatesNotificationComponent.configurationChanged();
+            if (listChanged) {
+                ApplicationManager.getApplication().getMessageBus()
+                        .syncPublisher(GerritListSettingsListener.TOPIC).listSettingsChanged();
+            }
 
             if (pushToGerritChanged) {
                 askForRestart();

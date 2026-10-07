@@ -134,6 +134,26 @@ sandbox() {
     </component>
 </application>
 EOF
+    # The IDE picks its proxy from its own settings, not from the JVM's proxy properties, so
+    # HttpRequests (avatars, plugin downloads) would go out directly and be refused where only
+    # the sandbox's proxy gets out. Written on every start: the proxy's port changes between sessions.
+    local proxy=${HTTPS_PROXY:-${https_proxy:-}} host port
+    proxy=${proxy#*://}; proxy=${proxy%%/*}; proxy=${proxy##*@}
+    host=${proxy%:*} port=${proxy##*:}
+    if [ -n "$proxy" ] && [ "$host" != "$proxy" ]; then
+        cat > "$dir/config/options/proxy.settings.xml" <<EOF
+<application>
+    <component name="HttpConfigurable">
+        <option name="USE_HTTP_PROXY" value="true" />
+        <option name="PROXY_HOST" value="$host" />
+        <option name="PROXY_PORT" value="$port" />
+        <option name="PROXY_EXCEPTIONS" value="localhost,127.0.0.1" />
+    </component>
+</application>
+EOF
+    else
+        rm -f "$dir/config/options/proxy.settings.xml"
+    fi
 }
 
 robot_up() { curl -sf --noproxy '*' --max-time 2 -o /dev/null http://127.0.0.1:8082/hello; }

@@ -34,13 +34,17 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
+import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangeListManagerEx;
+import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.openapi.vcs.history.VcsRevisionNumber;
 import com.intellij.openapi.vcs.merge.MergeDialogCustomizer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.VcsShortCommitDetails;
+import com.intellij.vcsUtil.VcsFileUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -51,6 +55,7 @@ import git4idea.GitLocalBranch;
 import git4idea.GitRevisionNumber;
 import git4idea.GitUtil;
 import git4idea.GitVcs;
+import git4idea.changes.GitChangeUtils;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitCommandResult;
@@ -77,6 +82,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
@@ -626,6 +632,53 @@ public final class GerritGitUtil {
         h.endOptions();
         h.addParameters(path);
         return !Git.getInstance().runCommand(h).getOutputOrThrow().isEmpty();
+    }
+
+    /**
+     * @return the files the revision leaves in place, against its first parent as the diff of the change lists them
+     */
+    public List<FilePath> getFilesOfRevision(Project project, GitRepository repository, String revision) throws VcsException {
+        GitCommit commit = loadCommit(project, repository, revision)
+            .orElseThrow(() -> new VcsException("Commit " + revision + " not found."));
+        // the changes git4idea lists for a merge are those against every parent
+        Collection<Change> changes = commit.getParents().size() > 1
+            ? GitChangeUtils.getDiff(project, repository.getRoot(), commit.getParents().get(0).asString(), revision, null)
+            : commit.getChanges();
+        return filesAfter(changes);
+    }
+
+    @VisibleForTesting
+    static List<FilePath> filesAfter(Collection<Change> changes) {
+        return changes.stream()
+            .map(Change::getAfterRevision)
+            .filter(Objects::nonNull)
+            .map(ContentRevision::getFile)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * @return how many of the files have content on disk which is not what {@code revision} has, committed or not
+     */
+    public int countDifferingFromRevision(GitRepository repository, String revision, Collection<FilePath> files) throws VcsException {
+        int differing = 0;
+        // in chunks, as the paths of a large change would make the command line too long for Windows
+        for (List<String> paths : VcsFileUtil.chunkPaths(repository.getRoot(), files)) {
+            GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.DIFF);
+            h.setSilent(true);
+            // or a file such as pages/[id].tsx would match others as a glob
+            h.addCustomEnvironmentVariable("GIT_LITERAL_PATHSPECS", "1");
+            h.addParameters("--name-only", "--no-renames", revision);
+            h.endOptions();
+            h.addParameters(paths);
+            GitCommandResult result = Git.getInstance().runCommand(h);
+            result.getOutputOrThrow();
+            for (String path : result.getOutput()) {
+                if (!path.isEmpty()) {
+                    differing++;
+                }
+            }
+        }
+        return differing;
     }
 
     private static class FormattedGitLineHandlerListener implements GitLineHandlerListener {

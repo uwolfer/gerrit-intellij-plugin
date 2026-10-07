@@ -94,6 +94,7 @@
 
           <li>2.1.0</li>
           <ul>
+            <li>add "Inspect Code..." to a change's context menu, which inspects the files the change touches</li>
             <li>warn when the commit-msg hook is missing in a Gerrit repository and offer to install it</li>
             <li>add change actions: "Cherry-Pick", "Reset Current Branch to Here", "Set Assignee", "Copy URL",
             "Open in Gitiles" and replying to a change without voting</li>
@@ -609,9 +610,13 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CheckoutAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CompareBranch"/>
     </action>
+    <action id="Gerrit.InspectChange"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.InspectChangeAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
+    </action>
     <action id="Gerrit.CherryPickCommit"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickCommitAction">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.CheckoutAction"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.InspectChange"/>
     </action>
     <action id="Gerrit.CherryPick"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CherryPickAction">

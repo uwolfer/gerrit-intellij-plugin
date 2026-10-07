@@ -58,6 +58,7 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -76,9 +77,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import java.awt.Insets;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -525,14 +523,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
             return;
         }
         try {
-            File targetFile = new File(parentDirectory + '/' + directoryName + "/.git/hooks/commit-msg");
-            try (InputStream commitMessageHook =
-                     GerritApiProvider.getInstance().get(account).tools().getCommitMessageHook();
-                 OutputStream targetStream = new FileOutputStream(targetFile)) {
-                commitMessageHook.transferTo(targetStream);
-            }
-            //noinspection ResultOfMethodCallIgnored
-            targetFile.setExecutable(true);
+            GerritCommitMsgHook.getInstance().install(
+                Paths.get(parentDirectory, directoryName, ".git", "hooks", "commit-msg"), account);
 
             NotificationBuilder notification = new NotificationBuilder(
                 project,

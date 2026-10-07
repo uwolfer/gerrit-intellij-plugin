@@ -94,6 +94,7 @@
 
           <li>2.1.0</li>
           <ul>
+            <li>warn when the commit-msg hook is missing in a Gerrit repository and offer to install it</li>
             <li>add change actions: "Cherry-Pick", "Reset Current Branch to Here", "Set Assignee", "Copy URL",
             "Open in Gitiles" and replying to a change without voting</li>
             <li>show work-in-progress changes, reviewers without a vote apart from CCs, and the voter behind a label icon</li>

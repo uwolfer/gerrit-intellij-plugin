@@ -28,5 +28,6 @@ public class GerritUpdatesNotificationStartupActivity implements StartupActivity
     @Override
     public void runActivity(@NotNull Project project) {
         GerritUpdatesNotificationComponent.getInstance(project).projectOpened();
+        GerritCommitMsgHookCheck.checkOnStartup(project);
     }
 }

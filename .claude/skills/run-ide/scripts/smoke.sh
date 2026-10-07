@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
-# the settings page, the change list, a push for review with a reviewer through the
-# push dialog, a change action from the context menu, and no error logged by the plugin.
+# the settings page, the change list, a push for review with a reviewer picked from
+# the suggestions of the push dialog, a change action from the context menu, and no error logged by the plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -61,8 +61,10 @@ echo "$subject" > "$P/$subject.txt"; git -C "$P" add "$subject.txt"; git -C "$P"
 "$R" key ctrl+shift+K
 "$R" wait "//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']"
 "$R" check "//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']" on
-"$R" click "//div[@class='JTextField' and contains(@tooltiptext,'added as reviewers')]"
-"$R" type reviewer
+"$R" click "//div[@class='EditorComponentImpl' and contains(@tooltiptext,'added as reviewers')]"
+"$R" type Revi  # of the surname: Gerrit suggests "Rita Reviewer", and ENTER inserts her username
+"$R" wait "//div[contains(@class,'List') and contains(@visible_text,'Rita')]"  # JBList, LookupList in 2026.2
+"$R" key ENTER
 target() { grep -q 'refs/for/master%r=reviewer$' <<< "$("$R" rows "//div[@class='CheckboxTree']")"; }
 until_true "push target refs/for/master%r=reviewer" target
 "$R" click "//div[@class='MainButton' and @accessiblename='Push']"

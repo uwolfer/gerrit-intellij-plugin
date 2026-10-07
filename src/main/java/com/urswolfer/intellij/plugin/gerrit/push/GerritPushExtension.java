@@ -17,12 +17,16 @@
 package com.urswolfer.intellij.plugin.gerrit.push;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.project.Project;
+import com.intellij.util.textCompletion.TextCompletionProvider;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
 import javassist.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * The push dialog offers no entry point for adding the Gerrit push settings to it, so the panel with them is added
@@ -30,6 +34,7 @@ import java.util.List;
  *
  * * GitPushSupport#createOptionsPanel is overwritten in order to return the Gerrit push settings panel.
  * * GerritPushExtensionPanel, GerritPushOptionsPanel and the classes they use get copied to the Git plugin class loader.
+ * * The copied GerritPushExtensionPanel is handed the account completion, which stays in the Gerrit plugin class loader.
  *
  * The byte-code modifications are triggered by {@link #install()}, which {@link GerritPushExtensionStarter}
  * calls on application startup. They are applied at most once per application.
@@ -72,6 +77,8 @@ public final class GerritPushExtension {
             copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
+
+            handOverAccountCompletion(gitIdeaPluginClassLoader);
         } catch (Exception e) {
             LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (Error e) {
@@ -105,7 +112,7 @@ public final class GerritPushExtension {
         CtMethod createOptionsPanelMethod = gitPushSupportClass.getDeclaredMethod("createOptionsPanel");
         createOptionsPanelMethod.setBody(
             "{" +
-                "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel gerritPushOptionsPanel = new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ", myVcs.getProject().getLocationHash());" +
+                "com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel gerritPushOptionsPanel = new com.urswolfer.intellij.plugin.gerrit.push.GerritPushOptionsPanel(" + pushToGerrit + ", myVcs.getProject());" +
                 "gerritPushOptionsPanel.initPanel(mySettings.getPushTagMode(), git4idea.config.GitVersionSpecialty.SUPPORTS_FOLLOW_TAGS.existsIn(myVcs.getVersion()), git4idea.config.GitVersionSpecialty.PRE_PUSH_HOOK.existsIn(myVcs.getVersion()));" +
                 "return gerritPushOptionsPanel;" +
             "}"
@@ -123,6 +130,29 @@ public final class GerritPushExtension {
         for (String className : CLASSES_FOR_GIT_PLUGIN) {
             loadClass(classPool, targetClassLoader, className);
         }
+    }
+
+    /**
+     * The completion asks Gerrit through the REST client, which the Git plugin class loader cannot load, so it is
+     * created here and handed to the copied panel as a {@link Function}: a type which both class loaders share. A
+     * panel which does not get it shows plain text fields, so whatever goes wrong here must not cost the push
+     * dialog integration: it runs last, and catches everything.
+     */
+    private static void handOverAccountCompletion(ClassLoader gitIdeaPluginClassLoader) {
+        try {
+            handOverAccountCompletion(
+                Class.forName(GerritPushExtensionPanel.class.getName(), true, gitIdeaPluginClassLoader),
+                PushAccountCompletionProvider::new);
+        } catch (ProcessCanceledException e) {
+            throw e;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOG.warn("Failed to add account suggestions to Gerrit push UI.", e);
+        }
+    }
+
+    static void handOverAccountCompletion(Class<?> panelClass, Function<Project, TextCompletionProvider> completion)
+            throws ReflectiveOperationException {
+        panelClass.getMethod("setAccountCompletion", Function.class).invoke(null, completion);
     }
 
     private static void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {

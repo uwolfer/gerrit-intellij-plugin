@@ -43,11 +43,19 @@ public final class AccountLookup {
     }
 
     static LookupElementBuilder lookupElement(AccountInfo account, String insertSuffix) {
+        return lookupElementInserting(account, insertedIdentifier(account, insertSuffix) + insertSuffix);
+    }
+
+    /**
+     * An element which shows the account as {@link #identifier(AccountInfo)} and is found by the parts of it, but
+     * inserts the given text.
+     */
+    public static LookupElementBuilder lookupElementInserting(AccountInfo account, String insertedText) {
         String identifier = identifier(account);
         List<String> lookupStrings = alternativeLookupStrings(account);
         // an account inserted by its id is still found by what was typed of its name, "van der" included
         lookupStrings.add(identifier);
-        return LookupElementBuilder.create(insertedIdentifier(account, insertSuffix) + insertSuffix)
+        return LookupElementBuilder.create(insertedText)
             .withPresentableText(identifier)
             .withLookupStrings(lookupStrings);
     }

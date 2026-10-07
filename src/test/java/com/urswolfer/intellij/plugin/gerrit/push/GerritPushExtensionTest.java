@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Both tests fail where {@link GerritPushExtension} would otherwise only log an error on IDE startup.
+ * The tests fail where {@link GerritPushExtension} would otherwise only log an error on IDE startup.
  */
 public class GerritPushExtensionTest {
     // the plugin and the Gerrit REST client it bundles: the Git plugin class loader knows neither
@@ -39,6 +39,13 @@ public class GerritPushExtensionTest {
         CtClass gitPushSupport = classPool.get("git4idea.push.GitPushSupport");
 
         GerritPushExtension.rewriteGitPushSupport(gitPushSupport, true);
+    }
+
+    @Test
+    public void testAccountCompletionCanBeHandedToThePanel() throws Exception {
+        // by reflection, as the copy of the panel lives in another class loader: a rename breaks it silently
+        GerritPushExtension.handOverAccountCompletion(GerritPushExtensionPanel.class, PushAccountCompletionProvider::new);
+        GerritPushExtension.handOverAccountCompletion(GerritPushExtensionPanel.class, null);
     }
 
     @Test

@@ -44,6 +44,6 @@ public class GerritPushExtensionPanelTest {
     }
 
     private static GerritPushExtensionPanel panel(boolean pushToGerritByDefault, String projectKey) {
-        return new GerritPushExtensionPanel(pushToGerritByDefault, projectKey);
+        return new GerritPushExtensionPanel(pushToGerritByDefault, projectKey, null);
     }
 }

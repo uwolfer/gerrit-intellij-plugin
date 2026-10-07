@@ -81,14 +81,18 @@ refers to private members of the platform (`mySettings`, `myVcs`,
 `GitVersionSpecialty`). It also copies the classes the panel uses, listed in
 `CLASSES_FOR_GIT_PLUGIN`, into the Git plugin class loader: a class which is
 missing from that list is a `NoClassDefFoundError` in the push dialog.
-`GerritPushTargetUpdater` finds the repository rows by looking in the tree of
-the dialog, with `com.intellij.dvcs.push` classes: public, but the dialog's own
-UI and not an extension point.
+The account suggestions of the reviewers and CC fields need the REST client,
+which that class loader cannot load: `install()` hands them to the copied panel
+by calling its `setAccountCompletion` by name, and a panel without them shows
+plain text fields. `GerritPushTargetUpdater` finds the repository rows by
+looking in the tree of the dialog, with `com.intellij.dvcs.push` classes:
+public, but the dialog's own UI and not an extension point.
 
-`GerritPushExtensionTest` checks the two things above that would otherwise
-only fail at startup: that the rewrite compiles against the Git plugin, and
-that the list holds every class of the plugin or of the Gerrit REST client
-which the copied classes use. It runs against the SDK the build uses.
+`GerritPushExtensionTest` checks the three things above that would otherwise
+only fail at startup: that the rewrite compiles against the Git plugin, that
+the list holds every class of the plugin or of the Gerrit REST client which the
+copied classes use, and that the panel still has the method the suggestions
+are handed over with. It runs against the SDK the build uses.
 `-PideaVersion=<latest>` fails while resolving `git4idea`, so the newest IDE
 is checked with `.claude/skills/run-ide/scripts/smoke.sh latest` instead: it
 fails when the push dialog does, or on an error which names the plugin.

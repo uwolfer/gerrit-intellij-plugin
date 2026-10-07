@@ -795,6 +795,36 @@ public final class GerritUtil {
         accessGerrit(supplier, consumer, project, "Failed to delete draft comment");
     }
 
+    /*
+     * The drafts which the review dialog lists and changes are accessed with a modal progress: the consumer of
+     * accessGerrit is called by invokeLater, which waits until the review dialog is closed.
+     */
+
+    public Map<String, List<CommentInfo>> getDraftCommentsWithModalProgress(final int changeNr,
+                                                                            final String revision,
+                                                                            final Project project) {
+        return accessToGerritWithModalProgress(project,
+            () -> gerritApi(project).changes().id(changeNr).revision(revision).drafts());
+    }
+
+    public CommentInfo saveDraftCommentWithModalProgress(final int changeNr,
+                                                         final String revision,
+                                                         final DraftInput draftInput,
+                                                         final Project project) {
+        return accessToGerritWithModalProgress(project,
+            () -> gerritApi(project).changes().id(changeNr).revision(revision).draft(draftInput.id).update(draftInput));
+    }
+
+    public void deleteDraftCommentWithModalProgress(final int changeNr,
+                                                    final String revision,
+                                                    final String draftCommentId,
+                                                    final Project project) {
+        accessToGerritWithModalProgress(project, () -> {
+            gerritApi(project).changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
+            return null;
+        });
+    }
+
     private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
         // we need to test with a temporary client with probably new (unsaved) credentials
         GerritApi tempClient = createClientWithCustomAuthData(gerritAuthData);

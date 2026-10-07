@@ -133,6 +133,8 @@ public class GerritToolWindow implements Disposable {
         }
 
         registerVcsChangeListener(project);
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+            .subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
 
         changeListPanel.showSetupHintWhenRequired(project);
 

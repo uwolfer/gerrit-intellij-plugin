@@ -56,8 +56,10 @@ import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
+import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitUtil;
@@ -241,7 +243,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
     @Override
     public void doClone(@NotNull Project project, @NotNull CheckoutProvider.Listener listener) {
-        if (!gerritUtil.testGitExecutable(project)) {
+        if (!GerritGitUtil.getInstance().testGitExecutable(project)) {
             return;
         }
         FileDocumentManager.getInstance().saveAllDocuments();
@@ -428,7 +430,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
         }
         try {
             ServerInfo info = GerritApiProvider.getInstance().get(account).config().server().getInfo();
-            String url = GerritUtil.getCloneBaseUrl(info != null && info.download != null ? info.download.schemes : null);
+            String url = GerritRemotes.getCloneBaseUrl(info != null && info.download != null ? info.download.schemes : null);
             if (url != null) {
                 return url;
             }

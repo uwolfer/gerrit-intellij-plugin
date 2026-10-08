@@ -26,7 +26,7 @@ public class StarAction extends AbstractLoggedInChangeAction {
         ChangeInfo changeInfo = selectedChange.get();
         // reloaded rather than updated in place: the query may list changes by their star
         gerritUtil.changeStarredStatus(changeInfo.id, !(changeInfo.starred != null && changeInfo.starred), project,
-                reloadChangesAfterwards(anActionEvent));
+                result -> ActionUtil.reloadChanges(project));
     }
 
 }

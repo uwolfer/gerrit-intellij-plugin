@@ -20,7 +20,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangesListener;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
@@ -39,9 +39,11 @@ public class ActionUtil {
         return Optional.ofNullable(anActionEvent.getData(GerritChangeListPanel.SELECTED_CHANGE));
     }
 
-    public static void reloadChanges(@Nullable GerritToolWindow toolWindow, @Nullable Project project) {
-        if (toolWindow != null && project != null) {
-            toolWindow.reloadChanges(project, false);
-        }
+    /**
+     * Reloads the list of changes once Gerrit has applied an action, so that it no longer shows e.g. an abandoned
+     * change as open.
+     */
+    public static void reloadChanges(Project project) {
+        project.getMessageBus().syncPublisher(GerritChangesListener.TOPIC).changesModified();
     }
 }

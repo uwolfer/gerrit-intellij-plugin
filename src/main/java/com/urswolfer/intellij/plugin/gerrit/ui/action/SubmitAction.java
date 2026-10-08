@@ -23,10 +23,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -61,11 +59,11 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        submit(selectedChange.get(), anActionEvent.getProject(), anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW));
+        submit(selectedChange.get(), anActionEvent.getProject());
     }
 
     /** Entry point for other actions; {@code actionPerformed} is override-only and must not be invoked. */
-    public void submit(final ChangeInfo change, final Project project, @Nullable final GerritToolWindow toolWindow) {
+    public void submit(final ChangeInfo change, final Project project) {
         SubmitInput submitInput = new SubmitInput();
         gerritUtil.postSubmit(change.id, submitInput, project, new Consumer<Void>() {
             @Override
@@ -74,7 +72,7 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
                         project, "Change submitted", getSuccessMessage(change)
                 ).hideBalloon();
                 notificationService.notifyInformation(notification);
-                ActionUtil.reloadChanges(toolWindow, project);
+                ActionUtil.reloadChanges(project);
             }
         });
     }

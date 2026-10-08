@@ -16,7 +16,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.util.Consumer;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.Nullable;
@@ -50,7 +49,6 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
             return;
         }
         final ChangeInfo change = selected.get();
-        final GerritToolWindow toolWindow = e.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
         RefreshMergeDialog dialog = new RefreshMergeDialog(project, change.project, change.branch);
         dialog.show();
         if (!dialog.isOK()) {
@@ -61,7 +59,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
         gerritUtil.createMergePatchSet(change.id, input, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo refreshedChange) {
-                ActionUtil.reloadChanges(toolWindow, project);
+                ActionUtil.reloadChanges(project);
                 notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Patch Set Refreshed",
                         "Created a new patch set for change " + refreshedChange._number));
             }

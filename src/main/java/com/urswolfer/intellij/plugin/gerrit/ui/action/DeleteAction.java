@@ -67,7 +67,7 @@ public class DeleteAction extends AbstractLoggedInChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        gerritUtil.delete(selectedChange.get().id, project, reloadChangesAfterwards(anActionEvent));
+        gerritUtil.delete(selectedChange.get().id, project, result -> ActionUtil.reloadChanges(project));
     }
 
 }

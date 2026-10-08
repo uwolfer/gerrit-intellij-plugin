@@ -74,7 +74,7 @@ public class PublishAction extends AbstractLoggedInChangeAction {
         if (!selectedChange.isPresent()) {
             return;
         }
-        gerritUtil.postPublish(selectedChange.get().id, project, reloadChangesAfterwards(anActionEvent));
+        gerritUtil.postPublish(selectedChange.get().id, project, result -> ActionUtil.reloadChanges(project));
     }
 
 }

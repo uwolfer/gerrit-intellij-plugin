@@ -25,7 +25,6 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -68,7 +67,6 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         if (project == null) {
             return;
         }
-        final GerritToolWindow toolWindow = e.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
         GitRepository repository = findRepository(project);
         if (repository == null) {
             return;
@@ -94,7 +92,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             return;
         }
 
-        resolveSourceBranch(project, currentBranch, upstreamBranch, gerritProject, toolWindow);
+        resolveSourceBranch(project, currentBranch, upstreamBranch, gerritProject);
     }
 
     static ChangeInput createInput(String project, String mergeSource, @Nullable String sourceBranch,
@@ -180,16 +178,15 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
     private void resolveSourceBranch(final Project project,
                                      final GitLocalBranch currentBranch,
                                      @Nullable final GitRemoteBranch upstreamBranch,
-                                     final String gerritProject,
-                                     final GerritToolWindow toolWindow) {
+                                     final String gerritProject) {
         if (upstreamBranch != null) {
             String sourceBranch = FeatureMergeBranchResolver.normalizeBranch(
                     upstreamBranch.getNameForRemoteOperations());
             if (sourceBranch.isEmpty()) {
                 openDialogWithTarget(project, gerritProject, "", "The upstream branch could not be resolved. Select the remote feature branch explicitly.",
-                        currentBranch.getName(), toolWindow);
+                        currentBranch.getName());
             } else {
-                openDialogWithTarget(project, gerritProject, sourceBranch, "", currentBranch.getName(), toolWindow);
+                openDialogWithTarget(project, gerritProject, sourceBranch, "", currentBranch.getName());
             }
             return;
         }
@@ -197,7 +194,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         Integer reviewChangeNumber = FeatureMergeBranchResolver.reviewChangeNumber(currentBranch.getName());
         if (reviewChangeNumber == null) {
             openDialogWithTarget(project, gerritProject, "", FeatureMergeBranchResolver.missingUpstreamMessage(),
-                    currentBranch.getName(), toolWindow);
+                    currentBranch.getName());
             return;
         }
 
@@ -213,9 +210,9 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                 if (sourceBranch.isEmpty()) {
                     openDialogWithTarget(project, resolvedProject, "",
                             "Gerrit could not resolve review checkout " + reviewChangeNumber
-                                    + ". Select the remote feature branch explicitly.", currentBranch.getName(), toolWindow);
+                                    + ". Select the remote feature branch explicitly.", currentBranch.getName());
                 } else {
-                    openDialogWithTarget(project, resolvedProject, sourceBranch, "", currentBranch.getName(), toolWindow);
+                    openDialogWithTarget(project, resolvedProject, sourceBranch, "", currentBranch.getName());
                 }
             }
         });
@@ -225,8 +222,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                                       final String gerritProject,
                                       final String sourceBranch,
                                       final String sourceExplanation,
-                                      final String currentBranchName,
-                                      final GerritToolWindow toolWindow) {
+                                      final String currentBranchName) {
         gerritUtil.getProjectHead(gerritProject, project, new Consumer<String>() {
             @Override
             public void consume(String head) {
@@ -243,12 +239,12 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                             + (sourceExplanation.isEmpty() ? "" : " " + sourceExplanation);
                 }
 
-                showDialog(project, new MergeDefaults(gerritProject, sourceBranch, targetBranch, dialogExplanation), toolWindow);
+                showDialog(project, new MergeDefaults(gerritProject, sourceBranch, targetBranch, dialogExplanation));
             }
         });
     }
 
-    private void showDialog(final Project project, MergeDefaults defaults, final GerritToolWindow toolWindow) {
+    private void showDialog(final Project project, MergeDefaults defaults) {
         CreateMergeDialog dialog = new CreateMergeDialog(project, defaults);
         dialog.show();
         if (!dialog.isOK()) {
@@ -261,7 +257,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         gerritUtil.createMergeChange(input, project, new Consumer<ChangeInfo>() {
             @Override
             public void consume(ChangeInfo changeInfo) {
-                ActionUtil.reloadChanges(toolWindow, project);
+                ActionUtil.reloadChanges(project);
                 notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Change Created",
                         "Created change " + changeInfo._number + ": " + StringUtil.escapeXmlEntities(changeInfo.subject)));
             }

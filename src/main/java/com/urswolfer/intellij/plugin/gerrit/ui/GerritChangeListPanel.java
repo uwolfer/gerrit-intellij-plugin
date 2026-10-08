@@ -163,10 +163,23 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         emptyText.appendText(" for hints.");
     }
 
+    /**
+     * Drops what is listed along with the query it came from, so that an answer still on its way, or the next page,
+     * does not bring it back.
+     */
+    public void clear() {
+        loadChangesProxy = null;
+        listedQuery = null;
+        setChanges(Collections.emptyList());
+        // until a load says what there is, or the setup hint what is missing; neither may come if the load fails
+        table.getEmptyText().setText("Nothing to show");
+    }
+
     public void showSetupHintWhenRequired(final Project project) {
         GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
         if (projectAccount.needsChoice()) { // set up, only not for this project: telling to set it up would mislead
             StatusText emptyText = table.getEmptyText();
+            emptyText.clear();
             emptyText.appendText("Press the refresh button to choose the Gerrit account of this project, or open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override
@@ -175,8 +188,9 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 }
             });
             emptyText.appendText(".");
-        } else if (!projectAccount.isLoginAndPasswordAvailable()) {
+        } else if (projectAccount.getHost().isEmpty() || !projectAccount.isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
+            emptyText.clear();
             emptyText.appendText("Open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override

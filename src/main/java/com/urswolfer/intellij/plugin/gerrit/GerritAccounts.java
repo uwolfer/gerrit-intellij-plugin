@@ -20,6 +20,7 @@ import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -95,6 +97,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
 
     private final Object lock = new Object();
     private final Map<String, Integer> passwordVersions = new ConcurrentHashMap<>();
+    private boolean loaded;
     private volatile Snapshot snapshot = new Snapshot(false, Collections.emptyList());
 
     public static GerritAccounts getInstance() {
@@ -111,9 +114,24 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     @Override
-    public void loadState(@NotNull AccountsState state) {
+    public void noStateLoaded() { // a state loaded later, such as by syncing settings, is then a change
         synchronized (lock) {
+            loaded = true;
+        }
+    }
+
+    @Override
+    public void loadState(@NotNull AccountsState state) {
+        boolean reloaded;
+        synchronized (lock) {
+            reloaded = loaded;
+            loaded = true;
             snapshot = new Snapshot(state.seeded, state.accounts);
+        }
+        // a later load replaces the accounts from outside, such as by syncing settings; the first one is no change,
+        // and announcing it would reach listeners which are themselves still being set up
+        if (reloaded) {
+            publishChange();
         }
     }
 
@@ -137,10 +155,49 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
         return snapshot.accounts;
     }
 
-    public void setAccounts(List<GerritAccount> newAccounts) {
+    /**
+     * Stores what the settings page edited. A password is stored before its account shows, so that nothing reads a
+     * new account without one, and the password of a removed account is cleared once it is gone. An account added
+     * elsewhere while the page was open, such as by the login dialog of another project, is kept. Where a password is
+     * entered or an account removed, this blocks on the credential store, which must not happen on the event
+     * dispatch thread.
+     *
+     * @param passwords  by account id, for the accounts whose password was entered
+     * @param removedIds the accounts removed on the page
+     */
+    public void update(List<GerritAccount> edited, Map<String, String> passwords, Set<String> removedIds) {
+        RuntimeException failure = null;
         synchronized (lock) {
-            snapshot = new Snapshot(true, newAccounts);
+            for (GerritAccount account : edited) {
+                String password = passwords.get(account.id);
+                if (password != null) {
+                    try {
+                        storePassword(account, password);
+                    } catch (RuntimeException e) {
+                        failure = collect(failure, e);
+                    }
+                }
+            }
+            List<GerritAccount> updated = new ArrayList<>(edited);
+            List<GerritAccount> removed = new ArrayList<>();
+            for (GerritAccount account : snapshot.accounts) {
+                if (removedIds.contains(account.id)) {
+                    removed.add(account);
+                } else if (!updated.contains(account)) {
+                    updated.add(account);
+                }
+            }
+            snapshot = new Snapshot(true, updated);
+            for (GerritAccount account : removed) {
+                try {
+                    clearPasswordOfRemoved(account);
+                } catch (RuntimeException e) {
+                    failure = collect(failure, e);
+                }
+            }
         }
+        publishChange();
+        rethrow(failure);
     }
 
     /**
@@ -167,10 +224,17 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     /**
-     * Adds an account, or replaces the stored copy of one which is already known by its id.
+     * Adds or replaces an account along with its password, which is stored first, as in {@link #update}. Blocks on
+     * the credential store.
      */
-    public void put(GerritAccount account) {
+    public void put(GerritAccount account, String password) {
+        RuntimeException failure = null;
         synchronized (lock) {
+            try {
+                storePassword(account, password);
+            } catch (RuntimeException e) {
+                failure = e;
+            }
             List<GerritAccount> updated = new ArrayList<>(snapshot.accounts);
             int index = updated.indexOf(account);
             if (index >= 0) {
@@ -180,15 +244,37 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             }
             snapshot = new Snapshot(true, updated);
         }
+        publishChange();
+        rethrow(failure);
     }
 
-    public void remove(GerritAccount account) {
-        synchronized (lock) {
-            List<GerritAccount> updated = new ArrayList<>(snapshot.accounts);
-            updated.remove(account);
-            snapshot = new Snapshot(snapshot.seeded, updated);
+    private static RuntimeException collect(@Nullable RuntimeException failure, RuntimeException e) {
+        if (failure == null) {
+            return e;
         }
-        clearPasswordOfRemoved(account);
+        failure.addSuppressed(e);
+        return failure;
+    }
+
+    /**
+     * A credential store which fails costs the password, not the edits around it: they are stored and announced
+     * before the failure is reported, as it was when accounts and passwords were saved one after the other.
+     */
+    private static void rethrow(@Nullable RuntimeException failure) {
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    /**
+     * Outside the lock: listeners read the accounts, and one which waited on a thread holding it would deadlock.
+     * There is no application in the unit tests.
+     */
+    private static void publishChange() {
+        Application application = ApplicationManager.getApplication();
+        if (application != null) {
+            application.getMessageBus().syncPublisher(GerritAccountsListener.TOPIC).accountsChanged();
+        }
     }
 
     /**
@@ -272,7 +358,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             if (account.usesLegacyPasswordKey) {
                 String legacy = readLegacy();
                 if (legacy != null) {
-                    // not through setPassword: this is the move itself, and the account may have to make it again
+                    // not through storePassword: this is the move itself, and the account may have to make it again
                     // on another machine, whose credential store did not travel with it
                     credentialStore.set(attributesFor(account), new Credentials(null, legacy));
                     return legacy;
@@ -286,17 +372,10 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      * Saves a password someone entered. That settles where this account's password lives, so the key an earlier
      * version used stops being consulted - otherwise clearing the password here would hand the old one back.
      */
-    public void setPassword(@NotNull GerritAccount account, @Nullable String password) {
-        synchronized (lock) {
-            credentialStore.set(attributesFor(account), new Credentials(null, password != null ? password : ""));
-            passwordVersions.merge(account.id, 1, Integer::sum);
-            if (account.usesLegacyPasswordKey) {
-                account.usesLegacyPasswordKey = false;
-                if (snapshot.accounts.contains(account)) {
-                    put(account);
-                }
-            }
-        }
+    private void storePassword(GerritAccount account, @Nullable String password) {
+        credentialStore.set(attributesFor(account), new Credentials(null, password != null ? password : ""));
+        passwordVersions.merge(account.id, 1, Integer::sum);
+        account.usesLegacyPasswordKey = false;
     }
 
     /**
@@ -328,7 +407,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
      * account is left at all. Entering a password stops an account from reading that key but leaves it for a
      * downgrade, so removing the last account would otherwise leave the old password behind for good.
      */
-    public void clearPasswordOfRemoved(@NotNull GerritAccount account) {
+    private void clearPasswordOfRemoved(@NotNull GerritAccount account) {
         synchronized (lock) {
             clearStoredPassword(account);
             if (snapshot.accounts.isEmpty()) {

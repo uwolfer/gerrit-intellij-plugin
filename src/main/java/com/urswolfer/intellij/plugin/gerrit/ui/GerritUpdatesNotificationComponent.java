@@ -24,7 +24,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Alarm;
-import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -43,13 +43,15 @@ import java.util.Set;
  * @author Urs Wolfer
  */
 @Service(Service.Level.PROJECT)
-public final class GerritUpdatesNotificationComponent implements Consumer<List<ChangeInfo>>, Disposable {
+public final class GerritUpdatesNotificationComponent implements Disposable {
     private final Project project;
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private final NotificationService notificationService = NotificationService.getInstance();
 
     private final Set<String> notifiedChanges = Collections.synchronizedSet(new HashSet<String>());
+    /** What waited for the review of another account or login says nothing about what is new to this one. */
+    private String notifiedAccount = "";
     /** Registered against this service, so the project disposing it also drops any pending poll. */
     private final Alarm alarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, this);
     /** Bumped whenever pending polls are dropped, so a poll already running does not schedule the next one. */
@@ -101,13 +103,29 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
             return;
         }
 
-        gerritUtil.getChangesToReview(project, this);
+        String account = account();
+        gerritUtil.getChangesToReview(project, changes -> consume(changes, account));
     }
 
-    @Override
-    public void consume(List<ChangeInfo> changes) {
+    /**
+     * The account and its login, but not its host: a host written another way is still the same instance, whose
+     * pending reviews are no news.
+     */
+    private String account() {
+        GerritAccount account = GerritProjectAccount.getInstance(project).get();
+        return account != null ? account.id + '\n' + account.login : "";
+    }
+
+    private synchronized void consume(List<ChangeInfo> changes, String account) {
         if (!GerritProjectSettings.isEnabled(project)) { // switched off while the query was running
             return;
+        }
+        if (!account.equals(account())) {
+            return; // asked for an account this project has left meanwhile
+        }
+        if (!account.equals(notifiedAccount)) {
+            notifiedChanges.clear();
+            notifiedAccount = account;
         }
         boolean newChange = false;
         for (ChangeInfo change : changes) {

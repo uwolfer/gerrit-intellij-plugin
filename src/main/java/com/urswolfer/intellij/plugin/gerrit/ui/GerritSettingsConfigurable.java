@@ -36,6 +36,7 @@ import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsConfigurable
@@ -83,30 +84,33 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()));
     }
 
-    /** Whether a setting changed which the list of changes is built from: the accounts and the columns. */
+    /**
+     * Whether a setting changed which the list of changes is built from, other than the accounts: those announce
+     * their own changes.
+     */
     private boolean isListModified() {
-        return accountsModified() ||
-                !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
+        return !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars());
     }
 
     private boolean accountsModified() {
+        return accountListModified() || settingsPane.isProjectAccountChosen()
+            && !Comparing.equal(settingsPane.getProjectAccount(), projectAccount().get());
+    }
+
+    /**
+     * Whether the accounts or their passwords changed, rather than only which account this project uses: storing them
+     * reloads every open project.
+     */
+    private boolean accountListModified() {
         if (!settingsPane.getRemovedAccountIds().isEmpty() || !settingsPane.getEditedPasswords().isEmpty()) {
             return true;
         }
-        if (settingsPane.isProjectAccountChosen()
-            && !Comparing.equal(settingsPane.getProjectAccount(), projectAccount().get())) {
-            return true;
-        }
-        List<GerritAccount> edited = settingsPane.getAccounts();
-        List<GerritAccount> stored = GerritAccounts.getInstance().getAccounts();
-        if (edited.size() != stored.size()) {
-            return true;
-        }
-        for (int i = 0; i < edited.size(); i++) {
-            GerritAccount a = edited.get(i);
-            GerritAccount b = stored.get(i);
-            if (!a.id.equals(b.id) || !a.host.equals(b.host) || !a.login.equals(b.login)
+        // by id: an account added by another project while the page is open is no edit of this one
+        GerritAccounts accounts = GerritAccounts.getInstance();
+        for (GerritAccount a : settingsPane.getAccounts()) {
+            GerritAccount b = accounts.findById(a.id);
+            if (b == null || !a.host.equals(b.host) || !a.login.equals(b.login)
                 || !a.cloneBaseUrl.equals(b.cloneBaseUrl) || !a.gitilesUrl.equals(b.gitilesUrl)) {
                 return true;
             }
@@ -148,30 +152,15 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
         GerritAccounts accounts = GerritAccounts.getInstance();
         List<GerritAccount> edited = settingsPane.getAccounts();
         GerritAccount usedByProject = settingsPane.getProjectAccount();
-
-        List<GerritAccount> removed = new ArrayList<>();
-        for (String removedId : settingsPane.getRemovedAccountIds()) {
-            GerritAccount account = accounts.findById(removedId);
-            if (account != null) {
-                removed.add(account);
-            }
-        }
-        accounts.setAccounts(edited);
-
         Map<String, String> passwords = settingsPane.getEditedPasswords();
-        if (!removed.isEmpty() || !passwords.isEmpty()) {
-            // the credential store blocks, which must not happen on the event dispatch thread
-            ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
-                for (GerritAccount account : removed) {
-                    accounts.clearPasswordOfRemoved(account);
-                }
-                for (Map.Entry<String, String> entry : passwords.entrySet()) {
-                    GerritAccount account = accounts.findById(entry.getKey());
-                    if (account != null) {
-                        accounts.setPassword(account, entry.getValue());
-                    }
-                }
-            }, "Saving Gerrit Credentials", false, project);
+        Set<String> removedIds = settingsPane.getRemovedAccountIds();
+        if (accountListModified()) { // otherwise only the binding changed, which is the project's own business
+            if (passwords.isEmpty() && removedIds.isEmpty()) {
+                accounts.update(edited, passwords, removedIds);
+            } else { // the credential store blocks, which must not happen on the event dispatch thread
+                ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                    () -> accounts.update(edited, passwords, removedIds), "Saving Gerrit Credentials", false, project);
+            }
         }
         // With one account left there is no choice to store. Otherwise a choice the user made is stored, and so is the
         // account the page showed as used when nothing would resolve to it any more - a second account was added -

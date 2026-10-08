@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
@@ -24,9 +25,13 @@ import com.urswolfer.gerrit.client.rest.GerritRestApiFactory;
 import com.urswolfer.gerrit.client.rest.http.HttpClientBuilderExtension;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountAuthData;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Urs Wolfer
  */
 @Service(Service.Level.APP)
-public final class GerritApiProvider {
+public final class GerritApiProvider implements Disposable {
 
     private final GerritRestApiFactory gerritRestApiFactory = new GerritRestApiFactory();
     private final HttpClientBuilderExtension[] clientBuilderExtensions = {
@@ -46,7 +51,28 @@ public final class GerritApiProvider {
         new UserAgentClientBuilderExtension()
     };
 
-    private final Map<String, GerritRestApi> apiByAccountId = new ConcurrentHashMap<>();
+    /**
+     * By account, host and login: a client keeps the session it logged in with, which must not outlive a change of
+     * either, and has no use once its account is gone.
+     */
+    private final Map<String, GerritRestApi> apiByIdentity = new ConcurrentHashMap<>();
+
+    public GerritApiProvider() {
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+            .subscribe(GerritAccountsListener.TOPIC, this::dropStale);
+    }
+
+    @Override
+    public void dispose() {
+    }
+
+    private void dropStale() {
+        Set<String> current = new HashSet<>();
+        for (GerritAccount account : GerritAccounts.getInstance().getAccounts()) {
+            current.add(account.getIdentity());
+        }
+        apiByIdentity.keySet().removeIf(identity -> !current.contains(identity));
+    }
 
     public static GerritApiProvider getInstance() {
         return ApplicationManager.getApplication().getService(GerritApiProvider.class);
@@ -57,12 +83,10 @@ public final class GerritApiProvider {
      *         an account share its connections too
      */
     public GerritRestApi get(@Nullable GerritAccount account) {
-        return get(account != null ? account.id : "");
-    }
-
-    private GerritRestApi get(String accountId) {
-        // the auth data reads the account per call, so the api stays right while the user edits it
-        return apiByAccountId.computeIfAbsent(accountId, id -> create(new GerritAccountAuthData(id)));
+        String id = account != null ? account.id : "";
+        // the auth data reads the account per call, so the api stays right while the user edits its password
+        String identity = account != null ? account.getIdentity() : "";
+        return apiByIdentity.computeIfAbsent(identity, key -> create(new GerritAccountAuthData(id)));
     }
 
     public GerritRestApi create(GerritAuthData gerritAuthData) {

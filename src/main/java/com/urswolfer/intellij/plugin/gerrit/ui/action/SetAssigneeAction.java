@@ -30,7 +30,7 @@ import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangesListener;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,7 +56,6 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
             return;
         }
         ChangeInfo changeInfo = selectedChange.get();
-        GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
 
         SetAssigneeDialog dialog = new SetAssigneeDialog(project, GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()), changeInfo);
         if (!dialog.showAndGet()) {
@@ -67,12 +66,10 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
         if (assignee.equals(currentAssignee(changeInfo))) {
             return;
         }
-        gerritUtil.setAssignee(changeInfo.id, assignee, project, newAssignee -> {
-            // the list row is what the dialog prefills from next time
-            if (toolWindow != null) {
-                toolWindow.updateChange(changeInfo.id, change -> change.assignee = newAssignee, project);
-            }
-        });
+        // the list row is what the dialog prefills from next time
+        gerritUtil.setAssignee(changeInfo.id, assignee, project, newAssignee ->
+            project.getMessageBus().syncPublisher(GerritChangesListener.TOPIC)
+                .changeModified(changeInfo.id, change -> change.assignee = newAssignee));
     }
 
     static String currentAssignee(ChangeInfo changeInfo) {

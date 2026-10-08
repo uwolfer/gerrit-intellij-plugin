@@ -33,7 +33,6 @@ import com.intellij.ui.EditorCustomization;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
-import com.intellij.util.Consumer;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
@@ -67,7 +66,6 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             return;
         }
 
-        Consumer<Void> reloadChanges = reloadChangesAfterwards(anActionEvent);
         AddReviewersDialog dialog = new AddReviewersDialog(project, true, GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()), selectedChange.get());
         dialog.show();
         if (!dialog.isOK()) {
@@ -79,7 +77,8 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             String reviewerName = Whitespace.trim(reviewer);
             if (!reviewerName.isEmpty()) {
                 // each one reloads: the last reload to start follows the last reviewer to be added
-                gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project, reloadChanges);
+                gerritUtil.addReviewer(selectedChange.get().id, reviewerName, project,
+                    result -> ActionUtil.reloadChanges(project));
             }
         }
     }

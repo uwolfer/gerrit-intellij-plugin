@@ -138,6 +138,17 @@ public class GerritToolWindow implements Disposable {
         MessageBusConnection settings = ApplicationManager.getApplication().getMessageBus().connect(this);
         settings.subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
         settings.subscribe(GerritChangeListPanel.COLUMNS_CHANGED, changeListPanel::rebuildColumns);
+        project.getMessageBus().connect(this).subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
+            @Override
+            public void changesModified() {
+                reloadChanges(project, false);
+            }
+
+            @Override
+            public void changeModified(String changeId, Consumer<ChangeInfo> update) {
+                updateChange(changeId, update, project);
+            }
+        });
 
         changeListPanel.showSetupHintWhenRequired(project);
 
@@ -183,10 +194,9 @@ public class GerritToolWindow implements Disposable {
     }
 
     /**
-     * Applies a modification Gerrit has confirmed to the listed change, for one which does not justify reloading the
-     * list. The change is looked up by its id because a reload replaces every listed instance.
+     * The change is looked up by its id because a reload replaces every listed instance.
      */
-    public void updateChange(String changeId, Consumer<ChangeInfo> update, Project project) {
+    private void updateChange(String changeId, Consumer<ChangeInfo> update, Project project) {
         Optional<ChangeInfo> listed = changeListPanel.findChange(changeId);
         if (!listed.isPresent()) {
             return;

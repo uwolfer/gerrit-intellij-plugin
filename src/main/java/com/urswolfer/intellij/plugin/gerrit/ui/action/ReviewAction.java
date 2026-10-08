@@ -27,7 +27,6 @@ import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.DraftComment;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -82,7 +81,6 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
         final ChangeInfo changeDetails = selectedChange.get();
         // the review goes to the patch set shown now, even if a reload resets the selected one while the dialog is open
         final String revision = SelectedRevisions.getInstance(project).get(changeDetails);
-        final GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
         final ReviewInput reviewInput = createReviewInput(label, rating);
 
         boolean submitChange = false;
@@ -92,7 +90,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
             dialog.show();
             if (!dialog.isOK()) {
                 if (dialog.getReviewPanel().isDraftsChanged()) {
-                    ActionUtil.reloadChanges(toolWindow, project);
+                    ActionUtil.reloadChanges(project);
                 }
                 return;
             }
@@ -121,9 +119,9 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                                 .hideBalloon();
                         notificationService.notifyInformation(notification);
                         // also when submitting, which reloads once more but may fail
-                        ActionUtil.reloadChanges(toolWindow, project);
+                        ActionUtil.reloadChanges(project);
                         if (finalSubmitChange) {
-                            submitAction.submit(changeDetails, project, toolWindow);
+                            submitAction.submit(changeDetails, project);
                         }
                     }
                 }

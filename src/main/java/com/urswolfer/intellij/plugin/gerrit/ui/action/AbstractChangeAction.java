@@ -24,7 +24,6 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 
 import javax.swing.*;
 
@@ -51,16 +50,5 @@ public abstract class AbstractChangeAction extends AnAction implements DumbAware
 
     protected void getChangeDetail(ChangeInfo selectedChange, Project project, final Consumer<ChangeInfo> consumer) {
         gerritUtil.getChangeDetails(selectedChange._number, project, consumer);
-    }
-
-    /**
-     * Reloads the list of changes once Gerrit has applied the action, so that it no longer shows e.g. an abandoned
-     * change as open. Call it before showing a dialog: the tool window is looked up right away, because the data
-     * context of the event must not be used once other events have been dispatched.
-     */
-    protected static <T> Consumer<T> reloadChangesAfterwards(AnActionEvent anActionEvent) {
-        final Project project = anActionEvent.getProject();
-        final GerritToolWindow toolWindow = anActionEvent.getData(GerritToolWindow.GERRIT_TOOL_WINDOW);
-        return result -> ActionUtil.reloadChanges(toolWindow, project);
     }
 }

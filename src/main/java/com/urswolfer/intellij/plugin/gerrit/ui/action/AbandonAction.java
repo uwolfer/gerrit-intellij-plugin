@@ -23,7 +23,6 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,7 +65,6 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
             return;
         }
 
-        Consumer<Void> reloadChanges = reloadChangesAfterwards(anActionEvent);
         AbandonInput abandonInput = new AbandonInput();
 
         SafeHtmlTextEditor editor = new SafeHtmlTextEditor(project);
@@ -80,7 +78,8 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
             abandonInput.message = message;
         }
 
-        gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project, reloadChanges);
+        gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project,
+            result -> ActionUtil.reloadChanges(project));
     }
 
     private static class AbandonDialog extends DialogWrapper {

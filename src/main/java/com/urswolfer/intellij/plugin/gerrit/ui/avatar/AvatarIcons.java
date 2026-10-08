@@ -53,7 +53,8 @@ import java.util.concurrent.TimeUnit;
  * AsyncImageIconsProvider and CachingIconsProvider (2020.3 has not, 2026.2 has): build the icons with them, as the
  * GitHub plugin does, and drop AvatarIcon, its retry timing and the icon map. AsyncImageIcon also renders again when
  * the screen's scale changes, which this one does not. Their loader is a Kotlin suspend function, so it wants a
- * Kotlin class or a coroutine bridge, and plugin.xml may have to declare the collaboration tools module.
+ * Kotlin class or a coroutine bridge, and plugin.xml may have to declare the collaboration tools module. In 2026.2
+ * AsyncImageIcon is still internal and the icons providers experimental: wait until they are public API.
  */
 public final class AvatarIcons {
     private static final Logger LOG = Logger.getInstance(AvatarIcons.class);

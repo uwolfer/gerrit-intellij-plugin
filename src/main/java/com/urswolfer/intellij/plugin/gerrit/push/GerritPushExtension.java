@@ -39,6 +39,12 @@ import java.util.function.Function;
  * The byte-code modifications are triggered by {@link #install()}, which {@link GerritPushExtensionStarter}
  * calls on application startup. They are applied at most once per application.
  *
+ * TODO once the minimum IDE has com.intellij.dvcs.push.CustomPushOptionsPanelFactory as public API (2020.3 has not,
+ * 2026.2 has it experimental): register GerritPushExtensionPanel there in a VcsPushOptionsPanel, which the dialog shows
+ * next to Git's own options, and drop this class, its starter, the wrapping of GitPushOptionsPanel, the copies, the
+ * setters called by name, javassist and require-restart in plugin.xml. Its values never reach the git push, so the
+ * refs/for/ target and its options still need GerritPushTargetUpdater.
+ *
  * @author Urs Wolfer
  */
 public final class GerritPushExtension {

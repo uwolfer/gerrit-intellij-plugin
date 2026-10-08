@@ -322,7 +322,7 @@ public final class GerritGitUtil {
 
     public void notifyNoFetchInfo(Project project) {
         NotificationBuilder notification = new NotificationBuilder(project, "Cannot fetch changes",
-            "No fetch information provided. Gerrit 2.8 to 2.10 provide it only with the plugin " +
+            "No fetch information provided. Gerrit 2.9 and 2.10 provide it only with the plugin " +
                 "'download-commands' installed.");
         NotificationService.getInstance().notifyError(notification);
     }

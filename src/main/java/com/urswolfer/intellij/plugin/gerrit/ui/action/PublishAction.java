@@ -52,10 +52,7 @@ public class PublishAction extends AbstractLoggedInChangeAction {
         RevisionInfo currentRevision = getCurrentRevision(selectedChange);
         Map<String, ActionInfo> revisionActions = currentRevision != null ? currentRevision.actions : null;
         if (revisionActions == null) {
-            // if there are absolutely no actions, assume an older Gerrit instance
-            // which does not support receiving actions
-            // return false once we drop Gerrit < 2.9 support
-            return true;
+            return false;
         }
         ActionInfo publishAction = revisionActions.get("publish");
         return publishAction != null && Boolean.TRUE.equals(publishAction.enabled);

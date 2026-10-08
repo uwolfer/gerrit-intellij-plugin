@@ -86,6 +86,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parts based on org.jetbrains.plugins.github.GithubUtil
@@ -102,6 +104,10 @@ public final class GerritUtil {
      * often rejects one longer than 8 KB already; the query options make up the rest of the URL.
      */
     private static final int MAX_QUERY_LENGTH = 4000;
+
+    // The client puts Gerrit's answer on a line of its own after "Content:", hence DOTALL.
+    private static final Pattern UNSUPPORTED_OPTION = Pattern.compile(
+        "Content:.*\"(CHANGE_ACTIONS|SUBMITTABLE)\".*\"-o\"", Pattern.DOTALL);
 
     public static GerritUtil getInstance() {
         return ApplicationManager.getApplication().getService(GerritUtil.class);
@@ -308,9 +314,6 @@ public final class GerritUtil {
         accessGerrit(supplier, consumer, project, "Failed to set assignee");
     }
 
-    /**
-     * Star-endpoint added in Gerrit 2.8.
-     */
     @SuppressWarnings("unchecked")
     public void changeStarredStatus(final String id,
                                     final boolean starred,
@@ -331,8 +334,7 @@ public final class GerritUtil {
                 }
             }
         };
-        accessGerrit(supplier, consumer, project, "Failed to star Gerrit change " +
-                "(not supported for Gerrit versions older than 2.8)");
+        accessGerrit(supplier, consumer, project, "Failed to star Gerrit change");
     }
 
     @SuppressWarnings("unchecked")
@@ -417,40 +419,37 @@ public final class GerritUtil {
      */
     @Nullable
     List<ChangeInfo> queryChanges(Changes.QueryRequest queryRequest, Project project) {
-        try {
-            return queryRequest.get();
-        } catch (RestApiException e) {
-            // remove special handling (-> just notify error) once we drop Gerrit < 2.9 support
-            if (e instanceof HttpStatusException) {
-                HttpStatusException httpStatusException = (HttpStatusException) e;
-                if (httpStatusException.getStatusCode() == 400) {
-                    boolean tryFallback = false;
-                    String message = httpStatusException.getMessage();
-                    if (message.matches(".*Content:.*\"-S\".*")) {
-                        tryFallback = true;
-                        queryRequest.withStart(0); // remove start, trust that sortkey is set
-                    }
-                    if (message.matches(".*Content:.*\"(CHANGE_ACTIONS|CURRENT_ACTIONS|SUBMITTABLE)\".*\"-o\".*")) {
-                        tryFallback = true;
-                        Set<ListChangesOption> options = queryRequest.getOptions();
-                        options.remove(ListChangesOption.CHANGE_ACTIONS);
-                        options.remove(ListChangesOption.CURRENT_ACTIONS);
-                        options.remove(ListChangesOption.SUBMITTABLE);
-                        queryRequest.withOptions(options);
-                    }
-                    if (tryFallback) {
-                        try {
-                            return queryRequest.get();
-                        } catch (RestApiException ex) {
-                            notifyError(ex, "Failed to get Gerrit changes.", project);
-                            return null;
-                        }
-                    }
+        while (true) {
+            try {
+                return queryRequest.get();
+            } catch (RestApiException e) {
+                if (!(e instanceof HttpStatusException && ((HttpStatusException) e).getStatusCode() == 400
+                        && withoutUnsupportedOption(queryRequest, e.getMessage()))) {
+                    notifyError(e, "Failed to get Gerrit changes.", project);
+                    return null;
                 }
             }
-            notifyError(e, "Failed to get Gerrit changes.", project);
-            return null;
         }
+    }
+
+    /**
+     * Drops the option which the 400 of an older Gerrit names, and tells whether it did; Gerrit names one at a time.
+     * Gerrit 2.9 knows neither CHANGE_ACTIONS nor SUBMITTABLE, and gives the actions of the change for CURRENT_ACTIONS,
+     * which is kept.
+     */
+    @VisibleForTesting
+    static boolean withoutUnsupportedOption(Changes.QueryRequest queryRequest, String message) {
+        Matcher matcher = UNSUPPORTED_OPTION.matcher(message);
+        if (!matcher.find()) {
+            return false;
+        }
+        Set<ListChangesOption> options = queryRequest.getOptions();
+        // false for an option which is gone already, so that the caller does not retry forever
+        if (!options.remove(ListChangesOption.valueOf(matcher.group(1)))) {
+            return false;
+        }
+        queryRequest.withOptions(options);
+        return true;
     }
 
     private List<String> appendQueryStringForProject(Project project, String query) {
@@ -673,23 +672,10 @@ public final class GerritUtil {
                             ListChangesOption.DETAILED_ACCOUNTS,
                             ListChangesOption.LABELS,
                             ListChangesOption.DETAILED_LABELS);
-                    try {
-                        if (projectName == null) {
-                            return gerritApi(project).changes().id(changeNr).get(options);
-                        }
-                        return gerritApi(project).changes().id(projectName, changeNr).get(options);
-                    } catch (HttpStatusException e) {
-                        // remove special handling (-> just notify error) once we drop Gerrit < 2.7 support
-                        if (e.getStatusCode() == 400) {
-                            options.remove(ListChangesOption.MESSAGES);
-                            if (projectName == null) {
-                                return gerritApi(project).changes().id(changeNr).get(options);
-                            }
-                            return gerritApi(project).changes().id(projectName, changeNr).get(options);
-                        } else {
-                            throw e;
-                        }
+                    if (projectName == null) {
+                        return gerritApi(project).changes().id(changeNr).get(options);
                     }
+                    return gerritApi(project).changes().id(projectName, changeNr).get(options);
                 } catch (RestApiException e) {
                     notifyError(e, "Failed to get Gerrit change.", project);
                     return null;
@@ -699,9 +685,6 @@ public final class GerritUtil {
         accessGerrit(supplier, consumer, project);
     }
 
-    /**
-     * Support starting from Gerrit 2.7.
-     */
     public void getComments(final int changeNr,
                             final String revision,
                             final Project project,
@@ -738,10 +721,7 @@ public final class GerritUtil {
                     }
                     return allComments;
                 } catch (RestApiException e) {
-                    // remove check once we drop Gerrit < 2.7 support and fail in any case
-                    if (!(e instanceof HttpStatusException) || ((HttpStatusException) e).getStatusCode() != 404) {
-                        notifyError(e, "Failed to get Gerrit comments.", project);
-                    }
+                    notifyError(e, "Failed to get Gerrit comments.", project);
                     return new TreeMap<String, List<CommentInfo>>();
                 }
             }

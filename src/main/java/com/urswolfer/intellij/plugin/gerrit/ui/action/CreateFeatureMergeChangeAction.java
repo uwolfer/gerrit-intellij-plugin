@@ -26,6 +26,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import git4idea.GitLocalBranch;
@@ -123,7 +124,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             repositories.add(repository);
         }
         if (repositories.isEmpty()) {
-            gerritUtil.showAddGitRepositoryNotification(project);
+            gerritGitUtil.showAddGitRepositoryNotification(project);
             return null;
         }
 
@@ -156,9 +157,9 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                                     @Nullable GitRemoteBranch upstreamBranch) {
         List<String> projectNames;
         if (upstreamBranch == null || upstreamBranch.getRemote() == null) {
-            projectNames = gerritUtil.getProjectNames(project, repository.getRemotes());
+            projectNames = GerritRemotes.getProjectNames(project, repository.getRemotes());
         } else {
-            projectNames = gerritUtil.getProjectNames(project, Collections.singletonList(upstreamBranch.getRemote()));
+            projectNames = GerritRemotes.getProjectNames(project, Collections.singletonList(upstreamBranch.getRemote()));
         }
 
         Set<String> uniqueProjectNames = new LinkedHashSet<String>(projectNames);

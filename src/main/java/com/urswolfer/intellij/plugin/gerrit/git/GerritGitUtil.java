@@ -23,18 +23,22 @@ import static git4idea.commands.GitSimpleEventDetector.Event.LOCAL_CHANGES_OVERW
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.dvcs.util.CommitCompareInfo;
+import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.FilePath;
+import com.intellij.openapi.vcs.VcsBundle;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangeListManagerEx;
@@ -46,7 +50,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcsUtil.VcsFileUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
@@ -63,9 +67,12 @@ import git4idea.commands.GitLineHandler;
 import git4idea.commands.GitLineHandlerListener;
 import git4idea.commands.GitSimpleEventDetector;
 import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
+import git4idea.config.GitExecutableManager;
+import git4idea.config.GitVersion;
 import git4idea.fetch.GitFetchResult;
 import git4idea.fetch.GitFetchSupport;
 import git4idea.history.GitHistoryUtils;
+import git4idea.i18n.GitBundle;
 import git4idea.merge.GitConflictResolver;
 import git4idea.repo.GitBranchTrackInfo;
 import git4idea.repo.GitRemote;
@@ -202,7 +209,7 @@ public final class GerritGitUtil {
             for (String baseUrl : gerritBaseUrls) {
                 try {
                     if (UrlUtils.urlHasSameHost(url, baseUrl)) {
-                        projectNames.add(UrlUtils.stripAuthenticationPrefix(url, GerritUtil.getProjectName(baseUrl, null, url)));
+                        projectNames.add(UrlUtils.stripAuthenticationPrefix(url, GerritRemotes.getProjectName(baseUrl, null, url)));
                     }
                 } catch (IllegalArgumentException e) {
                     // java.net.URI rejects some remotes git accepts; they are matched by the weaker rules only
@@ -325,6 +332,33 @@ public final class GerritGitUtil {
             "No fetch information provided. Gerrit 2.9 and 2.10 provide it only with the plugin " +
                 "'download-commands' installed.");
         NotificationService.getInstance().notifyError(notification);
+    }
+
+    public void showAddGitRepositoryNotification(final Project project) {
+        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
+                "Please configure a Git repository.")
+                .action(NotificationAction.createSimpleExpiring("Open Settings",
+                    () -> ShowSettingsUtil.getInstance().showSettingsDialog(project,
+                        VcsBundle.message("version.control.main.configurable.name"))));
+        NotificationService.getInstance().notifyWarning(notification);
+    }
+
+    @SuppressWarnings("UnresolvedPropertyKey")
+    public boolean testGitExecutable(final Project project) {
+        final GitVersion version;
+        try {
+            version = GitExecutableManager.getInstance().getVersion(project);
+        } catch (Exception e) {
+            Messages.showErrorDialog(project, e.getMessage(), GitBundle.message("find.git.error.title"));
+            return false;
+        }
+
+        if (!version.isSupported()) {
+            Messages.showWarningDialog(project, GitBundle.message("find.git.unsupported.message", version.toString(), GitVersion.MIN),
+                    GitBundle.message("find.git.success.title"));
+            return false;
+        }
+        return true;
     }
 
     public void fetchChange(final Project project,

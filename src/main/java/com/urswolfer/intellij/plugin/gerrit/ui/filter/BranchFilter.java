@@ -24,8 +24,8 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import git4idea.GitRemoteBranch;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +40,6 @@ import java.util.Optional;
  */
 public class BranchFilter extends AbstractChangesFilter {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
-    private final GerritUtil gerritUtil = GerritUtil.getInstance();
 
     private Optional<BranchDescriptor> value = Optional.empty();
 
@@ -110,7 +109,7 @@ public class BranchFilter extends AbstractChangesFilter {
     }
 
     private String getNameForRepository(GitRepository repository) {
-        List<String> projectNames = gerritUtil.getProjectNames(repository.getProject(), repository.getRemotes());
+        List<String> projectNames = GerritRemotes.getProjectNames(repository.getProject(), repository.getRemotes());
         return projectNames.isEmpty() ? "" : projectNames.get(0);
     }
 

@@ -28,6 +28,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.LabelInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DataProvider;
@@ -38,6 +39,7 @@ import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
+import com.intellij.util.messages.Topic;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
@@ -87,6 +89,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
      * read; the platform asks the panel for this key on the EDT and passes the result on.
      */
     public static final DataKey<ChangeInfo> SELECTED_CHANGE = DataKey.create("Gerrit.SelectedChange");
+    /** The columns which can be shown or hidden, in their order in the table. */
+    public static final DataKey<List<ColumnToggle>> COLUMNS = DataKey.create("Gerrit.Columns");
+    /** The columns are a setting of the IDE, so the lists of all open projects follow a toggle in one of them. */
+    public static final Topic<Runnable> COLUMNS_CHANGED = Topic.create("Gerrit list columns", Runnable.class);
 
     private static final int AVATAR_SIZE = 16;
     private static final int AVATAR_GAP = 4;
@@ -99,6 +105,8 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private final TableView<ChangeInfo> table;
     private final List<Runnable> selectionClearedListeners = new ArrayList<>();
     private boolean replacingChanges;
+    private boolean rebuildingColumns;
+    private List<ColumnToggle> columnToggles = Collections.emptyList();
     private LoadChangesProxy loadChangesProxy = null;
     private String listedQuery;
 
@@ -119,6 +127,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
+        PopupHandler.installPopupHandler(table.getTableHeader(), "Gerrit.ColumnsPopup", ActionPlaces.UNKNOWN);
 
         updateModel(changes);
         table.setStriped(true);
@@ -227,7 +236,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
-                if (i >= 0 && !e.getValueIsAdjusting()) {
+                if (i >= 0 && !e.getValueIsAdjusting() && !rebuildingColumns) {
                     listener.consume(changes.get(i));
                 }
             }
@@ -244,7 +253,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             @Override
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting() && !replacingChanges) {
+                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting() && !replacingChanges && !rebuildingColumns) {
                     listener.run();
                 }
             }
@@ -256,6 +265,9 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     public Object getData(@NotNull String dataId) {
         if (SELECTED_CHANGE.is(dataId)) {
             return table.getSelectedObject();
+        }
+        if (COLUMNS.is(dataId)) {
+            return columnToggles;
         }
         return null;
     }
@@ -313,6 +325,23 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(generateColumnsInfo(changes), changes, 0));
     }
 
+    /**
+     * The listeners are not told about the selection which the new model drops and which is restored right away: the
+     * selected change stays the same, so its details and files are not loaded again.
+     */
+    public void rebuildColumns() {
+        ChangeInfo selected = table.getSelectedObject();
+        rebuildingColumns = true;
+        try {
+            initModel();
+            if (selected != null) {
+                table.setSelection(Collections.singletonList(selected));
+            }
+        } finally {
+            rebuildingColumns = false;
+        }
+    }
+
     private void updateModel(List<ChangeInfo> changes) {
         table.getListTableModel().addRows(changes);
     }
@@ -346,43 +375,38 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             }
         }
 
-        List<ColumnInfo> columnList = new ArrayList<>();
-        columnList.add(new GerritChangeColumnStarredInfo());
-        boolean showChangeNumberColumn = gerritSettings.getShowChangeNumberColumn();
-        if (showChangeNumberColumn) {
-            columnList.add(
-                new GerritChangeColumnInfo("#", number.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getNumber(change);
-                    }
+        Columns columns = new Columns();
+        columns.add(new GerritChangeColumnStarredInfo(), "Starred");
+        columns.add(
+            new GerritChangeColumnInfo("#", number.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getNumber(change);
                 }
-            );
-        }
-        boolean showChangeIdColumn = gerritSettings.getShowChangeIdColumn();
-        if (showChangeIdColumn) {
-            columnList.add(
-                new GerritChangeColumnInfo("ID", hash.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getHash(change);
-                    }
+            },
+            "Change Number", gerritSettings.getShowChangeNumberColumn(), gerritSettings::setShowChangeNumberColumn
+        );
+        columns.add(
+            new GerritChangeColumnInfo("ID", hash.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getHash(change);
                 }
-            );
-        }
-        boolean showTopicColumn = gerritSettings.getShowTopicColumn();
-        if (showTopicColumn) {
-            columnList.add(
-                new GerritChangeColumnInfo("Topic", topic.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getTopic(change);
-                    }
+            },
+            "Change ID", gerritSettings.getShowChangeIdColumn(), gerritSettings::setShowChangeIdColumn
+        );
+        columns.add(
+            new GerritChangeColumnInfo("Topic", topic.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getTopic(change);
                 }
-            );
-        }
+            },
+            "Topic", gerritSettings.getShowTopicColumn(), gerritSettings::setShowTopicColumn
+        );
 
-        columnList.add(
+        // never hidden, so that the table always has a column
+        columns.shown.add(
             new GerritChangeColumnInfo("Subject", subject.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
@@ -401,18 +425,19 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 }
             }
         );
-        columnList.add(
+        columns.add(
             new GerritChangeColumnInfo("Status", status.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getStatus(change);
                 }
-            }
+            },
+            "Status"
         );
         // not for a Gerrit which sends none: the column would keep room for icons which never come
         boolean showAvatars = gerritSettings.getShowAvatars()
             && changes.stream().anyMatch(change -> AvatarIcons.hasAvatar(change.owner));
-        columnList.add(
+        columns.add(
             new GerritChangeColumnInfo("Owner", author.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
@@ -440,50 +465,114 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                         }
                     };
                 }
-            }
+            },
+            "Owner"
         );
         ShowProjectColumn showProjectColumn = gerritSettings.getShowProjectColumn();
         boolean listAllChanges = gerritSettings.getListAllChanges();
-        if (showProjectColumn == ShowProjectColumn.ALWAYS
-            || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos()))) {
-            columnList.add(
-                new GerritChangeColumnInfo("Project", projectName.item) {
-                    @Override
-                    public String valueOf(ChangeInfo change) {
-                        return getProject(change);
-                    }
+        // until it is shown or hidden once, it is shown where changes of more than one project are likely
+        columns.add(
+            new GerritChangeColumnInfo("Project", projectName.item) {
+                @Override
+                public String valueOf(ChangeInfo change) {
+                    return getProject(change);
                 }
-            );
-        }
-        columnList.add(
+            },
+            "Project",
+            showProjectColumn == ShowProjectColumn.ALWAYS
+                || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos())),
+            visible -> gerritSettings.setShowProjectColumn(visible ? ShowProjectColumn.ALWAYS : ShowProjectColumn.NEVER)
+        );
+        columns.add(
             new GerritChangeColumnInfo("Branch", branch.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getBranch(change);
                 }
-            }
+            },
+            "Branch"
         );
-        columnList.add(
+        columns.add(
             new GerritChangeColumnInfo("Updated", time.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getTime(change);
                 }
-            }
+            },
+            "Updated"
         );
         for (final String label : availableLabels) {
-            columnList.add(
+            columns.add(
                 new GerritChangeColumnIconLabelInfo(getShortLabelDisplay(label), label) {
                     @Override
                     public LabelInfo getLabelInfo(ChangeInfo change) {
                         return getLabel(change, label);
                     }
-                }
+                },
+                "Label " + label, label
             );
         }
-        columnList.add(selectRevisionInfoColumn);
+        // never hidden: a patch set chosen in it would stay selected with nothing showing which
+        columns.shown.add(selectRevisionInfoColumn);
 
-        return columnList.toArray(new ColumnInfo[columnList.size()]);
+        columnToggles = Collections.unmodifiableList(columns.toggles);
+        return columns.shown.toArray(new ColumnInfo[0]);
+    }
+
+    private final class Columns {
+        private final List<ColumnInfo> shown = new ArrayList<>();
+        private final List<ColumnToggle> toggles = new ArrayList<>();
+
+        private void add(ColumnInfo column, String name) {
+            add(column, name, name);
+        }
+
+        /**
+         * @param id what the hidden column is remembered by: a label is told apart from a column of the same name
+         */
+        private void add(ColumnInfo column, String id, String name) {
+            add(column, name, !gerritSettings.isColumnHidden(id), visible -> gerritSettings.setColumnHidden(id, !visible));
+        }
+
+        private void add(ColumnInfo column, String name, boolean visible, Consumer<Boolean> setVisible) {
+            toggles.add(new ColumnToggle(name, visible, newVisible -> {
+                setVisible.consume(newVisible);
+                ApplicationManager.getApplication().getMessageBus().syncPublisher(COLUMNS_CHANGED).run();
+            }));
+            if (visible) {
+                shown.add(column);
+            }
+        }
+    }
+
+    /**
+     * What the header menu shows of a column. It is read while the menu is updated, possibly in the background, so
+     * it holds the visibility rather than looking at the table. Newer IDEs keep the menu open after a toggle and only
+     * update its items, so the toggle keeps its own state up to date as well.
+     */
+    public static final class ColumnToggle {
+        private final String name;
+        private volatile boolean visible;
+        private final Consumer<Boolean> setVisible;
+
+        private ColumnToggle(String name, boolean visible, Consumer<Boolean> setVisible) {
+            this.name = name;
+            this.visible = visible;
+            this.setVisible = setVisible;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public boolean isVisible() {
+            return visible;
+        }
+
+        public void setVisible(boolean visible) {
+            this.visible = visible;
+            setVisible.consume(visible);
+        }
     }
 
     private boolean hasProjectMultipleRepos() {

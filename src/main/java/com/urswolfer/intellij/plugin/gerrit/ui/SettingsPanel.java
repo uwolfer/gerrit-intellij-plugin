@@ -25,7 +25,6 @@ import com.intellij.ui.AnActionButton;
 import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.DoubleClickListener;
-import com.intellij.ui.EnumComboBoxModel;
 import com.intellij.ui.GuiUtils;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.SimpleTextAttributes;
@@ -38,7 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -75,11 +73,7 @@ public class SettingsPanel {
     private JCheckBox automaticRefreshCheckbox;
     private JCheckBox listAllChangesCheckbox;
     private JCheckBox pushToGerritCheckbox;
-    private JCheckBox showChangeNumberColumnCheckBox;
-    private JCheckBox showChangeIdColumnCheckBox;
-    private JCheckBox showTopicColumnCheckBox;
     private JCheckBox showAvatarsCheckBox;
-    private JComboBox showProjectColumnComboBox;
     private JLabel minutesLabel;
     private JLabel listAllHint;
 
@@ -107,8 +101,6 @@ public class SettingsPanel {
 
         // A timeout of 0 or less silently stops the automatic refresh.
         refreshTimeoutSpinner.setModel(new SpinnerNumberModel(MIN_REFRESH_TIMEOUT, MIN_REFRESH_TIMEOUT, MAX_REFRESH_TIMEOUT, 1));
-
-        showProjectColumnComboBox.setModel(new EnumComboBoxModel(ShowProjectColumn.class));
     }
 
     static void styleHints(JLabel... hints) {
@@ -328,43 +320,11 @@ public class SettingsPanel {
         return pushToGerritCheckbox.isSelected();
     }
 
-    public boolean getShowChangeNumberColumn() {
-        return showChangeNumberColumnCheckBox.isSelected();
-    }
-
-    public void setShowChangeNumberColumn(final boolean showChangeNumberColumn) {
-        showChangeNumberColumnCheckBox.setSelected(showChangeNumberColumn);
-    }
-
-    public boolean getShowChangeIdColumn() {
-        return showChangeIdColumnCheckBox.isSelected();
-    }
-
-    public void setShowChangeIdColumn(final boolean showChangeIdColumn) {
-        showChangeIdColumnCheckBox.setSelected(showChangeIdColumn);
-    }
-
-    public boolean getShowTopicColumn() {
-        return showTopicColumnCheckBox.isSelected();
-    }
-
-    public void setShowTopicColumn(final boolean showTopicColumn) {
-        showTopicColumnCheckBox.setSelected(showTopicColumn);
-    }
-
     public boolean getShowAvatars() {
         return showAvatarsCheckBox.isSelected();
     }
 
     public void setShowAvatars(final boolean showAvatars) {
         showAvatarsCheckBox.setSelected(showAvatars);
-    }
-
-    public ShowProjectColumn getShowProjectColumn() {
-        return (ShowProjectColumn) showProjectColumnComboBox.getModel().getSelectedItem();
-    }
-
-    public void setShowProjectColumn(ShowProjectColumn showProjectColumn) {
-        showProjectColumnComboBox.getModel().setSelectedItem(showProjectColumn);
     }
 }

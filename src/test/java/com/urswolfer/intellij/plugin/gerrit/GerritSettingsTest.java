@@ -66,6 +66,7 @@ public class GerritSettingsTest {
 
         Map<String, String> expected = new HashMap<>(attributesOf(parse(LEGACY_SETTINGS_XML)));
         expected.put("ShowAvatars", "true"); // new, and ignored by earlier versions as any attribute they do not know
+        expected.put("HiddenColumns", "");
         Assert.assertEquals(written, expected);
     }
 
@@ -79,6 +80,7 @@ public class GerritSettingsTest {
 
         Set<String> expected = new HashSet<>(attributesOf(parse(LEGACY_SETTINGS_XML)).keySet());
         expected.add("ShowAvatars");
+        expected.add("HiddenColumns");
         Assert.assertEquals(written.keySet(), expected);
         Assert.assertEquals(written.get("AutomaticRefresh"), "true");
         Assert.assertEquals(written.get("RefreshTimeout"), "15");
@@ -88,8 +90,7 @@ public class GerritSettingsTest {
     }
 
     /**
-     * {@link ShowProjectColumn#toString()} is a label for the settings combo box, so a serializer which wrote the
-     * enum through it would put "Auto (when multiple Git repositories available)" into the file.
+     * Earlier versions read the value with {@link ShowProjectColumn#valueOf(String)}.
      */
     @Test
     public void testShowProjectColumnIsWrittenAsItsEnumName() throws Exception {
@@ -97,6 +98,25 @@ public class GerritSettingsTest {
         state.showProjectColumn = ShowProjectColumn.ALWAYS;
 
         Assert.assertEquals(attributesOf(serialize(state)).get("ShowProjectColumn"), "ALWAYS");
+    }
+
+    @Test
+    public void testHiddenColumnsAreKeptAcrossTheFile() throws Exception {
+        GerritSettings.SettingsState state = new GerritSettings.SettingsState();
+        GerritSettings settings = new GerritSettings();
+        settings.loadState(state);
+        settings.setColumnHidden("Status", true);
+        settings.setColumnHidden("Label Code-Review", true);
+        settings.setColumnHidden("Branch", true);
+        settings.setColumnHidden("Branch", false);
+
+        GerritSettings read = new GerritSettings();
+        read.loadState(XmlSerializer.deserialize(serialize(state), GerritSettings.SettingsState.class));
+
+        Assert.assertTrue(read.isColumnHidden("Status"));
+        Assert.assertTrue(read.isColumnHidden("Label Code-Review"));
+        Assert.assertFalse(read.isColumnHidden("Branch"));
+        Assert.assertFalse(read.isColumnHidden(""));
     }
 
     /**

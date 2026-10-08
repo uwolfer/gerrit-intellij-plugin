@@ -28,6 +28,10 @@ import com.intellij.util.xmlb.annotations.Property;
 import com.urswolfer.intellij.plugin.gerrit.ui.ShowProjectColumn;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
+
 /**
  * The preferences which are the same whichever Gerrit instance a project talks to. Host, login and password
  * belong to a {@link GerritAccount}.
@@ -68,11 +72,13 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
         @Attribute(value = "ShowProjectColumn", converter = ShowProjectColumnConverter.class)
         public ShowProjectColumn showProjectColumn = ShowProjectColumn.AUTO;
         @Property(alwaysWrite = true) @Attribute("CloneBaseUrl") public String cloneBaseUrl = "";
+        /** Separated by commas, which no column name and no Gerrit label name holds. */
+        @Property(alwaysWrite = true) @Attribute("HiddenColumns") public String hiddenColumns = "";
     }
 
     /**
-     * {@link ShowProjectColumn#toString()} is the label of the settings combo box, and the serializer would write
-     * the enum through it. The file has always held the enum name, so it keeps holding the enum name.
+     * The file holds the enum name, which earlier versions read with {@code valueOf}. A name which this version does
+     * not know is read as the default rather than failing the whole file.
      */
     public static final class ShowProjectColumnConverter extends Converter<ShowProjectColumn> {
         @Override
@@ -188,6 +194,26 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
 
     public void setShowTopicColumn(boolean showTopicColumn) {
         state.showTopicColumn = showTopicColumn;
+    }
+
+    public boolean isColumnHidden(String column) {
+        return hiddenColumns().contains(column);
+    }
+
+    public void setColumnHidden(String column, boolean hidden) {
+        Set<String> columns = hiddenColumns();
+        if (hidden) {
+            columns.add(column);
+        } else {
+            columns.remove(column);
+        }
+        state.hiddenColumns = String.join(",", columns);
+    }
+
+    private Set<String> hiddenColumns() {
+        Set<String> columns = new TreeSet<>(Arrays.asList(state.hiddenColumns.split(",")));
+        columns.remove("");
+        return columns;
     }
 
     public boolean getShowAvatars() {

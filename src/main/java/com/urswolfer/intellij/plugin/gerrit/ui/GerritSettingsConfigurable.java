@@ -78,22 +78,14 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
                 !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()) ||
                 !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
-                !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
-                !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
-                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
-                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
-                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn()));
+                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()));
     }
 
     /** Whether a setting changed which the list of changes is built from: the accounts and the columns. */
     private boolean isListModified() {
         return accountsModified() ||
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
-                !Comparing.equal(gerritSettings.getShowChangeNumberColumn(), settingsPane.getShowChangeNumberColumn()) ||
-                !Comparing.equal(gerritSettings.getShowChangeIdColumn(), settingsPane.getShowChangeIdColumn()) ||
-                !Comparing.equal(gerritSettings.getShowTopicColumn(), settingsPane.getShowTopicColumn()) ||
-                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
-                !Comparing.equal(gerritSettings.getShowProjectColumn(), settingsPane.getShowProjectColumn());
+                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars());
     }
 
     private boolean accountsModified() {
@@ -131,11 +123,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setReviewNotifications(settingsPane.getReviewNotifications());
             gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
             GerritPushExtension.setPushToGerritByDefault(settingsPane.getPushToGerrit());
-            gerritSettings.setShowChangeNumberColumn(settingsPane.getShowChangeNumberColumn());
-            gerritSettings.setShowChangeIdColumn(settingsPane.getShowChangeIdColumn());
-            gerritSettings.setShowTopicColumn(settingsPane.getShowTopicColumn());
             gerritSettings.setShowAvatars(settingsPane.getShowAvatars());
-            gerritSettings.setShowProjectColumn(settingsPane.getShowProjectColumn());
 
             GerritUpdatesNotificationComponent.configurationChanged();
             if (listChanged) {
@@ -201,11 +189,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setRefreshTimeout(gerritSettings.getRefreshTimeout());
             settingsPane.setReviewNotifications(gerritSettings.getReviewNotifications());
             settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
-            settingsPane.setShowChangeNumberColumn(gerritSettings.getShowChangeNumberColumn());
-            settingsPane.setShowChangeIdColumn(gerritSettings.getShowChangeIdColumn());
-            settingsPane.setShowTopicColumn(gerritSettings.getShowTopicColumn());
             settingsPane.setShowAvatars(gerritSettings.getShowAvatars());
-            settingsPane.setShowProjectColumn(gerritSettings.getShowProjectColumn());
         }
     }
 

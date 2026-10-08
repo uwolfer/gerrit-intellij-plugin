@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.DownloadSchemeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -167,6 +169,45 @@ public class GerritUtilTest {
     public void testProjectNameOfScpLikeUrl() {
         Assert.assertEquals(GerritUtil.getProjectName("https://gerrit.server", "", "git@gerrit.server:tools/gerrit"),
                 "tools/gerrit");
+    }
+
+    private static DownloadSchemeInfo scheme(String url, boolean authRequired) {
+        DownloadSchemeInfo scheme = new DownloadSchemeInfo();
+        scheme.url = url;
+        scheme.isAuthRequired = authRequired;
+        return scheme;
+    }
+
+    @Test
+    public void testCloneBaseUrlPrefersTheSchemeWithoutLogin() {
+        Map<String, DownloadSchemeInfo> schemes = new LinkedHashMap<>();
+        schemes.put("ssh", scheme("ssh://user@host:29418/${project}", true));
+        schemes.put("http", scheme("https://host/gerrit/a/${project}", true));
+        schemes.put("anonymous http", scheme("https://host/gerrit/${project}", false));
+        Assert.assertEquals(GerritUtil.getCloneBaseUrl(schemes), "https://host/gerrit");
+    }
+
+    @Test
+    public void testCloneBaseUrlWithoutThePrefixOfTheAuthenticatedEndpoints() {
+        Map<String, DownloadSchemeInfo> schemes = new LinkedHashMap<>();
+        schemes.put("http", scheme("https://host/a/${project}", true));
+        Assert.assertEquals(GerritUtil.getCloneBaseUrl(schemes), "https://host");
+    }
+
+    @Test
+    public void testCloneBaseUrlWithoutTheUserOfTheRequest() {
+        Map<String, DownloadSchemeInfo> schemes = new LinkedHashMap<>();
+        schemes.put("http", scheme("https://jane@example.com@host/gerrit/a/${project}", true));
+        Assert.assertEquals(GerritUtil.getCloneBaseUrl(schemes), "https://host/gerrit");
+    }
+
+    @Test
+    public void testCloneBaseUrlWithoutHttpScheme() {
+        Map<String, DownloadSchemeInfo> schemes = new LinkedHashMap<>();
+        schemes.put("ssh", scheme("ssh://user@host:29418/${project}", true));
+        schemes.put("broken", scheme("https://host/no-placeholder", false));
+        Assert.assertNull(GerritUtil.getCloneBaseUrl(schemes));
+        Assert.assertNull(GerritUtil.getCloneBaseUrl(null));
     }
 
     @Test

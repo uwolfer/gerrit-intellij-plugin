@@ -26,7 +26,7 @@ Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for the
 
 *Compiled with Java 11*
 
-Only Gerrit 2.8 or newer is supported (missing / incomplete REST API in older versions).
+Only Gerrit 2.9 or newer is supported (missing / incomplete REST API in older versions).
 
 Installation
 ------------
@@ -67,12 +67,11 @@ your IDE project to see its diff. Reviewing without a local clone is tracked in
 [#76](https://github.com/uwolfer/gerrit-intellij-plugin/issues/76).
 
 ### Error-message when clicking a change: "Cannot fetch changes"
-In Gerrit 2.8, fetch information was pulled out of default functionality into a plugin.
 Up to Gerrit 2.10 you need to install the plugin <code>download-commands</code>; newer versions provide the ref of each
 patch set without it. When you run the Gerrit update procedure, it asks you to install
 this plugin (but it isn't selected by default). Just run the update script again if you have not installed it yet.
 
-When installing Gerrit 2.8 (or newer) from scratch (rather than using the update script) the following command will install the
+When installing Gerrit 2.9 or 2.10 from scratch (rather than using the update script) the following command will install the
 <code>download-commands</code> plugin (for a new installation or an existing Gerrit instance):
 
     $ java -jar gerrit.war init -d {gerrit-instance} --install-plugin=download-commands

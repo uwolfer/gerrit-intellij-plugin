@@ -16,15 +16,24 @@
 
 package com.urswolfer.intellij.plugin.gerrit.rest;
 
+import com.google.gerrit.extensions.api.changes.Changes;
+import com.google.gerrit.extensions.client.ListChangesOption;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import git4idea.repo.GitRemote;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author Urs Wolfer
@@ -194,6 +203,77 @@ public class GerritUtilTest {
 
         Assert.assertNull(GerritUtil.getFirstFetchInfo(revisionInfo, () -> "https://gerrit.server"));
         Assert.assertNull(GerritUtil.getFirstFetchInfo(null, () -> "https://gerrit.server"));
+    }
+
+    @Test
+    public void testOptionGerritRejectsIsDropped() {
+        Changes.QueryRequest request = query().withOptions(EnumSet.of(ListChangesOption.LABELS,
+            ListChangesOption.CHANGE_ACTIONS, ListChangesOption.CURRENT_ACTIONS, ListChangesOption.SUBMITTABLE));
+
+        Assert.assertTrue(GerritUtil.withoutUnsupportedOption(request, rejected("SUBMITTABLE")));
+        Assert.assertEquals(request.getOptions(), EnumSet.of(ListChangesOption.LABELS,
+            ListChangesOption.CHANGE_ACTIONS, ListChangesOption.CURRENT_ACTIONS));
+
+        // Gerrit 2.9 names the next one on the retry
+        Assert.assertTrue(GerritUtil.withoutUnsupportedOption(request, rejected("CHANGE_ACTIONS")));
+        Assert.assertEquals(request.getOptions(),
+            EnumSet.of(ListChangesOption.LABELS, ListChangesOption.CURRENT_ACTIONS));
+    }
+
+    @Test
+    public void testQueryIsRetriedWithoutEachOptionGerritRejects() {
+        List<Set<ListChangesOption>> sent = new ArrayList<>();
+        Changes.QueryRequest request = new Changes.QueryRequest() {
+            @Override
+            public List<ChangeInfo> get() throws RestApiException {
+                Set<ListChangesOption> options = EnumSet.copyOf(getOptions());
+                sent.add(options);
+                for (ListChangesOption unknown
+                        : EnumSet.of(ListChangesOption.CHANGE_ACTIONS, ListChangesOption.SUBMITTABLE)) {
+                    if (options.contains(unknown)) {
+                        throw new HttpStatusException(400, "Bad Request", rejected(unknown.name()));
+                    }
+                }
+                return Collections.emptyList();
+            }
+        }.withOptions(EnumSet.of(ListChangesOption.LABELS,
+            ListChangesOption.CHANGE_ACTIONS, ListChangesOption.CURRENT_ACTIONS, ListChangesOption.SUBMITTABLE));
+
+        Assert.assertEquals(new GerritUtil().queryChanges(request, null), Collections.emptyList());
+        Assert.assertEquals(sent.size(), 3);
+        Assert.assertEquals(sent.get(2), EnumSet.of(ListChangesOption.LABELS, ListChangesOption.CURRENT_ACTIONS));
+    }
+
+    @Test
+    public void testOptionWhichIsGoneAlreadyIsNotRetried() {
+        Changes.QueryRequest request = query().withOptions(EnumSet.of(ListChangesOption.LABELS));
+
+        Assert.assertFalse(GerritUtil.withoutUnsupportedOption(request, rejected("SUBMITTABLE")));
+    }
+
+    @Test
+    public void testOtherBadRequestIsNotRetried() {
+        Changes.QueryRequest request = query().withOptions(EnumSet.of(ListChangesOption.SUBMITTABLE));
+
+        Assert.assertFalse(GerritUtil.withoutUnsupportedOption(request,
+            "Request not successful. Message: Bad Request. Status-Code: 400. Content:\n"
+                + "line 1:5 no viable alternative at input 'foo'."));
+        Assert.assertEquals(request.getOptions(), EnumSet.of(ListChangesOption.SUBMITTABLE));
+    }
+
+    private static Changes.QueryRequest query() {
+        return new Changes.QueryRequest() {
+            @Override
+            public List<ChangeInfo> get() {
+                throw new AssertionError("not sent");
+            }
+        };
+    }
+
+    // what gerrit-rest-java-client's HttpStatusException carries for the 400 of an option Gerrit does not know
+    private static String rejected(String option) {
+        return String.format("Request not successful. Message: Bad Request. Status-Code: 400. Content:%n"
+            + "\"%s\" is not a valid value for \"-o\".", option);
     }
 
     @Test

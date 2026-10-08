@@ -38,20 +38,17 @@ public class DeleteAction extends AbstractLoggedInChangeAction {
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent() && !canPublish(selectedChange.get())) {
+        if (selectedChange.isPresent() && !canDelete(selectedChange.get())) {
             e.getPresentation().setEnabled(false);
         }
     }
 
-    private boolean canPublish(ChangeInfo selectedChange) {
+    private boolean canDelete(ChangeInfo selectedChange) {
         if (!ChangeStatus.DRAFT.equals(selectedChange.status)) {
             return false;
         }
         if (selectedChange.actions == null) {
-            // if there are absolutely no actions, assume an older Gerrit instance
-            // which does not support receiving actions
-            // return false once we drop Gerrit < 2.9 support
-            return true;
+            return false;
         }
         ActionInfo deleteAction = selectedChange.actions.get("/");
         if (deleteAction == null) {

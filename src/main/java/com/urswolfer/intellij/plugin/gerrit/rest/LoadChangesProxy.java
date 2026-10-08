@@ -150,7 +150,6 @@ public class LoadChangesProxy {
         private final Changes.QueryRequest queryRequest;
         private final Deque<ChangeInfo> pending = new ArrayDeque<>();
         private int fetched;
-        private String sortkey;
         private boolean hasMore = true;
         private boolean failed;
 
@@ -179,12 +178,8 @@ public class LoadChangesProxy {
         }
 
         private void fetch(int limit) {
-            Changes.QueryRequest request = queryRequest.withLimit(limit).withStart(fetched);
-            // remove sortkey handling once we drop Gerrit < 2.9 support
-            if (sortkey != null) {
-                request.withSortkey(sortkey);
-            }
-            List<ChangeInfo> changeInfos = gerritUtil.queryChanges(request, project);
+            List<ChangeInfo> changeInfos =
+                gerritUtil.queryChanges(queryRequest.withLimit(limit).withStart(fetched), project);
             if (changeInfos == null) {
                 failed = true;
                 return;
@@ -195,7 +190,6 @@ public class LoadChangesProxy {
             }
             ChangeInfo lastChangeInfo = changeInfos.get(changeInfos.size() - 1);
             hasMore = lastChangeInfo._moreChanges != null && lastChangeInfo._moreChanges;
-            sortkey = lastChangeInfo._sortkey;
             fetched += changeInfos.size();
             pending.addAll(changeInfos);
         }

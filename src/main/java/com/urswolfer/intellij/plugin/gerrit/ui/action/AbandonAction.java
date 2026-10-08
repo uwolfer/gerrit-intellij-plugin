@@ -51,10 +51,7 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
 
     private boolean canAbandon(ChangeInfo selectedChange) {
         if (selectedChange.actions == null) {
-            // if there are absolutely no actions, assume an older Gerrit instance
-            // which does not support receiving actions
-            // return false once we drop Gerrit < 2.9 support
-            return true;
+            return false;
         }
         ActionInfo abandonAction = selectedChange.actions.get("abandon");
         return abandonAction != null && Boolean.TRUE.equals(abandonAction.enabled);

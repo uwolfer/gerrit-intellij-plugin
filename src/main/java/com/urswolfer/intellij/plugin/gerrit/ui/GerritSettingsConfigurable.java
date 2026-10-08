@@ -26,6 +26,7 @@ import com.intellij.openapi.util.Comparing;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
 import org.jetbrains.annotations.NotNull;
@@ -73,6 +74,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
 
     public boolean isModified() {
         return settingsPane != null && (accountsModified() ||
+                projectSettings().isEnabled() != settingsPane.getProjectEnabled() ||
                 !Comparing.equal(gerritSettings.getAutomaticRefresh(), settingsPane.getAutomaticRefresh()) ||
                 !Comparing.equal(gerritSettings.getListAllChanges(), settingsPane.getListAllChanges()) ||
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
@@ -114,8 +116,11 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
 
     public void apply() throws ConfigurationException {
         if (settingsPane != null) {
-            boolean listChanged = isListModified();
+            boolean enabledChanged = projectSettings().isEnabled() != settingsPane.getProjectEnabled();
+            // a project switched back on has a change list which stopped loading while it was off
+            boolean listChanged = isListModified() || enabledChanged && settingsPane.getProjectEnabled();
             applyAccounts();
+            projectSettings().setEnabled(settingsPane.getProjectEnabled());
 
             gerritSettings.setListAllChanges(settingsPane.getListAllChanges());
             gerritSettings.setAutomaticRefresh(settingsPane.getAutomaticRefresh());
@@ -126,6 +131,12 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setShowAvatars(settingsPane.getShowAvatars());
 
             GerritUpdatesNotificationComponent.configurationChanged();
+            if (enabledChanged) {
+                GerritToolWindowFactory.updateAvailability(project);
+                if (settingsPane.getProjectEnabled()) {
+                    GerritUpdatesNotificationStartupActivity.start(project);
+                }
+            }
             if (listChanged) {
                 ApplicationManager.getApplication().getMessageBus()
                         .syncPublisher(GerritListSettingsListener.TOPIC).listSettingsChanged();
@@ -183,6 +194,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             GerritAccount current = projectAccount().get();
             List<GerritAccount> copies = copies(accounts.getAccounts());
             settingsPane.setAccounts(copies, find(copies, current));
+            settingsPane.setProjectEnabled(projectSettings().isEnabled());
 
             settingsPane.setListAllChanges(gerritSettings.getListAllChanges());
             settingsPane.setAutomaticRefresh(gerritSettings.getAutomaticRefresh());
@@ -191,6 +203,10 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
             settingsPane.setShowAvatars(gerritSettings.getShowAvatars());
         }
+    }
+
+    private GerritProjectSettings projectSettings() {
+        return GerritProjectSettings.getInstance(project);
     }
 
     private GerritProjectAccount projectAccount() {

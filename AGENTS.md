@@ -151,17 +151,20 @@ application startup:
   `NoClassDefFoundError` in the push dialog.
 * The copies are not the classes this plugin loaded, so their static setters
   are called by name: `GerritPushOptionsPanel.setPushToGerritByDefault`, also
-  whenever the setting changes, and `GerritPushExtensionPanel.setAccountCompletion`,
-  which hands over the account suggestions of the reviewers and CC fields. Those
-  need the REST client, which the Git plugin class loader cannot load; a panel
-  without them shows plain text fields.
+  whenever the setting changes, `GerritPushOptionsPanel.setEnabledForProject`,
+  which hands over whether a project uses Gerrit at all, and
+  `GerritPushExtensionPanel.setAccountCompletion`, which hands over the account
+  suggestions of the reviewers and CC fields. The suggestions need the REST
+  client, which the Git plugin class loader cannot load. Without the project
+  setting, a panel shows the Gerrit options in every project; without the
+  suggestions, plain text fields.
 * `GerritPushTargetUpdater` finds the repository rows in the dialog's component
   tree, with `com.intellij.dvcs.push` classes: public, but the dialog's own UI.
 
 `GerritPushExtensionTest` covers what would otherwise only fail at startup: that
 the rewrite compiles against the Git plugin, that the list holds every class of
-the plugin or the Gerrit REST client the copied classes use, and that the panel
-still has the setters called by name. It runs against the SDK the build uses;
+the plugin or the Gerrit REST client the copied classes use, and that the panels
+still have the setters called by name. It runs against the SDK the build uses;
 `-PideaVersion=<latest>` fails while resolving `git4idea`, so check the newest
 IDE with `.claude/skills/run-ide/scripts/smoke.sh latest`, which fails when the
 push dialog does or on an error which names the plugin.

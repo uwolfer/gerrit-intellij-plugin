@@ -21,7 +21,8 @@ Components are found by XPath over the Swing tree, as `tree` prints it, e.g.
 StripeButton became SquareStripeButton in newer IDEs).
 
   robot.py login [URL LOGIN PASSWORD]  that account on the Gerrit settings page, added or edited, and used by the
-                                       project (default: the seeded Gerrit)
+                                       project, which uses Gerrit (default: the seeded Gerrit)
+  robot.py settings                    the Gerrit settings page of the project
   robot.py focus                       the IDE frame, for keys to reach it
   robot.py tree [WORD]                 visible components, indented; only lines with WORD
   robot.py find XPATH                  id, class and screen bounds of each showing match
@@ -220,18 +221,24 @@ def before_click(action, *failures):  # retries only these: anything else may ha
             time.sleep(1)
 
 
-def login(url='http://localhost:8080', user='admin', password='secret'):
+ACCOUNTS = "//div[@accessiblename='Gerrit Accounts']//div[@class='JBList']"
+
+
+def settings():
     # by name, as 2026.2's settings search drops or ignores what is typed while the pages load
     run('''javax.swing.SwingUtilities.invokeLater(function () {
         var project = com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0];
         com.intellij.openapi.options.ShowSettingsUtil.getInstance().showSettingsDialog(project, 'Gerrit');
     });''')
-    accounts = "//div[@accessiblename='Gerrit Accounts']//div[@class='JBList']"
-    until(lambda: find(accounts), 60, 'the Gerrit settings page')  # a first start may still open the project
+    until(lambda: find(ACCOUNTS), 60, 'the Gerrit settings page')  # a first start may still open the project
+
+
+def login(url='http://localhost:8080', user='admin', password='secret'):
+    settings()
     # the account of this instance and login is edited rather than added a second time
     account = '%s@%s' % (user, url)
-    if account in retrieve(ROWS, one(accounts)).split('\n'):
-        main(['item', accounts, account, '--double'])
+    if account in retrieve(ROWS, one(ACCOUNTS)).split('\n'):
+        main(['item', ACCOUNTS, account, '--double'])
     else:
         main(['click', "//div[@class='ActionButton' and @accessiblename='Add']"])
     dialog = "//div[@class='MyDialog' and contains(@accessiblename,'Gerrit Account')]"
@@ -246,6 +253,7 @@ def login(url='http://localhost:8080', user='admin', password='secret'):
     until(lambda: not find(dialog), 30, 'the account dialog to close')
     # the account just added or edited is the selected one; the project uses it from now on
     main(['click', "//div[@class='ActionButton' and @accessiblename='Use for This Project']"])
+    main(['check', "//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']", 'on'])
     page = "//div[@accessiblename='Gerrit Accounts']"
     main(['click', "//div[@class='JButton' and @accessiblename='OK']"])
     until(lambda: not find(page), 30, 'the settings dialog to close; did OK not save?')  # a busy IDE takes a while
@@ -273,6 +281,8 @@ def main(args):
         time.sleep(0.5)
     elif command == 'login':
         login(*rest)
+    elif command == 'settings':
+        settings()
     elif command == 'tree':
         tree = Tree(rest[0] if rest else None)
         tree.feed(call('/hierarchy'))

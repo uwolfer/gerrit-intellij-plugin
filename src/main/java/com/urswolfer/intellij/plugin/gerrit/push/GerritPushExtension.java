@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.textCompletion.TextCompletionProvider;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
 import javassist.*;
@@ -27,6 +28,7 @@ import javassist.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * The push dialog offers no entry point for adding the Gerrit push settings to it, so the panel with them is added
@@ -34,7 +36,8 @@ import java.util.function.Function;
  *
  * * GitPushSupport#createOptionsPanel is overwritten in order to return the Gerrit push settings panel.
  * * GerritPushExtensionPanel, GerritPushOptionsPanel and the classes they use get copied to the Git plugin class loader.
- * * The copied GerritPushExtensionPanel is handed the account completion, which stays in the Gerrit plugin class loader.
+ * * The copied GerritPushOptionsPanel is handed whether a project uses Gerrit, and the copied GerritPushExtensionPanel
+ *   the account completion: both stay in the Gerrit plugin class loader.
  *
  * The byte-code modifications are triggered by {@link #install()}, which {@link GerritPushExtensionStarter}
  * calls on application startup. They are applied at most once per application.
@@ -87,6 +90,7 @@ public final class GerritPushExtension {
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
 
+            handOverEnabledForProject(gitIdeaPluginClassLoader);
             handOverAccountCompletion(gitIdeaPluginClassLoader);
         } catch (Exception e) {
             LOG.error("Failed to inject Gerrit push UI.", e);
@@ -160,6 +164,28 @@ public final class GerritPushExtension {
         for (String className : CLASSES_FOR_GIT_PLUGIN) {
             loadClass(classPool, targetClassLoader, className);
         }
+    }
+
+    /**
+     * The project settings are a service of this plugin, which the Git plugin class loader cannot load, so the copied
+     * panel gets a {@link Predicate} over them. A panel which does not get it shows the Gerrit options in every
+     * project, as all did before projects could do without: no reason to give up the push dialog integration.
+     */
+    private static void handOverEnabledForProject(ClassLoader gitIdeaPluginClassLoader) {
+        try {
+            handOverEnabledForProject(
+                Class.forName(GerritPushOptionsPanel.class.getName(), true, gitIdeaPluginClassLoader),
+                GerritProjectSettings::isEnabled);
+        } catch (ProcessCanceledException e) {
+            throw e;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOG.warn("Failed to hand the project settings to Gerrit push UI.", e);
+        }
+    }
+
+    static void handOverEnabledForProject(Class<?> panelClass, Predicate<Project> enabledForProject)
+            throws ReflectiveOperationException {
+        panelClass.getMethod("setEnabledForProject", Predicate.class).invoke(null, enabledForProject);
     }
 
     /**

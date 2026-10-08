@@ -26,6 +26,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Alarm;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -86,7 +87,7 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
     }
 
     public void handleNotification() {
-        if (project.isDisposed()) {
+        if (!GerritProjectSettings.isEnabled(project)) {
             return;
         }
 
@@ -105,6 +106,9 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
 
     @Override
     public void consume(List<ChangeInfo> changes) {
+        if (!GerritProjectSettings.isEnabled(project)) { // switched off while the query was running
+            return;
+        }
         boolean newChange = false;
         for (ChangeInfo change : changes) {
             if (!notifiedChanges.contains(change.id)) {
@@ -159,7 +163,8 @@ public final class GerritUpdatesNotificationComponent implements Consumer<List<C
 
     private synchronized void scheduleRefreshTask() {
         long refreshTimeout = gerritSettings.getRefreshTimeout();
-        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0 && !alarm.isDisposed()) {
+        if (gerritSettings.getAutomaticRefresh() && refreshTimeout > 0 && !alarm.isDisposed()
+            && GerritProjectSettings.isEnabled(project)) {
             final long generation = scheduleGeneration;
             alarm.addRequest(new Runnable() {
                 @Override

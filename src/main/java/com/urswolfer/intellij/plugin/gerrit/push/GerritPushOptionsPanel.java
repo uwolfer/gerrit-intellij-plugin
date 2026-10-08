@@ -25,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.function.Predicate;
 
 /**
  * Wraps IntelliJ's GitPushOptionsPanel and Gerrit plugin push extension into one VcsPushOptionsPanel.
@@ -47,11 +48,31 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
         pushToGerritByDefault = pushToGerrit;
     }
 
+    /**
+     * Whether a project uses Gerrit. The copy in the Git plugin class loader cannot see the project settings either,
+     * so {@link GerritPushExtension#install()} hands it over; until it has, every project does, as all did before
+     * there was a choice.
+     */
+    private static volatile Predicate<Project> enabledForProject;
+
+    public static void setEnabledForProject(Predicate<Project> enabledForProject) {
+        GerritPushOptionsPanel.enabledForProject = enabledForProject;
+    }
+
+    /** {@code null} in a project without Gerrit, which gets the dialog of the platform, push targets untouched. */
+    @Nullable
     private final GerritPushExtensionPanel gerritPushExtensionPanel;
     private GitPushOptionsPanel gitPushOptionsPanel;
 
     public GerritPushOptionsPanel(boolean pushToGerrit, Project project) {
-        gerritPushExtensionPanel = new GerritPushExtensionPanel(pushToGerrit, project.getLocationHash(), project);
+        Predicate<Project> enabled = enabledForProject;
+        gerritPushExtensionPanel = enabled == null || enabled.test(project)
+            ? new GerritPushExtensionPanel(pushToGerrit, project.getLocationHash(), project)
+            : null;
+    }
+
+    boolean showsGerritOptions() {
+        return gerritPushExtensionPanel != null;
     }
 
     @SuppressWarnings("UnusedDeclaration") // javassist call
@@ -62,8 +83,10 @@ public class GerritPushOptionsPanel extends VcsPushOptionsPanel {
         JPanel mainContainer = new JPanel();
         mainContainer.setLayout(new BoxLayout(mainContainer, BoxLayout.PAGE_AXIS));
 
-        mainContainer.add(gerritPushExtensionPanel);
-        mainContainer.add(Box.createRigidArea(new Dimension(0, 10)));
+        if (gerritPushExtensionPanel != null) {
+            mainContainer.add(gerritPushExtensionPanel);
+            mainContainer.add(Box.createRigidArea(new Dimension(0, 10)));
+        }
         mainContainer.add(gitPushOptionsPanel);
 
         add(mainContainer, BorderLayout.CENTER);

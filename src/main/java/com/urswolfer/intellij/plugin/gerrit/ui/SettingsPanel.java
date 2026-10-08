@@ -87,9 +87,12 @@ public class SettingsPanel {
     // only a choice the user made is stored; what the page shows may just be the only account or the remotes' one
     private boolean projectAccountChosen;
     private JPanel wrapper;
+    private final JCheckBox projectEnabledCheckbox = new JCheckBox("Use Gerrit in this project");
 
     public SettingsPanel(Project project) {
         this.project = project;
+        // the settings for new projects end up in the workspace file of the default project, which none inherits
+        projectEnabledCheckbox.setVisible(!project.isDefault());
 
         styleHints(listAllHint);
 
@@ -128,8 +131,11 @@ public class SettingsPanel {
 
     public JComponent getPanel() {
         if (wrapper == null) {
+            JPanel top = new JPanel(new BorderLayout());
+            top.add(projectEnabledCheckbox, BorderLayout.NORTH);
+            top.add(createAccountPane(), BorderLayout.CENTER);
             wrapper = new JPanel(new BorderLayout());
-            wrapper.add(createAccountPane(), BorderLayout.NORTH);
+            wrapper.add(top, BorderLayout.NORTH);
             wrapper.add(pane, BorderLayout.CENTER);
         }
         return wrapper;
@@ -276,6 +282,14 @@ public class SettingsPanel {
 
     public boolean isProjectAccountChosen() {
         return projectAccountChosen;
+    }
+
+    public boolean getProjectEnabled() {
+        return projectEnabledCheckbox.isSelected();
+    }
+
+    public void setProjectEnabled(boolean enabled) {
+        projectEnabledCheckbox.setSelected(enabled);
     }
 
     public boolean getListAllChanges() {

@@ -21,13 +21,34 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Urs Wolfer
  */
 public class GerritToolWindowFactory implements ToolWindowFactory, DumbAware {
+    public static final String ID = "Gerrit";
+
+    @Override
+    public boolean shouldBeAvailable(@NotNull Project project) {
+        return GerritProjectSettings.isEnabled(project);
+    }
+
+    /**
+     * Shows or hides the window of a project after it was switched on or off. Only hidden: its content keeps a
+     * filter the user may come back to, and does not load anything while the project is off.
+     */
+    public static void updateAvailability(@NotNull Project project) {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(ID);
+        if (toolWindow != null) {
+            toolWindow.setAvailable(GerritProjectSettings.isEnabled(project));
+        }
+    }
+
     @Override
     public void createToolWindowContent(final Project project, ToolWindow toolWindow) {
         GerritToolWindow gerritToolWindow = new GerritToolWindow();

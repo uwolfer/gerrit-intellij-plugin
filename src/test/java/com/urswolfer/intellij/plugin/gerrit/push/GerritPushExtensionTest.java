@@ -60,6 +60,12 @@ public class GerritPushExtensionTest {
     }
 
     @Test
+    public void testProjectSettingsCanBeHandedToThePanel() throws Exception {
+        GerritPushExtension.handOverEnabledForProject(GerritPushOptionsPanel.class, project -> false);
+        GerritPushExtension.handOverEnabledForProject(GerritPushOptionsPanel.class, null);
+    }
+
+    @Test
     public void testCopiedClassesUseOnlyCopiedPluginClasses() throws Exception {
         ClassPool classPool = new ClassPool(true);
         Set<String> copied = new HashSet<>(GerritPushExtension.CLASSES_FOR_GIT_PLUGIN);

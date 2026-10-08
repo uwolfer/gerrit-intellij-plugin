@@ -18,8 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.intellij.codeInsight.highlighting.HighlightManager;
-import com.intellij.diff.tools.util.base.DiffViewerBase;
+import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.diff.util.Side;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -28,6 +27,7 @@ import com.intellij.openapi.editor.colors.EditorColors;
 import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
+import com.intellij.openapi.editor.markup.HighlighterTargetArea;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.Project;
@@ -35,14 +35,18 @@ import com.intellij.openapi.util.Key;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /**
- * The comments of a diff and the editors of its viewer which show them. A viewer may rebuild the text of an editor,
- * as the unified one does on every rediff, which leaves the comments on the wrong lines; so they are kept here and
- * laid out again in all the editors whenever the comments or the text change.
+ * The comments of a diff and the editors which show them, those of a diff viewer or an editor of the file itself. A
+ * viewer may rebuild the text of an editor, as the unified one does on every rediff, which leaves the comments on the
+ * wrong lines; so they are kept here and laid out again in all the editors whenever the comments or the text change.
  */
 final class DiffComments {
     private static final Key<DiffComments> KEY = Key.create("gerrit.DiffComments");
@@ -54,24 +58,35 @@ final class DiffComments {
     private final ChangeInfo changeInfo;
     private final CommentSide left;
     private final CommentSide right;
-    private final DiffViewerBase viewer;
+    private final BooleanSupplier disposed;
     private final AddCommentActionBuilder addCommentActionBuilder = new AddCommentActionBuilder();
     private final Map<EditorEx, LineMapping> editors = new LinkedHashMap<>();
+    private final Map<EditorEx, List<RangeHighlighter>> highlighters = new LinkedHashMap<>();
     // in the order the icons are added in, each to the left of those on its line already
     private final List<ShownComment> comments = new ArrayList<>();
     private boolean shown;
 
-    DiffComments(Project project, ChangeInfo changeInfo, CommentSide left, CommentSide right, DiffViewerBase viewer) {
+    /**
+     * @param disposed whether what shows the comments is gone, such as the diff viewer
+     */
+    DiffComments(Project project, ChangeInfo changeInfo, CommentSide left, CommentSide right,
+                 BooleanSupplier disposed) {
         this.project = project;
         this.changeInfo = changeInfo;
         this.left = left;
         this.right = right;
-        this.viewer = viewer;
+        this.disposed = disposed;
     }
 
     void addEditor(EditorEx editor, LineMapping mapping) {
         editors.put(editor, mapping);
         editor.putUserData(KEY, this);
+    }
+
+    void removeEditor(EditorEx editor) {
+        clear(editor);
+        editors.remove(editor);
+        editor.putUserData(KEY, null);
     }
 
     Iterable<EditorEx> getEditors() {
@@ -103,11 +118,93 @@ final class DiffComments {
         render();
     }
 
+
+    /**
+     * Shows the comments again where one is no longer on the line the mapping gives it. Their highlighters move with
+     * the text, so after most edits of the file they are where they belong already, and stay.
+     */
+    void relayout() {
+        if (disposed.getAsBoolean()) return;
+        if (!shown) {
+            show();
+            return;
+        }
+        for (Map.Entry<EditorEx, LineMapping> entry : editors.entrySet()) {
+            if (!isLaidOut(entry.getKey(), entry.getValue())) {
+                render();
+                return;
+            }
+        }
+    }
+
+    private boolean isLaidOut(EditorEx editor, LineMapping mapping) {
+        List<RangeHighlighter> placed = highlighters.get(editor);
+        if (placed == null) return false;
+        Document document = editor.getDocument();
+        int index = 0;
+        for (ShownComment shownComment : comments) {
+            int line = editorLine(editor, mapping, shownComment);
+            if (line < 0) continue;
+            if (index >= placed.size()) return false;
+            RangeHighlighter highlighter = placed.get(index++);
+            if (!highlighter.isValid() || document.getLineNumber(highlighter.getStartOffset()) != line) return false;
+            if (!isRangeLaidOut(document, mapping, shownComment, highlighter)) return false;
+        }
+        return index == placed.size();
+    }
+
+    /** The highlight of a range goes where an end of it was edited, and comes back with an undo. */
+    private static boolean isRangeLaidOut(Document document, LineMapping mapping, ShownComment shownComment,
+                                          RangeHighlighter highlighter) {
+        Comment.Range range = shownComment.comment.range;
+        Comment.Range expected = range != null ? mapping.editorRangeOf(shownComment.side, range) : null;
+        RangeHighlighter actual =
+            ((CommentGutterIconRenderer) highlighter.getGutterIconRenderer()).getRangeHighlighter();
+        if (expected == null || actual == null) return expected == null && actual == null;
+        return actual.isValid()
+            && document.getLineNumber(actual.getStartOffset()) == expected.startLine - 1
+            && document.getLineNumber(actual.getEndOffset()) == expected.endLine - 1;
+    }
+
+    /**
+     * What the comments of an editor are laid out by now, which replaced these: with the same patch set, as the lines
+     * of another would not fit these comments.
+     */
+    @Nullable
+    LineMapping currentMapping(Editor editor) {
+        LineMapping mapping = getMapping(editor);
+        if (mapping != null) return mapping;
+        DiffComments current = editor.getUserData(KEY);
+        return current != null && current.right.isSameAs(right) && current.left.isSameAs(left)
+            ? current.getMapping(editor) : null;
+    }
+
+    private static int editorLine(EditorEx editor, LineMapping mapping, ShownComment shownComment) {
+        return Math.min(mapping.editorLineOf(shownComment.side, shownComment.comment.line),
+            editor.getDocument().getLineCount() - 1);
+    }
+
     /** A comment saved just now, which replaces the one with its id, as an edited draft does. */
-    void add(Comment comment, CommentSide side) {
+    private void add(Comment comment, CommentSide side) {
         comments.removeIf(entry -> entry.comment.id != null && entry.comment.id.equals(comment.id));
         comments.add(entry(comment, side));
         render();
+    }
+
+    /**
+     * The comments of a side as loaded again, in place of those there were.
+     *
+     * @param layOut whether the mapping fits the text now; if not, what is shown stays, having moved with the text,
+     *               until {@link #relayout()} once it fits again
+     */
+    void replaceAll(Iterable<? extends Comment> sideComments, CommentSide side, boolean layOut) {
+        comments.clear();
+        for (Comment comment : sideComments) {
+            comments.add(entry(comment, side));
+        }
+        if (layOut) {
+            render();
+        }
     }
 
     /** The comments loaded for a side; one shown already, as a draft saved while they loaded, is the newer one. */
@@ -120,64 +217,91 @@ final class DiffComments {
         render();
     }
 
-    void remove(String commentId) {
+    private void remove(String commentId) {
         comments.removeIf(entry -> commentId.equals(entry.comment.id));
         render();
     }
 
     /**
-     * The comments of the same side in the diff the user looks at now. The diff window builds a new viewer when it
-     * steps to another file of the change, so a viewer which a comment was started in is gone if the user stepped
-     * away and back while the form was open.
+     * A comment saved just now, in every diff and editor which shows its side, and with the changes on HEAD for an
+     * editor opened later. The diff window builds a new viewer when it steps to another file of the change, so a
+     * viewer which a comment was started in is gone if the user stepped away and back while the form was open.
      */
-    @Nullable
-    DiffComments current(CommentSide side) {
-        if (!viewer.isDisposed()) {
-            return this;
+    void saved(CommentInfo comment, CommentSide side) {
+        for (DiffComments comments : showing(side)) {
+            comments.add(comment, side);
         }
+        HeadChanges headChanges = project.getServiceIfCreated(HeadChanges.class);
+        if (headChanges != null) {
+            headChanges.saved(changeInfo._number, side, comment);
+        }
+    }
+
+    void removed(String commentId, CommentSide side) {
+        for (DiffComments comments : showing(side)) {
+            comments.remove(commentId);
+        }
+        HeadChanges headChanges = project.getServiceIfCreated(HeadChanges.class);
+        if (headChanges != null) {
+            headChanges.removed(changeInfo._number, side, commentId);
+        }
+    }
+
+    private Collection<DiffComments> showing(CommentSide side) {
+        Set<DiffComments> showing = new LinkedHashSet<>();
         for (Editor candidate : EditorFactory.getInstance().getAllEditors()) {
             DiffComments comments = candidate.getUserData(KEY);
             if (comments != null
-                && !comments.viewer.isDisposed()
+                && !comments.disposed.getAsBoolean()
                 && comments.project == project
                 && comments.changeInfo._number == changeInfo._number
                 && (comments.left.isSameAs(side) || comments.right.isSameAs(side))) {
-                return comments;
+                showing.add(comments);
             }
         }
-        return null;
+        return showing;
     }
 
     private void render() {
-        if (!shown || viewer.isDisposed()) return;
+        if (!shown || disposed.getAsBoolean()) return;
         editors.forEach((editor, mapping) -> {
             clear(editor);
+            List<RangeHighlighter> placed = new ArrayList<>();
             for (ShownComment shownComment : comments) {
-                place(editor, mapping, shownComment);
+                RangeHighlighter highlighter = place(editor, mapping, shownComment);
+                if (highlighter != null) {
+                    placed.add(highlighter);
+                }
             }
+            highlighters.put(editor, placed);
         });
     }
 
+    /**
+     * Takes the comments off an editor. Its own highlighters are kept track of, as the markup of an editor of the file
+     * itself holds those of every inspection as well.
+     */
     private void clear(EditorEx editor) {
+        List<RangeHighlighter> placed = highlighters.remove(editor);
+        if (placed == null) return;
         MarkupModel markup = editor.getMarkupModel();
-        for (RangeHighlighter highlighter : markup.getAllHighlighters()) {
-            if (highlighter.getGutterIconRenderer() instanceof CommentGutterIconRenderer) {
-                RangeHighlighter rangeHighlighter =
-                    ((CommentGutterIconRenderer) highlighter.getGutterIconRenderer()).getRangeHighlighter();
-                markup.removeHighlighter(highlighter);
-                highlighter.dispose();
-                if (rangeHighlighter != null) {
-                    HighlightManager.getInstance(project).removeSegmentHighlighter(editor, rangeHighlighter);
-                }
+        for (RangeHighlighter highlighter : placed) {
+            RangeHighlighter rangeHighlighter =
+                ((CommentGutterIconRenderer) highlighter.getGutterIconRenderer()).getRangeHighlighter();
+            markup.removeHighlighter(highlighter);
+            highlighter.dispose();
+            if (rangeHighlighter != null) {
+                markup.removeHighlighter(rangeHighlighter);
+                rangeHighlighter.dispose();
             }
         }
     }
 
-    private void place(EditorEx editor, LineMapping mapping, ShownComment shownComment) {
+    @Nullable
+    private RangeHighlighter place(EditorEx editor, LineMapping mapping, ShownComment shownComment) {
         Comment comment = shownComment.comment;
-        int line = Math.min(mapping.editorLineOf(shownComment.side, comment.line),
-            editor.getDocument().getLineCount() - 1);
-        if (line < 0) return;
+        int line = editorLine(editor, mapping, shownComment);
+        if (line < 0) return null;
 
         RangeHighlighter rangeHighlighter = null;
         if (comment.range != null) {
@@ -189,19 +313,21 @@ final class DiffComments {
         RangeHighlighter highlighter = editor.getMarkupModel().addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
         highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(
             this, editor, addCommentActionBuilder, comment, getSide(shownComment.side), rangeHighlighter));
+        return highlighter;
     }
 
+    /**
+     * On the markup rather than through the HighlightManager, whose highlights go with the next Escape: in an editor of
+     * the file itself, that is all the time, and nothing would bring them back.
+     */
     @Nullable
     private RangeHighlighter highlightRange(Editor editor, Comment.Range range) {
         Document document = editor.getDocument();
         if (document.getLineCount() == 0) return null;
         int end = offset(document, range.endLine, range.endCharacter);
         int start = Math.min(offset(document, range.startLine, range.startCharacter), end);
-
-        List<RangeHighlighter> highlighters = new ArrayList<>();
-        HighlightManager.getInstance(project).addRangeHighlight(
-            editor, start, end, COMMENT_RANGE_ATTRIBUTES, false, highlighters);
-        return highlighters.isEmpty() ? null : highlighters.get(0);
+        return editor.getMarkupModel().addRangeHighlighter(COMMENT_RANGE_ATTRIBUTES, start, end,
+            HighlighterLayer.SELECTION - 1, HighlighterTargetArea.EXACT_RANGE);
     }
 
     /**

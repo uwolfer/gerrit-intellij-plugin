@@ -36,7 +36,8 @@
       <ul>
         <li>Review changes in the IDE: vote, reply and comment on files and lines<br />
         Add a comment with a right click on a line in the diff or with the "C" key; click a comment's icon to edit
-        or remove it while it is unpublished. "Reply..." or a vote publishes your comments.
+        or remove it while it is unpublished. "Reply..." or a vote publishes your comments.<br />
+        The comments of a checked out change show in the editor too, on their lines as you edit the file.
         </li>
         <li>Diff changes against your local clone, with the IDE's syntax highlighting and navigation</li>
         <li>List and query changes, and get notified of new changes waiting for your review</li>
@@ -581,6 +582,7 @@
     <toolWindow id="Gerrit" icon="MyIcons.Gerrit" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
     <diff.DiffExtension implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritCommentsDiffExtension"/>
+    <editorFactoryListener implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.EditorComments$Installer"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>
@@ -601,7 +603,9 @@
     <group id="Gerrit.ColumnsPopup" class="com.urswolfer.intellij.plugin.gerrit.ui.action.ColumnsActionGroup"/>
 
     <action id="Gerrit.AddComment"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction"/>
+            class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
 
     <action id="Gerrit.CompareBranch"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction">

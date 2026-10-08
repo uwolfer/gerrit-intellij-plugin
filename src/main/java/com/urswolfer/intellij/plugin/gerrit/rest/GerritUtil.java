@@ -34,7 +34,9 @@ import com.google.gerrit.extensions.common.ChangeInput;
 import com.google.gerrit.extensions.common.MergePatchSetInput;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
+import com.google.gerrit.extensions.common.FileInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gerrit.extensions.restapi.BinaryResult;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.google.gson.JsonElement;
@@ -65,7 +67,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -463,35 +468,79 @@ public final class GerritUtil {
                             final Consumer<Map<String, List<CommentInfo>>> consumer) {
         accessGerrit(() -> {
             try {
-                Map<String, List<CommentInfo>> comments;
-                if (includePublishedComments) {
-                    comments = gerritApi(project).changes().id(changeNr).revision(revision).comments();
-                } else {
-                    comments = new HashMap<>();
-                }
-
-                Map<String, List<CommentInfo>> drafts;
-                if (includeDraftComments && isLoginAndPasswordAvailable(project)) {
-                    drafts = gerritApi(project).changes().id(changeNr).revision(revision).drafts();
-                } else {
-                    drafts = new HashMap<>();
-                }
-
-                HashMap<String, List<CommentInfo>> allComments = new HashMap<String, List<CommentInfo>>(drafts);
-                for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
-                    List<CommentInfo> commentInfos = allComments.get(entry.getKey());
-                    if (commentInfos != null) {
-                        commentInfos.addAll(entry.getValue());
-                    } else {
-                        allComments.put(entry.getKey(), entry.getValue());
-                    }
-                }
-                return allComments;
+                return loadComments(changeNr, revision, project, includePublishedComments, includeDraftComments);
             } catch (RestApiException e) {
                 notifyError(e, "Failed to get Gerrit comments.", project);
                 return new TreeMap<String, List<CommentInfo>>();
             }
         }, consumer, project);
+    }
+
+    /**
+     * Runs in the calling thread.
+     */
+    public Map<String, List<CommentInfo>> loadComments(int changeNr,
+                                                       String revision,
+                                                       Project project,
+                                                       boolean includePublishedComments,
+                                                       boolean includeDraftComments) throws RestApiException {
+        Map<String, List<CommentInfo>> comments;
+        if (includePublishedComments) {
+            comments = gerritApi(project).changes().id(changeNr).revision(revision).comments();
+        } else {
+            comments = new HashMap<>();
+        }
+
+        Map<String, List<CommentInfo>> drafts;
+        if (includeDraftComments && isLoginAndPasswordAvailable(project)) {
+            drafts = gerritApi(project).changes().id(changeNr).revision(revision).drafts();
+        } else {
+            drafts = new HashMap<>();
+        }
+
+        HashMap<String, List<CommentInfo>> allComments = new HashMap<String, List<CommentInfo>>(drafts);
+        for (Map.Entry<String, List<CommentInfo>> entry : comments.entrySet()) {
+            List<CommentInfo> commentInfos = allComments.get(entry.getKey());
+            if (commentInfos != null) {
+                commentInfos.addAll(entry.getValue());
+            } else {
+                allComments.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return allComments;
+    }
+
+    /**
+     * The changes a query finds, with all their patch sets and the files of the current one. Runs in the calling
+     * thread, and reports a failure to the caller only, for lookups the user did not ask for.
+     */
+    public List<ChangeInfo> queryChangesWithFiles(String query, Project project) throws RestApiException {
+        return gerritApi(project).changes().query(query)
+            .withOptions(EnumSet.of(ListChangesOption.ALL_REVISIONS, ListChangesOption.CURRENT_FILES)).get();
+    }
+
+    /**
+     * Runs in the calling thread.
+     */
+    public Map<String, FileInfo> getRevisionFiles(int changeNr, String revision, Project project)
+            throws RestApiException {
+        return gerritApi(project).changes().id(changeNr).revision(revision).files();
+    }
+
+    /**
+     * Runs in the calling thread.
+     */
+    public byte[] getFileContent(int changeNr, String revision, String path, Project project)
+            throws RestApiException, IOException {
+        BinaryResult content = gerritApi(project).changes().id(changeNr).revision(revision).file(path).content();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try {
+            content.writeTo(bytes);
+        } finally {
+            content.close();
+        }
+        // the client only takes note of Gerrit's header, the text it passes on is still Base64
+        return content.isBase64() ? Base64.getMimeDecoder().decode(bytes.toByteArray()) : bytes.toByteArray();
     }
 
     /**

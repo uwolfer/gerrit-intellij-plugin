@@ -94,6 +94,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -101,6 +102,7 @@ import java.util.stream.Collectors;
  */
 @Service(Service.Level.APP)
 public final class GerritGitUtil {
+    private static final Pattern COMMIT_HASH = Pattern.compile("[0-9a-f]{40}([0-9a-f]{24})?");
 
     public static GerritGitUtil getInstance() {
         return ApplicationManager.getApplication().getService(GerritGitUtil.class);
@@ -632,6 +634,38 @@ public final class GerritGitUtil {
         if (!gitCommandResult.success()) {
             throw new VcsException(listener.getHtmlMessage());
         }
+    }
+
+    /**
+     * @param upstream the ref whose commits are left out, or {@code null} for HEAD alone
+     * @return the hash and the message of each commit, from HEAD down, at most {@code max} of them
+     */
+    public List<Pair<String, String>> getCommitMessagesOnHead(GitRepository repository, @Nullable String upstream,
+                                                              int max) throws VcsException {
+        // or the gpg output of a signed commit comes along with it
+        GitLineHandler h = new GitLineHandler(repository.getProject(), repository.getRoot(), GitCommand.LOG,
+            Collections.singletonList("log.showSignature=false"));
+        h.setSilent(true);
+        h.addParameters("--format=%x01%H%n%B", "--max-count=" + (upstream != null ? max : 1), "HEAD");
+        if (upstream != null) {
+            h.addParameters("^" + upstream);
+        }
+        h.endOptions();
+        return parseCommitMessages(Git.getInstance().runCommand(h).getOutputOrThrow());
+    }
+
+    @VisibleForTesting
+    static List<Pair<String, String>> parseCommitMessages(String output) {
+        List<Pair<String, String>> commits = new ArrayList<>();
+        for (String commit : output.split("\u0001")) {
+            int newline = commit.indexOf('\n');
+            String hash = (newline < 0 ? commit : commit.substring(0, newline)).trim();
+            // what comes before the first commit is no commit, such as what gpg says with log.showSignature
+            if (COMMIT_HASH.matcher(hash).matches()) {
+                commits.add(Pair.create(hash, newline < 0 ? "" : commit.substring(newline + 1)));
+            }
+        }
+        return commits;
     }
 
     /**

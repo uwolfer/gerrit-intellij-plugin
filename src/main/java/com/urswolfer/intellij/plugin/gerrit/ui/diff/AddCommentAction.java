@@ -91,14 +91,18 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     void addVersionedComment(@Nullable Project project) {
         if (project == null || editor == null) return;
 
-        LineMapping mapping = comments.getMapping(editor);
+        // the comments of the editor may have been replaced since, while a popup of these was open
+        LineMapping mapping = comments.currentMapping(editor);
+        if (mapping == null) {
+            HintManager.getInstance().showErrorHint(editor, "The comments of the file changed meanwhile, try again");
+            return;
+        }
         CommentPosition position = CommentPosition.read(editor, mapping);
         if (side == null && position == null) {
             // without a selection, the caret is on no line of a side, such as on the empty line a unified diff ends
             // with, where a click below the text puts it
-            HintManager.getInstance().showErrorHint(editor, editor.getSelectionModel().hasSelection()
-                ? "A comment is on one side of the diff: start and end the selection on lines of the same side"
-                : "There is no line of the diff here to comment on");
+            HintManager.getInstance().showErrorHint(editor,
+                mapping.noPositionHint(editor.getSelectionModel().hasSelection()));
             return;
         }
 
@@ -140,12 +144,6 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         }
 
         GerritUtil.getInstance().saveDraftComment(comments.getChangeInfo()._number, commentSide.revisionId, comment,
-            project, (CommentInfo commentInfo) -> {
-                DiffComments current = comments.current(commentSide);
-                if (current == null) {
-                    return; // the diff was closed, it shows the comment when it is opened again
-                }
-                current.add(commentInfo, commentSide);
-            });
+            project, (CommentInfo commentInfo) -> comments.saved(commentInfo, commentSide));
     }
 }

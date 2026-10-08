@@ -45,11 +45,6 @@ public class RemoveCommentAction extends AnAction implements DumbAware, UpdateIn
     @Override
     public void actionPerformed(AnActionEvent e) {
         GerritUtil.getInstance().deleteDraftComment(comments.getChangeInfo()._number, side.revisionId, comment.id,
-            e.getProject(), (Void aVoid) -> {
-                DiffComments current = comments.current(side);
-                if (current != null) {
-                    current.remove(comment.id);
-                }
-            });
+            e.getProject(), (Void aVoid) -> comments.removed(comment.id, side));
     }
 }

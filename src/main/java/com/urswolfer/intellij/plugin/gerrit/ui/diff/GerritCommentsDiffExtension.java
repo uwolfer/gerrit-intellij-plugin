@@ -116,7 +116,7 @@ public class GerritCommentsDiffExtension extends DiffExtension {
             : CommentSide.onParent(baseFilePath, selectedRevisionId, baseParent);
 
         DiffViewerBase viewerBase = (DiffViewerBase) viewer;
-        DiffComments comments = new DiffComments(project, changeInfo, baseSide, revisionSide, viewerBase);
+        DiffComments comments = new DiffComments(project, changeInfo, baseSide, revisionSide, viewerBase::isDisposed);
         if (viewer instanceof TwosideTextDiffViewer) {
             TwosideTextDiffViewer twosideViewer = (TwosideTextDiffViewer) viewer;
             for (Side side : Side.values()) {

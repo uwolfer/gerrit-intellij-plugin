@@ -42,6 +42,7 @@ public class GerritSettingsTest {
         Assert.assertTrue(state.showChangeIdColumn);
         Assert.assertTrue(state.showTopicColumn);
         Assert.assertTrue(state.showAvatars, "on for whoever upgrades");
+        Assert.assertTrue(state.showCommentsInEditor, "on for whoever upgrades");
         Assert.assertEquals(state.showProjectColumn, ShowProjectColumn.NEVER);
         Assert.assertEquals(state.cloneBaseUrl, "https://clone.example.com");
     }
@@ -66,6 +67,7 @@ public class GerritSettingsTest {
 
         Map<String, String> expected = new HashMap<>(attributesOf(parse(LEGACY_SETTINGS_XML)));
         expected.put("ShowAvatars", "true"); // new, and ignored by earlier versions as any attribute they do not know
+        expected.put("ShowCommentsInEditor", "true");
         expected.put("HiddenColumns", "");
         Assert.assertEquals(written, expected);
     }
@@ -80,12 +82,14 @@ public class GerritSettingsTest {
 
         Set<String> expected = new HashSet<>(attributesOf(parse(LEGACY_SETTINGS_XML)).keySet());
         expected.add("ShowAvatars");
+        expected.add("ShowCommentsInEditor");
         expected.add("HiddenColumns");
         Assert.assertEquals(written.keySet(), expected);
         Assert.assertEquals(written.get("AutomaticRefresh"), "true");
         Assert.assertEquals(written.get("RefreshTimeout"), "15");
         Assert.assertEquals(written.get("ReviewNotifications"), "true");
         Assert.assertEquals(written.get("ShowAvatars"), "true");
+        Assert.assertEquals(written.get("ShowCommentsInEditor"), "true");
         Assert.assertEquals(written.get("ShowProjectColumn"), "AUTO");
     }
 

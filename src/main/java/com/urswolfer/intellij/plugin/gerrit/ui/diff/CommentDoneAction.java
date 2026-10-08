@@ -50,12 +50,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
         final DraftInput comment = createDoneReply(fileComment);
         final Project project = e.getProject();
         GerritUtil.getInstance().saveDraftComment(comments.getChangeInfo()._number, side.revisionId, comment, project,
-            (CommentInfo commentInfo) -> {
-                DiffComments current = comments.current(side);
-                if (current != null) {
-                    current.add(commentInfo, side);
-                }
-            });
+            (CommentInfo commentInfo) -> comments.saved(commentInfo, side));
     }
 
     @Override

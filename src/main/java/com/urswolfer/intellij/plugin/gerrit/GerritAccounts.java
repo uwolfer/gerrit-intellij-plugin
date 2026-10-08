@@ -34,6 +34,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Gerrit instances the user has credentials for, and their passwords.
@@ -92,6 +94,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     private final Object lock = new Object();
+    private final Map<String, Integer> passwordVersions = new ConcurrentHashMap<>();
     private volatile Snapshot snapshot = new Snapshot(false, Collections.emptyList());
 
     public static GerritAccounts getInstance() {
@@ -185,7 +188,6 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
             updated.remove(account);
             snapshot = new Snapshot(snapshot.seeded, updated);
         }
-        // not through forgetPassword: putting the account back is exactly what it must not do here
         clearPasswordOfRemoved(account);
     }
 
@@ -287,18 +289,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     public void setPassword(@NotNull GerritAccount account, @Nullable String password) {
         synchronized (lock) {
             credentialStore.set(attributesFor(account), new Credentials(null, password != null ? password : ""));
-            if (account.usesLegacyPasswordKey) {
-                account.usesLegacyPasswordKey = false;
-                if (snapshot.accounts.contains(account)) {
-                    put(account);
-                }
-            }
-        }
-    }
-
-    public void forgetPassword(@NotNull GerritAccount account) {
-        synchronized (lock) {
-            clearStoredPassword(account);
+            passwordVersions.merge(account.id, 1, Integer::sum);
             if (account.usesLegacyPasswordKey) {
                 account.usesLegacyPasswordKey = false;
                 if (snapshot.accounts.contains(account)) {
@@ -309,13 +300,22 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
     }
 
     /**
+     * @return how often the password of the account was saved or cleared since the IDE started, which tells a
+     *         password someone entered again apart from the one it replaced even when the two are the same
+     */
+    public int getPasswordVersion(@NotNull GerritAccount account) {
+        return passwordVersions.getOrDefault(account.id, 0);
+    }
+
+    /**
      * Clears the account's password, and the one an earlier version kept for it. Reading falls back to that older
      * key, so leaving it behind would both hand the password back and leave it in the credential store of someone
      * who asked for it to be gone.
      */
-    public void clearStoredPassword(@NotNull GerritAccount account) {
+    private void clearStoredPassword(@NotNull GerritAccount account) {
         synchronized (lock) {
             credentialStore.set(attributesFor(account), null);
+            passwordVersions.merge(account.id, 1, Integer::sum);
             if (account.usesLegacyPasswordKey) {
                 credentialStore.set(LEGACY_SETTINGS_ATTRIBUTES, null);
                 credentialStore.set(LEGACY_CLASS_ATTRIBUTES, null);

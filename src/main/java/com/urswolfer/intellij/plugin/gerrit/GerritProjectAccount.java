@@ -85,7 +85,8 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
      */
     @Nullable
     public GerritAccount get() {
-        return resolve(state.defaultAccountId, GerritAccounts.getInstance().getAccounts(), this::getRemoteUrls);
+        return resolve(state.defaultAccountId, GerritAccounts.getInstance().getAccounts(),
+            () -> getRemoteUrls(project));
     }
 
     @Nullable
@@ -117,9 +118,9 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
         return urls.stream().anyMatch(account::isOnInstance);
     }
 
-    private Collection<String> getRemoteUrls() {
+    public static Collection<String> getRemoteUrls(@NotNull Project project) {
         List<String> urls = new ArrayList<>();
-        if (project.isDisposed()) {
+        if (project.isDisposed() || project.isDefault()) { // a clone from the welcome screen runs in the default one
             return urls;
         }
         for (GitRepository repository : GitUtil.getRepositoryManager(project).getRepositories()) {

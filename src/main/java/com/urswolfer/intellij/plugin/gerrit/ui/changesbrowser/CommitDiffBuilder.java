@@ -56,6 +56,7 @@ public class CommitDiffBuilder {
     private final GitCommit base;
     private final GitCommit commit;
     private ChangesProvider changesProvider = new SimpleChangesProvider();
+    private Predicate<Change> fileFilter = change -> true;
 
     public CommitDiffBuilder(Project project, VirtualFile gitRepositoryRoot, GitCommit base, GitCommit commit) {
         this.project = project;
@@ -69,10 +70,19 @@ public class CommitDiffBuilder {
         return this;
     }
 
+    /**
+     * @param fileFilter decides which of the files that differ are listed; the commit message always is
+     */
+    public CommitDiffBuilder withFileFilter(Predicate<Change> fileFilter) {
+        this.fileFilter = fileFilter;
+        return this;
+    }
+
     public Collection<Change> getDiff() throws VcsException {
         String baseHash = base.getId().asString();
         String hash = commit.getId().asString();
         Collection<Change> result = GitChangeUtils.getDiff(project, gitRepositoryRoot, baseHash, hash, null);
+        result.removeIf(fileFilter.negate());
         result.add(buildCommitMsgChange());
         return result;
     }

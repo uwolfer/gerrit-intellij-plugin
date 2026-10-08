@@ -39,6 +39,9 @@ import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
@@ -80,6 +83,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -759,6 +763,50 @@ public final class GerritUtil {
             }
         };
         accessGerrit(supplier, consumer, project);
+    }
+
+    /**
+     * The files Gerrit lists between two revisions of a change, a renamed one under its old path too. Runs in the
+     * calling thread.
+     *
+     * @return null when Gerrit could not be asked
+     */
+    @Nullable
+    public Set<String> getFilePaths(int changeNr, String revision, String baseRevision, Project project) {
+        // RevisionApi.files(base) is not implemented by the REST client
+        String url = String.format("/changes/%s/revisions/%s/files?base=%s",
+            changeNr, Url.encode(revision), Url.encode(baseRevision));
+        try {
+            JsonElement files = gerritApi(project).restClient().getRequest(url);
+            if (files != null && files.isJsonObject()) {
+                return filePaths(files.getAsJsonObject());
+            }
+            LOG.warn("Unexpected answer for the files between revisions " + baseRevision + " and " + revision);
+        } catch (RestApiException | JsonParseException e) {
+            LOG.warn("Failed to get the files between revisions " + baseRevision + " and " + revision, e);
+        }
+        return null;
+    }
+
+    @VisibleForTesting
+    static Set<String> filePaths(JsonObject files) {
+        Set<String> paths = new HashSet<>();
+        for (Map.Entry<String, JsonElement> file : files.entrySet()) {
+            paths.add(file.getKey());
+            if (file.getValue().isJsonObject()) {
+                JsonObject info = file.getValue().getAsJsonObject();
+                // the source of a copy stays in place, and is listed on its own when it differs
+                if (isString(info.get("status"), "R") && isString(info.get("old_path"), null)) {
+                    paths.add(info.get("old_path").getAsString());
+                }
+            }
+        }
+        return paths;
+    }
+
+    private static boolean isString(@Nullable JsonElement element, @Nullable String value) {
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()
+            && (value == null || value.equals(element.getAsString()));
     }
 
     public void saveDraftComment(final int changeNr,

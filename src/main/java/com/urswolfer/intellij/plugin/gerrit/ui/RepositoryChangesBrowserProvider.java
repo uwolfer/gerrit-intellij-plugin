@@ -48,6 +48,7 @@ import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitMessageProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
+import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.RebaseFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -333,8 +334,20 @@ public class RepositoryChangesBrowserProvider {
                         GitCommit currentCommit = getCommit(gitRepositoryRoot, revisionId);
                         if (base.isPresent()) {
                             GitCommit baseCommit = getCommit(gitRepositoryRoot, base.get().first);
-                            totalDiff = new CommitDiffBuilder(project, gitRepositoryRoot, baseCommit, currentCommit)
-                                .withChangesProvider(changesProvider).getDiff();
+                            CommitDiffBuilder diffBuilder =
+                                new CommitDiffBuilder(project, gitRepositoryRoot, baseCommit, currentCommit)
+                                    .withChangesProvider(changesProvider);
+                            // on the same parent, Gerrit lists all files which differ; without its list, those the
+                            // rebase changed stay listed as they always were
+                            if (!baseCommit.getParents().equals(currentCommit.getParents())) {
+                                Set<String> listedPaths =
+                                    gerritUtil.getFilePaths(change._number, revisionId, base.get().first, project);
+                                if (listedPaths != null) {
+                                    diffBuilder.withFileFilter(
+                                        RebaseFilter.keepListed(listedPaths, gitRepositoryRoot.getPath()));
+                                }
+                            }
+                            totalDiff = diffBuilder.getDiff();
                             parent = null;
                         } else if (currentCommit.getParents().size() > 1) {
                             // the changes git4idea lists for a merge are those against every parent, which leaves

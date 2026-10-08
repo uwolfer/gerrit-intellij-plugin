@@ -23,6 +23,8 @@ import com.google.gerrit.extensions.common.DownloadSchemeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import git4idea.repo.GitRemote;
 import org.testng.Assert;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +44,29 @@ import java.util.Set;
  * @author Urs Wolfer
  */
 public class GerritUtilTest {
+
+    @Test
+    public void testFilePathsIncludeOldPathOfRenameOnly() {
+        // as Gerrit 3.14 answers, but for the copy, which Gerrit lists the same way
+        JsonObject files = JsonParser.parseString("{"
+            + "\"/COMMIT_MSG\":{\"lines_inserted\":1,\"lines_deleted\":1,\"size_delta\":0,\"size\":269},"
+            + "\"c2.txt\":{\"status\":\"R\",\"old_path\":\"c.txt\",\"size_delta\":0,\"size\":51},"
+            + "\"dir/b.txt\":{\"status\":\"D\",\"lines_deleted\":1,\"size_delta\":-3,\"size\":0},"
+            + "\"copy.txt\":{\"status\":\"C\",\"old_path\":\"source.txt\",\"size_delta\":5,\"size\":5}"
+            + "}").getAsJsonObject();
+        Assert.assertEquals(GerritUtil.filePaths(files),
+            new HashSet<>(Arrays.asList("/COMMIT_MSG", "c2.txt", "c.txt", "dir/b.txt", "copy.txt")));
+    }
+
+    @Test
+    public void testFilePathsSkipUnexpectedEntries() {
+        JsonObject files = JsonParser.parseString("{"
+            + "\"a.txt\":null,"
+            + "\"b.txt\":{\"status\":null,\"old_path\":\"x.txt\"},"
+            + "\"c.txt\":{\"status\":\"R\",\"old_path\":{}}"
+            + "}").getAsJsonObject();
+        Assert.assertEquals(GerritUtil.filePaths(files), new HashSet<>(Arrays.asList("a.txt", "b.txt", "c.txt")));
+    }
 
     @Test
     public void testProjectNames() {

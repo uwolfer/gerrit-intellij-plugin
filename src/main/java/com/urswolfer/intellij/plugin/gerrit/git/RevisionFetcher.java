@@ -35,19 +35,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Thomas Forrer
  */
 public class RevisionFetcher {
-    private final GerritUtil gerritUtil;
-    private final GerritGitUtil gerritGitUtil;
     private final Project project;
     private final GitRepository gitRepository;
 
     private final Map<String, RevisionInfo> revisionInfoList = new LinkedHashMap<>();
 
-    public RevisionFetcher(GerritUtil gerritUtil,
-                           GerritGitUtil gerritGitUtil,
-                           Project project,
-                           GitRepository gitRepository) {
-        this.gerritUtil = gerritUtil;
-        this.gerritGitUtil = gerritGitUtil;
+    public RevisionFetcher(Project project, GitRepository gitRepository) {
         this.project = project;
         this.gitRepository = gitRepository;
     }
@@ -71,7 +64,8 @@ public class RevisionFetcher {
     }
 
     private void fetchChange(String commitHash, RevisionInfo revisionInfo, FetchCallback fetchCallback) {
-        FetchInfo fetchInfo = gerritUtil.getFirstFetchInfo(project, revisionInfo);
+        FetchInfo fetchInfo = GerritUtil.getInstance().getFirstFetchInfo(project, revisionInfo);
+        GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
         if (fetchInfo == null) {
             gerritGitUtil.notifyNoFetchInfo(project);
         } else {

@@ -25,6 +25,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAwareAction;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
@@ -55,9 +56,9 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     private Optional<Pair<String, RevisionInfo>> selectedValue = Optional.empty();
     private List<Listener> listeners = new ArrayList<>();
 
-    public SelectBaseRevisionAction(final SelectedRevisions selectedRevisions, Disposable parent) {
+    public SelectBaseRevisionAction(Project project, Disposable parent) {
         super("Diff against");
-        this.selectedRevisions = selectedRevisions;
+        this.selectedRevisions = SelectedRevisions.getInstance(project);
         selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
             public void selectedRevisionChanged(String changeId) {

@@ -1,164 +1,206 @@
-gerrit-intellij-plugin
-======================
+# Gerrit for IntelliJ
 
-[![Version](http://phpstorm.espend.de/badge/7272/version)](https://plugins.jetbrains.com/plugin/7272)
-[![Downloads](http://phpstorm.espend.de/badge/7272/downloads)](https://plugins.jetbrains.com/plugin/7272)
+[![Version](https://img.shields.io/jetbrains/plugin/v/7272)](https://plugins.jetbrains.com/plugin/7272)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/7272)](https://plugins.jetbrains.com/plugin/7272)
 
-Introduction
------------
+Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for
+[Gerrit Code Review](https://www.gerritcodereview.com/): review, fetch and push
+changes without leaving your IDE.
 
-Unofficial [IntelliJ Platform](https://www.jetbrains.com/idea/) plugin for the
-[Gerrit Code Review](https://www.gerritcodereview.com/) tool. It supports any product based on the IntelliJ platform:
-* IntelliJ IDEA
-* IntelliJ IDEA CE
-* RubyMine
-* WebStorm
-* PhpStorm
-* PyCharm
-* PyCharm CE
-* AppCode
-* Android Studio
-* DataGrip
-* CLion
-* GoLand
-* Rider
-* MPS
+## Features
 
-*Compiled with Java 11*
+* Review changes in the IDE: vote, reply and comment on files and lines
+* Diff changes against your local clone, with the IDE's syntax highlighting and
+  navigation
+* List and query changes, and get notified of new changes waiting for your
+  review
+* Push to Gerrit from the push dialog: target branch, topic, reviewers and CC
+  with account suggestions, and on Gerrit 2.15+ a hashtag, WIP and private
+  changes
+* Check out, cherry-pick and reset to changes in your local clone
+* Submit, abandon, star changes and add reviewers; publish and delete draft
+  changes (Gerrit older than 2.15)
+* Run the IDE's inspections on the files a change touches
+* Clone Gerrit projects from the IDE, with the commit-msg hook installed
+* Open files and commits in Gitiles, and the Gerrit changes of commits selected
+  in the VCS log
+* Several Gerrit accounts, one per project
 
-Only Gerrit 2.9 or newer is supported (missing / incomplete REST API in older versions).
+## Requirements
 
-Installation
-------------
-- Using IDE built-in plugin system (suggested: you'll get notified when an update is available):
-  - <kbd>Settings...</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> >
-  <kbd>Search for "Gerrit"</kbd> > <kbd>Install</kbd>
-- Manually:
-  - Download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
-  matching your IntelliJ version and install it manually using
-  <kbd>Settings...</kbd> > <kbd>Plugins</kbd> > <kbd>Gear icon</kbd> > <kbd>Install Plugin from Disk</kbd>
+* Gerrit 2.9 or newer (older versions lack parts of the REST API)
+* Any IDE based on the IntelliJ Platform 2020.3 or newer:
+  * IntelliJ IDEA
+  * IntelliJ IDEA CE
+  * RubyMine
+  * WebStorm
+  * PhpStorm
+  * PyCharm
+  * PyCharm CE
+  * AppCode
+  * Android Studio
+  * DataGrip
+  * CLion
+  * GoLand
+  * Rider
+  * MPS
 
-Restart your IDE.
+## Installation
 
-Your Support
-------------
-If you like this plugin, you can support it:
-* Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even encourage them to use these fantastic products!)
-* Vote for it: Write your review and vote for it at the [IntelliJ plugin repository](https://plugins.jetbrains.com/plugin/7272-gerrit).
-* Star it: [Star it at GitHub](https://github.com/uwolfer/gerrit-intellij-plugin). GitHub account required.
-* Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!
-* Donate: You can find donation-possibilities at the bottom of this file.
+* From the IDE (recommended, you get notified of updates):
+  <kbd>Settings</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd>, search for
+  "Gerrit" and <kbd>Install</kbd>.
+* Manually: download the [release](https://github.com/uwolfer/gerrit-intellij-plugin/releases)
+  matching your IDE and install it with <kbd>Settings</kbd> > <kbd>Plugins</kbd> >
+  <kbd>⚙</kbd> > <kbd>Install Plugin from Disk...</kbd>.
 
-Troubleshooting
----------------
+Then restart the IDE.
+
+## Getting started
+
+1. Open <kbd>Settings</kbd> > <kbd>Version Control</kbd> > <kbd>Gerrit</kbd> and
+   add an account with the web URL of your Gerrit, your login and your HTTP
+   password (in the Gerrit web UI under <kbd>Settings</kbd> >
+   <kbd>HTTP Credentials</kbd>, or <kbd>HTTP Password</kbd> in older versions). <kbd>Test</kbd> checks the connection.
+2. Open the <kbd>Gerrit</kbd> tool window. It lists the changes of the Gerrit
+   projects whose Git repositories are part of your IDE project.
+3. Push as usual: the push dialog has a "Push to Gerrit" section for the
+   Gerrit options. "Push commits to Gerrit by default" in the settings ticks it
+   in new push dialogs; after that, each project keeps your last choice.
+
+With accounts on several Gerrit instances, add all of them and pick the one a
+project talks to with <kbd>Use for This Project</kbd>. A project whose remotes
+point at only one of them picks it by itself.
+
+To clone a project from Gerrit, use <kbd>Get from VCS</kbd> and pick
+<kbd>Gerrit</kbd> as version control.
+
+## Troubleshooting
+
 ### List of changes is empty
-By default, you will only see changes to Git repositories that are configured in the current project of your IntelliJ IDE.
-* Make sure that Git repositories are configured in the 'Version Control' settings.
-* Make sure that the Git repository remote url (at least one of them) is on the same host as configured in Gerrit plugin settings. Or:
-* Set the 'Clone Base URL' if it differs from the Gerrit web url. Or:
-* Add a remote whose name equals the Gerrit project name with Gerrit web url as remote url.
+
+By default, the list only shows changes of the Git repositories in your IDE
+project.
+
+* Check that the repositories are registered under <kbd>Settings</kbd> >
+  <kbd>Version Control</kbd>.
+* Check that at least one remote of each repository points at the host of your
+  Gerrit account.
+* If Gerrit is cloned from another host than its web UI, set the "Clone base
+  URL" of the account.
+* Or add a remote named like the Gerrit project, with the Gerrit web URL as its
+  URL.
 
 ### Error-message when clicking a change: "No repository found for Gerrit project"
-The list can contain changes of Gerrit projects which are not part of your IDE project, e.g. with the option
-"List all Gerrit changes (instead of changes from currently open project only)". Voting and submitting work for these
-changes, but showing a change's files and diff, checking it out and cherry-picking it need a local clone: the plugin
-fetches the change into the Git repository of its Gerrit project. Clone the project and add it as a Git repository to
-your IDE project to see its diff. Reviewing without a local clone is tracked in
+
+With "List all Gerrit changes (instead of changes from the currently open
+project only)", the list also shows changes of projects that are not part of
+your IDE project. You can vote on and submit these, but showing the files and
+diff of a change, checking it out and cherry-picking it fetch the change into
+the local clone of its project. Clone the project and add it to your IDE
+project to see its diff. Reviewing without a local clone is tracked in
 [#76](https://github.com/uwolfer/gerrit-intellij-plugin/issues/76).
 
 ### Error-message when clicking a change: "Cannot fetch changes"
-Up to Gerrit 2.10 you need to install the plugin <code>download-commands</code>; newer versions provide the ref of each
-patch set without it. When you run the Gerrit update procedure, it asks you to install
-this plugin (but it isn't selected by default). Just run the update script again if you have not installed it yet.
 
-When installing Gerrit 2.9 or 2.10 from scratch (rather than using the update script) the following command will install the
-<code>download-commands</code> plugin (for a new installation or an existing Gerrit instance):
+Gerrit 2.9 and 2.10 tell the plugin where to fetch a change from only with the
+`download-commands` plugin installed; newer versions do without it. The Gerrit
+update procedure offers to install it, but it isn't selected by default, so run
+the update again if you skipped it. For an existing or new instance, this
+installs it:
 
-    $ java -jar gerrit.war init -d {gerrit-instance} --install-plugin=download-commands
-
-
-### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
-There are two workarounds for this issue:
-* allow TLSv1 (instead of SSLv3 only) connections in your reverse-proxy in front of Gerrit. SSLv3 is considered insecure, therefore TLS should be the default in any case.
-* use a recent Java setup (> 1.6)
+    java -jar gerrit.war init -d {gerrit-instance} --install-plugin=download-commands
 
 ### Error-message when loading changes: "Bad Request. Status-Code: 400. Content: too many terms in query."
-Open plugin settings and enable the option "List all Gerrit changes (instead of changes from currently open project only)".
+
+Enable "List all Gerrit changes (instead of changes from the currently open
+project only)" in the plugin settings.
+
+### Error-message when loading changes: "SSLException: Received fatal alert: bad_record_mac"
+
+Your Gerrit (or the reverse proxy in front of it) only accepts SSLv3. Enable
+TLS there; SSLv3 is insecure anyway.
 
 ### Checking out from VCS with Gerrit plugin does not work
-Checking out directly with the Gerrit plugin does not work for some authentication methods. If you get an authentication
-error or checking out does not properly finish, you can try to:
-* use SSH clone URL in checkout dialog (you can find the SSH URL in the Gerrit Web UI project settings)
-* or: check out with the default Git plugin and set up the Gerrit plugin manually afterwards
 
-You can find background information about this issue in a [Gerrit mailing list topic](https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820).
+Cloning from the plugin does not work with every authentication method. If it
+fails to authenticate or does not finish:
+
+* use the SSH clone URL in the clone dialog (the Gerrit web UI shows it in the
+  project settings), or
+* clone with the Git plugin and add the Gerrit account afterwards.
+
+Background is in this
+[Gerrit mailing list topic](https://groups.google.com/forum/#!topic/repo-discuss/UnQd3HsL820).
 
 ### Loading file-diff-list is slow
-Diff viewing is based on Git operations (i.e. it fetches the commit from the Gerrit remote). When loading the file list
-takes a lot of time, you can run a local "[git gc](https://www.kernel.org/pub/software/scm/git/docs/git-gc.html)"
-and ask your Gerrit administrator to do run a "[gerrit gc](https://gerrit-review.googlesource.com/Documentation/cmd-gc.html)".
+
+The file list and diffs come from Git: the plugin fetches the change from
+Gerrit. Running [`git gc`](https://git-scm.com/docs/git-gc) locally and
+[`gerrit gc`](https://gerrit-review.googlesource.com/Documentation/cmd-gc.html)
+on the server (ask your Gerrit administrator) usually helps.
 
 ### Authenticate against *-review.googlesource.com
-It's a bit of manual work to do:
-<kbd>Settings</kbd> -> <kbd>HTTP Credentials</kbd> -> <kbd>Obtain password</kbd>
 
-Then search for the line in the text area starting with `*-review.googlesource.com` (e.g. `gerrit-review.googlesource.com`) and extract username and password:
+In the Gerrit web UI, open <kbd>Settings</kbd> > <kbd>HTTP Credentials</kbd> >
+<kbd>Obtain password</kbd>. In the text shown, find the line starting with your
+host (e.g. `gerrit-review.googlesource.com`) and take login and password from
+it:
 
-gerrit-review.googlesource.com,FALSE,/,TRUE,12345678,o,**git-username.gmail.com**=**password-until-end-of-line**
+    gerrit-review.googlesource.com,FALSE,/,TRUE,12345678,o,git-username.gmail.com=password-until-end-of-line
 
-Architecture
-------------
-### IntelliJ Integration
-The plugin is integrated into the IntelliJ IDE with a [tool window](https://plugins.jetbrains.com/docs/intellij/tool-windows.html?from=jetbrains.org).
-See package <code>com.urswolfer.intellij.plugin.gerrit.ui</code>.
+Here the login is `git-username.gmail.com` and the password is everything after
+the `=`.
 
-### REST API
-Most of the communication between the plugin and a Gerrit instance is based on the [Gerrit REST API](https://gerrit-review.googlesource.com/Documentation/rest-api.html).
-The REST specific part is available as [standalone implementation](https://github.com/uwolfer/gerrit-rest-java-client).
-See package <code>com.urswolfer.intellij.plugin.gerrit.rest</code>.
+## How it works
 
-### Git
-Some actions like comparing and listing files are based on Git operations.
-[IntelliJ Git4Idea](https://github.com/JetBrains/intellij-community/tree/master/plugins/git4idea) is used for these operations.
-See package <code>com.urswolfer.intellij.plugin.gerrit.git</code>.
+* **IDE integration:** a [tool window](https://plugins.jetbrains.com/docs/intellij/tool-windows.html)
+  lists the changes, see `com.urswolfer.intellij.plugin.gerrit.ui`. The push
+  dialog has no extension point, so the plugin adds its options to Git's push
+  dialog at startup, see `com.urswolfer.intellij.plugin.gerrit.push`.
+* **REST API:** most of the communication with Gerrit uses the
+  [Gerrit REST API](https://gerrit-review.googlesource.com/Documentation/rest-api.html),
+  through the standalone [gerrit-rest-java-client](https://github.com/uwolfer/gerrit-rest-java-client),
+  see `com.urswolfer.intellij.plugin.gerrit.rest`.
+* **Git:** listing the files of a change, diffs, checkout and cherry-pick run on
+  the local clone with the IDE's [Git plugin](https://github.com/JetBrains/intellij-community/tree/master/plugins/git4idea),
+  see `com.urswolfer.intellij.plugin.gerrit.git`.
 
+## Development
 
-Build (and develop!) the Plugin
-------------------
+Open the project in IntelliJ IDEA with the Gradle, Plugin DevKit and UI
+Designer plugins enabled. [`CONTRIBUTING.md`](./CONTRIBUTING.md#building-and-running)
+explains how to build, test and run it in a sandbox IDE. Pull requests go to the
+default branch `intellij2020.3`, which targets the oldest supported IDE, so a
+change reaches every newer one.
 
-It's very easy to set it up as an IntelliJ project.
+## Support the project
 
-1. Activate plugins ```Gradle```, ```Plugin DevKit``` and ```UI Designer``` in IntelliJ.
-2. ```git clone https://github.com/uwolfer/gerrit-intellij-plugin``` (probably switch to ```intellij{version}``` branch, but keep in mind that pull-requests should be against the default branch ("intellij13" and older are not supported anymore))
-3. Open checked out project in IntelliJ ("File" -> "New" -> "Project from Existing Sources" -> select file ```build.gradle``` in ```gerrit-intellij-plugin``` folder and press "OK")
-4. Create a new run configuration: "Gradle" -> "Gradle project": select the only project -> "Tasks": "runIde"
-5. Press "Debug" button. IntelliJ should start with a clean workspace (development sandbox). You need to checkout a
-   project to see changes (it shows only changes for Git repositories that are set up in current workspace by default).
+If you like this plugin, you can support it:
 
-Once ```build.gradle``` gets updated, you need to "Refresh all Gradle projects" in the Gradle panel.
+* Spread it: tell your friends who use IntelliJ and Gerrit about it.
+* Rate it on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/7272-gerrit).
+* [Star it on GitHub](https://github.com/uwolfer/gerrit-intellij-plugin).
+* Improve it: report bugs and request features, or fix and build them
+  yourself, everything is open source.
+* Donate, see below.
 
+### Donations
 
-Contributing
-------------
-Check the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
-
-
-Credits
-------
-* IntelliJ Github plugin (some code of this plugin is based on its code)
-
-Thanks to [JetBrains](https://www.jetbrains.com/) for providing a free licence for developing this project.
-
-Donations
---------
-If you like this work, you can support it with
+You can support this work with
 [this donation link](https://www.paypal.com/webscr?cmd=_s-xclick&hosted_button_id=8F2GZVBCVEDUQ).
-If you don't like Paypal (Paypal takes 2.9% plus $0.30 per transaction fee from your donation), please contact me.
-Please only use the link from github.com/uwolfer/gerrit-intellij-plugin to verify that it is correct.
+If you would rather not use PayPal (it takes 2.9% plus $0.30 of each donation),
+please contact me. Only trust the link on
+github.com/uwolfer/gerrit-intellij-plugin.
 
+## Credits
 
-Copyright and license
---------------------
+* Parts of this plugin are based on the code of the IntelliJ GitHub plugin.
+
+Thanks to [JetBrains](https://www.jetbrains.com/) for providing a free license
+for developing this project.
+
+## Copyright and license
 
 Copyright 2013 - 2026 Urs Wolfer
 

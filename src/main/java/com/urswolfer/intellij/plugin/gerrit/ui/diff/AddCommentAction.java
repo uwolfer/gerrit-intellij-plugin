@@ -18,28 +18,22 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.client.Comment;
-import com.google.gerrit.extensions.client.Side;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
+import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.Objects;
 
 /**
  * @author Urs Wolfer
@@ -51,51 +45,32 @@ import java.util.Objects;
 public class AddCommentAction extends AnAction implements DumbAware, UpdateInBackground {
 
     private final Editor editor;
-    private final CommentsDiffTool commentsDiffTool;
-    private final GerritUtil gerritUtil;
-    private final GerritSettings gerritSettings;
-    private final ChangeInfo changeInfo;
-    private final String revisionId;
-    private final String filePath;
+    private final DiffComments comments;
     private final CommentBalloonBuilder commentBalloonBuilder;
-    private final Side commentSide;
-    private final Integer parent;
+    @Nullable
+    private final CommentSide side;
     private final Comment commentToEdit;
-    private final RangeHighlighter lineHighlighter;
-    private final RangeHighlighter rangeHighlighter;
     private final Comment replyToComment;
 
-    public AddCommentAction(String label,
-                            Icon icon,
-                            CommentsDiffTool commentsDiffTool,
-                            GerritUtil gerritUtil,
-                            GerritSettings gerritSettings,
-                            Editor editor,
-                            CommentBalloonBuilder commentBalloonBuilder,
-                            ChangeInfo changeInfo,
-                            String revisionId,
-                            String filePath,
-                            Side commentSide,
-                            Integer parent,
-                            Comment commentToEdit,
-                            RangeHighlighter lineHighlighter,
-                            RangeHighlighter rangeHighlighter,
-                            Comment replyToComment) {
+    /**
+     * @param side of the comment edited or replied to; null for a new comment, which goes on the side the caret or
+     *             the selection is on
+     */
+    AddCommentAction(String label,
+                     Icon icon,
+                     DiffComments comments,
+                     Editor editor,
+                     CommentBalloonBuilder commentBalloonBuilder,
+                     @Nullable CommentSide side,
+                     Comment commentToEdit,
+                     Comment replyToComment) {
         super(label, null, icon);
 
-        this.commentsDiffTool = commentsDiffTool;
-        this.gerritUtil = gerritUtil;
-        this.gerritSettings = gerritSettings;
-        this.changeInfo = changeInfo;
-        this.revisionId = revisionId;
-        this.filePath = filePath;
+        this.comments = comments;
         this.editor = editor;
         this.commentBalloonBuilder = commentBalloonBuilder;
-        this.commentSide = commentSide;
-        this.parent = parent;
+        this.side = side;
         this.commentToEdit = commentToEdit;
-        this.lineHighlighter = lineHighlighter;
-        this.rangeHighlighter = rangeHighlighter;
         this.replyToComment = replyToComment;
     }
 
@@ -114,9 +89,21 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     }
 
     void addVersionedComment(@Nullable Project project) {
-        if (project == null || editor == null || filePath == null) return;
+        if (project == null || editor == null) return;
 
-        final CommentForm commentForm = new CommentForm(project, editor, filePath, commentSide, commentToEdit, replyToComment);
+        LineMapping mapping = comments.getMapping(editor);
+        CommentPosition position = CommentPosition.read(editor, mapping);
+        if (side == null && position == null) {
+            // without a selection, the caret is on no line of a side, such as on the empty line a unified diff ends
+            // with, where a click below the text puts it
+            HintManager.getInstance().showErrorHint(editor, editor.getSelectionModel().hasSelection()
+                ? "A comment is on one side of the diff: start and end the selection on lines of the same side"
+                : "There is no line of the diff here to comment on");
+            return;
+        }
+
+        final CommentForm commentForm =
+            new CommentForm(project, editor, mapping, position, commentToEdit, replyToComment);
         final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
         balloon.addListener(new JBPopupListener() {
             @Override
@@ -126,7 +113,8 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
             public void onClosed(LightweightWindowEvent event) {
                 DraftInput comment = commentForm.getComment();
                 if (comment != null) {
-                    handleComment(comment, project);
+                    handleComment(comment, side != null ? side : comments.getSide(commentForm.getPosition().side),
+                        project);
                 }
             }
         });
@@ -134,8 +122,10 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         balloon.showInBestPositionFor(editor);
     }
 
-    private void handleComment(final DraftInput comment, final Project project) {
-        comment.parent = parent;
+    private void handleComment(final DraftInput comment, final CommentSide commentSide, final Project project) {
+        comment.path = commentSide.filePath;
+        comment.side = commentSide.side;
+        comment.parent = commentSide.parent;
         if (commentToEdit != null) {
             comment.id = commentToEdit.id;
             comment.parent = commentToEdit.parent;
@@ -149,46 +139,13 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
             comment.range = replyToComment.range;
         }
 
-        gerritUtil.saveDraftComment(changeInfo._number, revisionId, comment, project,
-                new Consumer<CommentInfo>() {
-                    @Override
-                    public void consume(CommentInfo commentInfo) {
-                        Editor currentEditor = currentEditor();
-                        if (currentEditor == null) {
-                            return; // the diff was closed, it shows the comment when it is opened again
-                        }
-                        if (commentToEdit != null) {
-                            if (currentEditor == editor) {
-                                commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
-                            } else {
-                                commentsDiffTool.removeComment(project, currentEditor, commentToEdit.id);
-                            }
-                        }
-                        commentsDiffTool.addComment(currentEditor, changeInfo, revisionId, project, commentInfo);
-                    }
-                });
-    }
-
-    /**
-     * The diff window builds new editors when it steps to another file of the change, so the editor the comment was
-     * started in is released if the user stepped away and back while the form was open.
-     */
-    @Nullable
-    private Editor currentEditor() {
-        if (!editor.isDisposed()) {
-            return editor;
-        }
-        for (Editor candidate : EditorFactory.getInstance().getAllEditors()) {
-            AddCommentAction action = candidate.getUserData(CommentsDiffTool.ADD_COMMENT_ACTION);
-            if (action != null
-                && candidate.getProject() == editor.getProject()
-                && action.changeInfo._number == changeInfo._number
-                && Objects.equals(action.revisionId, revisionId)
-                && Objects.equals(action.filePath, filePath)
-                && CommentsDiffTool.sideOf(action.commentSide) == CommentsDiffTool.sideOf(commentSide)) {
-                return candidate;
-            }
-        }
-        return null;
+        GerritUtil.getInstance().saveDraftComment(comments.getChangeInfo()._number, commentSide.revisionId, comment,
+            project, (CommentInfo commentInfo) -> {
+                DiffComments current = comments.current(commentSide);
+                if (current == null) {
+                    return; // the diff was closed, it shows the comment when it is opened again
+                }
+                current.add(commentInfo, commentSide);
+            });
     }
 }

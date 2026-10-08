@@ -1,12 +1,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
-import com.google.gerrit.extensions.client.Side;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 import javax.swing.*;
 
@@ -15,50 +10,23 @@ import javax.swing.*;
  */
 public class AddCommentActionBuilder {
     private final CommentBalloonBuilder commentBalloonBuilder = new CommentBalloonBuilder();
-    private final GerritUtil gerritUtil = GerritUtil.getInstance();
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
-    public Builder create(CommentsDiffTool commentsDiffTool,
-                          ChangeInfo changeInfo,
-                          String revisionId,
-                          Editor editor,
-                          String filePath,
-                          Side commentSide) {
-        return new Builder().init(commentsDiffTool, changeInfo, revisionId, editor, filePath, commentSide);
+    Builder create(DiffComments comments, Editor editor) {
+        return new Builder().init(comments, editor);
     }
 
     public class Builder {
         private String text;
         private Icon icon;
-        private CommentsDiffTool commentsDiffTool;
-        private ChangeInfo changeInfo;
-        private String revisionId;
+        private DiffComments comments;
         private Editor editor;
-        private String filePath;
-        private Side commentSide;
-        private Integer parent;
+        private CommentSide side;
         private Comment commentToEdit;
-        private RangeHighlighter lineHighlighter;
-        private RangeHighlighter rangeHighlighter;
         private Comment replyToComment;
 
-        private Builder init(CommentsDiffTool commentsDiffTool,
-                             ChangeInfo changeInfo,
-                             String revisionId,
-                             Editor editor,
-                             String filePath,
-                             Side commentSide) {
-            this.commentsDiffTool = commentsDiffTool;
-            this.changeInfo = changeInfo;
-            this.revisionId = revisionId;
+        private Builder init(DiffComments comments, Editor editor) {
+            this.comments = comments;
             this.editor = editor;
-            this.filePath = filePath;
-            this.commentSide = commentSide;
-            return this;
-        }
-
-        public Builder onParent(Integer parent) {
-            this.parent = parent;
             return this;
         }
 
@@ -72,23 +40,21 @@ public class AddCommentActionBuilder {
             return this;
         }
 
-        public Builder update(Comment commentToEdit,
-                              RangeHighlighter lineHighlighter,
-                              RangeHighlighter rangeHighlighter) {
+        Builder update(Comment commentToEdit, CommentSide side) {
             this.commentToEdit = commentToEdit;
-            this.lineHighlighter = lineHighlighter;
-            this.rangeHighlighter = rangeHighlighter;
+            this.side = side;
             return this;
         }
 
-        public Builder reply(Comment replyToComment) {
+        Builder reply(Comment replyToComment, CommentSide side) {
             this.replyToComment = replyToComment;
+            this.side = side;
             return this;
         }
 
         public AddCommentAction get() {
-            return new AddCommentAction(text, icon, commentsDiffTool, gerritUtil, gerritSettings, editor, commentBalloonBuilder,
-                    changeInfo, revisionId, filePath, commentSide, parent, commentToEdit, lineHighlighter, rangeHighlighter, replyToComment);
+            return new AddCommentAction(text, icon, comments, editor, commentBalloonBuilder, side, commentToEdit,
+                replyToComment);
         }
     }
 }

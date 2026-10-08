@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Keymap entry for adding a comment in a Gerrit diff, so that the shortcut can be configured in
  * "Settings | Keymap". The action carrying the actual state is built per diff editor by
- * {@link CommentsDiffTool}; this one looks it up and delegates to it.
+ * {@link GerritCommentsDiffExtension}; this one looks it up and delegates to it.
  *
  * @author Urs Wolfer
  */
@@ -55,6 +55,6 @@ public class AddCommentInDiffAction extends AnAction implements DumbAware, Updat
         if (editor == null) {
             editor = e.getData(DiffDataKeys.CURRENT_EDITOR);
         }
-        return editor != null ? editor.getUserData(CommentsDiffTool.ADD_COMMENT_ACTION) : null;
+        return editor != null ? editor.getUserData(GerritCommentsDiffExtension.ADD_COMMENT_ACTION) : null;
     }
 }

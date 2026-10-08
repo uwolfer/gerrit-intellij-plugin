@@ -54,10 +54,11 @@ reflection: that code breaks on new IDEs, not on 2020.3.
 
 `smoke.sh [latest|<dir>]` starts Gerrit and that IDE, then walks the plugin's
 main paths and checks each against Gerrit: the account on the settings page,
-the change list, a push for review with a reviewer through the push dialog, and
-Star from the context menu, and fails on an error the plugin logged. It takes
-about a minute once everything is downloaded, and on failure prints a
-screenshot path.
+the change list, a push for review with a reviewer through the push dialog, Star
+from the context menu, and comments on removed, added and unchanged lines of a
+diff in the side-by-side and the unified viewer, and fails on an error the
+plugin logged. It takes about a minute once everything is downloaded, and on
+failure prints a screenshot path.
 
 ## The seeded Gerrit
 

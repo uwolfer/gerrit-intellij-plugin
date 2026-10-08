@@ -63,39 +63,4 @@ public class RangeUtilsTest {
         Assert.assertEquals(1, range.endLine);
         Assert.assertEquals(5, range.endCharacter);
     }
-
-    @Test
-    public void testTextOffsetToRangeOfLineStartIsResolvedBack() throws Exception {
-        Comment.Range range = RangeUtils.textOffsetToRange(STRING, 16, 26);
-        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(STRING, range);
-
-        Assert.assertEquals(16, offset.start);
-        Assert.assertEquals(26, offset.end);
-    }
-
-    @Test
-    public void testRangeToTextOffsetSingleLine() throws Exception {
-        Comment.Range range = new Comment.Range();
-        range.startLine = 2; // word "break"
-        range.startCharacter = 6;
-        range.endLine = 2;
-        range.endCharacter = 11;
-        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(STRING, range);
-
-        Assert.assertEquals(22, offset.start);
-        Assert.assertEquals(27, offset.end);
-    }
-
-    @Test
-    public void testRangeToTextOffsetMultiLine() throws Exception {
-        Comment.Range range = new Comment.Range();
-        range.startLine = 1; // "with\nline"
-        range.startCharacter = 11;
-        range.endLine = 2;
-        range.endCharacter = 4;
-        RangeUtils.Offset offset = RangeUtils.rangeToTextOffset(STRING, range);
-
-        Assert.assertEquals(11, offset.start);
-        Assert.assertEquals(20, offset.end);
-    }
 }

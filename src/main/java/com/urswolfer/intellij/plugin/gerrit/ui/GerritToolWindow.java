@@ -137,7 +137,7 @@ public class GerritToolWindow implements Disposable {
         registerVcsChangeListener(project);
         MessageBusConnection settings = ApplicationManager.getApplication().getMessageBus().connect(this);
         settings.subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
-        settings.subscribe(GerritChangeListPanel.COLUMNS_CHANGED, changeListPanel::rebuildColumns);
+        settings.subscribe(GerritChangeColumns.CHANGED, changeListPanel::rebuildColumns);
         project.getMessageBus().connect(this).subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
             @Override
             public void changesModified() {

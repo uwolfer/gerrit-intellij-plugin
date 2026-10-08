@@ -73,45 +73,4 @@ public final class RangeUtils {
         range.endCharacter = endOffset;
         return range;
     }
-
-    public static Offset rangeToTextOffset(CharSequence charsSequence, Comment.Range range) {
-        int startOffset = 0;
-        int endOffset = 0;
-        CharSequenceReader charSequenceReader = new CharSequenceReader(charsSequence);
-        try {
-            BufferedReader reader = new BufferedReader(charSequenceReader);
-            String line;
-            int textLineCount = 1;
-            while ((line = reader.readLine()) != null) {
-                if (textLineCount < range.startLine) {
-                    startOffset += line.length();
-                    startOffset++; // line break
-                }
-                if (textLineCount < range.endLine) {
-                    endOffset += line.length();
-                    endOffset++; // line break
-                } else {
-                    break;
-                }
-                textLineCount++;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            charSequenceReader.close();
-        }
-        startOffset += range.startCharacter;
-        endOffset += range.endCharacter;
-        return new Offset(startOffset, endOffset);
-    }
-
-    static class Offset {
-        final int start;
-        final int end;
-
-        Offset(int start, int end) {
-            this.start = start;
-            this.end = end;
-        }
-    }
 }

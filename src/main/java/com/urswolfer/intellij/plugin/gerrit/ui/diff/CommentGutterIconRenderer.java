@@ -18,7 +18,6 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
 import com.google.gerrit.extensions.common.AccountInfo;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
@@ -33,8 +32,6 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.util.text.DateFormatUtil;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
-import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
@@ -47,37 +44,25 @@ import java.awt.event.MouseEvent;
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
-    private final CommentsDiffTool commentsDiffTool;
+    private final DiffComments comments;
     private final Editor editor;
-    private final GerritUtil gerritUtil;
-    private final GerritSettings gerritSettings;
     private final AddCommentActionBuilder addCommentActionBuilder;
     private final Comment fileComment;
-    private final ChangeInfo changeInfo;
-    private final String revisionId;
-    private final RangeHighlighter lineHighlighter;
+    private final CommentSide side;
     private final RangeHighlighter rangeHighlighter;
 
-    public CommentGutterIconRenderer(CommentsDiffTool commentsDiffTool,
-                                     Editor editor,
-                                     GerritUtil gerritUtil,
-                                     GerritSettings gerritSettings,
-                                     AddCommentActionBuilder addCommentActionBuilder,
-                                     Comment fileComment,
-                                     ChangeInfo changeInfo,
-                                     String revisionId,
-                                     RangeHighlighter lineHighlighter,
-                                     RangeHighlighter rangeHighlighter) {
-        this.commentsDiffTool = commentsDiffTool;
-        this.gerritSettings = gerritSettings;
-        this.fileComment = fileComment;
-        this.gerritUtil = gerritUtil;
-        this.changeInfo = changeInfo;
-        this.revisionId = revisionId;
-        this.lineHighlighter = lineHighlighter;
+    CommentGutterIconRenderer(DiffComments comments,
+                              Editor editor,
+                              AddCommentActionBuilder addCommentActionBuilder,
+                              Comment fileComment,
+                              CommentSide side,
+                              RangeHighlighter rangeHighlighter) {
+        this.comments = comments;
         this.editor = editor;
-        this.rangeHighlighter = rangeHighlighter;
         this.addCommentActionBuilder = addCommentActionBuilder;
+        this.fileComment = fileComment;
+        this.side = side;
+        this.rangeHighlighter = rangeHighlighter;
     }
 
     Comment getComment() {
@@ -153,29 +138,24 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         if (isNewCommentFromMyself()) {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
+                    .create(comments, editor)
                     .withText("Edit")
                     .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
-                    .update(fileComment, lineHighlighter, rangeHighlighter)
+                    .update(fileComment, side)
                     .get();
             actionGroup.add(commentAction);
 
-            RemoveCommentAction removeCommentAction = new RemoveCommentAction(
-                    commentsDiffTool, editor, gerritUtil, changeInfo, fileComment, revisionId,
-                    lineHighlighter, rangeHighlighter);
-            actionGroup.add(removeCommentAction);
+            actionGroup.add(new RemoveCommentAction(comments, fileComment, side));
         } else {
             AddCommentAction commentAction = addCommentActionBuilder
-                    .create(commentsDiffTool, changeInfo, revisionId, editor, fileComment.path, fileComment.side)
+                    .create(comments, editor)
                     .withText("Reply")
                     .withIcon(AllIcons.Actions.Back)
-                    .reply(fileComment)
+                    .reply(fileComment, side)
                     .get();
             actionGroup.add(commentAction);
 
-            CommentDoneAction commentDoneAction = new CommentDoneAction(
-                    editor, commentsDiffTool, gerritUtil, gerritSettings, fileComment, changeInfo, revisionId);
-            actionGroup.add(commentDoneAction);
+            actionGroup.add(new CommentDoneAction(comments, fileComment, side));
         }
         return actionGroup;
     }

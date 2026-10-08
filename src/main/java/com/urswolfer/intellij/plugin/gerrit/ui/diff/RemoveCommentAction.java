@@ -17,16 +17,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAware;
-import com.intellij.openapi.project.Project;
-import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -35,44 +30,26 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 @SuppressWarnings("ComponentNotRegistered") // added with code
 public class RemoveCommentAction extends AnAction implements DumbAware, UpdateInBackground {
 
-    private final CommentsDiffTool commentsDiffTool;
-    private final Editor editor;
-    private final GerritUtil gerritUtil;
-    private final ChangeInfo changeInfo;
+    private final DiffComments comments;
     private final Comment comment;
-    private final String revisionId;
-    private final RangeHighlighter lineHighlighter;
-    private final RangeHighlighter rangeHighlighter;
+    private final CommentSide side;
 
-    public RemoveCommentAction(CommentsDiffTool commentsDiffTool,
-                               Editor editor,
-                               GerritUtil gerritUtil,
-                               ChangeInfo changeInfo,
-                               Comment comment,
-                               String revisionId,
-                               RangeHighlighter lineHighlighter,
-                               RangeHighlighter rangeHighlighter) {
+    RemoveCommentAction(DiffComments comments, Comment comment, CommentSide side) {
         super("Remove", "Remove selected comment", AllIcons.Actions.Cancel);
 
-        this.commentsDiffTool = commentsDiffTool;
+        this.comments = comments;
         this.comment = comment;
-        this.gerritUtil = gerritUtil;
-        this.changeInfo = changeInfo;
-        this.revisionId = revisionId;
-        this.lineHighlighter = lineHighlighter;
-        this.editor = editor;
-        this.rangeHighlighter = rangeHighlighter;
+        this.side = side;
     }
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        final Project project = e.getProject();
-        gerritUtil.deleteDraftComment(changeInfo._number, revisionId, comment.id, project,
-                new Consumer<Void>() {
-                    @Override
-                    public void consume(Void aVoid) {
-                        commentsDiffTool.removeComment(project, editor, lineHighlighter, rangeHighlighter);
-                    }
-                });
+        GerritUtil.getInstance().deleteDraftComment(comments.getChangeInfo()._number, side.revisionId, comment.id,
+            e.getProject(), (Void aVoid) -> {
+                DiffComments current = comments.current(side);
+                if (current != null) {
+                    current.remove(comment.id);
+                }
+            });
     }
 }

@@ -18,16 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.client.Comment;
-import com.google.gerrit.extensions.client.Side;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.ui.EditorTextField;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
-import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -49,31 +46,31 @@ public class CommentForm extends JPanel {
     private static final int BALLOON_HEIGHT = 300;
 
     private final Editor editor;
-    private final String filePath;
-    private final Side commentSide;
+    private final LineMapping mapping;
     private final Comment commentToEdit;
     private final JCheckBox resolvedCheckBox;
-    private Comment.Range range;
-    private int line;
+    @Nullable
+    private CommentPosition position;
 
     private final EditorTextField reviewTextField;
     private JBPopup balloon;
     private DraftInput commentInput;
 
-    public CommentForm(Project project,
-                       Editor editor,
-                       String filePath,
-                       Side commentSide,
-                       Comment commentToEdit,
-                       Comment replyToComment) {
+    /**
+     * @param position where a new comment goes, as the editor shows when the form opens
+     */
+    CommentForm(Project project,
+                Editor editor,
+                LineMapping mapping,
+                @Nullable CommentPosition position,
+                Comment commentToEdit,
+                Comment replyToComment) {
         super(new BorderLayout());
 
-        this.filePath = filePath;
         this.editor = editor;
-        this.commentSide = commentSide;
+        this.mapping = mapping;
+        this.position = position;
         this.commentToEdit = commentToEdit;
-
-        readPosition();
 
         SafeHtmlTextEditor safeHtmlTextEditor = new SafeHtmlTextEditor(project);
         reviewTextField = safeHtmlTextEditor.getMessageField();
@@ -149,17 +146,21 @@ public class CommentForm extends JPanel {
         DraftInput comment = new DraftInput();
 
         comment.message = getText();
-        comment.path = PathUtils.ensureSlashSeparators(filePath);
-        comment.side = commentSide;
         comment.unresolved = !resolvedCheckBox.isSelected();
 
         // The editor stays usable while the form is open, so a selection made now counts. Stepping to another file of
-        // the change and back replaces the editor, though; then the position from when the form was opened is kept.
+        // the change and back replaces the editor, though, and in a unified diff a selection may now reach from the
+        // old lines into the new ones; then the position from when the form was opened is kept.
         if (!editor.isDisposed()) {
-            readPosition();
+            CommentPosition current = CommentPosition.read(editor, mapping);
+            if (current != null) {
+                position = current;
+            }
         }
-        comment.range = range;
-        comment.line = line;
+        if (position != null) {
+            comment.range = position.range;
+            comment.line = position.line;
+        }
 
         if (commentToEdit != null) { // preserve: the selection might not exist anymore but we should not loose it
             comment.range = commentToEdit.range;
@@ -168,17 +169,6 @@ public class CommentForm extends JPanel {
         }
 
         return comment;
-    }
-
-    private void readPosition() {
-        SelectionModel selectionModel = editor.getSelectionModel();
-        if (selectionModel.hasSelection()) {
-            range = handleRangeComment(selectionModel);
-            line = range.endLine; // end line as per specification
-        } else {
-            range = null;
-            line = editor.getDocument().getLineNumber(editor.getCaretModel().getOffset()) + 1;
-        }
     }
 
     @NotNull
@@ -199,10 +189,8 @@ public class CommentForm extends JPanel {
         return commentInput;
     }
 
-    private Comment.Range handleRangeComment(SelectionModel selectionModel) {
-        int startSelection = selectionModel.getBlockSelectionStarts()[0];
-        int endSelection = selectionModel.getBlockSelectionEnds()[0];
-        CharSequence charsSequence = editor.getMarkupModel().getDocument().getCharsSequence();
-        return RangeUtils.textOffsetToRange(charsSequence, startSelection, endSelection);
+    /** Where the new comment goes; known whenever the form was opened with a position. */
+    CommentPosition getPosition() {
+        return position;
     }
 }

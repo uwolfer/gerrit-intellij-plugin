@@ -16,7 +16,8 @@
 #
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
 # the settings page, the change list, a push for review with a reviewer picked from
-# the suggestions of the push dialog, a change action from the context menu, and no error logged by the plugin.
+# the suggestions of the push dialog, a change action from the context menu, comments in
+# a diff in both viewers, and no error logged by the plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -80,6 +81,139 @@ was=$(starred)  # Star toggles, and earlier runs leave it either way
 "$R" click "//div[@class='ActionMenuItem' and @accessiblename='Star']"
 toggled() { local now; now=$(starred) && [ "$now" != "$was" ]; }
 until_true "Star from the context menu" toggled
+
+# Comments in a diff, on a change of its own whose patch sets differ in removed, added and unchanged lines, and in
+# one which only its trailing space tells apart
+dsubject=$subject-diff
+for left in $(gerrit '/changes/?q=project:demo+status:open+subject:diff' | python3 -c 'import json, re, sys
+print(*(c["_number"] for c in json.load(sys.stdin) if re.fullmatch(r"smoke-[0-9]+-diff", c["subject"])))'); do
+    gerrit "/changes/$left/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null  # of a failed run
+done
+# in a worktree of its own, which a run that stops half-way leaves behind rather than a changed project
+W=$WORK/smoke-diff
+git -C "$P" worktree remove -f "$W" 2> /dev/null || git -C "$P" worktree prune
+git -C "$P" worktree add -q --detach "$W" origin/master
+printf 'Demo\nkeep\nold\ntail\n' > "$W/README.md"
+git -C "$W" commit -qam "$dsubject"; git -C "$W" push -q origin HEAD:refs/for/master
+printf 'Intro\nkeep\nnew\ntail \n' > "$W/README.md"
+git -C "$W" commit -qa --amend --no-edit; git -C "$W" push -q origin HEAD:refs/for/master
+dchange=demo~master~$(git -C "$W" log -1 --format=%B | sed -n 's/^Change-Id: //p')
+git -C "$P" worktree remove -f "$W"
+# the balloons of the push lie over the files of the change, and take the clicks meant for them
+"$R" get "//div[@class='IdeFrameImpl']" "(function () {
+    var project = com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0];
+    var shown = com.intellij.notification.NotificationsManager.getNotificationsManager()
+        .getNotificationsOfType(Packages.com.intellij.notification.Notification, project);
+    for (var i = 0; i < shown.length; i++) shown[i].expire();
+    return shown.length;
+})()" > /dev/null
+"$R" click "$G//div[@accessiblename='Refresh']"
+dlisted() { grep -q "$dsubject" <<< "$("$R" rows "$T")"; }
+until_true "change list shows the diff change" dlisted
+"$R" item "$T" "$dsubject"
+"$R" click "$G//div[@class='JLabel' and @accessiblename='Diff against: ']/following-sibling::div[1]"  # against patch set 1
+L="//div[contains(@class,'List') and contains(@visible_text,'Base')]"
+"$R" wait "$L"
+"$R" item "$L" "$("$R" rows "$L" | grep '^1: ')"
+F="//div[contains(@class,'ChangesBrowserTreeList')]"  # AsyncChangesBrowserTreeList in 2026.2
+file() { "$R" rows "$F" | grep -m1 'README.md$'; }
+listed_file() { file > /dev/null; }
+until_true "files of the change" listed_file
+"$R" item "$F" "$(file)" --double
+D="//div[contains(@class,'DiffPanel')]"
+"$R" wait "$D//div[@class='EditorComponentImpl']"
+viewer() { # viewer Side-by-side|Unified: picked unless it is the one shown
+    local panel=SimpleDiffPanel button=1
+    [ "$1" = Side-by-side ] || { panel=UnifiedDiffPanel; button=2; }
+    if [ -z "$("$R" find "$D[@class='$panel']")" ]; then
+        local combo="//div[contains(@class,'ComboBoxButton') and contains(@accessiblename,' viewer')]"
+        if [ -n "$("$R" find "$combo")" ]; then
+            "$R" click "$combo"
+            "$R" item "//div[contains(@class,'List') and contains(@visible_text,'$1 viewer')]" "$1 viewer"
+        else  # 2026.2 has two buttons without a name instead
+            "$R" click "(//div[@class='SegmentedButtonComponent']/div[@class='SegmentedButton'])[$button]"
+        fi
+    fi
+    "$R" wait "$D[@class='$panel']"
+}
+# comment <editor> <line> <text> [<end line>]: through the action of the editor, as its shortcut and menu do,
+# on a line or from the start of one line to the end of another, both counted from 0
+comment() {
+    local select="e.getSelectionModel().removeSelection(); e.getCaretModel().moveToOffset(d.getLineStartOffset($2));"
+    [ $# -lt 4 ] || select="e.getSelectionModel().setSelection(d.getLineStartOffset($2), d.getLineEndOffset($4));"
+    "$R" get "$1" "(function () {
+        var e = component.getEditor(), d = e.getDocument(), K = java.awt.event.KeyEvent;
+        $select
+        var action = e.getUserData(com.intellij.openapi.util.Key.findKeyByName('gerrit.AddCommentAction'));
+        com.intellij.openapi.actionSystem.ActionManager.getInstance().tryToExecute(action,
+            new K(component, K.KEY_PRESSED, java.lang.System.currentTimeMillis(), 0, K.VK_C, K.CHAR_UNDEFINED),
+            component, 'smoke', true);
+        return action;
+    })()" > /dev/null
+    [ -n "$3" ] || return 0
+    "$R" wait "//div[@class='CommentForm']"
+    "$R" type "$3"
+    "$R" key ctrl+ENTER
+}
+# "<patch set> <side> <line> <message>" of each draft
+drafts() { gerrit "/changes/$dchange/drafts" | python3 -c 'import json, sys
+for c in json.load(sys.stdin).get("README.md", []): print(c["patch_set"], c.get("side", "REVISION"), c["line"], c["message"])'; }
+drafted() { grep -qx "$1" <<< "$(drafts)"; }
+# "<line> <message>" of each comment icon in an editor, the line counted from 1
+icons() { "$R" get "$1" "(function () {
+    var e = component.getEditor(), out = [];
+    e.getMarkupModel().getAllHighlighters().forEach(function (h) {
+        var r = h.getGutterIconRenderer();
+        if (r != null && String(r.getClass().getName()).indexOf('urswolfer') >= 0)
+            out.push((e.getDocument().getLineNumber(h.getStartOffset()) + 1) + ' ' + String(r.getTooltipText()).replace(/^.*<br\/>/, ''));
+    });
+    return out.sort().join('\\n');
+})()"; }
+viewer Side-by-side
+comment "($D//div[@class='EditorComponentImpl'])[1]" 2 old-left
+until_true "side-by-side: comment on the left on patch set 1" drafted "1 REVISION 3 old-left"
+comment "($D//div[@class='EditorComponentImpl'])[2]" 2 new-right
+until_true "side-by-side: comment on the right on patch set 2" drafted "2 REVISION 3 new-right"
+viewer Unified
+U="$D//div[@class='EditorComponentImpl']"
+# ignore <policy>: what the viewer compares, set as its settings do; it rebuilds the text in a rediff
+ignore() { "$R" get "$U" "com.intellij.ide.DataManager.getInstance().getDataContext(component)
+    .getData(com.intellij.diff.tools.util.DiffDataKeys.DIFF_VIEWER).getTextSettings()
+    .setIgnorePolicy(com.intellij.diff.tools.util.base.IgnorePolicy.$1)" > /dev/null; }
+ignore DEFAULT  # the viewer remembers the policy
+# its lines: Demo, Intro, keep, old, tail, new, "tail "
+shows() { [ "$(icons "$U")" = "$1" ]; }
+until_true "unified: the comments of both sides" shows $'4 old-left\n6 new-right'
+comment "$U" 0 removed
+until_true "unified: a removed line on patch set 1" drafted "1 REVISION 1 removed"
+comment "$U" 1 added
+until_true "unified: an added line on patch set 2" drafted "2 REVISION 1 added"
+comment "$U" 2 unchanged
+until_true "unified: an unchanged line on patch set 2" drafted "2 REVISION 2 unchanged"
+comment "$U" 0 removed-range 2
+until_true "unified: a range over removed and unchanged lines on patch set 1" drafted "1 REVISION 2 removed-range"
+comment "$U" 0 "" 1
+"$R" wait "//div[contains(@visible_text,'on lines of the same side')]" 10
+echo "ok: unified: a selection from a removed to an added line gets a hint"
+placed=$'1 removed\n2 added\n3 removed-range\n3 unchanged\n4 old-left\n6 new-right'
+until_true "unified: each comment on its line" shows "$placed"
+# the text of each range, as highlighted: of the left side, it shows the added line in between as well
+ranges() { "$R" get "$1" "(function () {
+    var e = component.getEditor(), out = [];
+    e.getMarkupModel().getAllHighlighters().forEach(function (h) {
+        if (String(h.getTextAttributesKey()).indexOf('GERRIT_COMMENT_RANGE') >= 0)
+            out.push(String(e.getDocument().getText().substring(h.getStartOffset(), h.getEndOffset())));
+    });
+    return out.join('|');
+})()"; }
+highlighted() { [ "$(ranges "$U")" = "$1" ]; }
+until_true "unified: the range of the comment highlighted" highlighted $'Demo\nIntro\nkeep'
+# trimmed, the tails are the same line, shown once: the lines after the old one move up
+ignore TRIM_WHITESPACES
+until_true "unified: the comments on their lines after a rediff" shows "${placed/6 new-right/5 new-right}"
+ignore DEFAULT
+until_true "unified: the comments back on their lines" shows "$placed"
+gerrit "/changes/$dchange/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null
 
 echo "IDE log, see SKILL.md for what is not the plugin's:"
 errors=$("$HERE/ide.sh" errors); echo "$errors"

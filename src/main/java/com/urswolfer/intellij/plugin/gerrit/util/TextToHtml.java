@@ -32,7 +32,7 @@ public final class TextToHtml {
         // SafeHtml handles the text it is given as HTML which is escaped already. A comment or a change message
         // is plain text, so it needs to be escaped first; otherwise it is rendered as markup (and the quote
         // handling of wikify(), which looks for an escaped "&gt; ", never matches).
-        String escapedText = new SafeHtmlBuilder().append(text).toSafeHtml().asString();
+        String escapedText = new SafeHtmlBuilder().append(text).toSafeHtml().asString().replace("\r\n", "\n");
         if (!escapedText.contains("\n")) {
             return SafeHtmlBuilder.asis(escapedText).linkify().asString();
         }

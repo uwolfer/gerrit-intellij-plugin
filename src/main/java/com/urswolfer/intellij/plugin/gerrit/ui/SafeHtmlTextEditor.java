@@ -18,9 +18,13 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.lang.Language;
 import com.intellij.openapi.editor.SpellCheckingEditorCustomizationProvider;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.fileTypes.FileTypes;
+import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.AdditionalPageAtBottomEditorCustomization;
 import com.intellij.ui.ColorUtil;
@@ -29,6 +33,7 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.ui.TabbedPaneImpl;
+import com.intellij.ui.WrapWhenTypingReachesRightMarginCustomization;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
@@ -98,6 +103,8 @@ public class SafeHtmlTextEditor extends JPanel {
         List<EditorCustomization> features = new ArrayList<>();
         features.add(SoftWrapsEditorCustomization.ENABLED);
         features.add(AdditionalPageAtBottomEditorCustomization.DISABLED);
+        // the code style of Markdown, the language of the field where it can be, may wrap while typing just as well
+        features.add(WrapWhenTypingReachesRightMarginCustomization.DISABLED);
         ContainerUtil.addIfNotNull(features, SpellCheckingEditorCustomizationProvider.getInstance().getEnabledCustomization());
         // as the commit message field does: the field takes the background of the dialog, so with an editor scheme
         // of the other darkness than the UI theme, the text would be dark on dark or light on light
@@ -109,9 +116,21 @@ public class SafeHtmlTextEditor extends JPanel {
                 sameDarkness ? colorsManager.getGlobalScheme() : colorsManager.getSchemeForCurrentUITheme()));
         });
         EditorTextField field = EditorTextFieldProvider.getInstance()
-            .getEditorField(FileTypes.PLAIN_TEXT.getLanguage(), project, features);
+            .getEditorField(messageLanguage(), project, features);
         field.setFontInheritedFromLAF(false);
         return field;
+    }
+
+    /**
+     * Markdown injects the language named after a code fence into the fence, which gives a snippet in a comment
+     * highlighting and completion (#394). Looked up by name, so that IDEs without the Markdown plugin, which is
+     * optional, keep a plain text field; through its file type, as a language exists only once its class is loaded.
+     */
+    private static Language messageLanguage() {
+        FileType markdown = FileTypeManager.getInstance().findFileTypeByName("Markdown");
+        return markdown instanceof LanguageFileType
+            ? ((LanguageFileType) markdown).getLanguage()
+            : FileTypes.PLAIN_TEXT.getLanguage();
     }
 
     public EditorTextField getMessageField() {

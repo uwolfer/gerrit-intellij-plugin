@@ -25,56 +25,52 @@
 
   <description><![CDATA[
       <p>
-        Gerrit Code Review Tool Integration
+        Gerrit Code Review integration: review, fetch and push changes without leaving your IDE.
       </p>
 
       <p>
-        Only <strong>Gerrit 2.9 or newer</strong> is supported (missing / incomplete REST API in older versions)
+        Requires <strong>Gerrit 2.9 or newer</strong> (older versions lack parts of the REST API).
+      </p>
+
+      <p>Features:</p>
+      <ul>
+        <li>Review changes in the IDE: vote, reply and comment on files and lines<br />
+        Add a comment with a right click on a line in the diff or with the "C" key; click a comment's icon to edit
+        or remove it while it is unpublished. "Reply..." or a vote publishes your comments.
+        </li>
+        <li>Diff changes against your local clone, with the IDE's syntax highlighting and navigation</li>
+        <li>List and query changes, and get notified of new changes waiting for your review</li>
+        <li>Push to Gerrit from the push dialog: target branch, topic, reviewers and CC with account suggestions,
+        and on Gerrit 2.15+ a hashtag, WIP and private changes</li>
+        <li>Check out, cherry-pick and reset to changes in your local clone</li>
+        <li>Submit, abandon, star changes and add reviewers; publish and delete draft changes (Gerrit older than
+        2.15)</li>
+        <li>Run the IDE's inspections on the files a change touches</li>
+        <li>Clone Gerrit projects from the IDE, with the commit-msg hook installed</li>
+        <li>Open files and commits in Gitiles, and the Gerrit changes of commits selected in the VCS log</li>
+        <li>Several Gerrit accounts, one per project</li>
+      </ul>
+
+      <p>
+        Please report issues on the <a href="https://github.com/uwolfer/gerrit-intellij-plugin/issues">GitHub issue
+        tracker</a> rather than in reviews.
       </p>
 
       <p>
-        Features:
-        <ul>
-          <li>Do reviews directly from your IDE (voting and commenting)</li>
-          <li>List and query changes</li>
-          <li>Optimized push dialog for Gerrit operations (refs/for, add reviewers, ...)</li>
-          <li>Compare (Diff) changes against your local clone (much more comfortable than in Web UI because of well known syntax highlighting and other IDE features)</li>
-          <li>Submit changes</li>
-          <li>Notifications for new changes which are waiting for your review</li>
-          <li>Cherry-Pick and checkout changes into your local clone</li>
-          <li>Star (and unstar) changes</li>
-          <li>File and line based comments<br />
-          Usage: Add new comments in file diff window with right click on line; remove not yet submitted comments with a
-           click on comment icon. Comments are published with "Reply..." or any "+/-" action.
-          </li>
-          <li>Clone and set up Gerrit projects directly in IDE (commit-message-hook is automatically added)</li>
-          <li>Abandon changes</li>
-          <li>Publish and delete draft changes</li>
-          <li>Open files and commits in Gitiles</li>
-          <li>Show the Gerrit changes of commits selected in the VCS log</li>
-        </ul>
+        The plugin talks to the Gerrit REST API through
+        <a href="https://github.com/uwolfer/gerrit-rest-java-client">gerrit-rest-java-client</a>, which you can use
+        in your own Java applications as well.
       </p>
 
-      <p>
-        If you find any issues, please report them (please use the GitHub issue tracker instead of review comments).
-      </p>
-
-      <p>
-        This plugin uses <a href="https://github.com/uwolfer/gerrit-rest-java-client">gerrit-rest-java-client</a> for
-        communication with Gerrit REST API. If you need to build a Java application which needs to communicate with
-        Gerrit, this library probably supports you quite a lot.
-      </p>
-
-      <p>
-        If you like this plugin, you can support it:
-        <ul>
-          <li>Spread it: Tell your friends who are using IntelliJ and Gerrit about this plugin (or even bring them to use these fantastic products!)</li>
-          <li>Vote for it: Write your review and vote for it at the <a href="https://plugins.jetbrains.com/plugin/7272">IntelliJ plugin repository</a>.</li>
-          <li>Star it: <a href="https://github.com/uwolfer/gerrit-intellij-plugin">Star it at GitHub</a>. GitHub account required.</li>
-          <li>Improve it: Report bugs or feature requests. Or even fix / implement them by yourself - everything is open source!</li>
-          <li>Donate: You can find donation-possibilities in the <a href="https://github.com/uwolfer/gerrit-intellij-plugin#donations">README</a> file.</li>
-        </ul>
-      </p>
+      <p>If you like this plugin, you can support it:</p>
+      <ul>
+        <li>Spread it: tell your friends who use IntelliJ and Gerrit about it.</li>
+        <li>Rate it on the <a href="https://plugins.jetbrains.com/plugin/7272">JetBrains Marketplace</a>.</li>
+        <li><a href="https://github.com/uwolfer/gerrit-intellij-plugin">Star it on GitHub</a>.</li>
+        <li>Improve it: report bugs and request features, or fix and build them yourself, everything is open
+        source.</li>
+        <li>Donate: see the <a href="https://github.com/uwolfer/gerrit-intellij-plugin#donations">README</a>.</li>
+      </ul>
       ]]></description>
 
   <change-notes><![CDATA[

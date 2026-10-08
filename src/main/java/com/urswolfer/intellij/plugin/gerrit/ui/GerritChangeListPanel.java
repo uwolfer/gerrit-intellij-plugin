@@ -283,6 +283,9 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     }
 
     private void initModel() {
+        // a right-click on the header leaves the column under it as the dragged one, as the menu takes the release;
+        // the header would go on painting that column of the old model, at index -1, until the next click on it
+        table.getTableHeader().setDraggedColumn(null);
         table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(columns.create(changes), changes, 0));
     }
 

@@ -33,6 +33,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ChangeInput;
 import com.google.gerrit.extensions.common.MergePatchSetInput;
 import com.google.gerrit.extensions.common.CommentInfo;
+import com.google.gerrit.extensions.common.DownloadSchemeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
@@ -49,6 +50,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.ThrowableComputable;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsBundle;
 import com.intellij.util.Consumer;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
@@ -108,6 +110,8 @@ public final class GerritUtil {
     // The client puts Gerrit's answer on a line of its own after "Content:", hence DOTALL.
     private static final Pattern UNSUPPORTED_OPTION = Pattern.compile(
         "Content:.*\"(CHANGE_ACTIONS|SUBMITTABLE)\".*\"-o\"", Pattern.DOTALL);
+
+    private static final String PROJECT_PLACEHOLDER = "${project}";
 
     public static GerritUtil getInstance() {
         return ApplicationManager.getApplication().getService(GerritUtil.class);
@@ -596,6 +600,34 @@ public final class GerritUtil {
             }
         };
         accessGerrit(supplier, consumer, project, "Failed to load Gerrit branches");
+    }
+
+    /**
+     * @return the part of the first http download scheme in front of the project, {@code null} if there is none.
+     *         A scheme which needs no login is preferred, as its url is the one to type; the {@code /a} of the
+     *         authenticated one is only the prefix Gerrit serves its authenticated endpoints under. Gerrit puts the
+     *         name of the requesting user into that url, which the clone urls must not carry.
+     */
+    @Nullable
+    public static String getCloneBaseUrl(@Nullable Map<String, DownloadSchemeInfo> schemes) {
+        if (schemes == null) {
+            return null;
+        }
+        String authenticated = null;
+        for (DownloadSchemeInfo scheme : schemes.values()) {
+            if (scheme.url == null || !scheme.url.startsWith("http") || !scheme.url.contains(PROJECT_PLACEHOLDER)) {
+                continue;
+            }
+            String base = StringUtil.trimEnd(scheme.url.substring(0, scheme.url.indexOf(PROJECT_PLACEHOLDER)), "/")
+                .replaceFirst("^(https?://)[^/]*@", "$1");
+            if (!Boolean.TRUE.equals(scheme.isAuthRequired)) {
+                return base;
+            }
+            if (authenticated == null) {
+                authenticated = StringUtil.trimEnd(base, "/a");
+            }
+        }
+        return authenticated;
     }
 
     public static String getProjectName(String gerritUrl, String gerritCloneBaseUrl, String url) {

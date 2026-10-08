@@ -17,11 +17,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit.extension;
 
-import com.google.gerrit.extensions.client.ListChangesOption;
-import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.FetchInfo;
 import com.google.gerrit.extensions.common.ProjectInfo;
-import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gerrit.extensions.common.ServerInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
 import com.intellij.dvcs.DvcsRememberedInputs;
@@ -422,38 +419,23 @@ public class GerritCloneComponent implements VcsCloneComponent {
     }
 
     /**
-     * If set, return the clone base url from the preferences. Otherwise, try to determine the Git clone url by
-     * fetching a random change and processing its fetch url. If it fails, fall back to Gerrit host url config.
-     *
-     * This can be cleaned up once https://code.google.com/p/gerrit/issues/detail?id=2208 is implemented.
+     * The clone base url of the preferences, else the one the server advertises, else the host.
      */
     private String getCloneBaseUrl(GerritAccount account) {
         String cloneBaseUrl = account.cloneBaseUrl;
         if (cloneBaseUrl != null && !cloneBaseUrl.isEmpty()) {
             return cloneBaseUrl;
         }
-        String url = account.host;
         try {
-            List<ChangeInfo> changeInfos = GerritApiProvider.getInstance().get(account).changes().query()
-                .withLimit(1)
-                .withOption(ListChangesOption.CURRENT_REVISION)
-                .get();
-            if (changeInfos.isEmpty()) {
-                LOG.info("ChangeInfo list is empty.");
+            ServerInfo info = GerritApiProvider.getInstance().get(account).config().server().getInfo();
+            String url = GerritUtil.getCloneBaseUrl(info != null && info.download != null ? info.download.schemes : null);
+            if (url != null) {
                 return url;
-            }
-            ChangeInfo changeInfo = changeInfos.get(0);
-            RevisionInfo revisionInfo = changeInfo.revisions != null
-                ? changeInfo.revisions.get(changeInfo.currentRevision) : null;
-            FetchInfo fetchInfo = GerritUtil.getFirstFetchInfo(revisionInfo, () -> account.host);
-            if (fetchInfo != null) {
-                // the project name is a literal suffix, it can contain characters which are special in a regex
-                url = StringUtil.trimEnd(fetchInfo.url, '/' + changeInfo.project);
             }
         } catch (RestApiException e) {
             LOG.info(e);
         }
-        return url;
+        return account.host;
     }
 
     /*

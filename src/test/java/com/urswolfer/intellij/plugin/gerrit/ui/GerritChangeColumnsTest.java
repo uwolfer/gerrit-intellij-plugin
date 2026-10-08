@@ -21,26 +21,26 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
-public class GerritChangeListPanelTest {
+public class GerritChangeColumnsTest {
 
     @Test
     public void testStatusOfOpenChange() {
-        Assert.assertEquals("", GerritChangeListPanel.getStatus(change(ChangeStatus.NEW, null, true)));
+        Assert.assertEquals("", GerritChangeColumns.getStatus(change(ChangeStatus.NEW, null, true)));
     }
 
     @Test
     public void testStatusOfWorkInProgress() {
-        Assert.assertEquals("WIP", GerritChangeListPanel.getStatus(change(ChangeStatus.NEW, true, true)));
+        Assert.assertEquals("WIP", GerritChangeColumns.getStatus(change(ChangeStatus.NEW, true, true)));
     }
 
     @Test
     public void testStatusOfWorkInProgressWithMergeConflict() {
-        Assert.assertEquals("WIP, Merge Conflict", GerritChangeListPanel.getStatus(change(ChangeStatus.NEW, true, false)));
+        Assert.assertEquals("WIP, Merge Conflict", GerritChangeColumns.getStatus(change(ChangeStatus.NEW, true, false)));
     }
 
     @Test
     public void testStatusOfClosedChangeLeavesOutWorkInProgress() {
-        Assert.assertEquals("Abandoned", GerritChangeListPanel.getStatus(change(ChangeStatus.ABANDONED, true, null)));
+        Assert.assertEquals("Abandoned", GerritChangeColumns.getStatus(change(ChangeStatus.ABANDONED, true, null)));
     }
 
     private static ChangeInfo change(ChangeStatus status, Boolean workInProgress, Boolean mergeable) {

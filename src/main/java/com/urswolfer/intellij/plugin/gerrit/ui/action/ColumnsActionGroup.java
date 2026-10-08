@@ -22,8 +22,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeColumns.ColumnToggle;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeListPanel.ColumnToggle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

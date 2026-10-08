@@ -223,24 +223,8 @@ public class GerritAccountsTest {
         Assert.assertEquals(accounts.getPassword(account), "new");
     }
 
-    @Test
-    public void testForgettingAPasswordClearsTheOlderKeysToo() {
-        FakeCredentialStore store = new FakeCredentialStore();
-        GerritAccounts accounts = seeded(store);
-        GerritAccount account = accounts.getDefaultAccount();
-        store.put(GerritAccounts.attributesFor(account), "current");
-        store.put(legacySettingsKey(), "old");
-        store.put(legacyClassKey(), "ancient");
-
-        accounts.forgetPassword(account);
-
-        Assert.assertEquals(accounts.getPassword(account), "");
-        Assert.assertNull(store.passwordAt(legacySettingsKey()));
-        Assert.assertNull(store.passwordAt(legacyClassKey()));
-    }
-
     /**
-     * Forgetting a password used to put the account back, so removing one returned it to the list.
+     * Clearing the password of an account used to store the account again, so removing one returned it to the list.
      */
     @Test
     public void testRemovingAnAccountClearsItsPasswordAndDoesNotPutItBack() {
@@ -292,21 +276,46 @@ public class GerritAccountsTest {
     }
 
     /**
-     * Git forgetting the password of another instance says nothing about the one an earlier version kept for a
-     * downgrade.
+     * The keys of an earlier version belong to the account which reads them, and go with it even while other
+     * accounts remain.
      */
     @Test
-    public void testForgettingAnotherAccountsPasswordLeavesTheOlderKeys() {
+    public void testRemovingTheAccountReadingTheOlderKeysClearsThem() {
         FakeCredentialStore store = new FakeCredentialStore();
         GerritAccounts accounts = seeded(store);
-        accounts.setPassword(accounts.getDefaultAccount(), "new");
+        GerritAccount account = accounts.getDefaultAccount();
+        accounts.put(GerritAccount.create("https://other.example.com", "jdoe", ""));
+        store.put(legacySettingsKey(), "old");
+        store.put(legacyClassKey(), "ancient");
+
+        accounts.remove(account);
+
+        Assert.assertNull(store.passwordAt(legacySettingsKey()));
+        Assert.assertNull(store.passwordAt(legacyClassKey()));
+    }
+
+    /**
+     * Git takes a rejection back once the password was saved again, the same one included.
+     */
+    @Test
+    public void testSavingOrClearingAPasswordCountsAsANewVersion() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
         GerritAccount other = GerritAccount.create("https://other.example.com", "jdoe", "");
         accounts.put(other);
-        store.put(legacySettingsKey(), "old");
+        int before = accounts.getPasswordVersion(account);
 
-        accounts.forgetPassword(other);
+        accounts.setPassword(account, "secret");
+        int saved = accounts.getPasswordVersion(account);
+        accounts.setPassword(account, "secret");
+        int savedAgain = accounts.getPasswordVersion(account);
+        accounts.remove(account);
 
-        Assert.assertEquals(store.passwordAt(legacySettingsKey()), "old");
+        Assert.assertNotEquals(saved, before);
+        Assert.assertNotEquals(savedAgain, saved);
+        Assert.assertNotEquals(accounts.getPasswordVersion(account), savedAgain);
+        Assert.assertEquals(accounts.getPasswordVersion(other), 0);
     }
 
     private static GerritAccounts seeded(GerritAccounts.CredentialStore store) {

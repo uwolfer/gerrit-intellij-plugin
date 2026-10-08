@@ -41,7 +41,6 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
@@ -68,7 +67,6 @@ public class GerritToolWindow implements Disposable {
     private static final Logger LOG = Logger.getInstance(GerritToolWindow.class);
 
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
-    private final GerritSettings gerritSettings = GerritSettings.getInstance();
     private GerritChangeListPanel changeListPanel;
     private final GerritChangesFilters changesFilters = new GerritChangesFilters();
     private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
@@ -232,7 +230,7 @@ public class GerritToolWindow implements Disposable {
         String apiUrl = projectAccount.getHost();
         if (apiUrl.isEmpty()) {
             if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project, gerritSettings, gerritUtil);
+                final LoginDialog dialog = new LoginDialog(project);
                 dialog.show();
                 if (!dialog.isOK()) {
                     return;

@@ -22,7 +22,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
-import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,14 +39,10 @@ public class LoginDialog extends DialogWrapper {
 
     private final LoginPanel loginPanel;
     private final Project project;
-    private final GerritUtil gerritUtil;
-    private final GerritSettings gerritSettings;
 
     // TODO: login must be merged with tasks server settings
-    public LoginDialog(final Project project, final GerritSettings gerritSettings, final GerritUtil gerritUtil) {
+    public LoginDialog(final Project project) {
         super(project, true);
-        this.gerritUtil = gerritUtil;
-        this.gerritSettings = gerritSettings;
         this.project = project;
         loginPanel = new LoginPanel(this);
         GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
@@ -87,7 +82,7 @@ public class LoginDialog extends DialogWrapper {
         final String host = loginPanel.getHost();
         GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, login, password);
         try {
-            boolean loggedSuccessfully = gerritUtil.checkCredentials(project, gerritAuthData);
+            boolean loggedSuccessfully = GerritUtil.getInstance().checkCredentials(project, gerritAuthData);
             if (loggedSuccessfully) {
                 GerritProjectAccount.getInstance(project).saveCredentialsWithModalProgress(host, login, password);
                 super.doOKAction();
@@ -96,7 +91,7 @@ public class LoginDialog extends DialogWrapper {
             }
         } catch (Exception e) {
             LOG.info(e);
-            setErrorText("Can't login: " + gerritUtil.getErrorTextFromException(e));
+            setErrorText("Can't login: " + GerritUtil.getInstance().getErrorTextFromException(e));
         }
     }
 

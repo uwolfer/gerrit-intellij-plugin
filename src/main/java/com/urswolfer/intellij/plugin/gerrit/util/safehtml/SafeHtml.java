@@ -16,9 +16,16 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 
 // based on: https://gerrit.googlesource.com/gerrit/+/master/gerrit-gwtexpui/src/main/java/com/google/gwtexpui/safehtml/client/
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /** Immutable string safely placed as HTML without further escaping. */
 @SuppressWarnings("serial")
 public abstract class SafeHtml {
+  /** As CommonMark: a backtick fence has no backtick in its info string, which makes "```a``` b" inline code. */
+  private static final Pattern CODE_FENCE = Pattern.compile(" {0,3}(`{3,}(?=[^`]*$)|~{3,}).*");
 
   /** @return the existing HTML text, wrapped in a safe buffer. */
   public static SafeHtml asis(String htmlText) {
@@ -36,11 +43,52 @@ public abstract class SafeHtml {
   /**
    * Apply {@link #linkify()}, and "\n\n" to &lt;p&gt;.
    *
-   * <p>Lines that start with whitespace are assumed to be preformatted.
+   * <p>Lines that start with whitespace, and fenced code blocks of Markdown, are assumed to be preformatted.
    */
   public SafeHtml wikify() {
     final SafeHtmlBuilder r = new SafeHtmlBuilder();
-    for (String p : linkify().asString().split("\n\n")) {
+    String text = linkify().asString();
+    List<String> lines = Arrays.asList(text.split("\n", -1));
+    int start = 0;
+    for (int i = 0; i < lines.size(); i++) {
+      Matcher fence = CODE_FENCE.matcher(lines.get(i));
+      int end = fence.matches() ? closingFence(lines, i, fence.group(1)) : -1;
+      // without a closing fence, a line of tildes or backticks is a divider of a message, not code up to its end
+      if (end < 0) {
+        continue;
+      }
+      // a fence may hold blank lines, at which the text around it is split into paragraphs
+      wikifyParagraphs(r, withoutBlankEnds(lines.subList(start, i)));
+      r.openElement("pre");
+      for (String line : lines.subList(i + 1, end)) {
+        r.append(asis(line));
+        r.br();
+      }
+      r.closeElement("pre");
+      start = end + 1;
+      i = end;
+    }
+    wikifyParagraphs(r, start == 0 ? text : withoutBlankEnds(lines.subList(start, lines.size())));
+    return r.toSafeHtml();
+  }
+
+  private static String withoutBlankEnds(List<String> lines) {
+    int from = 0;
+    int to = lines.size();
+    while (from < to && lines.get(from).trim().isEmpty()) {
+      from++;
+    }
+    while (to > from && lines.get(to - 1).trim().isEmpty()) {
+      to--;
+    }
+    return String.join("\n", lines.subList(from, to));
+  }
+
+  private void wikifyParagraphs(SafeHtmlBuilder r, String text) {
+    if (text.isEmpty()) {
+      return;
+    }
+    for (String p : text.split("\n\n")) {
       if (isQuote(p)) {
         wikifyQuote(r, p);
 
@@ -61,7 +109,18 @@ public abstract class SafeHtml {
         r.closeElement("p");
       }
     }
-    return r.toSafeHtml();
+  }
+
+  private static int closingFence(List<String> lines, int opening, String fence) {
+    for (int i = opening + 1; i < lines.size(); i++) {
+      String line = lines.get(i);
+      String marker = line.trim();
+      if (!line.startsWith("    ") && !line.startsWith("\t") // as CommonMark: indented further, it is code
+          && marker.length() >= fence.length() && marker.chars().allMatch(c -> c == fence.charAt(0))) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   private void wikifyList(SafeHtmlBuilder r, String p) {

@@ -38,9 +38,24 @@ public class TextToHtmlTest {
                 { "Use List<String> here\nand Map<K,V> there", "<p>Use List&lt;String&gt; here\nand Map&lt;K,V&gt; there</p>"},
                 { "> quoted previous comment\n> second line\n\nmy reply",
                         "<blockquote>quoted previous comment\nsecond line</blockquote><p>my reply</p>"},
+                { "Better:\n```java\nif (a < b) {\n\n    run();\n}\n```\nthen\n\nmore",
+                        "<p>Better:</p><pre>if (a &lt; b) {<br /><br />    run();<br />}<br /></pre><p>then</p><br/><p>more</p>"},
+                { "> quoted\n\n```\ncode\n```", "<blockquote>quoted</blockquote><pre>code<br /></pre>"},
+                { "* item\n\n~~~~\n```\n~~~~\n\n* other",
+                        "<ul><li>item</li></ul><pre>```<br /></pre><ul><li>other</li></ul>"},
+                { "  ```java\nint i;\n```", "<pre>int i;<br /></pre>"},
+                { "Release notes\n~~~~~~~~\n\nfoo", "<p>Release notes\n~~~~~~~~</p><br/><p>foo</p>"},
+                { "a\r\n```\r\nint i;\r\n```\r\n\r\nb", "<p>a</p><pre>int i;<br /></pre><p>b</p>"},
+                { "```a``` is\ninline", "<p>```a``` is\ninline</p>"},
+                { "```md\n    ```\n```\nafter", "<pre>    ```<br /></pre><p>after</p>"},
                 { "see http://example.com/x for details",
                         "see <a href=\"http://example.com/x\" target=\"_blank\" rel=\"nofollow\">http://example.com/x</a> for details"},
         };
+    }
+
+    @Test
+    public void testNullMessage() {
+        Assert.assertEquals(TextToHtml.textToHtml(null), "");
     }
 
     @Test(dataProvider = "textToHtml")

@@ -17,7 +17,7 @@
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
 # the settings page, the change list, a push for review with a reviewer picked from
 # the suggestions of the push dialog, a change action from the context menu, comments in
-# a diff in both viewers, and no error logged by the plugin.
+# a diff in both viewers, the project switched off and on again, and no error logged by the plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -214,6 +214,38 @@ until_true "unified: the comments on their lines after a rediff" shows "${placed
 ignore DEFAULT
 until_true "unified: the comments back on their lines" shows "$placed"
 gerrit "/changes/$dchange/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null
+
+USE="//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']"
+STRIPE="//div[contains(@class,'StripeButton') and @accessiblename='Gerrit']"
+use_gerrit() {
+    "$R" settings
+    "$R" check "$USE" "$1"
+    "$R" click "//div[@class='JButton' and @accessiblename='OK']"
+    closed() { [ -z "$("$R" find "//div[@accessiblename='Gerrit Accounts']")" ]; }
+    until_true "settings saved with Gerrit $1" closed
+}
+use_gerrit off
+hidden() { [ -z "$("$R" find "$STRIPE")" ]; }
+until_true "no Gerrit tool window in a project switched off" hidden
+echo "$subject" > "$P/$subject.txt"; git -C "$P" add "$subject.txt"; git -C "$P" commit -qm "$subject"
+"$R" focus
+"$R" key ctrl+shift+K
+"$R" wait "//div[@class='MainButton' and @accessiblename='Push']"
+plain() { grep -q 'master → origin' <<< "$("$R" rows "//div[@class='CheckboxTree']")"; }
+until_true "the platform's push target" plain
+# what the panel would have added is only there once the tree has rows, which plain waited for
+[ -z "$("$R" find "//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']")" ] ||
+    { echo "not: no Gerrit push options in a project switched off" >&2; false; }
+echo "ok: no Gerrit push options in a project switched off"
+"$R" click "//div[@class='JButton' and @accessiblename='Cancel']"  # a push here would land on master
+git -C "$P" checkout -qf -B master origin/master
+use_gerrit on
+shown() { [ -n "$("$R" find "$STRIPE")" ]; }
+until_true "Gerrit tool window back in a project switched on" shown
+[ -n "$("$R" find "$G")" ] || "$R" click "$STRIPE"
+"$R" wait "$G//div[@accessiblename='Refresh']"
+"$R" click "$G//div[@accessiblename='Refresh']"
+until_true "change list loads again" listed
 
 echo "IDE log, see SKILL.md for what is not the plugin's:"
 errors=$("$HERE/ide.sh" errors); echo "$errors"

@@ -27,6 +27,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
@@ -60,7 +61,7 @@ public final class GerritCommitMsgHookCheck {
     }
 
     private static void check(Project project) {
-        if (project.isDisposed()) {
+        if (!GerritProjectSettings.isEnabled(project)) {
             return;
         }
         GerritAccount account = GerritProjectAccount.getInstance(project).get();

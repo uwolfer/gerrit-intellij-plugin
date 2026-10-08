@@ -90,6 +90,9 @@
 
           <li>2.1.0</li>
           <ul>
+            <li>add "Use Gerrit in this project" to the settings, which turns the push dialog options, the tool
+            window, the notifications, the commit-msg hook check and the "Open in Gerrit" and "Open in Gitiles"
+            actions off in a project which is not on Gerrit</li>
             <li>add "Inspect Code..." to a change's context menu, which inspects the files the change touches</li>
             <li>warn when the commit-msg hook is missing in a Gerrit repository and offer to install it</li>
             <li>add change actions: "Cherry-Pick", "Reset Current Branch to Here", "Set Assignee", "Copy URL",

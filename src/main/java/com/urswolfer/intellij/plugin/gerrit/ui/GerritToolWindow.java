@@ -40,6 +40,7 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
@@ -210,6 +211,10 @@ public class GerritToolWindow implements Disposable {
     }
 
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
+        // the window of a project without Gerrit is only hidden, and still hears about settings and VCS mappings
+        if (!GerritProjectSettings.isEnabled(project)) {
+            return;
+        }
         GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
         if (projectAccount.needsChoice() && (!requestSettingsIfNonExistent || !chooseAccount(project, projectAccount))) {
             return;

@@ -30,7 +30,9 @@ import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
@@ -62,8 +64,6 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
      */
     private static final int MAX_COMMITS = 50;
 
-    private static final String TOOL_WINDOW_ID = "Gerrit";
-
     public OpenCommitInGerritAction() {
         super(MyIcons.Gerrit);
     }
@@ -72,7 +72,8 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
     public void update(@NotNull AnActionEvent e) {
         VcsLog log = e.getData(VcsLogDataKeys.VCS_LOG);
         Project project = e.getProject();
-        if (project == null || log == null || GerritProjectAccount.getInstance(project).getHost().isEmpty()) {
+        if (project == null || log == null || !GerritProjectSettings.isEnabled(project)
+            || GerritProjectAccount.getInstance(project).getHost().isEmpty()) {
             e.getPresentation().setEnabledAndVisible(false);
             return;
         }
@@ -109,7 +110,7 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
         if (hashes.isEmpty()) {
             return;
         }
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(TOOL_WINDOW_ID);
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(GerritToolWindowFactory.ID);
         if (toolWindow == null) {
             return;
         }

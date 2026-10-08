@@ -27,6 +27,11 @@ public class GerritUpdatesNotificationStartupActivity implements StartupActivity
 
     @Override
     public void runActivity(@NotNull Project project) {
+        start(project);
+    }
+
+    /** Also for a project switched on, which skipped all of it while it was off. */
+    static void start(@NotNull Project project) {
         GerritUpdatesNotificationComponent.getInstance(project).projectOpened();
         GerritCommitMsgHookCheck.checkOnStartup(project);
     }

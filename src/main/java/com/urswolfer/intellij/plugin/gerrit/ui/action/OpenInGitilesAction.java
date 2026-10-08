@@ -40,6 +40,7 @@ import com.intellij.vcs.log.CommitId;
 import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes.GerritProject;
@@ -106,7 +107,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
     @Nullable
     private static Target getTarget(AnActionEvent e) {
         Project project = e.getProject();
-        if (project == null) {
+        if (project == null || !GerritProjectSettings.isEnabled(project)) {
             return null;
         }
         String baseUrl = GerritProjectAccount.getInstance(project).getGitilesUrlOrDefault();

@@ -599,6 +599,8 @@
       <separator/>
     </group>
 
+    <group id="Gerrit.ColumnsPopup" class="com.urswolfer.intellij.plugin.gerrit.ui.action.ColumnsActionGroup"/>
+
     <action id="Gerrit.AddComment"
             class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction"/>
 

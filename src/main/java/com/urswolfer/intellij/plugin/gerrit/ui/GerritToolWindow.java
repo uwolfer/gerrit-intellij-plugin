@@ -36,6 +36,7 @@ import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
+import com.intellij.util.messages.MessageBusConnection;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
@@ -133,8 +134,9 @@ public class GerritToolWindow implements Disposable {
         }
 
         registerVcsChangeListener(project);
-        ApplicationManager.getApplication().getMessageBus().connect(this)
-            .subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
+        MessageBusConnection settings = ApplicationManager.getApplication().getMessageBus().connect(this);
+        settings.subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
+        settings.subscribe(GerritChangeListPanel.COLUMNS_CHANGED, changeListPanel::rebuildColumns);
 
         changeListPanel.showSetupHintWhenRequired(project);
 

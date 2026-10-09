@@ -22,10 +22,12 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -41,8 +43,6 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("Abandoned", "abandoned")
     );
 
-    private static final Status DEFAULT = STATUSES.get(1);
-
     private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {
         @Override
         public String get() {
@@ -56,12 +56,12 @@ public class StatusFilter extends AbstractChangesFilter {
         }
     };
 
-    private Optional<Status> value = Optional.empty();
-    private StatusPopupAction action;
+    private static final String ALL = "all";
+    private static final String STATE_KEY = "status";
+    private static final Status DEFAULT = STATUSES.get(1);
 
-    public StatusFilter() {
-        value = Optional.of(DEFAULT);
-    }
+    private Status value = DEFAULT;
+    private StatusPopupAction action;
 
     @Override
     public AnAction getAction(final Project project) {
@@ -70,8 +70,19 @@ public class StatusFilter extends AbstractChangesFilter {
     }
 
     @Override
-    void reset() {
-        value = Optional.of(DEFAULT);
+    public void saveState(@NotNull Map<String, String> state) {
+        if (value != DEFAULT) {
+            state.put(STATE_KEY, value.forQuery.orElse(ALL));
+        }
+    }
+
+    @Override
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
+        String saved = state.get(STATE_KEY);
+        value = STATUSES.stream()
+                .filter(status -> status.forQuery.orElse(ALL).equals(saved))
+                .findFirst()
+                .orElse(DEFAULT);
         if (action != null) {
             action.showValue();
         }
@@ -80,14 +91,10 @@ public class StatusFilter extends AbstractChangesFilter {
     @Override
     @Nullable
     public String getSearchQueryPart() {
-        if (value.isPresent()) {
-            if (value.get().forQuery.isPresent()) {
-                return String.format("is:%s", value.get().forQuery.get());
-            } else {
-                return QUERY_FOR_ALL.get();
-            }
+        if (value.forQuery.isPresent()) {
+            return String.format("is:%s", value.forQuery.get());
         } else {
-            return null;
+            return QUERY_FOR_ALL.get();
         }
     }
 
@@ -104,11 +111,11 @@ public class StatusFilter extends AbstractChangesFilter {
     public final class StatusPopupAction extends BasePopupAction {
         public StatusPopupAction(String labelText) {
             super(labelText);
-            showValue();
+            updateFilterValueLabel(value.label);
         }
 
-        private void showValue() {
-            updateFilterValueLabel(value.get().label);
+        void showValue() {
+            updateFilterValueLabel(value.label);
         }
 
         @Override
@@ -117,7 +124,7 @@ public class StatusFilter extends AbstractChangesFilter {
                 actionConsumer.consume(new DumbAwareAction(status.label) {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
-                        value = Optional.of(status);
+                        value = status;
                         updateFilterValueLabel(status.label);
                         fireFilterChanged();
                     }

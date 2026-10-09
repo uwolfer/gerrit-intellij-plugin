@@ -23,12 +23,17 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Map;
 
 /**
  * @author Thomas Forrer
  */
 public class IsStarredFilter extends AbstractChangesFilter {
+    private static final String STATE_KEY = "starred";
+
     private boolean value = false;
 
     @Override
@@ -37,8 +42,15 @@ public class IsStarredFilter extends AbstractChangesFilter {
     }
 
     @Override
-    void reset() {
-        value = false;
+    public void saveState(@NotNull Map<String, String> state) {
+        if (value) {
+            state.put(STATE_KEY, Boolean.TRUE.toString());
+        }
+    }
+
+    @Override
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
+        value = Boolean.parseBoolean(state.get(STATE_KEY));
     }
 
     private void setValue(boolean value) {

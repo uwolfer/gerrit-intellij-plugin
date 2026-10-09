@@ -103,6 +103,7 @@ public class GerritToolWindow implements Disposable {
         changeListPanel = new GerritChangeListPanel(project);
         changeListPanel.setEmptyTextActions(() -> {
             changesFilters.reset();
+            changesFilters.save(project);
             reloadChanges(project, true);
         }, () -> reloadChanges(project, false));
 
@@ -379,6 +380,8 @@ public class GerritToolWindow implements Disposable {
         DefaultActionGroup group = new DefaultActionGroup(groupFromConfig); // copy required (otherwise config action group gets modified)
 
         DefaultActionGroup filterGroup = new DefaultActionGroup();
+        // before the actions, which show the values, and before the first load, which goes by them
+        changesFilters.restore(project);
         Iterable<ChangesFilter> filters = changesFilters.getFilters();
         for (ChangesFilter filter : filters) {
             filterGroup.add(filter.getAction(project));
@@ -391,6 +394,7 @@ public class GerritToolWindow implements Disposable {
         changesFilters.addListener(new GerritChangesFilters.Listener() {
             @Override
             public void filtersChanged() {
+                changesFilters.save(project);
                 reloadChanges(project, true);
             }
         });

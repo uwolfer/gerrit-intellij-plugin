@@ -29,11 +29,18 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
+import java.util.Map;
 
 /**
  * @author Thomas Forrer
  */
 public class FulltextFilter extends AbstractChangesFilter {
+
+    private static final String STATE_KEY = "text";
+    /**
+     * Where the field keeps the queries entered, across restarts and for every project.
+     */
+    private static final String HISTORY_PROPERTY_NAME = "Gerrit.ChangeFilter.History";
 
     private String value = "";
     /**
@@ -53,10 +60,19 @@ public class FulltextFilter extends AbstractChangesFilter {
     }
 
     @Override
-    void reset() {
+    public void saveState(@NotNull Map<String, String> state) {
+        // a generated query is not the user's
+        String text = isShowingLookup() ? ownValue : value;
+        if (!text.isEmpty()) {
+            state.put(STATE_KEY, text);
+        }
+    }
+
+    @Override
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
         lookup = "";
         ownValue = "";
-        setText("");
+        setText(state.getOrDefault(STATE_KEY, "").trim());
     }
 
     /**
@@ -135,6 +151,10 @@ public class FulltextFilter extends AbstractChangesFilter {
         public SearchFieldAction() {
             super("Filter");
             field = new SearchTextField(true) {
+                {
+                    setHistoryPropertyName(HISTORY_PROPERTY_NAME); // protected in 2020.3
+                }
+
                 @Override
                 protected boolean preprocessEventForTextField(KeyEvent e) {
                     if (KeyEvent.VK_ENTER == e.getKeyCode() || '\n' == e.getKeyChar()) {
@@ -164,6 +184,7 @@ public class FulltextFilter extends AbstractChangesFilter {
                     }
                 }
             };
+            field.setText(value);
             JLabel label = new JLabel("Filter: ");
             label.setForeground(UIUtil.getInactiveTextColor());
             label.setBorder(JBUI.Borders.emptyLeft(3));

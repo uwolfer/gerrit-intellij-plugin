@@ -23,12 +23,17 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Map;
 
 /**
  * @author Guilherme Rodriguero
  */
 public class ShowWIPFilter extends AbstractChangesFilter {
+    private static final String STATE_KEY = "showWip";
+
     private boolean value = true;
 
     @Override
@@ -37,8 +42,15 @@ public class ShowWIPFilter extends AbstractChangesFilter {
     }
 
     @Override
-    void reset() {
-        value = true;
+    public void saveState(@NotNull Map<String, String> state) {
+        if (!value) {
+            state.put(STATE_KEY, Boolean.FALSE.toString());
+        }
+    }
+
+    @Override
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
+        value = !Boolean.FALSE.toString().equals(state.get(STATE_KEY));
     }
 
     private void setValue(boolean value) {

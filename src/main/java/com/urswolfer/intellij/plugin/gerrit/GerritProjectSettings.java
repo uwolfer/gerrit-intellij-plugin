@@ -23,11 +23,16 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.annotations.Attribute;
+import com.intellij.util.xmlb.annotations.XMap;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Whether the plugin takes part in a project at all, for a project which is not reviewed on Gerrit: its push dialog
- * would otherwise still offer to push for review, to a remote which has no idea what refs/for/ is.
+ * would otherwise still offer to push for review, to a remote which has no idea what refs/for/ is. Also the filters of
+ * the change list, which stay as the user left them.
  *
  * Kept in the workspace file, like {@link GerritProjectAccount}: it is a choice of whoever has the plugin installed,
  * and a team which shares the project files does not all have it.
@@ -40,6 +45,12 @@ public final class GerritProjectSettings implements PersistentStateComponent<Ger
 
     public static final class ProjectState {
         @Attribute("enabled") public boolean enabled = true;
+        /**
+         * The change list filters which are not at their defaults, by name. Only what the filters wrote and
+         * understand: a value which does not fit any more is dropped when it is restored.
+         */
+        @XMap(entryTagName = "filter", keyAttributeName = "name", valueAttributeName = "value")
+        public Map<String, String> filters = new TreeMap<>();
     }
 
     private volatile ProjectState state = new ProjectState();
@@ -59,6 +70,9 @@ public final class GerritProjectSettings implements PersistentStateComponent<Ger
 
     @Override
     public void loadState(@NotNull ProjectState state) {
+        if (state.filters == null) {
+            state.filters = new TreeMap<>();
+        }
         this.state = state;
     }
 
@@ -66,10 +80,28 @@ public final class GerritProjectSettings implements PersistentStateComponent<Ger
         return state.enabled;
     }
 
-    public void setEnabled(boolean enabled) {
+    public synchronized void setEnabled(boolean enabled) {
         // replaced rather than changed: the polls and the hook check read it from pooled threads
-        ProjectState changed = new ProjectState();
+        ProjectState changed = copyOfState();
         changed.enabled = enabled;
         state = changed;
+    }
+
+    @NotNull
+    public Map<String, String> getFilters() {
+        return new TreeMap<>(state.filters);
+    }
+
+    public synchronized void setFilters(@NotNull Map<String, String> filters) {
+        ProjectState changed = copyOfState();
+        changed.filters = new TreeMap<>(filters);
+        state = changed;
+    }
+
+    private ProjectState copyOfState() {
+        ProjectState copy = new ProjectState();
+        copy.enabled = state.enabled;
+        copy.filters = new TreeMap<>(state.filters);
+        return copy;
     }
 }

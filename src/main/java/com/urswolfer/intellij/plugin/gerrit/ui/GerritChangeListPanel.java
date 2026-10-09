@@ -147,8 +147,9 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
      *               then blamed on
      * @param query  when it is the one of the listed changes, at least as many are loaded again, so that one which was
      *               loaded by scrolling down stays listed and selected
+     * @param finished called once the first changes are in, or the load failed, unless a later load replaced it
      */
-    public void load(LoadChangesProxy proxy, boolean lookup, String query, boolean filtersNarrowed) {
+    public void load(LoadChangesProxy proxy, boolean lookup, String query, boolean filtersNarrowed, Runnable finished) {
         loadChangesProxy = proxy;
         int minimum = query.equals(listedQuery) ? changes.size() : 0;
         proxy.getFirstChanges(minimum, new Consumer<List<ChangeInfo>>() {
@@ -158,6 +159,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 if (proxy != loadChangesProxy) {
                     return;
                 }
+                finished.run();
                 if (proxy.hasFailed()) {
                     // reported to the user already; the changes listed before it stay, as there is no answer to
                     // replace them with. The text is for when they go, instead of the one of the load.

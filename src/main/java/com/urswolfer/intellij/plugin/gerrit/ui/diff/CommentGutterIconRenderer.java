@@ -31,19 +31,27 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
 import com.intellij.openapi.project.DumbAwareAction;
+import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.ui.JBColor;
 import com.intellij.util.text.DateFormatUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeDetailsPanel;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseEvent;
 
 /**
  * @author Urs Wolfer
  */
 public class CommentGutterIconRenderer extends GutterIconRenderer {
+    static final Color PUBLISHED_STRIPE_COLOR = new JBColor(new Color(0x3574F0), new Color(0x548AF7));
+    static final Color DRAFT_STRIPE_COLOR = new JBColor(new Color(0xE08A00), new Color(0xD6AE58));
+    private static final int STRIPE_TOOLTIP_LENGTH = 80;
+
     private final DiffComments comments;
     private final Editor editor;
     private final AddCommentActionBuilder addCommentActionBuilder;
@@ -76,7 +84,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @NotNull
     @Override
     public Icon getIcon() {
-        if (isNewCommentFromMyself()) {
+        if (isDraft(fileComment)) {
             return AllIcons.Toolwindows.ToolWindowTodo;
         } else {
             return AllIcons.Toolwindows.ToolWindowMessages;
@@ -104,7 +112,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @Override
     public String getTooltipText() {
         return String.format("<strong>%s</strong> (%s)<br/>%s",
-                getAuthorName(),
+                getAuthorName(fileComment),
                 fileComment.updated != null ? DateFormatUtil.formatPrettyDateTime(fileComment.updated) : "draft",
                 TextToHtml.textToHtml(fileComment.message));
     }
@@ -115,8 +123,21 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         return createPopupMenuActionGroup();
     }
 
-    private boolean isNewCommentFromMyself() {
-        return fileComment instanceof CommentInfo && (((CommentInfo) fileComment).author == null);
+    private static boolean isDraft(Comment comment) {
+        return comment instanceof CommentInfo && (((CommentInfo) comment).author == null);
+    }
+
+    static Color getErrorStripeColor(Comment comment) {
+        return isDraft(comment) ? DRAFT_STRIPE_COLOR : PUBLISHED_STRIPE_COLOR;
+    }
+
+    static String getErrorStripeTooltip(Comment comment) {
+        String excerpt = StringUtil.shortenTextWithEllipsis(
+                StringUtil.notNullize(comment.message).trim().replaceAll("\\s+", " "), STRIPE_TOOLTIP_LENGTH, 0);
+        return String.format("<b>%s</b>%s: %s",
+                getAuthorName(comment),
+                isDraft(comment) ? " (draft)" : "",
+                StringUtil.escapeXmlEntities(excerpt));
     }
 
     @Nullable
@@ -136,7 +157,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
     private DefaultActionGroup createPopupMenuActionGroup() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
-        if (isNewCommentFromMyself()) {
+        if (isDraft(fileComment)) {
             AddCommentAction commentAction = addCommentActionBuilder
                     .create(comments, editor)
                     .withText("Edit")
@@ -160,14 +181,8 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         return actionGroup;
     }
 
-    private String getAuthorName() {
-        String name = "Myself";
-        if (!isNewCommentFromMyself()) {
-            AccountInfo author = ((CommentInfo) fileComment).author;
-            if (author != null) {
-                name = author.name;
-            }
-        }
-        return name;
+    private static String getAuthorName(Comment comment) {
+        AccountInfo author = comment instanceof CommentInfo ? ((CommentInfo) comment).author : null;
+        return author == null ? "Myself" : GerritChangeDetailsPanel.accountName(author);
     }
 }

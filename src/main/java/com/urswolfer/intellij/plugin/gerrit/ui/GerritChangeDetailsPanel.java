@@ -182,7 +182,7 @@ public class GerritChangeDetailsPanel {
         return approvalInfo.value != null && approvalInfo.value != 0;
     }
 
-    static String accountName(AccountInfo account) {
+    public static String accountName(AccountInfo account) {
         String name = !StringUtil.isEmptyOrSpaces(account.name) ? account.name
             : account.email != null ? account.email
             : account.username != null ? account.username

@@ -16,6 +16,8 @@
 
 package com.urswolfer.intellij.plugin.gerrit;
 
+import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
@@ -23,6 +25,7 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.xmlb.annotations.Attribute;
 import git4idea.GitUtil;
 import git4idea.repo.GitRemote;
@@ -33,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
@@ -49,18 +53,47 @@ import java.util.function.Supplier;
  */
 @Service(Service.Level.PROJECT)
 @State(name = "GerritDefaultAccount", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
-public final class GerritProjectAccount implements PersistentStateComponent<GerritProjectAccount.AccountState> {
+public final class GerritProjectAccount implements PersistentStateComponent<GerritProjectAccount.AccountState>,
+    Disposable {
 
     public static final class AccountState {
         @Attribute("defaultAccountId") public String defaultAccountId = "";
     }
 
+    /**
+     * The account resolved from these accounts while the binding and the remotes were at this generation. The list
+     * is compared by identity: {@link GerritAccounts} replaces it on every change, which no listener has to have seen
+     * first.
+     */
+    private static final class Resolved {
+        final List<GerritAccount> accounts;
+        final long generation;
+        @Nullable final GerritAccount account;
+
+        Resolved(List<GerritAccount> accounts, long generation, @Nullable GerritAccount account) {
+            this.accounts = accounts;
+            this.generation = generation;
+            this.account = account;
+        }
+    }
+
     private final Project project;
 
-    private AccountState state = new AccountState();
+    private volatile AccountState state = new AccountState();
+    private volatile boolean loaded;
+    private final AtomicLong generation = new AtomicLong();
+    private volatile Resolved resolved;
 
     public GerritProjectAccount(@NotNull Project project) {
         this.project = project;
+        // the remotes decide while the project is unbound; reading them for every request walks every repository
+        MessageBusConnection connection = project.getMessageBus().connect(this);
+        connection.subscribe(GitRepository.GIT_REPO_CHANGE, repository -> generation.incrementAndGet());
+        connection.subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, generation::incrementAndGet);
+    }
+
+    @Override
+    public void dispose() {
     }
 
     public static GerritProjectAccount getInstance(@NotNull Project project) {
@@ -73,8 +106,19 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
     }
 
     @Override
+    public void noStateLoaded() {
+        loaded = true;
+    }
+
+    @Override
     public void loadState(@NotNull AccountState state) {
         this.state = state;
+        generation.incrementAndGet();
+        // a later load, such as of a workspace file changed on disk, binds the project anew; the first is no change
+        if (loaded) {
+            project.getMessageBus().syncPublisher(GerritAccountsListener.TOPIC).accountsChanged();
+        }
+        loaded = true;
     }
 
     /**
@@ -85,8 +129,15 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
      */
     @Nullable
     public GerritAccount get() {
-        return resolve(state.defaultAccountId, GerritAccounts.getInstance().getAccounts(),
-            () -> getRemoteUrls(project));
+        List<GerritAccount> accounts = GerritAccounts.getInstance().getAccounts();
+        long current = generation.get();
+        Resolved last = resolved;
+        if (last != null && last.accounts == accounts && last.generation == current) {
+            return last.account;
+        }
+        GerritAccount account = resolve(state.defaultAccountId, accounts, () -> getRemoteUrls(project));
+        resolved = new Resolved(accounts, current, account);
+        return account;
     }
 
     @Nullable
@@ -133,7 +184,13 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
     }
 
     public void set(@Nullable GerritAccount account) {
-        state.defaultAccountId = account != null ? account.id : "";
+        String id = account != null ? account.id : "";
+        if (id.equals(state.defaultAccountId)) {
+            return;
+        }
+        state.defaultAccountId = id;
+        generation.incrementAndGet();
+        project.getMessageBus().syncPublisher(GerritAccountsListener.TOPIC).accountsChanged();
     }
 
     /**
@@ -204,19 +261,22 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
         GerritAccounts accounts = GerritAccounts.getInstance();
         GerritAccount current = get();
         GerritAccount account;
+        boolean bind = false;
         if (current == null) {
             account = GerritAccount.create(host, login, "");
-            if (!accounts.getAccounts().isEmpty()) { // the only account needs no binding, one of several does
-                set(account);
-            }
+            bind = !accounts.getAccounts().isEmpty(); // the only account needs no binding, one of several does
         } else { // a copy: background requests read the stored account, and must not see it half-changed
             account = current.copy();
             account.host = host;
             account.login = login;
         }
-        accounts.put(account);
-        GerritAccount target = account;
-        ProgressManager.getInstance().runProcessWithProgressSynchronously(
-                () -> accounts.setPassword(target, password), "Saving Gerrit Credentials", false, project);
+        try {
+            ProgressManager.getInstance().runProcessWithProgressSynchronously(
+                () -> accounts.put(account, password), "Saving Gerrit Credentials", false, project);
+        } finally { // a password the credential store refused still leaves the account stored
+            if (bind) {
+                set(account);
+            }
+        }
     }
 }

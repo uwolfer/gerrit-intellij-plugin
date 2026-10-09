@@ -99,6 +99,14 @@ public final class GerritAccount {
         }
     }
 
+    /**
+     * @return the account together with its host and login: a session logged in with one of them is not one of
+     *         another, even under the same id
+     */
+    public String getIdentity() {
+        return id + '\n' + host + '\n' + login;
+    }
+
     public String getGitilesUrlOrDefault() {
         return GitilesUrls.getBaseUrl(gitilesUrl, host);
     }

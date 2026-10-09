@@ -26,6 +26,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class GerritAccountsTest {
@@ -67,7 +70,7 @@ public class GerritAccountsTest {
 
         GerritAccounts.AccountsState state = new GerritAccounts.AccountsState();
         state.seeded = true;
-        state.accounts = java.util.Collections.singletonList(account);
+        state.accounts = Collections.singletonList(account);
 
         Element element = XmlSerializer.serialize(state);
         GerritAccounts.AccountsState loaded = XmlSerializer.deserialize(element, GerritAccounts.AccountsState.class);
@@ -201,7 +204,7 @@ public class GerritAccountsTest {
         GerritAccount account = accounts.getDefaultAccount();
         store.put(legacySettingsKey(), "old");
 
-        accounts.setPassword(account, "");
+        accounts.put(account, "");
 
         Assert.assertEquals(accounts.getPassword(account), "");
     }
@@ -217,7 +220,7 @@ public class GerritAccountsTest {
         GerritAccount account = accounts.getDefaultAccount();
         store.put(legacySettingsKey(), "old");
 
-        accounts.setPassword(account, "new");
+        accounts.put(account, "new");
 
         Assert.assertFalse(account.usesLegacyPasswordKey);
         Assert.assertEquals(accounts.getPassword(account), "new");
@@ -233,7 +236,7 @@ public class GerritAccountsTest {
         GerritAccount account = accounts.getDefaultAccount();
         store.put(GerritAccounts.attributesFor(account), "current");
 
-        accounts.remove(account);
+        remove(accounts, account);
 
         Assert.assertTrue(accounts.getAccounts().isEmpty());
         Assert.assertNull(store.passwordAt(GerritAccounts.attributesFor(account)));
@@ -250,9 +253,9 @@ public class GerritAccountsTest {
         GerritAccount account = accounts.getDefaultAccount();
         store.put(legacySettingsKey(), "old");
         store.put(legacyClassKey(), "ancient");
-        accounts.setPassword(account, "");
+        accounts.put(account, "");
 
-        accounts.remove(account);
+        remove(accounts, account);
 
         Assert.assertNull(store.passwordAt(legacySettingsKey()));
         Assert.assertNull(store.passwordAt(legacyClassKey()));
@@ -266,10 +269,10 @@ public class GerritAccountsTest {
         FakeCredentialStore store = new FakeCredentialStore();
         GerritAccounts accounts = seeded(store);
         GerritAccount other = GerritAccount.create("https://other.example.com", "jdoe", "");
-        accounts.put(other);
+        add(accounts, other);
         store.put(legacySettingsKey(), "old");
 
-        accounts.remove(other);
+        remove(accounts, other);
 
         Assert.assertEquals(store.passwordAt(legacySettingsKey()), "old");
         Assert.assertEquals(accounts.getPassword(accounts.getDefaultAccount()), "old");
@@ -284,11 +287,11 @@ public class GerritAccountsTest {
         FakeCredentialStore store = new FakeCredentialStore();
         GerritAccounts accounts = seeded(store);
         GerritAccount account = accounts.getDefaultAccount();
-        accounts.put(GerritAccount.create("https://other.example.com", "jdoe", ""));
+        add(accounts, GerritAccount.create("https://other.example.com", "jdoe", ""));
         store.put(legacySettingsKey(), "old");
         store.put(legacyClassKey(), "ancient");
 
-        accounts.remove(account);
+        remove(accounts, account);
 
         Assert.assertNull(store.passwordAt(legacySettingsKey()));
         Assert.assertNull(store.passwordAt(legacyClassKey()));
@@ -303,19 +306,128 @@ public class GerritAccountsTest {
         GerritAccounts accounts = seeded(store);
         GerritAccount account = accounts.getDefaultAccount();
         GerritAccount other = GerritAccount.create("https://other.example.com", "jdoe", "");
-        accounts.put(other);
+        add(accounts, other);
         int before = accounts.getPasswordVersion(account);
 
-        accounts.setPassword(account, "secret");
+        accounts.put(account, "secret");
         int saved = accounts.getPasswordVersion(account);
-        accounts.setPassword(account, "secret");
+        accounts.put(account, "secret");
         int savedAgain = accounts.getPasswordVersion(account);
-        accounts.remove(account);
+        remove(accounts, account);
 
         Assert.assertNotEquals(saved, before);
         Assert.assertNotEquals(savedAgain, saved);
         Assert.assertNotEquals(accounts.getPasswordVersion(account), savedAgain);
         Assert.assertEquals(accounts.getPasswordVersion(other), 0);
+    }
+
+    /**
+     * A request which reads a new account before its password would go out without one.
+     */
+    @Test
+    public void testThePasswordOfANewAccountIsStoredBeforeTheAccountShows() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        GerritAccount added = GerritAccount.create("https://other.example.com", "jdoe", "");
+        List<Boolean> listedWhenStored = new ArrayList<>();
+        accounts.setCredentialStore(new GerritAccounts.CredentialStore() {
+            @Override
+            public Credentials get(CredentialAttributes attributes) {
+                return store.get(attributes);
+            }
+
+            @Override
+            public void set(CredentialAttributes attributes, Credentials credentials) {
+                listedWhenStored.add(accounts.getAccounts().contains(added));
+                store.set(attributes, credentials);
+            }
+        });
+
+        accounts.update(Arrays.asList(account, added), Collections.singletonMap(added.id, "new"),
+            Collections.emptySet());
+
+        Assert.assertEquals(listedWhenStored, Collections.singletonList(false));
+        Assert.assertEquals(accounts.getPassword(added), "new");
+    }
+
+    @Test
+    public void testUpdatingClearsThePasswordsOfRemovedAccountsAndKeepsTheOthers() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount kept = accounts.getDefaultAccount();
+        GerritAccount removed = GerritAccount.create("https://other.example.com", "jdoe", "");
+        accounts.put(kept, "kept");
+        accounts.put(removed, "removed");
+
+        accounts.update(Collections.singletonList(kept), Collections.emptyMap(),
+            Collections.singleton(removed.id));
+
+        Assert.assertEquals(accounts.getAccounts(), Collections.singletonList(kept));
+        Assert.assertEquals(accounts.getPassword(kept), "kept");
+        Assert.assertNull(store.passwordAt(GerritAccounts.attributesFor(removed)));
+    }
+
+    /**
+     * The settings page edits the accounts it was opened with; the login dialog of another project can add one
+     * meanwhile, which applying the page must not take away.
+     */
+    @Test
+    public void testUpdatingKeepsAnAccountAddedElsewhereMeanwhile() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount onPage = accounts.getDefaultAccount();
+        GerritAccount addedElsewhere = GerritAccount.create("https://other.example.com", "jdoe", "");
+        accounts.put(addedElsewhere, "secret");
+
+        accounts.update(Collections.singletonList(onPage), Collections.emptyMap(),
+            Collections.emptySet());
+
+        Assert.assertEquals(accounts.getAccounts(), Arrays.asList(onPage, addedElsewhere));
+        Assert.assertEquals(accounts.getPassword(addedElsewhere), "secret");
+    }
+
+    /**
+     * A credential store which fails costs the password, not the account entered with it.
+     */
+    @Test
+    public void testAFailingCredentialStoreKeepsTheAccountAndIsReported() {
+        FakeCredentialStore store = new FakeCredentialStore();
+        GerritAccounts accounts = seeded(store);
+        GerritAccount account = accounts.getDefaultAccount();
+        GerritAccount added = GerritAccount.create("https://other.example.com", "jdoe", "");
+        accounts.setCredentialStore(new GerritAccounts.CredentialStore() {
+            @Override
+            public Credentials get(CredentialAttributes attributes) {
+                return store.get(attributes);
+            }
+
+            @Override
+            public void set(CredentialAttributes attributes, Credentials credentials) {
+                throw new IllegalStateException("locked");
+            }
+        });
+
+        try {
+            accounts.update(Arrays.asList(account, added), Collections.singletonMap(added.id, "new"),
+                Collections.emptySet());
+            Assert.fail("the failure is reported");
+        } catch (IllegalStateException expected) {
+        }
+
+        Assert.assertEquals(accounts.getAccounts(), Arrays.asList(account, added));
+    }
+
+    private static void add(GerritAccounts accounts, GerritAccount account) {
+        List<GerritAccount> all = new ArrayList<>(accounts.getAccounts());
+        all.add(account);
+        accounts.update(all, Collections.emptyMap(), Collections.emptySet());
+    }
+
+    private static void remove(GerritAccounts accounts, GerritAccount account) {
+        List<GerritAccount> rest = new ArrayList<>(accounts.getAccounts());
+        rest.remove(account);
+        accounts.update(rest, Collections.emptyMap(), Collections.singleton(account.id));
     }
 
     private static GerritAccounts seeded(GerritAccounts.CredentialStore store) {
@@ -375,7 +487,7 @@ public class GerritAccountsTest {
     private static GerritAccounts.AccountsState stateOf(boolean seeded, GerritAccount... accounts) {
         GerritAccounts.AccountsState state = new GerritAccounts.AccountsState();
         state.seeded = seeded;
-        state.accounts = java.util.Arrays.asList(accounts);
+        state.accounts = Arrays.asList(accounts);
         return state;
     }
 

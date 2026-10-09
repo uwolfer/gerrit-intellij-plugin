@@ -28,6 +28,7 @@ import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -39,6 +40,7 @@ import com.intellij.util.Consumer;
 import com.intellij.util.messages.MessageBusConnection;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -48,10 +50,12 @@ import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Urs Wolfer
@@ -74,6 +78,16 @@ public class GerritToolWindow implements Disposable {
     private GerritChangeDetailsPanel detailsPanel;
     private String detailsChangeId;
     private int changesLoad;
+    private final AtomicBoolean reloadPending = new AtomicBoolean();
+    private volatile boolean listSettingsChanged;
+    /**
+     * What the changes listed were loaded with: the account, the clone base url its query names the projects by, and
+     * its password version. Another account clears the list; the others only load it again.
+     */
+    private String listedIdentity = "";
+    private String listedCloneBaseUrl = "";
+    private int listedPasswordVersion;
+    private volatile boolean disposed;
 
     /**
      * Nothing to release here: this is the parent the tool window content's listeners are registered against, and
@@ -81,6 +95,7 @@ public class GerritToolWindow implements Disposable {
      */
     @Override
     public void dispose() {
+        disposed = true;
     }
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
@@ -134,9 +149,13 @@ public class GerritToolWindow implements Disposable {
 
         registerVcsChangeListener(project);
         MessageBusConnection settings = ApplicationManager.getApplication().getMessageBus().connect(this);
-        settings.subscribe(GerritListSettingsListener.TOPIC, () -> reloadChanges(project, false));
+        settings.subscribe(GerritListSettingsListener.TOPIC, () -> {
+            listSettingsChanged = true;
+            scheduleReload(project);
+        });
         settings.subscribe(GerritChangeColumns.CHANGED, changeListPanel::rebuildColumns);
-        project.getMessageBus().connect(this).subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
+        MessageBusConnection projectBus = project.getMessageBus().connect(this);
+        projectBus.subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
             @Override
             public void changesModified() {
                 reloadChanges(project, false);
@@ -147,6 +166,8 @@ public class GerritToolWindow implements Disposable {
                 updateChange(changeId, update, project);
             }
         });
+        // on the project's bus, which also carries what is published on the application's
+        projectBus.subscribe(GerritAccountsListener.TOPIC, () -> scheduleReload(project));
 
         changeListPanel.showSetupHintWhenRequired(project);
 
@@ -218,27 +239,98 @@ public class GerritToolWindow implements Disposable {
         reloadChanges(project, false);
     }
 
+    /**
+     * Saving settings announces several changes, some from behind a modal progress, so the reload waits for the
+     * dialogs to close: one reload then follows them all, with everything they changed in place.
+     */
+    private void scheduleReload(Project project) {
+        if (!reloadPending.compareAndSet(false, true)) {
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(() -> {
+            reloadPending.set(false);
+            boolean force = listSettingsChanged;
+            listSettingsChanged = false;
+            reloadForSettings(project, force);
+        }, ModalityState.NON_MODAL, expired -> disposed || project.isDisposed());
+    }
+
+    /**
+     * The accounts announce every change, most of which concern other projects. The changes listed belong to the
+     * account they were loaded with, so they go as soon as this project talks to another one, rather than showing
+     * until the next load arrives and taking actions and further pages there.
+     */
+    private void reloadForSettings(Project project, boolean force) {
+        if (!GerritProjectSettings.isEnabled(project)) {
+            return;
+        }
+        GerritAccount account = GerritProjectAccount.getInstance(project).get();
+        if (!canList(account)) {
+            showSetupHint(project);
+            return;
+        }
+        boolean otherAccount = !account.getIdentity().equals(listedIdentity);
+        if (otherAccount) { // whether or not a load follows: a refresh may have listed it without repositories
+            clearChanges();
+        }
+        // as when the tool window opens: without repositories the query names no project and lists every change
+        if (GitUtil.getRepositoryManager(project).getRepositories().isEmpty()) {
+            return;
+        }
+        if (force || otherAccount || !account.cloneBaseUrl.equals(listedCloneBaseUrl)
+            || GerritAccounts.getInstance().getPasswordVersion(account) != listedPasswordVersion) {
+            reloadChanges(project, false);
+        }
+    }
+
+    private void clearChanges() {
+        changesLoad++; // a load which has not reached the list yet must not bring the changes back
+        changeListPanel.clear();
+        listedIdentity = "";
+    }
+
+    /**
+     * Without an account the project has none or several to choose between; one without a host is taken over from an
+     * earlier version and needs the login dialog yet.
+     */
+    private static boolean canList(@Nullable GerritAccount account) {
+        return account != null && !account.host.isEmpty();
+    }
+
+    /**
+     * Nothing can be listed without an account, and what is listed may have come from one this project left.
+     */
+    private void showSetupHint(Project project) {
+        clearChanges();
+        changeListPanel.showSetupHintWhenRequired(project);
+    }
+
     public void reloadChanges(final Project project, boolean requestSettingsIfNonExistent) {
         // the window of a project without Gerrit is only hidden, and still hears about settings and VCS mappings
         if (!GerritProjectSettings.isEnabled(project)) {
             return;
         }
         GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
-        if (projectAccount.needsChoice() && (!requestSettingsIfNonExistent || !chooseAccount(project, projectAccount))) {
+        if (requestSettingsIfNonExistent && projectAccount.needsChoice()) {
+            chooseAccount(project, projectAccount);
+        }
+        // the account chosen can be one without an instance yet, such as one taken over from an earlier version
+        if (requestSettingsIfNonExistent && !projectAccount.needsChoice() && projectAccount.getHost().isEmpty()) {
+            new LoginDialog(project).show();
+        }
+        GerritAccount account = projectAccount.get();
+        if (!canList(account)) {
+            showSetupHint(project);
             return;
         }
-        String apiUrl = projectAccount.getHost();
-        if (apiUrl.isEmpty()) {
-            if (requestSettingsIfNonExistent) {
-                final LoginDialog dialog = new LoginDialog(project);
-                dialog.show();
-                if (!dialog.isOK()) {
-                    return;
-                }
-            } else {
-                return;
-            }
+        // loaded right away; the choice or login is also announced, which then finds this account listed already
+        if (!account.getIdentity().equals(listedIdentity)) {
+            // what is listed came from another account, and must not take actions and further pages to this one
+            clearChanges();
+            listedIdentity = account.getIdentity();
         }
+        listedCloneBaseUrl = account.cloneBaseUrl;
+        listedPasswordVersion = GerritAccounts.getInstance().getPasswordVersion(account);
         int load = ++changesLoad;
         boolean lookup = changesFilters.isShowingLookup();
         String query = changesFilters.getQuery();
@@ -260,7 +352,7 @@ public class GerritToolWindow implements Disposable {
      * Asking beats the login dialog here: the accounts exist and have their passwords, it is only unknown which of
      * them this project belongs to.
      */
-    private boolean chooseAccount(Project project, GerritProjectAccount projectAccount) {
+    private void chooseAccount(Project project, GerritProjectAccount projectAccount) {
         List<GerritAccount> accounts = GerritAccounts.getInstance().getAccounts();
         String[] labels = new String[accounts.size()];
         for (int i = 0; i < accounts.size(); i++) {
@@ -268,11 +360,9 @@ public class GerritToolWindow implements Disposable {
         }
         int index = Messages.showChooseDialog(project, "Which Gerrit account does this project use?",
             "Select Gerrit Account", Messages.getQuestionIcon(), labels, labels[0]);
-        if (index < 0) {
-            return false;
+        if (index >= 0) {
+            projectAccount.set(accounts.get(index));
         }
-        projectAccount.set(accounts.get(index));
-        return true;
     }
 
     private ActionToolbar createToolbar(final Project project) {

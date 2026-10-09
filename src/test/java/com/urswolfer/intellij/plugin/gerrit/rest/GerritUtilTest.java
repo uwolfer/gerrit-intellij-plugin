@@ -29,6 +29,8 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -208,7 +210,22 @@ public class GerritUtilTest {
         Assert.assertTrue(GerritUtil.isRefusal(status(403), anonymous));
         Assert.assertFalse(GerritUtil.isRefusal(status(403), withLogin)); // a missing permission
         Assert.assertFalse(GerritUtil.isRefusal(status(404), withLogin));
-        Assert.assertFalse(GerritUtil.isRefusal(new RuntimeException(new java.net.ConnectException()), withLogin));
+        Assert.assertFalse(GerritUtil.isRefusal(new RuntimeException(new ConnectException()), withLogin));
+    }
+
+    @Test
+    public void testErrorTextOmitsTheClassNameOfAWrappedException() {
+        RuntimeException wrapper = new RuntimeException(new IOException("change is closed"));
+        Assert.assertEquals(new GerritUtil().getErrorTextFromException(wrapper), "change is closed");
+        Assert.assertEquals(new GerritUtil().getErrorTextFromException(new RuntimeException("own text", new Exception("x"))),
+            "own text");
+        Assert.assertEquals(new GerritUtil().getErrorTextFromException(
+            new RuntimeException(new RuntimeException(new IOException("deep")))), "deep");
+        // the class name is all there is to show
+        Assert.assertEquals(new GerritUtil().getErrorTextFromException(
+            new RuntimeException(new ConnectException())), "java.net.ConnectException");
+        Assert.assertEquals(new GerritUtil().getErrorTextFromException(
+            new RuntimeException(new IOException(""))), "java.io.IOException: ");
     }
 
     private static HttpStatusException status(int code) {

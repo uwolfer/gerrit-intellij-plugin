@@ -841,6 +841,13 @@ public final class GerritUtil {
     }
 
     public String getErrorTextFromException(Throwable t) {
+        // new RuntimeException(cause) takes cause.toString() as its message, which starts with the class name; a cause
+        // without a message of its own is kept wrapped, as the class name is all there is to show
+        while (t.getCause() != null && t.getCause() != t && t.getCause().getMessage() != null
+            && !t.getCause().getMessage().isEmpty()
+            && t.getCause().toString().equals(t.getMessage())) {
+            t = t.getCause();
+        }
         String message = t.getMessage();
         if (message == null) {
             message = GerritBundle.message("error.noMessage");

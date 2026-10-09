@@ -24,6 +24,7 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import org.jetbrains.annotations.Nullable;
 
@@ -142,7 +143,7 @@ final class GerritAccountDetails {
             } catch (Exception e) {
                 LOG.debug("Could not load the details of " + account, e);
                 boolean refused = GerritAccountDialog.isRefusal(e);
-                result = new Result(null, refused ? "Login refused" : GerritAccountDialog.reason(e), refused);
+                result = new Result(null, refused ? GerritBundle.message("details.loginRefused") : GerritAccountDialog.reason(e), refused);
             } finally { // even after an Error, or the list stays busy
                 Result loaded = result;
                 ApplicationManager.getApplication().invokeLater(() -> {

@@ -23,6 +23,7 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,7 +67,7 @@ public class IsStarredFilter extends AbstractChangesFilter {
 
     public final class IsStarredAction extends ToggleAction implements DumbAware, UpdateInBackground {
         public IsStarredAction() {
-            super("Starred changes", "Show only starred changes", AllIcons.Nodes.Favorite);
+            super(GerritBundle.message("filter.starred"), GerritBundle.message("filter.starred.description"), AllIcons.Nodes.Favorite);
         }
 
         @Override

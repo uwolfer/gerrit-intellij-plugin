@@ -39,6 +39,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.vcs.log.CommitId;
 import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
@@ -88,7 +89,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
             BrowserUtil.browse(target.getUrl(target.revision, target.line));
             return;
         }
-        new Task.Backgroundable(project, "Resolving Gitiles link") {
+        new Task.Backgroundable(project, GerritBundle.message("gitiles.progress")) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
@@ -98,7 +99,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
                     }
                 } catch (VcsException ex) {
                     NotificationService.getInstance().notifyError(
-                        new NotificationBuilder(project, "Cannot Open in Gitiles", ex.getMessage()));
+                        new NotificationBuilder(project, GerritBundle.message("gitiles.error.title"), ex.getMessage()));
                 }
             }
         }.queue();
@@ -218,8 +219,8 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
             return null;
         }
         if (!target.path.isEmpty() && !gerritGitUtil.existsInRevision(target.repository, revision, target.path)) {
-            NotificationService.getInstance().notifyWarning(new NotificationBuilder(project, "Cannot Open in Gitiles",
-                String.format("'%s' is not part of commit %s yet.", target.path, revision)));
+            NotificationService.getInstance().notifyWarning(new NotificationBuilder(project, GerritBundle.message("gitiles.error.title"),
+                GerritBundle.message("gitiles.error.notInCommit", target.path, revision)));
             return null;
         }
         Integer line = target.line;

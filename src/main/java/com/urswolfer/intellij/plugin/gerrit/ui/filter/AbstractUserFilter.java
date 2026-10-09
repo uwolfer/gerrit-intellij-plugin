@@ -29,6 +29,7 @@ import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,12 +44,11 @@ import java.util.Optional;
  * @author Thomas Forrer
  */
 public abstract class AbstractUserFilter extends AbstractChangesFilter {
-    private static final String POPUP_TEXT = String.format("%s to search",
-        KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
+    private static final String POPUP_TEXT = GerritBundle.message("filter.user.hint", KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
 
-    private static final User ALL = new User("All", null);
-    private static final User ME = new User("Me", "self");
+    private static final User ALL = new User(GerritBundle.message("filter.all"), null);
+    private static final User ME = new User(GerritBundle.message("filter.me"), "self");
     private static final List<User> USERS = List.of(ALL, ME);
 
     private JBPopup popup;
@@ -149,7 +149,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
             }
             selectUserTextArea = new JTextArea();
             selectOkAction = buildOkAction();
-            actionConsumer.consume(new DumbAwareAction("Select...") {
+            actionConsumer.consume(new DumbAwareAction(GerritBundle.message("filter.select")) {
                 @Override
                 public void actionPerformed(AnActionEvent e) {
                     popup = buildBalloon(selectUserTextArea);

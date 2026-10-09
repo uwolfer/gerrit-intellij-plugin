@@ -36,6 +36,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -49,7 +50,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class InspectChangeAction extends AbstractChangeAction {
-    private static final String TITLE = "Inspect Change";
+    private static final String TITLE = GerritBundle.message("inspect.title");
     // the platform's own Inspect Code offers the files of its data context as a scope in its dialog, next to the
     // inspection profile; 2020.3 and 2026.2 register it under this id alike
     private static final String INSPECT_CODE_ACTION = "InspectCode";
@@ -86,12 +87,12 @@ public class InspectChangeAction extends AbstractChangeAction {
                 .filter(file -> !file.getIOFile().isDirectory())
                 .collect(Collectors.toList());
         } catch (VcsException e) {
-            notificationService.notifyError(new NotificationBuilder(project, "Cannot inspect change", e.getMessage()));
+            notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("inspect.error.title"), e.getMessage()));
             return;
         }
         if (files.isEmpty()) {
             notificationService.notifyInformation(new NotificationBuilder(project, TITLE,
-                "Change " + changeDetails._number + " leaves no files to inspect."));
+                GerritBundle.message("inspect.noFiles", String.valueOf(changeDetails._number))));
             return;
         }
         compareWithDisk(project, changeDetails, repository, commitHash, files);
@@ -106,7 +107,7 @@ public class InspectChangeAction extends AbstractChangeAction {
         try {
             differing = gerritGitUtil.countDifferingFromRevision(repository, commitHash, files);
         } catch (VcsException e) {
-            notificationService.notifyError(new NotificationBuilder(project, "Cannot inspect change", e.getMessage()));
+            notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("inspect.error.title"), e.getMessage()));
             return;
         }
         // a checkout would keep the local changes, so it is offered only when another commit is checked out
@@ -120,18 +121,16 @@ public class InspectChangeAction extends AbstractChangeAction {
             // judged by other code
             String patchSet = patchSetName(changeDetails, commitHash);
             if (checkedOut) {
-                String message = String.format("%s is checked out, but %d of its %d files have local changes.",
-                    patchSet, differing, files.size());
-                if (Messages.showOkCancelDialog(project, message, TITLE, "Inspect Files as They Are",
+                String message = GerritBundle.message("inspect.checkedOut", patchSet, String.valueOf(differing), String.valueOf(files.size()));
+                if (Messages.showOkCancelDialog(project, message, TITLE, GerritBundle.message("inspect.asTheyAre"),
                         Messages.getCancelButton(), Messages.getQuestionIcon()) == Messages.OK) {
                     inspect(project, files);
                 }
                 return;
             }
-            String message = String.format("%s is not checked out, and %d of its %d files differ from it on disk.",
-                patchSet, differing, files.size());
+            String message = GerritBundle.message("inspect.notCheckedOut", patchSet, String.valueOf(differing), String.valueOf(files.size()));
             int answer = Messages.showYesNoCancelDialog(project, message, TITLE,
-                "Check Out and Inspect", "Inspect Files as They Are", Messages.getCancelButton(),
+                GerritBundle.message("inspect.checkOut"), GerritBundle.message("inspect.asTheyAre"), Messages.getCancelButton(),
                 Messages.getQuestionIcon());
             if (answer == Messages.YES) {
                 // CheckoutAction runs this from the background task of the fetch; afterwards the files are compared
@@ -149,8 +148,8 @@ public class InspectChangeAction extends AbstractChangeAction {
     private static String patchSetName(ChangeInfo changeDetails, String commitHash) {
         RevisionInfo revision = changeDetails.revisions == null ? null : changeDetails.revisions.get(commitHash);
         return revision == null
-            ? "Change " + changeDetails._number
-            : "Patch set " + revision._number + " of change " + changeDetails._number;
+            ? GerritBundle.message("inspect.change", String.valueOf(changeDetails._number))
+            : GerritBundle.message("inspect.patchSet", String.valueOf(revision._number), String.valueOf(changeDetails._number));
     }
 
     private void inspect(Project project, List<FilePath> files) {
@@ -182,13 +181,13 @@ public class InspectChangeAction extends AbstractChangeAction {
                 .toArray(VirtualFile[]::new);
             if (inProject.length == 0) {
                 notificationService.notifyInformation(new NotificationBuilder(project, TITLE,
-                    "None of the files of the change are on disk and part of the project, so there is nothing to inspect."));
+                    GerritBundle.message("inspect.nothingOnDisk")));
                 return;
             }
             AnAction inspectCode = ActionManager.getInstance().getAction(INSPECT_CODE_ACTION);
             if (inspectCode == null) {
                 notificationService.notifyError(new NotificationBuilder(project, TITLE,
-                    "This IDE has no Inspect Code action."));
+                    GerritBundle.message("inspect.noAction")));
                 return;
             }
             // no PSI_FILE or PROJECT_CONTEXT, which Inspect Code would take over the files

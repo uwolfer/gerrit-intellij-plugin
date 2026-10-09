@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
@@ -98,7 +99,7 @@ public final class GerritCommitMsgHook {
                 hook.transferTo(target);
             }
             if (Files.size(download) == 0) {
-                throw new IOException("Gerrit returned an empty commit-msg hook");
+                throw new IOException(GerritBundle.message("hook.error.empty"));
             }
             //noinspection ResultOfMethodCallIgnored
             download.toFile().setExecutable(true);

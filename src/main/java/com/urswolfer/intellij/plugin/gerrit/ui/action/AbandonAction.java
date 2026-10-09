@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 
 import java.util.Optional;
 
@@ -53,7 +54,7 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
 
         AbandonInput abandonInput = new AbandonInput();
 
-        ChangeMessageDialog dialog = new ChangeMessageDialog(project, "Abandon Change", "Abandon", "");
+        ChangeMessageDialog dialog = new ChangeMessageDialog(project, GerritBundle.message("abandon.title"), GerritBundle.message("abandon.ok"), "");
         if (!dialog.showAndGet()) {
             return;
         }

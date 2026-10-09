@@ -34,6 +34,7 @@ import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.util.text.DateFormatUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeDetailsPanel;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
@@ -113,7 +114,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     public String getTooltipText() {
         return String.format("<strong>%s</strong> (%s)<br/>%s",
                 getAuthorName(fileComment),
-                fileComment.updated != null ? DateFormatUtil.formatPrettyDateTime(fileComment.updated) : "draft",
+                fileComment.updated != null ? DateFormatUtil.formatPrettyDateTime(fileComment.updated) : GerritBundle.message("diff.draft"),
                 TextToHtml.textToHtml(fileComment.message));
     }
 
@@ -136,7 +137,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
                 StringUtil.notNullize(comment.message).trim().replaceAll("\\s+", " "), STRIPE_TOOLTIP_LENGTH, 0);
         return String.format("<b>%s</b>%s: %s",
                 getAuthorName(comment),
-                isDraft(comment) ? " (draft)" : "",
+                isDraft(comment) ? " (" + GerritBundle.message("diff.draft") + ")" : "",
                 StringUtil.escapeXmlEntities(excerpt));
     }
 
@@ -160,7 +161,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         if (isDraft(fileComment)) {
             AddCommentAction commentAction = addCommentActionBuilder
                     .create(comments, editor)
-                    .withText("Edit")
+                    .withText(GerritBundle.message("diff.edit"))
                     .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                     .update(fileComment, side)
                     .get();
@@ -170,7 +171,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         } else {
             AddCommentAction commentAction = addCommentActionBuilder
                     .create(comments, editor)
-                    .withText("Reply")
+                    .withText(GerritBundle.message("diff.reply"))
                     .withIcon(AllIcons.Actions.Back)
                     .reply(fileComment, side)
                     .get();
@@ -183,6 +184,6 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
     private static String getAuthorName(Comment comment) {
         AccountInfo author = comment instanceof CommentInfo ? ((CommentInfo) comment).author : null;
-        return author == null ? "Myself" : GerritChangeDetailsPanel.accountName(author);
+        return author == null ? GerritBundle.message("diff.myself") : GerritChangeDetailsPanel.accountName(author);
     }
 }

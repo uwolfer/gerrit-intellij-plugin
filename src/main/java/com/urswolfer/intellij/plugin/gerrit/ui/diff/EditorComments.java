@@ -48,6 +48,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.Alarm;
 import com.intellij.util.messages.MessageBusConnection;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
@@ -268,7 +269,7 @@ public final class EditorComments implements Disposable {
             editor.putUserData(GerritCommentsDiffExtension.ADD_COMMENT_ACTION, !available || !current ? null
                 : diffComments.getAddCommentActionBuilder()
                     .create(diffComments, editor)
-                    .withText("Add Comment")
+                    .withText(GerritBundle.message("diff.addComment"))
                     .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                     .get());
         }

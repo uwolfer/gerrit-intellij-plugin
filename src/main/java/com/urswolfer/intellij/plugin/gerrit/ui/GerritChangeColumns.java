@@ -35,6 +35,7 @@ import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.avatar.AvatarIcons;
 import git4idea.GitUtil;
@@ -121,7 +122,7 @@ public final class GerritChangeColumns {
         }
 
         Columns columns = new Columns();
-        columns.add(new GerritChangeColumnStarredInfo(), "Starred");
+        columns.add(new GerritChangeColumnStarredInfo(), "Starred", GerritBundle.message("column.starred"));
         columns.add(
             new GerritChangeColumnInfo("#", number.item) {
                 @Override
@@ -129,30 +130,30 @@ public final class GerritChangeColumns {
                     return getNumber(change);
                 }
             },
-            "Change Number", gerritSettings.getShowChangeNumberColumn(), gerritSettings::setShowChangeNumberColumn
+            GerritBundle.message("column.number"), gerritSettings.getShowChangeNumberColumn(), gerritSettings::setShowChangeNumberColumn
         );
         columns.add(
-            new GerritChangeColumnInfo("ID", hash.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.id.header"), hash.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getHash(change);
                 }
             },
-            "Change ID", gerritSettings.getShowChangeIdColumn(), gerritSettings::setShowChangeIdColumn
+            GerritBundle.message("column.id"), gerritSettings.getShowChangeIdColumn(), gerritSettings::setShowChangeIdColumn
         );
         columns.add(
-            new GerritChangeColumnInfo("Topic", topic.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.topic"), topic.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getTopic(change);
                 }
             },
-            "Topic", gerritSettings.getShowTopicColumn(), gerritSettings::setShowTopicColumn
+            GerritBundle.message("column.topic"), gerritSettings.getShowTopicColumn(), gerritSettings::setShowTopicColumn
         );
 
         // never hidden, so that the table always has a column
         columns.shown.add(
-            new GerritChangeColumnInfo("Subject", subject.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.subject"), subject.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return change.subject;
@@ -171,19 +172,19 @@ public final class GerritChangeColumns {
             }
         );
         columns.add(
-            new GerritChangeColumnInfo("Status", status.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.status"), status.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getStatus(change);
                 }
             },
-            "Status"
+            "Status", GerritBundle.message("column.status")
         );
         // not for a Gerrit which sends none: the column would keep room for icons which never come
         boolean showAvatars = gerritSettings.getShowAvatars()
             && changes.stream().anyMatch(change -> AvatarIcons.hasAvatar(change.owner));
         columns.add(
-            new GerritChangeColumnInfo("Owner", author.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.owner"), author.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getOwner(change);
@@ -211,40 +212,40 @@ public final class GerritChangeColumns {
                     };
                 }
             },
-            "Owner"
+            "Owner", GerritBundle.message("column.owner")
         );
         ShowProjectColumn showProjectColumn = gerritSettings.getShowProjectColumn();
         boolean listAllChanges = gerritSettings.getListAllChanges();
         // until it is shown or hidden once, it is shown where changes of more than one project are likely
         columns.add(
-            new GerritChangeColumnInfo("Project", projectName.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.project"), projectName.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getProject(change);
                 }
             },
-            "Project",
+            GerritBundle.message("column.project"),
             showProjectColumn == ShowProjectColumn.ALWAYS
                 || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos())),
             visible -> gerritSettings.setShowProjectColumn(visible ? ShowProjectColumn.ALWAYS : ShowProjectColumn.NEVER)
         );
         columns.add(
-            new GerritChangeColumnInfo("Branch", branch.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.branch"), branch.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getBranch(change);
                 }
             },
-            "Branch"
+            "Branch", GerritBundle.message("column.branch")
         );
         columns.add(
-            new GerritChangeColumnInfo("Updated", time.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.updated"), time.item) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getTime(change);
                 }
             },
-            "Updated"
+            "Updated", GerritBundle.message("column.updated")
         );
         for (final String label : availableLabels) {
             columns.add(
@@ -268,12 +269,9 @@ public final class GerritChangeColumns {
         private final List<ColumnInfo> shown = new ArrayList<>();
         private final List<ColumnToggle> toggles = new ArrayList<>();
 
-        private void add(ColumnInfo column, String name) {
-            add(column, name, name);
-        }
-
         /**
-         * @param id what the hidden column is remembered by: a label is told apart from a column of the same name
+         * @param id what the hidden column is remembered by: a label is told apart from a column of the same name,
+         *           and it stays the English name, which the translated one must not replace
          */
         private void add(ColumnInfo column, String id, String name) {
             add(column, name, !gerritSettings.isColumnHidden(id), visible -> gerritSettings.setColumnHidden(id, !visible));
@@ -382,20 +380,20 @@ public final class GerritChangeColumns {
     @VisibleForTesting
     static String getStatus(ChangeInfo change) {
         if (ChangeStatus.MERGED.equals(change.status)) {
-            return "Merged";
+            return GerritBundle.message("status.merged");
         }
         if (ChangeStatus.ABANDONED.equals(change.status)) {
-            return "Abandoned";
+            return GerritBundle.message("status.abandoned");
         }
         List<String> status = new ArrayList<>();
         if (Boolean.TRUE.equals(change.workInProgress)) {
-            status.add("WIP");
+            status.add(GerritBundle.message("status.wip"));
         }
         if (change.mergeable != null && !change.mergeable) {
-            status.add("Merge Conflict");
+            status.add(GerritBundle.message("status.conflict"));
         }
         if (status.isEmpty() && ChangeStatus.DRAFT.equals(change.status)) {
-            return "Draft";
+            return GerritBundle.message("status.draft");
         }
         return String.join(", ", status);
     }

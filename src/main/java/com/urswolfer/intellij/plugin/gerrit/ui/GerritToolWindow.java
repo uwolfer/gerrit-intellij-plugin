@@ -43,6 +43,7 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -398,8 +399,8 @@ public class GerritToolWindow implements Disposable {
         for (int i = 0; i < accounts.size(); i++) {
             labels[i] = accounts.get(i).toString();
         }
-        int index = Messages.showChooseDialog(project, "Which Gerrit account does this project use?",
-            "Select Gerrit Account", Messages.getQuestionIcon(), labels, labels[0]);
+        int index = Messages.showChooseDialog(project, GerritBundle.message("toolwindow.account.question"),
+            GerritBundle.message("toolwindow.account.title"), Messages.getQuestionIcon(), labels, labels[0]);
         if (index >= 0) {
             projectAccount.set(accounts.get(index));
         }

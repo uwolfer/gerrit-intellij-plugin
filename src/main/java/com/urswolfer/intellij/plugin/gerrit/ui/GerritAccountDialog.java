@@ -36,6 +36,7 @@ import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
@@ -77,9 +78,7 @@ public class GerritAccountDialog extends DialogWrapper {
 
     private static final String STORED_PASSWORD_PLACEHOLDER = "************";
     private static final String LOGIN_CREDENTIALS_INFO =
-        "* For the best experience, it is suggested that you set a HTTP access password" +
-        " for your account in the Gerrit Web Application (Settings > HTTP Password)." +
-        " If this does not work, you can also try to use your usual Gerrit credentials.";
+        GerritBundle.message("account.credentialsInfo");
     private static final Exception CANCELLED = new Exception("The check was cancelled.");
 
     private final Project project;
@@ -92,7 +91,7 @@ public class GerritAccountDialog extends DialogWrapper {
     private final JPasswordField passwordField = new JPasswordField();
     private final JBTextField cloneBaseUrlTextField = new JBTextField();
     private final JBTextField gitilesUrlTextField = new JBTextField();
-    private final JButton testButton = new JButton("Test");
+    private final JButton testButton = new JButton(GerritBundle.message("account.test"));
 
     private boolean passwordModified;
     /** What a check accepted last, so that OK after a successful Test does not ask Gerrit again. */
@@ -119,7 +118,7 @@ public class GerritAccountDialog extends DialogWrapper {
 
         hostTextField.getEmptyText().setText("https://review.example.org");
         cloneBaseUrlTextField.getEmptyText().setText("https://git.example.org");
-        gitilesUrlTextField.getEmptyText().setText("<Gerrit URL>" + GitilesUrls.PLUGIN_PATH);
+        gitilesUrlTextField.getEmptyText().setText(GerritBundle.message("account.placeholder.gitiles", GitilesUrls.PLUGIN_PATH));
         if (account != null) {
             hostTextField.setText(account.host);
             loginTextField.setText(account.login);
@@ -163,10 +162,10 @@ public class GerritAccountDialog extends DialogWrapper {
         if (loggingInAgain) {
             // what failed is the login on this Gerrit; another one is a change of account, for the settings page
             hostTextField.setEditable(hostTextField.getText().isEmpty());
-            setTitle("Log In to Gerrit");
-            setOKButtonText("Log In");
+            setTitle(GerritBundle.message("account.title.login"));
+            setOKButtonText(GerritBundle.message("account.ok.login"));
         } else {
-            setTitle(account == null ? "Add Gerrit Account" : "Edit Gerrit Account");
+            setTitle(account == null ? GerritBundle.message("account.title.add") : GerritBundle.message("account.title.edit"));
         }
         init();
     }
@@ -197,7 +196,7 @@ public class GerritAccountDialog extends DialogWrapper {
         updated.cloneBaseUrl = dialog.getCloneBaseUrl();
         updated.gitilesUrl = dialog.getGitilesUrl();
         ProgressManager.getInstance().runProcessWithProgressSynchronously(
-            () -> accounts.put(updated, dialog.getPassword()), "Saving Gerrit Credentials", false, project);
+            () -> accounts.put(updated, dialog.getPassword()), GerritBundle.message("account.progress.saving"), false, project);
         return true;
     }
 
@@ -212,18 +211,18 @@ public class GerritAccountDialog extends DialogWrapper {
         info.setEditable(false);
         info.setFont(UIUtil.getLabelFont());
 
-        JBLabel cloneBaseUrlHint = new JBLabel("Set only if it differs from the Gerrit web URL.");
-        JBLabel gitilesUrlHint = new JBLabel("Set only if Gitiles is not served by the Gerrit plugin.");
+        JBLabel cloneBaseUrlHint = new JBLabel(GerritBundle.message("account.hint.cloneBaseUrl"));
+        JBLabel gitilesUrlHint = new JBLabel(GerritBundle.message("account.hint.gitilesUrl"));
         SettingsPanel.styleHints(cloneBaseUrlHint, gitilesUrlHint);
 
         JPanel panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(label("Web URL:", 'W', hostTextField), hostTextField)
-            .addLabeledComponent(label("Login:", 'L', loginTextField), loginTextField)
-            .addLabeledComponent(label("Password:", 'P', passwordField), passwordField)
+            .addLabeledComponent(label(GerritBundle.message("account.label.url"), 'W', hostTextField), hostTextField)
+            .addLabeledComponent(label(GerritBundle.message("account.label.login"), 'L', loginTextField), loginTextField)
+            .addLabeledComponent(label(GerritBundle.message("account.label.password"), 'P', passwordField), passwordField)
             .addComponentToRightColumn(testButton)
-            .addLabeledComponent(label("Clone base URL:", 'U', cloneBaseUrlTextField), cloneBaseUrlTextField)
+            .addLabeledComponent(label(GerritBundle.message("account.label.cloneBaseUrl"), 'U', cloneBaseUrlTextField), cloneBaseUrlTextField)
             .addComponentToRightColumn(cloneBaseUrlHint)
-            .addLabeledComponent(label("Gitiles URL:", 'G', gitilesUrlTextField), gitilesUrlTextField)
+            .addLabeledComponent(label(GerritBundle.message("account.label.gitilesUrl"), 'G', gitilesUrlTextField), gitilesUrlTextField)
             .addComponentToRightColumn(gitilesUrlHint)
             .addComponentFillVertically(info, 0)
             .getPanel();
@@ -252,13 +251,13 @@ public class GerritAccountDialog extends DialogWrapper {
     @Override
     protected ValidationInfo doValidate() {
         if (getHost().isEmpty()) {
-            return new ValidationInfo("Enter the Gerrit URL.", hostTextField);
+            return new ValidationInfo(GerritBundle.message("account.validation.url"), hostTextField);
         }
         // an account which is a duplicate already, such as from an earlier version, stays editable
         boolean sameAsBefore = account != null && account.isSameAs(getHost(), getLogin());
         for (GerritAccount other : sameAsBefore ? Collections.<GerritAccount>emptyList() : otherAccounts) {
             if (other.isSameAs(getHost(), getLogin())) {
-                return new ValidationInfo("This login is already set up for this Gerrit.", loginTextField);
+                return new ValidationInfo(GerritBundle.message("account.validation.duplicate"), loginTextField);
             }
         }
         return null;
@@ -303,16 +302,16 @@ public class GerritAccountDialog extends DialogWrapper {
             return false;
         }
         String message = isRefusal(failure) && getLogin().isEmpty()
-            ? String.format("%s needs a login.", getHost())
+            ? GerritBundle.message("account.failure.needsLogin", getHost())
             : isRefusal(failure)
-            ? String.format("%s did not accept this login and password.", getHost())
+            ? GerritBundle.message("account.failure.refused", getHost())
             : isNetworkFailure(failure)
-            ? String.format("Can't reach %s: %s", getHost(), reason(failure))
+            ? GerritBundle.message("account.failure.network", getHost(), reason(failure))
             // it answered, so the url or the server is wrong rather than the network: a login page, for one
-            : String.format("%s answered unexpectedly: %s", getHost(), reason(failure));
+            : GerritBundle.message("account.failure.unexpected", getHost(), reason(failure));
         // Cancel is the default: Enter must not save credentials which just failed
-        int answer = Messages.showDialog(getContentPanel(), message + "\n\nSave the account anyway?", "Login Failure",
-            new String[]{"Save Anyway", Messages.getCancelButton()}, 1, Messages.getWarningIcon());
+        int answer = Messages.showDialog(getContentPanel(), message + "\n\n" + GerritBundle.message("account.failure.saveAnyway"), GerritBundle.message("account.failure.title"),
+            new String[]{GerritBundle.message("account.failure.saveAnyway.button"), Messages.getCancelButton()}, 1, Messages.getWarningIcon());
         return answer == 0;
     }
 
@@ -365,15 +364,15 @@ public class GerritAccountDialog extends DialogWrapper {
         SettingsPanel.fixUrl(hostTextField);
         String host = getHost();
         if (host.isEmpty()) {
-            Messages.showErrorDialog(getContentPanel(), "Required field URL not specified", "Test Failure");
+            Messages.showErrorDialog(getContentPanel(), GerritBundle.message("account.test.noUrl"), GerritBundle.message("account.test.failure"));
             return;
         }
         Exception failure = login();
         if (failure == null) {
-            Messages.showInfoMessage(getContentPanel(), "Connection successful", "Success");
+            Messages.showInfoMessage(getContentPanel(), GerritBundle.message("account.test.success"), GerritBundle.message("account.test.success.title"));
         } else if (failure != CANCELLED) {
             Messages.showErrorDialog(getContentPanel(),
-                String.format("Can't login to %s: %s", host, reason(failure)), "Login Failure");
+                GerritBundle.message("account.test.loginFailed", host, reason(failure)), GerritBundle.message("account.failure.title"));
         }
     }
 
@@ -394,7 +393,7 @@ public class GerritAccountDialog extends DialogWrapper {
         }
         String password = storedPassword
             ? ProgressManager.getInstance().<String, RuntimeException>runProcessWithProgressSynchronously(
-                () -> GerritAccounts.getInstance().getPassword(account), "Reading Gerrit Credentials", false, project)
+                () -> GerritAccounts.getInstance().getPassword(account), GerritBundle.message("account.progress.reading"), false, project)
             : getPassword();
         GerritAuthData.Basic authData = new GerritAuthData.Basic(getHost(), getLogin(), password) {
             @Override
@@ -406,7 +405,7 @@ public class GerritAccountDialog extends DialogWrapper {
         AtomicBoolean cancelled = new AtomicBoolean();
         // a task of its own, rather than GerritUtil's, to hear about Cancel. The request does not look at the
         // indicator and runs on until it times out, so it goes to a thread of its own, and only the wait for it ends
-        ProgressManager.getInstance().run(new Task.Modal(project, "Trying to Log In to Gerrit", true) {
+        ProgressManager.getInstance().run(new Task.Modal(project, GerritBundle.message("account.progress.trying"), true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 Future<Exception> request = ApplicationManager.getApplication().executeOnPooledThread(() -> {

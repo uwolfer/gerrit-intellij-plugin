@@ -28,6 +28,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangesListener;
@@ -81,8 +82,8 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
 
         SetAssigneeDialog(Project project, GerritApi gerritApi, ChangeInfo changeInfo) {
             super(project, true);
-            setTitle("Set Assignee of Change");
-            setOKButtonText("Set Assignee");
+            setTitle(GerritBundle.message("assignee.title"));
+            setOKButtonText(GerritBundle.message("assignee.ok"));
 
             assigneeField = new TextFieldWithCompletion(project, createCompletionProvider(gerritApi, changeInfo),
                 currentAssignee(changeInfo), true, true, true);
@@ -128,7 +129,7 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
         @Override
         protected JComponent createCenterPanel() {
             JPanel panel = new JPanel(new BorderLayout(0, 4));
-            panel.add(new JBLabel("Assignee (leave empty to remove it):"), BorderLayout.NORTH);
+            panel.add(new JBLabel(GerritBundle.message("assignee.label")), BorderLayout.NORTH);
             panel.add(assigneeField, BorderLayout.CENTER);
             return panel;
         }

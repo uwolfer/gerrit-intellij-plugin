@@ -24,6 +24,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.SearchTextField;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -149,7 +150,7 @@ public class FulltextFilter extends AbstractChangesFilter {
         private final JPanel component;
 
         public SearchFieldAction() {
-            super("Filter");
+            super(GerritBundle.message("filter.action"));
             field = new SearchTextField(true) {
                 {
                     setHistoryPropertyName(HISTORY_PROPERTY_NAME); // protected in 2020.3
@@ -185,7 +186,7 @@ public class FulltextFilter extends AbstractChangesFilter {
                 }
             };
             field.setText(value);
-            JLabel label = new JLabel("Filter: ");
+            JLabel label = new JLabel(GerritBundle.message("filter.label") + " ");
             label.setForeground(UIUtil.getInactiveTextColor());
             label.setBorder(JBUI.Borders.emptyLeft(3));
             component = new JPanel();

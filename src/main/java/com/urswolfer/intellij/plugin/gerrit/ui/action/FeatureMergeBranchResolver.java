@@ -5,6 +5,7 @@
  */
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.regex.Matcher;
@@ -132,16 +133,15 @@ final class FeatureMergeBranchResolver {
     }
 
     static String defaultBranchMessage(String targetBranch) {
-        return "The current source is the default branch '" + shortBranchName(targetBranch)
-                + "'. Change the target branch if you intentionally want to merge it elsewhere.";
+        return GerritBundle.message("merge.hint.defaultBranch", shortBranchName(targetBranch));
     }
 
     static String detachedHeadMessage() {
-        return "This checkout is in detached HEAD state. Check out a feature branch to create a merge request.";
+        return GerritBundle.message("merge.hint.detached");
     }
 
     static String missingUpstreamMessage() {
-        return "This checkout has no upstream branch. Select the remote feature branch to use as the merge source.";
+        return GerritBundle.message("merge.hint.noUpstream");
     }
 
     private static String trimToEmpty(@Nullable String value) {

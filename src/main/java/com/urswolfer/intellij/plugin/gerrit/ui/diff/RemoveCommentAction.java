@@ -22,6 +22,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
 /**
@@ -35,7 +36,7 @@ public class RemoveCommentAction extends AnAction implements DumbAware, UpdateIn
     private final CommentSide side;
 
     RemoveCommentAction(DiffComments comments, Comment comment, CommentSide side) {
-        super("Remove", "Remove selected comment", AllIcons.Actions.Cancel);
+        super(GerritBundle.message("diff.remove"), GerritBundle.message("diff.remove.description"), AllIcons.Actions.Cancel);
 
         this.comments = comments;
         this.comment = comment;

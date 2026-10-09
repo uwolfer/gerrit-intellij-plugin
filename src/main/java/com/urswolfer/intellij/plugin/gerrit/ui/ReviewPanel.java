@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.EditorTextField;
 import com.intellij.ui.JBSplitter;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 
 import javax.swing.*;
 import java.awt.*;
@@ -55,10 +56,10 @@ public class ReviewPanel extends JPanel {
         southPanel.setLayout(southLayout);
         add(southPanel, BorderLayout.SOUTH);
 
-        notifyCheckBox = new JCheckBox("Send Notification Mails", true);
+        notifyCheckBox = new JCheckBox(GerritBundle.message("review.notify"), true);
         southPanel.add(notifyCheckBox);
 
-        submitCheckBox = new JCheckBox("Submit Change");
+        submitCheckBox = new JCheckBox(GerritBundle.message("review.submit"));
         southPanel.add(submitCheckBox);
 
         setBorder(BorderFactory.createEmptyBorder());

@@ -28,6 +28,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.Consumer;
 import com.intellij.vcs.log.Hash;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -91,8 +92,8 @@ public class CheckoutAction extends AbstractChangeAction {
         // FetchAction loads the change again, so a patch set uploaded in between is unknown here
         RevisionInfo revisionInfo = changeDetails.revisions.get(commitHash);
         if (revisionInfo == null) {
-            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error",
-                    "Change " + changeDetails._number + " got a new patch set. Refresh and try again."));
+            notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("checkout.error.title"),
+                    GerritBundle.message("checkout.error.newPatchSet", String.valueOf(changeDetails._number))));
             return;
         }
         String branchName = ReviewBranchName.build(changeDetails, revisionInfo._number);
@@ -102,9 +103,9 @@ public class CheckoutAction extends AbstractChangeAction {
         if (target == null) {
             String blocking = ReviewBranchName.blockingBranch(branchName, name -> headOf(repository, name) != null);
             String message = blocking == null
-                    ? "Could not find a free branch name for " + branchName + "."
-                    : "Branch " + blocking + " prevents creating " + branchName + ". Rename or delete it to check out this patch set.";
-            notificationService.notifyError(new NotificationBuilder(project, "Checkout Error", message));
+                    ? GerritBundle.message("checkout.error.noFreeName", branchName)
+                    : GerritBundle.message("checkout.error.blocked", blocking, branchName);
+            notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("checkout.error.title"), message));
             return;
         }
         ApplicationManager.getApplication().invokeLater(new Runnable() {
@@ -117,14 +118,14 @@ public class CheckoutAction extends AbstractChangeAction {
                         if (!target.name.equals(repository.getCurrentBranchName())) {
                             return;
                         }
-                        GitVcs.runInBackground(new Task.Backgroundable(project, "Setting upstream branch...", false) {
+                        GitVcs.runInBackground(new Task.Backgroundable(project, GerritBundle.message("checkout.progress.upstream"), false) {
                             @Override
                             public void run(@NotNull ProgressIndicator indicator) {
                                 try {
                                     gerritGitUtil.setUpstreamBranch(repository, target.name,
                                             remote.get().getName() + "/" + changeDetails.branch);
                                 } catch (VcsException e) {
-                                    NotificationBuilder builder = new NotificationBuilder(project, "Checkout Error", e.getMessage());
+                                    NotificationBuilder builder = new NotificationBuilder(project, GerritBundle.message("checkout.error.title"), e.getMessage());
                                     notificationService.notifyError(builder);
                                 }
                             }

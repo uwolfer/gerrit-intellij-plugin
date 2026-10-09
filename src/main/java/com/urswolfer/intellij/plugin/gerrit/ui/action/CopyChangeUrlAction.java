@@ -21,6 +21,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -47,7 +48,7 @@ public class CopyChangeUrlAction extends AbstractChangeAction {
         }
         String url = OpenInBrowserAction.getUrl(GerritProjectAccount.getInstance(project).getHost(), selectedChange.get());
         CopyPasteManager.getInstance().setContents(new StringSelection(url));
-        NotificationBuilder builder = new NotificationBuilder(project, "Copy", "Copied change URL to clipboard.");
+        NotificationBuilder builder = new NotificationBuilder(project, GerritBundle.message("copy.title"), GerritBundle.message("copy.changeUrl"));
         notificationService.notify(builder);
     }
 

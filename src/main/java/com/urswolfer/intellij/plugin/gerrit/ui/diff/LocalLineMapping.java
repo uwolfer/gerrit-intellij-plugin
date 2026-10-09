@@ -22,6 +22,7 @@ import com.intellij.diff.fragments.LineFragment;
 import com.intellij.diff.util.Range;
 import com.intellij.diff.util.Side;
 import com.intellij.openapi.progress.ProgressIndicator;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -101,11 +102,11 @@ final class LocalLineMapping implements LineMapping {
     @Override
     public String noPositionHint(boolean selection) {
         if (!ready || stale) {
-            return "The patch set is still being compared with the file";
+            return GerritBundle.message("diff.noPosition.comparing");
         }
         return selection
-            ? "The selection reaches lines which are not in the patch set: comment on lines it has"
-            : "This line is not in the patch set, it changed since: comment on a line the patch set has";
+            ? GerritBundle.message("diff.noPosition.outside.selection")
+            : GerritBundle.message("diff.noPosition.outside");
     }
 
     @Override

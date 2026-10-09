@@ -62,6 +62,7 @@ import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -137,7 +138,7 @@ public final class GerritUtil {
                                                   final ThrowableComputable<T, Exception> computable) {
         final AtomicReference<T> result = new AtomicReference<T>();
         final AtomicReference<Exception> exception = new AtomicReference<Exception>();
-        ProgressManager.getInstance().run(new Task.Modal(project, "Access to Gerrit", true) {
+        ProgressManager.getInstance().run(new Task.Modal(project, GerritBundle.message("progress.access.modal"), true) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     result.set(computable.compute());
@@ -157,7 +158,7 @@ public final class GerritUtil {
                                   final Project project,
                                   final Consumer<ChangeInfo> consumer) {
         callGerrit(() -> gerritApi(project).changes().create(changeInput).info(),
-            consumer, project, "Failed to create Gerrit merge change");
+            consumer, project, GerritBundle.message("error.createMergeChange"));
     }
 
     public void createMergePatchSet(final String changeId,
@@ -165,7 +166,7 @@ public final class GerritUtil {
                                     final Project project,
                                     final Consumer<ChangeInfo> consumer) {
         callGerrit(() -> gerritApi(project).changes().id(changeId).createMergePatchSet(mergePatchSetInput),
-            consumer, project, "Failed to refresh Gerrit merge patch set");
+            consumer, project, GerritBundle.message("error.refreshMergePatchSet"));
     }
 
     public void postReview(final String changeId,
@@ -176,7 +177,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).revision(revision).review(reviewInput);
             return null;
-        }, consumer, project, "Failed to post Gerrit review");
+        }, consumer, project, GerritBundle.message("error.postReview"));
     }
 
     public void postSubmit(final String changeId,
@@ -186,7 +187,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).current().submit(submitInput);
             return null;
-        }, consumer, project, "Failed to submit Gerrit change");
+        }, consumer, project, GerritBundle.message("error.submit"));
     }
 
     public void postPublish(final String changeId,
@@ -195,7 +196,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).publish();
             return null;
-        }, consumer, project, "Failed to publish Gerrit change");
+        }, consumer, project, GerritBundle.message("error.publish"));
     }
 
     public void delete(final String changeId,
@@ -204,7 +205,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).delete();
             return null;
-        }, consumer, project, "Failed to delete Gerrit change");
+        }, consumer, project, GerritBundle.message("error.delete"));
     }
 
     public void postAbandon(final String changeId,
@@ -214,7 +215,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).abandon(abandonInput);
             return null;
-        }, consumer, project, "Failed to abandon Gerrit change");
+        }, consumer, project, GerritBundle.message("error.abandon"));
     }
 
     public void postRestore(final String changeId,
@@ -224,7 +225,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).restore(restoreInput);
             return null;
-        }, consumer, project, "Failed to restore Gerrit change");
+        }, consumer, project, GerritBundle.message("error.restore"));
     }
 
     public void postRebase(final String changeId,
@@ -234,7 +235,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).rebase(rebaseInput);
             return null;
-        }, consumer, project, "Failed to rebase Gerrit change");
+        }, consumer, project, GerritBundle.message("error.rebase"));
     }
 
     /**
@@ -246,7 +247,7 @@ public final class GerritUtil {
                            final Project project,
                            final Consumer<String> consumer) {
         callGerrit(() -> gerritApi(project).changes().id(changeId).revert(revertInput).id(),
-            consumer, project, "Failed to revert Gerrit change");
+            consumer, project, GerritBundle.message("error.revert"));
     }
 
     public void addReviewer(final String changeId,
@@ -256,7 +257,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeId).addReviewer(reviewerName);
             return null;
-        }, consumer, project, "Failed to add reviewer");
+        }, consumer, project, GerritBundle.message("error.addReviewer"));
     }
 
     /**
@@ -276,7 +277,7 @@ public final class GerritUtil {
             AssigneeInput input = new AssigneeInput();
             input.assignee = assignee;
             return changeApi.setAssignee(input);
-        }, consumer, project, "Failed to set assignee");
+        }, consumer, project, GerritBundle.message("error.setAssignee"));
     }
 
     public void changeStarredStatus(final String id,
@@ -290,7 +291,7 @@ public final class GerritUtil {
                 gerritApi(project).accounts().self().unstarChange(id);
             }
             return null;
-        }, consumer, project, "Failed to star Gerrit change");
+        }, consumer, project, GerritBundle.message("error.star"));
     }
 
     /**
@@ -309,8 +310,8 @@ public final class GerritUtil {
             return;
         }
         final String errorMessage = reviewed
-            ? "Failed to mark file of Gerrit change as reviewed"
-            : "Failed to mark file of Gerrit change as not reviewed";
+            ? GerritBundle.message("error.markReviewed")
+            : GerritBundle.message("error.markNotReviewed");
         accessGerrit(() -> {
             Set<String> marked = new LinkedHashSet<>();
             RuntimeException failure = null;
@@ -351,7 +352,7 @@ public final class GerritUtil {
             } catch (RestApiException e) {
                 throw new RuntimeException(e);
             }
-        }, consumer, project, "Failed to look up the Gerrit change of the commit");
+        }, consumer, project, GerritBundle.message("error.lookUpChange"));
     }
 
     public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {
@@ -419,7 +420,7 @@ public final class GerritUtil {
             } catch (RestApiException e) {
                 if (!(e instanceof HttpStatusException && ((HttpStatusException) e).getStatusCode() == 400
                         && withoutUnsupportedOption(queryRequest, e.getMessage()))) {
-                    notifyError(e, "Failed to get Gerrit changes.", project);
+                    notifyError(e, GerritBundle.message("error.getChanges"), project);
                     onFailure.accept(e);
                     return null;
                 }
@@ -488,7 +489,7 @@ public final class GerritUtil {
 
     public void getProjectHead(final String projectName, final Project project, final Consumer<String> consumer) {
         callGerrit(() -> gerritApi(project).projects().name(projectName).head(),
-            consumer, project, "Failed to resolve Gerrit default branch");
+            consumer, project, GerritBundle.message("error.resolveDefaultBranch"));
     }
 
     public void getProjectBranches(final String projectName,
@@ -507,7 +508,7 @@ public final class GerritUtil {
             }
             Collections.sort(branches);
             return branches;
-        }, consumer, project, "Failed to load Gerrit branches");
+        }, consumer, project, GerritBundle.message("error.loadBranches"));
     }
 
     public void getChangeDetails(final int changeNr, final Project project, final Consumer<ChangeInfo> consumer) {
@@ -548,7 +549,7 @@ public final class GerritUtil {
                 }
                 return gerritApi(project).changes().id(projectName, changeNr).get(options);
             } catch (RestApiException e) {
-                notifyError(e, "Failed to get Gerrit change.", project);
+                notifyError(e, GerritBundle.message("error.getChange"), project);
                 return null;
             }
         }, consumer, project);
@@ -564,7 +565,7 @@ public final class GerritUtil {
             try {
                 return loadComments(changeNr, revision, project, includePublishedComments, includeDraftComments);
             } catch (RestApiException e) {
-                notifyError(e, "Failed to get Gerrit comments.", project);
+                notifyError(e, GerritBundle.message("error.getComments"), project);
                 return new TreeMap<String, List<CommentInfo>>();
             }
         }, consumer, project);
@@ -697,7 +698,7 @@ public final class GerritUtil {
                 commentInfo = draftApi.get();
             }
             return commentInfo;
-        }, consumer, project, "Failed to save draft comment");
+        }, consumer, project, GerritBundle.message("error.saveDraft"));
     }
 
     public void deleteDraftComment(final int changeNr,
@@ -708,7 +709,7 @@ public final class GerritUtil {
         callGerrit(() -> {
             gerritApi(project).changes().id(changeNr).revision(revision).draft(draftCommentId).delete();
             return null;
-        }, consumer, project, "Failed to delete draft comment");
+        }, consumer, project, GerritBundle.message("error.deleteDraft"));
     }
 
     /*
@@ -789,7 +790,7 @@ public final class GerritUtil {
     public String getErrorTextFromException(Throwable t) {
         String message = t.getMessage();
         if (message == null) {
-            message = "(No exception message available)";
+            message = GerritBundle.message("error.noMessage");
             LOG.error(message, t);
         }
         return message;
@@ -827,7 +828,7 @@ public final class GerritUtil {
             if (project.isDisposed()) {
                 return;
             }
-            new Task.Backgroundable(project, "Accessing Gerrit", true) {
+            new Task.Backgroundable(project, GerritBundle.message("progress.access"), true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     if (project.isDisposed()) {
@@ -866,7 +867,7 @@ public final class GerritUtil {
         GerritAccount account = GerritProjectAccount.getInstance(project).get();
         if (account != null && isRefusal(throwable, account)) {
             int passwordVersion = GerritAccounts.getInstance().getPasswordVersion(account);
-            notification.action(NotificationAction.create("Log in again…", (event, shown) -> {
+            notification.action(NotificationAction.create(GerritBundle.message("notification.login.again"), (event, shown) -> {
                 // credentials saved since, such as from another of these notifications, are tried before asking
                 if (GerritAccounts.getInstance().getPasswordVersion(account) != passwordVersion
                     || GerritAccountDialog.logIn(project, account)) {

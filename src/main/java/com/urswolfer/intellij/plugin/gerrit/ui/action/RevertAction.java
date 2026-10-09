@@ -23,6 +23,7 @@ import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.Nullable;
@@ -61,8 +62,8 @@ public class RevertAction extends AbstractLoggedInChangeAction {
         }
         ChangeInfo change = selectedChange.get();
 
-        ChangeMessageDialog dialog = new ChangeMessageDialog(project, "Revert Merged Change",
-            "Create Revert Change", defaultMessage(change.subject, change.currentRevision));
+        ChangeMessageDialog dialog = new ChangeMessageDialog(project, GerritBundle.message("revert.title"),
+            GerritBundle.message("revert.ok"), defaultMessage(change.subject, change.currentRevision));
         if (!dialog.showAndGet()) {
             return;
         }
@@ -71,9 +72,9 @@ public class RevertAction extends AbstractLoggedInChangeAction {
 
         gerritUtil.postRevert(change.id, revertInput, project, revertingId -> {
             ActionUtil.reloadChanges(project);
-            NotificationBuilder notification = new NotificationBuilder(project, "Change reverted",
-                String.format("Created a change to revert '%s'.", StringUtil.escapeXmlEntities(subjectOf(change))))
-                .action(NotificationAction.createSimple("Show Change", () ->
+            NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("revert.done.title"),
+                GerritBundle.message("revert.done.text", StringUtil.escapeXmlEntities(subjectOf(change))))
+                .action(NotificationAction.createSimple(GerritBundle.message("revert.show"), () ->
                     ActionUtil.showChanges(project, "change:" + decoded(revertingId))));
             notificationService.notifyInformation(notification);
         });

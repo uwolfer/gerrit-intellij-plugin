@@ -16,13 +16,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+
 /**
  * @author Thomas Forrer
  */
 public class OwnerFilter extends AbstractUserFilter {
     @Override
     public String getActionLabel() {
-        return "Owner";
+        return GerritBundle.message("filter.owner");
     }
 
     @Override

@@ -26,6 +26,7 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.ProjectLevelVcsManager;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
@@ -89,19 +90,17 @@ public final class GerritCommitMsgHookCheck {
     }
 
     private static void notifyMissing(Project project, GerritAccount account, Map<GitRepository, Path> missing) {
-        String message = "Commits in "
-            + missing.keySet().stream().map(r -> r.getRoot().getName()).collect(Collectors.joining(", "))
-            + " get no Change-Id, because the Gerrit commit-msg hook is not installed.";
-        NotificationBuilder notification = new NotificationBuilder(project, "Gerrit commit-msg hook is missing",
+        String message = GerritBundle.message("hook.missing.text", missing.keySet().stream().map(r -> r.getRoot().getName()).collect(Collectors.joining(", ")));
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("hook.missing.title"),
             message);
-        notification.action(new NotificationAction("Install hook") {
+        notification.action(new NotificationAction(GerritBundle.message("hook.install")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull com.intellij.notification.Notification n) {
                 n.expire();
                 install(project, account, missing);
             }
         });
-        notification.action(new NotificationAction("Don't ask again") {
+        notification.action(new NotificationAction(GerritBundle.message("hook.dontAsk")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e, @NotNull com.intellij.notification.Notification n) {
                 n.expire();
@@ -114,18 +113,18 @@ public final class GerritCommitMsgHookCheck {
     }
 
     private static void install(Project project, GerritAccount account, Map<GitRepository, Path> missing) {
-        new Task.Backgroundable(project, "Installing Gerrit Commit-Message Hook...", false) {
+        new Task.Backgroundable(project, GerritBundle.message("hook.progress"), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 for (Map.Entry<GitRepository, Path> entry : missing.entrySet()) {
                     try {
                         GerritCommitMsgHook.getInstance().install(entry.getValue(), account);
                         NotificationService.getInstance().notify(new NotificationBuilder(project,
-                            "Gerrit Commit-Message Hook installed", entry.getValue().toString()));
+                            GerritBundle.message("hook.installed"), entry.getValue().toString()));
                     } catch (Exception e) {
                         LOG.info(e);
                         NotificationService.getInstance().notifyError(new NotificationBuilder(project,
-                            "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
+                            GerritBundle.message("hook.failed"),
                             GerritUtil.getInstance().getErrorTextFromException(e)));
                     }
                 }

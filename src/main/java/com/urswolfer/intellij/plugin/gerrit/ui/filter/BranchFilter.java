@@ -23,6 +23,7 @@ import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
@@ -58,7 +59,7 @@ public class BranchFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(Project project) {
-        action = new BranchPopupAction(project, "Branch");
+        action = new BranchPopupAction(project, GerritBundle.message("filter.branch"));
         return action;
     }
 
@@ -127,21 +128,21 @@ public class BranchFilter extends AbstractChangesFilter {
         public BranchPopupAction(Project project, String filterName) {
             super(filterName);
             this.project = project;
-            updateFilterValueLabel(value.map(Selection::getLabel).orElse("All"));
+            updateFilterValueLabel(value.map(Selection::getLabel).orElse(GerritBundle.message("filter.all")));
         }
 
         void showValue() {
-            updateFilterValueLabel(value.map(Selection::getLabel).orElse("All"));
+            updateFilterValueLabel(value.map(Selection::getLabel).orElse(GerritBundle.message("filter.all")));
         }
 
         @Override
         protected void createActions(Consumer<AnAction> actionConsumer) {
-            actionConsumer.consume(new DumbAwareAction("All") {
+            actionConsumer.consume(new DumbAwareAction(GerritBundle.message("filter.all")) {
                 @Override
                 public void actionPerformed(AnActionEvent e) {
                     value = Optional.empty();
                     unchecked = null;
-                    updateFilterValueLabel("All");
+                    updateFilterValueLabel(GerritBundle.message("filter.all"));
                     fireFilterChanged();
                 }
             });
@@ -149,7 +150,7 @@ public class BranchFilter extends AbstractChangesFilter {
             for (final GitRepository repository : repositories) {
                 DefaultActionGroup group = new DefaultActionGroup();
                 group.add(new Separator(getNameForRepository(repository)));
-                group.add(new DumbAwareAction("All") {
+                group.add(new DumbAwareAction(GerritBundle.message("filter.all")) {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
                         value = Optional.of(new Selection(getNameForRepository(repository), null));
@@ -195,7 +196,7 @@ public class BranchFilter extends AbstractChangesFilter {
         }
 
         String getLabel() {
-            return branch == null ? String.format("All (%s)", project) : String.format("%s (%s)", branch, project);
+            return branch == null ? GerritBundle.message("filter.branch.all", project) : String.format("%s (%s)", branch, project);
         }
 
         String getQuery() {

@@ -34,6 +34,7 @@ import com.intellij.ui.EditorTextField;
 import com.intellij.ui.EditorTextFieldProvider;
 import com.intellij.ui.SoftWrapsEditorCustomization;
 import com.intellij.util.TextFieldCompletionProviderDumbAware;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
@@ -91,8 +92,8 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
                                      final GerritApi gerritApi,
                                      final ChangeInfo changeInfo) {
             super(project, canBeParent);
-            setTitle("Add Reviewers to Change");
-            setOKButtonText("Add Reviewers");
+            setTitle(GerritBundle.message("reviewers.title"));
+            setOKButtonText(GerritBundle.message("reviewers.ok"));
 
             EditorTextFieldProvider service = ApplicationManager.getApplication().getService(EditorTextFieldProvider.class);
             Set<EditorCustomization> editorFeatures = new HashSet<EditorCustomization>();
@@ -142,7 +143,7 @@ public class AddReviewersAction extends AbstractLoggedInChangeAction {
             if (suggestedReviewer.group != null) {
                 String groupName = suggestedReviewer.group.name;
                 return Optional.of(LookupElementBuilder.create(groupName + SEPARATOR)
-                    .withPresentableText(String.format("%s (group)", groupName)));
+                    .withPresentableText(GerritBundle.message("reviewers.group", groupName)));
             }
             return Optional.empty();
         }

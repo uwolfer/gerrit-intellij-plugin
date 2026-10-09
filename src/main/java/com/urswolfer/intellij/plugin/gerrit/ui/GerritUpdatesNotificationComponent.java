@@ -25,6 +25,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Alarm;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -145,7 +146,7 @@ public final class GerritUpdatesNotificationComponent implements Disposable {
             stringBuilder.append("</ul>");
             NotificationBuilder notification = new NotificationBuilder(
                     project,
-                    "Gerrit Changes waiting for my review",
+                    GerritBundle.message("updates.title"),
                     stringBuilder.toString()
             );
             notificationService.notifyInformation(notification);
@@ -162,9 +163,9 @@ public final class GerritUpdatesNotificationComponent implements Disposable {
             : account.email != null ? account.email
             : account.username != null ? account.username
             : String.valueOf(account._accountId);
-        return "<li>" + (isNew ? "<strong>NEW: </strong>" : "")
+        return "<li>" + (isNew ? "<strong>" + GerritBundle.message("updates.new") + " </strong>" : "")
             + StringUtil.escapeXmlEntities(change.project) + ": " + StringUtil.escapeXmlEntities(change.subject)
-            + " (Owner: " + StringUtil.escapeXmlEntities(owner) + ")</li>";
+            + " (" + GerritBundle.message("updates.owner", StringUtil.escapeXmlEntities(owner)) + ")</li>";
     }
 
     private synchronized void cancelPendingNotificationTasks() {

@@ -47,6 +47,7 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.PopupHandler;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewedFilesService;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction;
@@ -196,7 +197,7 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         DefaultActionGroup group = new DefaultActionGroup();
         AddCommentAction addCommentAction = comments.getAddCommentActionBuilder()
                 .create(comments, editor)
-                .withText("Add Comment")
+                .withText(GerritBundle.message("diff.addComment"))
                 .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
                 .get();
         editor.putUserData(ADD_COMMENT_ACTION, addCommentAction);

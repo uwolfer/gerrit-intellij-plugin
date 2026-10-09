@@ -23,6 +23,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
@@ -69,7 +70,7 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
             @Override
             public void consume(Void aVoid) {
                 NotificationBuilder notification = new NotificationBuilder(
-                        project, "Change submitted", getSuccessMessage(change)
+                        project, GerritBundle.message("submit.title"), getSuccessMessage(change)
                 ).hideBalloon();
                 notificationService.notifyInformation(notification);
                 ActionUtil.reloadChanges(project);
@@ -78,7 +79,7 @@ public class SubmitAction extends AbstractLoggedInChangeAction {
     }
 
     private String getSuccessMessage(ChangeInfo changeInfo) {
-        return String.format("Change '%s' submitted successfully.", StringUtil.escapeXmlEntities(changeInfo.subject));
+        return GerritBundle.message("submit.success", StringUtil.escapeXmlEntities(changeInfo.subject));
     }
 
 }

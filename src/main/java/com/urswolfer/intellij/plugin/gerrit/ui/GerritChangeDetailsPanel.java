@@ -36,6 +36,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.UIUtil;
 import com.intellij.vcsUtil.UIVcsUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.AccountLookup;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
@@ -88,9 +89,9 @@ public class GerritChangeDetailsPanel {
 
     public GerritChangeDetailsPanel(final Project project) {
         panel = new JPanel(new CardLayout());
-        panel.add(UIVcsUtil.errorPanel("Nothing selected", false), NOTHING_SELECTED);
-        panel.add(UIVcsUtil.errorPanel("Loading...", false), LOADING);
-        panel.add(UIVcsUtil.errorPanel("The change could not be loaded", false), FAILED);
+        panel.add(UIVcsUtil.errorPanel(GerritBundle.message("details.nothingSelected"), false), NOTHING_SELECTED);
+        panel.add(UIVcsUtil.errorPanel(GerritBundle.message("details.loading"), false), LOADING);
+        panel.add(UIVcsUtil.errorPanel(GerritBundle.message("details.loadFailed"), false), FAILED);
 
         presentationData = new MyPresentationData(project);
 
@@ -285,7 +286,7 @@ public class GerritChangeDetailsPanel {
      */
     static String status(ChangeInfo changeInfo) {
         if (ChangeStatus.NEW.equals(changeInfo.status) && TRUE.equals(changeInfo.workInProgress)) {
-            return changeInfo.status + ", WIP";
+            return changeInfo.status + ", " + GerritBundle.message("status.wip");
         }
         return String.valueOf(changeInfo.status);
     }
@@ -313,31 +314,31 @@ public class GerritChangeDetailsPanel {
             String comment = changeInfo.subject != null ? IssueLinkHtmlRenderer.formatTextWithLinks(project, changeInfo.subject) : "-";
             sb.append("<html><head>").append(UIUtil.getCssFontDeclaration(UIUtil.getLabelFont()))
                     .append("</head><body><table>")
-                    .append("<tr valign=\"top\"><td><i>Change-Id:</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Change #:</i></td><td><b>").append(changeInfo._number).append("</b></td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Owner:</i></td><td>").append(changeInfo.owner != null ? accountName(changeInfo.owner) : "").append("</td></tr>");
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.changeId") + "</i></td><td><b>").append(changeInfo.changeId).append("</b></td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.number") + "</i></td><td><b>").append(changeInfo._number).append("</b></td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.owner") + "</i></td><td>").append(changeInfo.owner != null ? accountName(changeInfo.owner) : "").append("</td></tr>");
             // only when set: newer Gerrit versions disable the assignee or no longer have it
             if (changeInfo.assignee != null) {
-                sb.append("<tr valign=\"top\"><td><i>Assignee:</i></td><td>")
+                sb.append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.assignee") + "</i></td><td>")
                     .append(StringUtil.escapeXmlEntities(AccountLookup.identifier(changeInfo.assignee))).append("</td></tr>");
             }
-            sb.append("<tr valign=\"top\"><td><i>Project:</i></td><td>").append(changeInfo.project).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Branch:</i></td><td>").append(changeInfo.branch).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Topic:</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Uploaded:</i></td><td>")
+            sb.append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.project") + "</i></td><td>").append(changeInfo.project).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.branch") + "</i></td><td>").append(changeInfo.branch).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.topic") + "</i></td><td>").append(changeInfo.topic != null ? changeInfo.topic : "").append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.uploaded") + "</i></td><td>")
                     .append(changeInfo.created != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.created) : "")
                     .append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Updated:</i></td><td>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.updated") + "</i></td><td>")
                     .append(changeInfo.updated != null ? DateFormatUtil.formatPrettyDateTime(changeInfo.updated) : "")
                     .append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Status:</i></td><td>").append(status(changeInfo)).append("</td></tr>")
-                    .append("<tr valign=\"top\"><td><i>Description:</i></td><td><b>").append(comment).append("</b></td></tr>");
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.status") + "</i></td><td>").append(status(changeInfo)).append("</td></tr>")
+                    .append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.description") + "</i></td><td><b>").append(comment).append("</b></td></tr>");
         }
 
         private void addLabels(ChangeInfo changeInfo, StringBuilder sb) {
             if (changeInfo.labels != null) {
                 for (Map.Entry<String, LabelInfo> labelInfoEntry : changeInfo.labels.entrySet()) {
-                    sb.append("<tr valign=\"top\"><td><i>").append(labelInfoEntry.getKey()).append(":</i></td><td>");
+                    sb.append("<tr valign=\"top\"><td><i>").append(GerritBundle.message("details.label.vote", labelInfoEntry.getKey())).append("</i></td><td>");
                     List<ApprovalInfo> all = labelInfoEntry.getValue().all;
                     if (all != null) {
                         for (ApprovalInfo approvalInfo : all) {
@@ -354,10 +355,10 @@ public class GerritChangeDetailsPanel {
             Map<ReviewerState, Collection<AccountInfo>> reviewers = changeInfo.reviewers;
             Collection<AccountInfo> currentReviewers = reviewers != null
                 ? reviewers.getOrDefault(ReviewerState.REVIEWER, List.of()) : null;
-            addAccounts("Not voted", getReviewersWithoutVote(currentReviewers,
+            addAccounts(GerritBundle.message("details.notVoted"), getReviewersWithoutVote(currentReviewers,
                 changeInfo.labels != null ? changeInfo.labels : Map.of()), sb);
             if (reviewers != null) {
-                addAccounts("CC", reviewers.get(ReviewerState.CC), sb);
+                addAccounts(GerritBundle.message("details.cc"), reviewers.get(ReviewerState.CC), sb);
             }
         }
 
@@ -365,7 +366,7 @@ public class GerritChangeDetailsPanel {
             if (accounts == null || accounts.isEmpty()) {
                 return;
             }
-            sb.append("<tr valign=\"top\"><td><i>").append(title).append(":</i></td><td>");
+            sb.append("<tr valign=\"top\"><td><i>").append(title).append("</i></td><td>");
             for (AccountInfo account : accounts) {
                 sb.append("<b>").append(accountName(account)).append("</b>").append("<br/>");
             }
@@ -376,12 +377,11 @@ public class GerritChangeDetailsPanel {
             if (changeInfo.messages != null && !changeInfo.messages.isEmpty()) {
                 List<ChangeMessageInfo> withoutAutogenerated = withoutAutogenerated(changeInfo.messages);
                 int autogenerated = changeInfo.messages.size() - withoutAutogenerated.size();
-                sb.append("<tr valign=\"top\"><td><i>Comments:</i></td><td>");
+                sb.append("<tr valign=\"top\"><td><i>" + GerritBundle.message("details.label.comments") + "</i></td><td>");
                 if (autogenerated > 0) {
-                    sb.append("<i>").append(autogenerated)
-                        .append(autogenerated == 1 ? " automated message " : " automated messages ")
-                        .append(showAutogenerated ? "shown" : "hidden").append(".</i> <a href=\"")
-                        .append(TOGGLE_AUTOGENERATED).append("\">").append(showAutogenerated ? "Hide" : "Show")
+                    sb.append("<i>").append(GerritBundle.message(showAutogenerated ? "details.automated.shown" : "details.automated.hidden", autogenerated, String.valueOf(autogenerated)))
+                        .append("</i> <a href=\"")
+                        .append(TOGGLE_AUTOGENERATED).append("\">").append(showAutogenerated ? GerritBundle.message("details.hide") : GerritBundle.message("details.show"))
                         .append("</a><br/>");
                 }
                 for (ChangeMessageInfo changeMessageInfo

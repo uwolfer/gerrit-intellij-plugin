@@ -97,10 +97,10 @@ public class PushOptionValidator {
         char invalidChar = value.charAt(matcher.start());
         if (Whitespace.isWhitespace(invalidChar)) {
             // name the character for whitespace which cannot be seen in the text field
-            String whitespace = invalidChar == ' ' ? "spaces" : String.format("whitespace (U+%04X)", (int) invalidChar);
-            return label + " must not contain " + whitespace + " (Gerrit reads it from the push reference, "
-                + "and Git reference names cannot contain spaces).";
+            String whitespace = invalidChar == ' ' ? PushMessages.message("push.validation.spaces")
+                : PushMessages.message("push.validation.whitespace", String.format("%04X", (int) invalidChar));
+            return PushMessages.message("push.validation.notAllowed", label, whitespace);
         }
-        return label + " must not contain the character '" + invalidChar + "'.";
+        return PushMessages.message("push.validation.character", label, String.valueOf(invalidChar));
     }
 }

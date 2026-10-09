@@ -21,6 +21,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -37,10 +38,10 @@ import java.util.function.Supplier;
  */
 public class StatusFilter extends AbstractChangesFilter {
     private static final List<Status> STATUSES = List.of(
-            new Status("All", null),
-            new Status("Open", "open"),
-            new Status("Merged", "merged"),
-            new Status("Abandoned", "abandoned")
+            new Status(GerritBundle.message("filter.all"), null),
+            new Status(GerritBundle.message("filter.status.open"), "open"),
+            new Status(GerritBundle.message("filter.status.merged"), "merged"),
+            new Status(GerritBundle.message("filter.status.abandoned"), "abandoned")
     );
 
     private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {
@@ -65,7 +66,7 @@ public class StatusFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(final Project project) {
-        action = new StatusPopupAction("Status");
+        action = new StatusPopupAction(GerritBundle.message("filter.status"));
         return action;
     }
 

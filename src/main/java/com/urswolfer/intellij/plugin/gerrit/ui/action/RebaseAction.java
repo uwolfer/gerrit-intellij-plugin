@@ -28,6 +28,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,15 +83,15 @@ public class RebaseAction extends AbstractLoggedInChangeAction {
 
     private static class RebaseDialog extends DialogWrapper {
         private final JBRadioButton onTip;
-        private final JBRadioButton onOther = new JBRadioButton("Rebase on a specific change, ref or commit");
+        private final JBRadioButton onOther = new JBRadioButton(GerritBundle.message("rebase.other"));
         private final JBTextField baseField = new JBTextField(30);
-        private final JBCheckBox allowConflicts = new JBCheckBox("Allow rebase with conflicts");
+        private final JBCheckBox allowConflicts = new JBCheckBox(GerritBundle.message("rebase.conflicts"));
 
         RebaseDialog(Project project, @Nullable String branch, boolean canRebaseOnTip) {
             super(project, true);
-            setTitle("Rebase Change");
-            setOKButtonText("Rebase");
-            onTip = new JBRadioButton(branch != null ? "Rebase on top of the " + branch + " branch" : "Rebase on top of the target branch", canRebaseOnTip);
+            setTitle(GerritBundle.message("rebase.title"));
+            setOKButtonText(GerritBundle.message("rebase.ok"));
+            onTip = new JBRadioButton(branch != null ? GerritBundle.message("rebase.onBranch", branch) : GerritBundle.message("rebase.onTarget"), canRebaseOnTip);
             onTip.setEnabled(canRebaseOnTip);
             onOther.setSelected(!canRebaseOnTip);
             ButtonGroup group = new ButtonGroup();
@@ -118,7 +119,7 @@ public class RebaseAction extends AbstractLoggedInChangeAction {
         @Override
         protected ValidationInfo doValidate() {
             return onOther.isSelected() && base().isEmpty()
-                ? new ValidationInfo("Enter a change number, ref or commit", baseField)
+                ? new ValidationInfo(GerritBundle.message("rebase.validation"), baseField)
                 : null;
         }
 
@@ -139,7 +140,7 @@ public class RebaseAction extends AbstractLoggedInChangeAction {
             c.insets = JBUI.insetsTop(8);
             panel.add(allowConflicts, c);
             c.insets = JBUI.insetsLeft(24);
-            panel.add(new JBLabel("<html>The change becomes work in progress, its files holding the conflict markers.</html>"), c);
+            panel.add(new JBLabel(GerritBundle.message("rebase.conflicts.hint")), c);
             return panel;
         }
 

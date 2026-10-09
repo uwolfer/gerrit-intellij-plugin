@@ -22,6 +22,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBoxTableRenderer;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.ui.ColumnInfo;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
 import org.jetbrains.annotations.Nullable;
@@ -53,7 +54,7 @@ public class GerritSelectRevisionInfoColumn extends ColumnInfo<ChangeInfo, Strin
         entry -> Pair.create(entry.getKey(), entry.getValue());
 
     public GerritSelectRevisionInfoColumn(Project project) {
-        super("Patch Set");
+        super(GerritBundle.message("column.patchSet"));
         selectedRevisions = SelectedRevisions.getInstance(project);
     }
 

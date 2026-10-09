@@ -36,6 +36,7 @@ import com.intellij.ui.TabbedPaneImpl;
 import com.intellij.ui.WrapWhenTypingReachesRightMarginCustomization;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.ui.UIUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 
 import javax.swing.*;
@@ -63,8 +64,7 @@ public class SafeHtmlTextEditor extends JPanel {
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.add(messageField, BorderLayout.CENTER);
         JLabel markdownLinkLabel = new JLabel(
-            "<html>Write your comment here. " +
-            "You can use a <a href=\"\"> simple markdown-like syntax</a>.</html>");
+            GerritBundle.message("editor.hint"));
         markdownLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
         markdownLinkLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -73,11 +73,11 @@ public class SafeHtmlTextEditor extends JPanel {
             }
         });
         messagePanel.add(markdownLinkLabel, BorderLayout.SOUTH);
-        tabbedPane.addTab("Write", AllIcons.Actions.Edit, messagePanel);
+        tabbedPane.addTab(GerritBundle.message("editor.write"), AllIcons.Actions.Edit, messagePanel);
 
         final JEditorPane previewEditorPane = new JEditorPane(UIUtil.HTML_MIME, "");
         previewEditorPane.setEditable(false);
-        tabbedPane.addTab("Preview", AllIcons.Actions.Preview, previewEditorPane);
+        tabbedPane.addTab(GerritBundle.message("editor.preview"), AllIcons.Actions.Preview, previewEditorPane);
 
         tabbedPane.addChangeListener(new ChangeListener() {
             @Override

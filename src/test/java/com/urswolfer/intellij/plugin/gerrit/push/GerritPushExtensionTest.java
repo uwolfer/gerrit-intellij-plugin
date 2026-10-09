@@ -60,6 +60,17 @@ public class GerritPushExtensionTest {
     }
 
     @Test
+    public void testTextsCanBeHandedToThePanels() throws Exception {
+        try {
+            GerritPushExtension.handOverMessages(PushMessages.class, (key, params) -> key);
+            Assert.assertEquals(PushMessages.message("push.enabled"), "push.enabled");
+        } finally {
+            GerritPushExtension.handOverMessages(PushMessages.class, null);
+        }
+        Assert.assertEquals(PushMessages.message("push.enabled"), "Push to Gerrit");
+    }
+
+    @Test
     public void testProjectSettingsCanBeHandedToThePanel() throws Exception {
         GerritPushExtension.handOverEnabledForProject(GerritPushOptionsPanel.class, project -> false);
         GerritPushExtension.handOverEnabledForProject(GerritPushOptionsPanel.class, null);

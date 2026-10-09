@@ -34,19 +34,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Suggests the accounts for the reviewers and CC fields of the push dialog. There is no change yet to ask Gerrit for
- * its reviewer suggestions, so the accounts come from the account suggestions of the server.
+ * Suggests the accounts for the reviewers and CC fields of the push dialog and of the dialog which creates a feature
+ * merge change. There is no change yet to ask Gerrit for its reviewer suggestions, so the accounts come from the
+ * account suggestions of the server.
  *
  * Groups are not suggested: Gerrit resolves the reviewers of a push reference to accounts only.
  */
-class PushAccountCompletionProvider extends TextFieldCompletionProviderDumbAware {
+public class PushAccountCompletionProvider extends TextFieldCompletionProviderDumbAware {
     private static final String SEPARATOR = ",";
 
     private final Project project;
 
     private final AccountCompletion completion = new AccountCompletion();
 
-    PushAccountCompletionProvider(Project project) {
+    public PushAccountCompletionProvider(Project project) {
         super(true);
         this.project = project;
     }

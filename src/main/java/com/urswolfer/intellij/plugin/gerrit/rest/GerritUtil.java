@@ -28,6 +28,8 @@ import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.DraftApi;
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.ReviewerInput;
+import com.google.gerrit.extensions.api.changes.ReviewerResult;
 import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.api.projects.BranchInfo;
@@ -50,6 +52,7 @@ import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -88,6 +91,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -248,6 +252,55 @@ public final class GerritUtil {
                            final Consumer<String> consumer) {
         callGerrit(() -> gerritApi(project).changes().id(changeId).revert(revertInput).id(),
             consumer, project, GerritBundle.message("error.revert"));
+    }
+
+    /**
+     * Adds the reviewers and CCs one after the other. A failure of one does not stop the others, and is not reported
+     * as an error: Gerrit answers an account it cannot resolve, an ambiguous one or a group which needs a
+     * confirmation with a 200 and an error text, which is as good as an exception here.
+     *
+     * @param consumer receives the reason by account name of those which could not be added
+     */
+    public void addReviewers(final String changeId,
+                             final List<ReviewerInput> inputs,
+                             final Project project,
+                             final Consumer<Map<String, String>> consumer) {
+        accessGerrit(() -> {
+            Map<String, String> failures = new LinkedHashMap<>();
+            ChangeApi changeApi;
+            try {
+                changeApi = gerritApi(project).changes().id(changeId);
+            } catch (RestApiException | RuntimeException e) {
+                rethrowCancellation(e);
+                for (ReviewerInput input : inputs) {
+                    failures.put(input.reviewer, getErrorTextFromException(e));
+                }
+                return failures;
+            }
+            for (ReviewerInput input : inputs) {
+                try {
+                    ReviewerResult result = changeApi.addReviewer(input);
+                    if (result == null) {
+                        continue;
+                    }
+                    if (result.error != null) {
+                        failures.put(input.reviewer, result.error);
+                    } else if (Boolean.TRUE.equals(result.confirm)) {
+                        failures.put(input.reviewer, GerritBundle.message("merge.reviewers.confirm"));
+                    }
+                } catch (RestApiException | RuntimeException e) {
+                    rethrowCancellation(e);
+                    failures.put(input.reviewer, getErrorTextFromException(e));
+                }
+            }
+            return failures;
+        }, consumer, project);
+    }
+
+    private static void rethrowCancellation(Exception e) {
+        if (e instanceof ProcessCanceledException) {
+            throw (ProcessCanceledException) e;
+        }
     }
 
     public void addReviewer(final String changeId,

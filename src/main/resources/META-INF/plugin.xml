@@ -607,6 +607,14 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+    <action id="Gerrit.PreviousComment"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.diff.GoToCommentAction$Previous"
+            icon="AllIcons.General.ArrowUp"
+            use-shortcut-of="PreviousOccurence"/>
+    <action id="Gerrit.NextComment"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.diff.GoToCommentAction$Next"
+            icon="AllIcons.General.ArrowDown"
+            use-shortcut-of="NextOccurence"/>
 
     <action id="Gerrit.CompareBranch"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CompareBranchAction">

@@ -17,8 +17,9 @@
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
 # the settings page, the change list, a push for review with a reviewer picked from
 # the suggestions of the push dialog, a change action from the context menu, comments in
-# a diff in both viewers and in the editor of a checked out change, the project switched
-# off and on again, and no error logged by the plugin.
+# a diff in both viewers and the shortcuts from one to the next, comments in the editor of
+# a checked out change, the project switched off and on again, and no error logged by the
+# plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -220,6 +221,28 @@ comment "($D//div[@class='EditorComponentImpl'])[1]" 2 old-left
 until_true "side-by-side: comment on the left on patch set 1" drafted "1 REVISION 3 old-left"
 comment "($D//div[@class='EditorComponentImpl'])[2]" 2 new-right
 until_true "side-by-side: comment on the right on patch set 2" drafted "2 REVISION 3 new-right"
+# Next and Previous Gerrit Comment, by the shortcuts they share with Next and Previous Occurrence
+# caret <editor> <line>: there, counted from 0, and in the focus, for the keys to reach it
+caret() { "$R" get "$1" "(function () {
+    component.getEditor().getCaretModel().moveToOffset(component.getEditor().getDocument().getLineStartOffset($2));
+    com.intellij.openapi.wm.IdeFocusManager.getGlobalInstance().requestFocus(component, true);
+})()" > /dev/null; }
+# at <editor> <line>: the caret there, and the editor in the focus
+at() { [ "$("$R" get "$1" "component.getEditor().getCaretModel().getLogicalPosition().line + ' ' + component.hasFocus()")" = "$2 true" ]; }
+SL="($D//div[@class='EditorComponentImpl'])[1]" SR="($D//div[@class='EditorComponentImpl'])[2]"
+until_true "side-by-side: the comments shown" eval '[ "$(icons "$SL")$(icons "$SR")" = "3 old-left3 new-right" ]'
+caret "$SL" 0
+until_true "side-by-side: the caret on the first line" at "$SL" 0
+"$R" key ctrl+alt+DOWN
+until_true "side-by-side: next comment, on the left" at "$SL" 2
+"$R" key ctrl+alt+DOWN
+until_true "side-by-side: next comment, on the right next to it" at "$SR" 2
+"$R" key ctrl+alt+DOWN
+"$R" wait "//div[contains(@visible_text,'No comment further down')]" 10
+echo "ok: side-by-side: a hint after the last comment"
+"$R" key ESCAPE
+"$R" key ctrl+alt+UP
+until_true "side-by-side: previous comment, back on the left" at "$SL" 2
 viewer Unified
 U="$D//div[@class='EditorComponentImpl']"
 # ignore <policy>: what the viewer compares, set as its settings do; it rebuilds the text in a rediff
@@ -243,6 +266,13 @@ comment "$U" 0 "" 1
 echo "ok: unified: a selection from a removed to an added line gets a hint"
 placed=$'1 removed\n2 added\n3 removed-range\n3 unchanged\n4 old-left\n6 new-right'
 until_true "unified: each comment on its line" shows "$placed"
+caret "$U" 3
+until_true "unified: the caret on a comment" at "$U" 3
+"$R" key ctrl+alt+DOWN
+until_true "unified: next comment, on the other side" at "$U" 5
+"$R" key ctrl+alt+UP
+"$R" key ctrl+alt+UP
+until_true "unified: previous comment, past the one at the caret" at "$U" 2
 # the text of each range, as highlighted: of the left side, it shows the added line in between as well
 ranges() { "$R" get "$1" "(function () {
     var e = component.getEditor(), out = [];

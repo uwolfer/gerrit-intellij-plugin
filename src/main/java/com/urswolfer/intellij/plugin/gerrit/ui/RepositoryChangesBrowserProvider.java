@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.intellij.diff.chains.DiffRequestChain;
 import com.intellij.diff.editor.ChainDiffVirtualFile;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.actionSystem.Separator;
@@ -50,6 +51,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitM
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.RebaseFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
+import com.urswolfer.intellij.plugin.gerrit.ui.diff.GoToCommentAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -225,6 +227,14 @@ public class RepositoryChangesBrowserProvider {
             chain.putUserData(GerritUserDataKeys.REVISION, listedRevision);
             chain.putUserData(GerritUserDataKeys.BASE_REVISION, baseRevision);
             chain.putUserData(GerritUserDataKeys.BASE_PARENT, baseParent);
+        }
+
+        @Override
+        protected @NotNull List<AnAction> createDiffActions() {
+            ActionManager actionManager = ActionManager.getInstance();
+            return ContainerUtil.concat(super.createDiffActions(), Arrays.asList(
+                actionManager.getAction(GoToCommentAction.PREVIOUS_ID),
+                actionManager.getAction(GoToCommentAction.NEXT_ID)));
         }
 
         @Override

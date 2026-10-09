@@ -31,6 +31,8 @@ import com.intellij.diff.tools.util.side.OnesideTextDiffViewer;
 import com.intellij.diff.tools.util.side.TwosideTextDiffViewer;
 import com.intellij.diff.util.Side;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.CustomShortcutSet;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Shortcut;
@@ -117,8 +119,9 @@ public class GerritCommentsDiffExtension extends DiffExtension {
 
         DiffViewerBase viewerBase = (DiffViewerBase) viewer;
         DiffComments comments = new DiffComments(project, changeInfo, baseSide, revisionSide, viewerBase::isDisposed);
+        TwosideTextDiffViewer twosideViewer = null;
         if (viewer instanceof TwosideTextDiffViewer) {
-            TwosideTextDiffViewer twosideViewer = (TwosideTextDiffViewer) viewer;
+            twosideViewer = (TwosideTextDiffViewer) viewer;
             for (Side side : Side.values()) {
                 EditorEx editor = twosideViewer.getEditor(side);
                 if (editor != null) {
@@ -136,8 +139,10 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         } else {
             return;
         }
+        CommentNavigator navigator = new CommentNavigator(comments, twosideViewer);
         for (EditorEx editor : comments.getEditors()) {
-            addCommentAction(comments, editor);
+            navigator.addEditor(editor, viewerBase);
+            addActions(comments, editor);
         }
 
         viewerBase.addListener(new DiffViewerListener() {
@@ -182,7 +187,7 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         }
     }
 
-    private void addCommentAction(DiffComments comments, EditorEx editor) {
+    private void addActions(DiffComments comments, EditorEx editor) {
         DefaultActionGroup group = new DefaultActionGroup();
         AddCommentAction addCommentAction = comments.getAddCommentActionBuilder()
                 .create(comments, editor)
@@ -192,6 +197,17 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         editor.putUserData(ADD_COMMENT_ACTION, addCommentAction);
         addCommentAction.registerCustomShortcutSet(ADD_COMMENT_SHORTCUT_SET, editor.getContentComponent());
         group.add(addCommentAction);
+
+        // on the editor as well, so that they come before Previous and Next Occurrence, whose shortcuts they have by
+        // default, and which step through the results of the last search from any editor; with the shortcut sets of
+        // the registered actions, which follow the keymap, also once it changes
+        AnAction previous = ActionManager.getInstance().getAction(GoToCommentAction.PREVIOUS_ID);
+        AnAction next = ActionManager.getInstance().getAction(GoToCommentAction.NEXT_ID);
+        new GoToCommentAction.Previous().registerCustomShortcutSet(previous.getShortcutSet(),
+            editor.getContentComponent());
+        new GoToCommentAction.Next().registerCustomShortcutSet(next.getShortcutSet(), editor.getContentComponent());
+        group.add(previous);
+        group.add(next);
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
     }
 

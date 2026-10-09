@@ -81,3 +81,25 @@ code which a review would otherwise keep questioning.
   * the hint's link text is composed from three strings, as the rest of the
     panel is hard-coded English;
   * "Clear filters" reloads as a changed filter does.
+* **Next and previous comment in a diff** (`GoToCommentAction`,
+  `CommentNavigator`, `CommentNavigation`):
+  * the actions have the shortcuts of Previous/Next Occurrence, as those of the
+    bundled GitHub plugin do; a keymap without those gives them none;
+  * they are registered on each diff editor as well, as instances of their
+    own, so that they come before Next Occurrence there; neither an
+    `ActionPromoter` nor `EmptyAction.registerWithShortcutSet`, which is
+    deprecated for removal;
+  * from a shortcut they stay enabled in every Gerrit diff, at the ends and
+    without comments too, and show a hint rather than letting the key go on to
+    the results of the last search;
+  * they stop at the ends; Gerrit's web UI goes on to the next file with
+    comments, which the diff chain would have to do;
+  * they look up `DiffDataKeys.CURRENT_EDITOR` first, as the platform's
+    `CodeReviewNextPreviousCommentAction` does;
+  * their update runs on the event dispatch thread, every toolbar update, as
+    the comments of a file are few;
+  * the sides of a side-by-side diff are aligned by the changes of
+    `SimpleDiffViewer`, not by the transfer of its sync scrolling; another
+    two-sided viewer aligns them line by line;
+  * only the diff's own folds of unchanged lines are expanded, not code folds
+    in the other editor.

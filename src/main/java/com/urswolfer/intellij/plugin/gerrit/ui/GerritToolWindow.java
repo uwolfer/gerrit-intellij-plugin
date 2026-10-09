@@ -34,6 +34,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.vcs.changes.committed.CommittedChangesBrowser;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ex.ToolWindowManagerListener;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.util.Consumer;
@@ -55,6 +57,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -88,6 +91,7 @@ public class GerritToolWindow implements Disposable {
     private String listedIdentity = "";
     private String listedCloneBaseUrl = "";
     private int listedPasswordVersion;
+    private final ListRefreshOnShow refreshOnShow = new ListRefreshOnShow();
     private volatile boolean disposed;
 
     /**
@@ -154,6 +158,7 @@ public class GerritToolWindow implements Disposable {
         }
 
         registerVcsChangeListener(project);
+        registerRefreshOnShow(project);
         MessageBusConnection settings = ApplicationManager.getApplication().getMessageBus().connect(this);
         settings.subscribe(GerritListSettingsListener.TOPIC, () -> {
             listSettingsChanged = true;
@@ -190,6 +195,30 @@ public class GerritToolWindow implements Disposable {
             }
         };
         project.getMessageBus().connect(this).subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, vcsListener);
+    }
+
+    /**
+     * The list is as old as its last load when the window was hidden for a while; the bundled GitHub plugin reloads
+     * its list when its tool window is shown for the same reason.
+     */
+    private void registerRefreshOnShow(Project project) {
+        project.getMessageBus().connect(this).subscribe(ToolWindowManagerListener.TOPIC, new ToolWindowManagerListener() {
+            @Override
+            public void toolWindowShown(@NotNull ToolWindow toolWindow) {
+                if (GerritToolWindowFactory.ID.equals(toolWindow.getId()) && toolWindow.isVisible() && !disposed
+                    && GerritProjectSettings.isEnabled(project)
+                    && canList(GerritProjectAccount.getInstance(project).get())
+                    && !GitUtil.getRepositoryManager(project).getRepositories().isEmpty()
+                    && refreshOnShow.shouldReload(nowMillis())) {
+                    // keeps the selection, as every reload does
+                    reloadChanges(project, false);
+                }
+            }
+        });
+    }
+
+    private static long nowMillis() {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     }
 
     private void changeSelected(ChangeInfo changeInfo, final Project project) {
@@ -340,13 +369,14 @@ public class GerritToolWindow implements Disposable {
         listedCloneBaseUrl = account.cloneBaseUrl;
         listedPasswordVersion = GerritAccounts.getInstance().getPasswordVersion(account);
         int load = ++changesLoad;
+        refreshOnShow.loadStarted(nowMillis());
         boolean lookup = changesFilters.isShowingLookup();
         String query = changesFilters.getQuery();
         boolean narrowed = changesFilters.isNarrowed();
         Consumer<LoadChangesProxy> consumer = proxy -> {
             // loads run concurrently; one started earlier must not replace what a later one shows
             if (load == changesLoad) {
-                changeListPanel.load(proxy, lookup, query, narrowed);
+                changeListPanel.load(proxy, lookup, query, narrowed, () -> refreshOnShow.loadFinished(nowMillis()));
             }
         };
         changeListPanel.showLoading();

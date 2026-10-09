@@ -67,6 +67,29 @@ T="$G//div[@class='TableView']"
 listed() { local rows; rows=$("$R" rows "$T"); grep -q 'Add hello' <<< "$rows" && grep -q 'Add bye' <<< "$rows"; }
 until_true "change list shows the seeded changes" listed
 
+# Keyboard in the list: the Refresh shortcut reloads it, Enter and a double-click open the compare dialog. A change
+# made through REST turns up only on a reload, and is abandoned again.
+compare() { [ -n "$("$R" find "//div[contains(@visible_text,'Commits that exist in')]")" ]; }
+gone() { ! compare; }
+probe=$(gerrit /changes/ -X POST -H 'Content-Type: application/json' \
+    -d "{\"project\":\"demo\",\"branch\":\"master\",\"subject\":\"smoke-kbd-$(date +%s)\"}" |
+    python3 -c 'import json, sys; print(json.load(sys.stdin)["_number"])')
+"$R" item "$T" 'Add bye'
+"$R" key ctrl+F5  # the shortcut of Refresh, with the focus in the list
+reloaded() { grep -q 'smoke-kbd' <<< "$("$R" rows "$T")"; }
+abandon_probe() { gerrit "/changes/$probe/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null; }
+until_true "Refresh shortcut in the list reloads it" reloaded || { abandon_probe; false; }
+abandon_probe
+"$R" item "$T" 'Add bye'  # the reload may have moved the selection
+"$R" key ENTER
+until_true "Enter opens the compare dialog" compare
+"$R" key ESCAPE
+until_true "compare dialog closed" gone
+"$R" item "$T" 'Add bye' --double
+until_true "double-click opens the compare dialog" compare
+"$R" key ESCAPE
+until_true "compare dialog closed" gone
+
 subject=smoke-$(date +%s)
 P=$WORK/projects/demo
 # leaves the change a run which failed in the editor checked out, and nothing else

@@ -115,10 +115,14 @@ What `smoke.sh` works around, worth knowing for anything new:
 commands do not cover. Screenshots still show what the robot cannot, such as
 painting and layout. The frame is pinned to the 1600x1000 display on start, so
 screenshots of different runs line up; `$S/shot.sh detail 800x480+400+20` crops
-one to read small text. Without the robot, where `packages.jetbrains.team` is
-blocked, `xdotool` still clicks at screen coordinates and types once the IDE has
-been clicked (`xdotool mousemove X Y click 1`, `xdotool key ctrl+alt+s`); the
-account then goes in by hand: `http://localhost:8080`, `admin`, `secret`.
+one to read small text. The details panel of the Gerrit tool window starts
+small: `key ctrl+shift+QUOTE` maximises the window, and a `get` which scrolls
+to a text position (`modelToView`, then `scrollRectToVisible`) beats dragging
+the splitter; read what it shows back with `get` too. Without the robot, where
+`packages.jetbrains.team` is blocked, `xdotool` still clicks at screen
+coordinates and types once the IDE has been clicked (`xdotool mousemove X Y
+click 1`, `xdotool key ctrl+alt+s`); the account then goes in by hand:
+`http://localhost:8080`, `admin`, `secret`.
 
 Gerrit 3.14 has no assignee endpoint (`PUT /changes/N/assignee` is a 404), so
 "Set Assignee" can only be checked for its dialog and error balloon here.

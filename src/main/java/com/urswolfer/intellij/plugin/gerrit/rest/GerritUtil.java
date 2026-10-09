@@ -19,6 +19,9 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.RebaseInput;
+import com.google.gerrit.extensions.api.changes.RestoreInput;
+import com.google.gerrit.extensions.api.changes.RevertInput;
 import com.google.gerrit.extensions.api.changes.AssigneeInput;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.changes.Changes;
@@ -211,6 +214,38 @@ public final class GerritUtil {
             gerritApi(project).changes().id(changeId).abandon(abandonInput);
             return null;
         }, consumer, project, "Failed to abandon Gerrit change");
+    }
+
+    public void postRestore(final String changeId,
+                            final RestoreInput restoreInput,
+                            final Project project,
+                            final Consumer<Void> consumer) {
+        callGerrit(() -> {
+            gerritApi(project).changes().id(changeId).restore(restoreInput);
+            return null;
+        }, consumer, project, "Failed to restore Gerrit change");
+    }
+
+    public void postRebase(final String changeId,
+                           final RebaseInput rebaseInput,
+                           final Project project,
+                           final Consumer<Void> consumer) {
+        callGerrit(() -> {
+            gerritApi(project).changes().id(changeId).rebase(rebaseInput);
+            return null;
+        }, consumer, project, "Failed to rebase Gerrit change");
+    }
+
+    /**
+     * @param consumer receives the id of the change which reverts, as Gerrit creates a new one; not looked up, as a
+     *                 failure after the revert was made would offer a retry which makes a second one
+     */
+    public void postRevert(final String changeId,
+                           final RevertInput revertInput,
+                           final Project project,
+                           final Consumer<String> consumer) {
+        callGerrit(() -> gerritApi(project).changes().id(changeId).revert(revertInput).id(),
+            consumer, project, "Failed to revert Gerrit change");
     }
 
     public void addReviewer(final String changeId,

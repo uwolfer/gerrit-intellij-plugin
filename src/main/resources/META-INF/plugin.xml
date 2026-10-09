@@ -44,8 +44,8 @@
         <li>Push to Gerrit from the push dialog: target branch, topic, reviewers and CC with account suggestions,
         and on Gerrit 2.15+ a hashtag, WIP and private changes</li>
         <li>Check out, cherry-pick and reset to changes in your local clone</li>
-        <li>Submit, abandon, star changes and add reviewers; publish and delete draft changes (Gerrit older than
-        2.15)</li>
+        <li>Submit, abandon, restore, rebase and revert changes, star them and add reviewers; publish and delete draft
+        changes (Gerrit older than 2.15)</li>
         <li>Run the IDE's inspections on the files a change touches</li>
         <li>Clone Gerrit projects from the IDE, with the commit-msg hook installed</li>
         <li>Open files and commits in Gitiles, and the Gerrit changes of commits selected in the VCS log</li>
@@ -672,9 +672,21 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.AbandonAction">
       <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Submit"/>
     </action>
+    <action id="Gerrit.Rebase"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RebaseAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Abandon"/>
+    </action>
+    <action id="Gerrit.Restore"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RestoreAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Rebase"/>
+    </action>
+    <action id="Gerrit.Revert"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RevertAction">
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Restore"/>
+    </action>
     <action id="Gerrit.Copy"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeIdAction">
-      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Abandon"/>
+      <add-to-group group-id="Gerrit.ListPopup" anchor="after" relative-to-action="Gerrit.Revert"/>
     </action>
     <action id="Gerrit.CopyUrl"
             class="com.urswolfer.intellij.plugin.gerrit.ui.action.CopyChangeUrlAction">

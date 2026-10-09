@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2014 Urs Wolfer
+ * Copyright 2026 Urs Wolfer
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.google.gerrit.extensions.api.changes.AbandonInput;
+import com.google.gerrit.extensions.api.changes.RestoreInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -24,20 +24,17 @@ import com.intellij.openapi.project.Project;
 
 import java.util.Optional;
 
-/**
- * @author Urs Wolfer
- */
-public class AbandonAction extends AbstractLoggedInChangeAction {
+public class RestoreAction extends AbstractLoggedInChangeAction {
 
-    public AbandonAction() {
-        super(AllIcons.Actions.Cancel);
+    public RestoreAction() {
+        super(AllIcons.Actions.Undo);
     }
 
     @Override
     public void update(AnActionEvent e) {
         super.update(e);
         Optional<ChangeInfo> selectedChange = getSelectedChange(e);
-        if (selectedChange.isPresent() && !ChangeActionAvailability.canAbandon(selectedChange.get())) {
+        if (selectedChange.isPresent() && !ChangeActionAvailability.canRestore(selectedChange.get())) {
             e.getPresentation().setEnabled(false);
         }
     }
@@ -45,21 +42,19 @@ public class AbandonAction extends AbstractLoggedInChangeAction {
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         final Project project = anActionEvent.getProject();
-
         Optional<ChangeInfo> selectedChange = getSelectedChange(anActionEvent);
         if (project == null || !selectedChange.isPresent()) {
             return;
         }
 
-        AbandonInput abandonInput = new AbandonInput();
-
-        ChangeMessageDialog dialog = new ChangeMessageDialog(project, "Abandon Change", "Abandon", "");
+        ChangeMessageDialog dialog = new ChangeMessageDialog(project, "Restore Change", "Restore", "");
         if (!dialog.showAndGet()) {
             return;
         }
-        abandonInput.message = dialog.message();
+        RestoreInput restoreInput = new RestoreInput();
+        restoreInput.message = dialog.message();
 
-        gerritUtil.postAbandon(selectedChange.get().id, abandonInput, project,
+        gerritUtil.postRestore(selectedChange.get().id, restoreInput, project,
             result -> ActionUtil.reloadChanges(project));
     }
 }

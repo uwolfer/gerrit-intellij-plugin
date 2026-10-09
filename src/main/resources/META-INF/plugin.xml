@@ -583,6 +583,7 @@
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
     <diff.DiffExtension implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritCommentsDiffExtension"/>
     <editorFactoryListener implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.EditorComments$Installer"/>
+    <vcsAnnotationGutterActionProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritAnnotationGutterActionProvider"/>
 
     <errorHandler implementation="com.urswolfer.intellij.plugin.gerrit.errorreport.PluginErrorReportSubmitter"/>
   </extensions>

@@ -97,6 +97,19 @@ final class DiffComments {
         return editors.get(editor);
     }
 
+    /** The lines of an editor which show a comment, as it is laid out now. */
+    List<Integer> commentLines(Editor editor) {
+        List<Integer> lines = new ArrayList<>();
+        List<RangeHighlighter> placed = highlighters.get(editor);
+        if (placed == null) return lines;
+        for (RangeHighlighter highlighter : placed) {
+            if (highlighter.isValid()) {
+                lines.add(editor.getDocument().getLineNumber(highlighter.getStartOffset()));
+            }
+        }
+        return lines;
+    }
+
     AddCommentActionBuilder getAddCommentActionBuilder() {
         return addCommentActionBuilder;
     }

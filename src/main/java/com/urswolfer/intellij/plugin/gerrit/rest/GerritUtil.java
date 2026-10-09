@@ -28,6 +28,7 @@ import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.api.changes.DraftApi;
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.api.changes.ReviewInput;
+import com.google.gerrit.extensions.api.changes.RevisionApi;
 import com.google.gerrit.extensions.api.changes.SubmitInput;
 import com.google.gerrit.extensions.api.projects.BranchInfo;
 import com.google.gerrit.extensions.client.ListChangesOption;
@@ -292,17 +293,44 @@ public final class GerritUtil {
         }, consumer, project, "Failed to star Gerrit change");
     }
 
+    /**
+     * Marks the files one after the other in a single task, and stops at the first failure, which is reported once.
+     *
+     * @param consumer receives the files Gerrit has taken, also when a later one failed; not called when there is no
+     *                 login to mark files with
+     */
     public void setReviewed(final int changeNr,
                             final String revision,
-                            final String filePath,
-                            final Project project) {
+                            final Collection<String> filePaths,
+                            final boolean reviewed,
+                            final Project project,
+                            final Consumer<Set<String>> consumer) {
         if (!isLoginAndPasswordAvailable(project)) {
             return;
         }
-        callGerrit(() -> {
-            gerritApi(project).changes().id(changeNr).revision(revision).setReviewed(filePath, true);
-            return null;
-        }, __ -> {}, project, "Failed set file review status for Gerrit change");
+        final String errorMessage = reviewed
+            ? "Failed to mark file of Gerrit change as reviewed"
+            : "Failed to mark file of Gerrit change as not reviewed";
+        accessGerrit(() -> {
+            Set<String> marked = new LinkedHashSet<>();
+            RuntimeException failure = null;
+            try {
+                RevisionApi revisionApi = gerritApi(project).changes().id(changeNr).revision(revision);
+                for (String filePath : filePaths) {
+                    revisionApi.setReviewed(filePath, reviewed);
+                    marked.add(filePath);
+                }
+            } catch (RestApiException e) {
+                failure = new RuntimeException(e);
+            }
+            if (failure != null && marked.isEmpty()) {
+                throw failure;
+            }
+            if (failure != null) {
+                notifyError(failure, errorMessage, project);
+            }
+            return marked;
+        }, consumer, project, errorMessage);
     }
 
     public void getChangesToReview(Project project, Consumer<List<ChangeInfo>> consumer) {

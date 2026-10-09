@@ -26,6 +26,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
@@ -44,9 +45,19 @@ import java.util.*;
 public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDecorator, Disposable {
     private static final Logger LOG = Logger.getInstance(GerritCommentCountChangeNodeDecorator.class);
 
+    /**
+     * A character after the file name rather than an icon: the node already has the icon of its file type, and
+     * layering a mark on it, or a second icon, would have to be fitted to every icon theme and to the selected row.
+     * The text is as legible in both themes as the green is, which {@link JBColor#GREEN} has for each.
+     */
+    private static final String REVIEWED_TICK = "\u2713";
+    private static final SimpleTextAttributes REVIEWED_TICK_ATTRIBUTES =
+        new SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, JBColor.GREEN);
+
     private final GerritSettings gerritSettings = GerritSettings.getInstance();
 
     private final SelectedRevisions selectedRevisions;
+    private final ReviewedFilesService reviewedFiles;
     private final Project project;
 
     private ChangeInfo selectedChange;
@@ -59,7 +70,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     /** Loaded by {@link #loadData()}; only read and written on the event dispatch thread. */
     private Map<String, List<CommentInfo>> comments = Collections.emptyMap();
     private Map<String, List<CommentInfo>> drafts = Collections.emptyMap();
-    private Set<String> reviewed = Collections.emptySet();
 
     /** Incremented on the event dispatch thread for every load, so that a load in progress can tell it is obsolete. */
     private volatile long loadGeneration;
@@ -73,6 +83,13 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         this.project = project;
         Disposer.register(parent, this);
         this.selectedRevisions = SelectedRevisions.getInstance(project);
+        this.reviewedFiles = ReviewedFilesService.getInstance(project);
+        // a file marked by its diff or by the toggle shows at once; nodes are repainted as when data has been loaded
+        this.reviewedFiles.addListener(() -> {
+            if (!disposed && dataLoadedCallback != null) {
+                dataLoadedCallback.run();
+            }
+        }, this);
         this.selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
             public void selectedRevisionChanged(String changeId) {
@@ -104,9 +121,16 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
         String affectedFilePath = getAffectedFilePath(change);
         if (affectedFilePath != null) {
-            String text = getNodeSuffix(project, affectedFilePath);
-            if (text != null && !text.isEmpty()) {
+            String fileName = getFileName(project, affectedFilePath);
+            boolean reviewed = reviewedFiles.isReviewed(fileName);
+            if (reviewed) {
+                component.append(" " + REVIEWED_TICK, REVIEWED_TICK_ATTRIBUTES);
+            }
+            String text = getNodeSuffix(fileName);
+            if (!text.isEmpty()) {
                 component.append(String.format(" (%s)", text), SimpleTextAttributes.GRAY_ITALIC_ATTRIBUTES);
+            }
+            if (reviewed || !text.isEmpty()) {
                 component.repaint();
             }
         }
@@ -128,16 +152,14 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
     private void loadData() {
         comments = Collections.emptyMap();
         drafts = Collections.emptyMap();
-        reviewed = Collections.emptySet();
 
         final long generation = ++loadGeneration; // only written here, and this runs on the event dispatch thread
 
         final ChangeInfo change = selectedChange;
-        if (change == null) {
-            return;
-        }
-        final String revisionId = selectedRevisions.get(change);
-        if (revisionId == null) {
+        final String revisionId = change == null ? null : selectedRevisions.get(change);
+        // also forgets the reviewed files of what was selected before
+        reviewedFiles.startLoading(change, revisionId);
+        if (change == null || revisionId == null) {
             return;
         }
 
@@ -155,7 +177,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                 if (isObsolete(generation)) {
                     return;
                 }
-                final Set<String> loadedReviewed = loadReviewed(change, revisionId);
+                final Set<String> loadedReviewed = loadReviewed(change, revisionId); // null: not loaded
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
@@ -164,7 +186,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                         }
                         comments = loadedComments;
                         drafts = loadedDrafts;
-                        reviewed = loadedReviewed;
+                        if (loadedReviewed != null) {
+                            reviewedFiles.loaded(change, revisionId, loadedReviewed);
+                        } else {
+                            reviewedFiles.loadFailed(change, revisionId);
+                        }
                         if (dataLoadedCallback != null) {
                             dataLoadedCallback.run();
                         }
@@ -190,9 +216,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return null;
     }
 
-    private String getNodeSuffix(Project project, String affectedFilePath) {
-        String fileName = getRelativeOrAbsolutePath(project, affectedFilePath);
-        fileName = PathUtils.ensureSlashSeparators(fileName);
+    private String getFileName(Project project, String affectedFilePath) {
+        return PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, affectedFilePath));
+    }
+
+    private String getNodeSuffix(String fileName) {
         List<String> parts = new ArrayList<>();
 
         List<CommentInfo> commentsForFile = comments.get(fileName);
@@ -203,10 +231,6 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         List<CommentInfo> draftsForFile = drafts.get(fileName);
         if (draftsForFile != null) {
             parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
-        }
-
-        if (reviewed.contains(fileName)) {
-            parts.add("reviewed");
         }
 
         return String.join(", ", parts);
@@ -248,7 +272,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
     private Set<String> loadReviewed(ChangeInfo change, String revisionId) {
         if (!GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable()) {
-            return Collections.emptySet();
+            return null;
         }
         try {
             return GerritApiProvider.getInstance().get(GerritProjectAccount.getInstance(project).get()).changes()
@@ -257,7 +281,7 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
                     .reviewed();
         } catch (RestApiException e) {
             LOG.warn(e);
-            return Collections.emptySet();
+            return null;
         }
     }
 }

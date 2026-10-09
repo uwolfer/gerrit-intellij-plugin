@@ -607,6 +607,10 @@
             class="com.urswolfer.intellij.plugin.gerrit.ui.diff.AddCommentInDiffAction">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+    <action id="Gerrit.ToggleReviewed"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
     <action id="Gerrit.PreviousComment"
             class="com.urswolfer.intellij.plugin.gerrit.ui.diff.GoToCommentAction$Previous"
             icon="AllIcons.General.ArrowUp"

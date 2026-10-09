@@ -16,23 +16,17 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
-import com.intellij.ide.DataManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.ui.content.Content;
 import com.intellij.vcs.log.CommitId;
 import com.intellij.vcs.log.VcsLog;
 import com.intellij.vcs.log.VcsLogDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory;
 import com.urswolfer.intellij.plugin.gerrit.util.CommitChanges;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import git4idea.GitUtil;
@@ -110,21 +104,7 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
         if (hashes.isEmpty()) {
             return;
         }
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(GerritToolWindowFactory.ID);
-        if (toolWindow == null) {
-            return;
-        }
-        // creates the content on the first call, before the tool window has ever been shown
-        Content content = toolWindow.getContentManager().getContent(0);
-        if (content == null) {
-            return;
-        }
-        GerritToolWindow gerritToolWindow = GerritToolWindow.GERRIT_TOOL_WINDOW.getData(
-            DataManager.getInstance().getDataContext(content.getComponent()));
-        if (gerritToolWindow != null) {
-            gerritToolWindow.showChanges(project, getQuery(hashes));
-            toolWindow.activate(null);
-        }
+        ActionUtil.showChanges(project, getQuery(hashes));
     }
 
     /**

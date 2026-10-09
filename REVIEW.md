@@ -103,3 +103,24 @@ code which a review would otherwise keep questioning.
     two-sided viewer aligns them line by line;
   * only the diff's own folds of unchanged lines are expanded, not code folds
     in the other editor.
+* **Rebase, Restore and Revert** (`RebaseAction`, `RestoreAction`,
+  `RevertAction`, `ChangeActionAvailability`):
+  * the actions are enabled from the flags Gerrit reports and nothing else:
+    rebase is a revision action of the current revision, restore and revert are
+    change actions; an action Gerrit leaves out or does not report is disabled;
+  * "Allow rebase with conflicts" is always offered: the plugin does not ask
+    the server for its version, and one which does not know the option ignores
+    it, so a conflict is then reported as a failure;
+  * after a rebase the list is reloaded as for any action; a change checked
+    out locally stays on the patch set of HEAD, as after pushing an amended
+    commit (see the editor comments above), and its comments are those of that
+    patch set;
+  * Rebase stays enabled for a change which is up to date, as in Gerrit's web
+    UI: only the "on top of the branch" option goes, as Gerrit reports it not
+    enabled; Gerrit older than 2.9's per-revision actions never enables it;
+  * the revert dialog proposes the message of Gerrit's web UI, placeholder
+    included, which the web UI also lets through; "Revert entire submission"
+    is not offered; the new change is not looked up, only linked by its id, as
+    a failing lookup would offer a retry which creates a second revert;
+  * a retry after logging in again re-sends the request only when the login
+    was refused, so that nothing was done before.

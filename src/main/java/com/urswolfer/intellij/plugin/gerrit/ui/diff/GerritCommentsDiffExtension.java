@@ -48,6 +48,8 @@ import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.PopupHandler;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.ReviewedFilesService;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
@@ -142,6 +144,8 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         CommentNavigator navigator = new CommentNavigator(comments, twosideViewer);
         for (EditorEx editor : comments.getEditors()) {
             navigator.addEditor(editor, viewerBase);
+            editor.putUserData(ToggleReviewedAction.TARGET,
+                new ToggleReviewedAction.Target(changeInfo, selectedRevisionId, relativeFilePath));
             addActions(comments, editor);
         }
 
@@ -156,7 +160,8 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         }
 
         loadComments(comments, project, changeInfo, selectedRevisionId, baseRevision.isPresent());
-        GerritUtil.getInstance().setReviewed(changeInfo._number, selectedRevisionId, relativeFilePath, project);
+        // as Gerrit's web UI does for a file opened; "Mark as Not Reviewed" takes it back until the diff is opened again
+        ReviewedFilesService.getInstance(project).setReviewed(changeInfo, selectedRevisionId, List.of(relativeFilePath), true);
     }
 
     private void loadComments(DiffComments comments, Project project, ChangeInfo changeInfo,
@@ -208,6 +213,7 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         new GoToCommentAction.Next().registerCustomShortcutSet(next.getShortcutSet(), editor.getContentComponent());
         group.add(previous);
         group.add(next);
+        group.add(ActionManager.getInstance().getAction(ToggleReviewedAction.ID));
         PopupHandler.installPopupHandler(editor.getContentComponent(), group, "GerritCommentDiffPopup");
     }
 

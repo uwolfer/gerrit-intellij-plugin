@@ -47,6 +47,7 @@ import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitMessageProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.RebaseFilter;
@@ -124,7 +125,7 @@ public class RepositoryChangesBrowserProvider {
         return changesBrowser;
     }
 
-    private final class GerritRepositoryChangesBrowser extends CommittedChangesBrowser {
+    private final class GerritRepositoryChangesBrowser extends CommittedChangesBrowser implements ListedChangeFiles {
         private ChangeInfo selectedChange;
         private Optional<Pair<String, RevisionInfo>> baseRevision = Optional.empty();
         private Integer baseParent;
@@ -235,6 +236,22 @@ public class RepositoryChangesBrowserProvider {
             return ContainerUtil.concat(super.createDiffActions(), Arrays.asList(
                 actionManager.getAction(GoToCommentAction.PREVIOUS_ID),
                 actionManager.getAction(GoToCommentAction.NEXT_ID)));
+        }
+
+        @Override
+        public ChangeInfo getListedChange() {
+            return listedChange;
+        }
+
+        @Override
+        public String getListedRevision() {
+            return listedRevision;
+        }
+
+        @Override
+        protected @NotNull List<AnAction> createPopupMenuActions() {
+            return ContainerUtil.concat(super.createPopupMenuActions(),
+                Collections.singletonList(ActionManager.getInstance().getAction(ToggleReviewedAction.ID)));
         }
 
         @Override

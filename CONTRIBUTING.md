@@ -12,7 +12,7 @@ Please check out the following points for code contributions:
 ## Building and running
 
 ```
-./gradlew build     # compiles, instruments the .form files, runs the tests
+./gradlew build     # compiles, instruments the classes, runs the tests
 ./gradlew runIde    # a sandbox IDE with the plugin, the oldest supported one
 ```
 

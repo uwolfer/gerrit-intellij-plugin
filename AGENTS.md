@@ -77,8 +77,7 @@ git clone -q --depth 1 --filter=blob:none --no-checkout \
 ```
 
 This is what the CI `build` job runs, on JDK 17. It instruments the classes,
-which weaves the `.form` files into them and adds the `@NotNull` checks, so it is
-the command that validates a UI change. The CI `verify-latest-ide` job runs the
+which adds the `@NotNull` checks. The CI `verify-latest-ide` job runs the
 plugin verifier against `latestIdeaVersion`, a full Ultimate download, so run it
 locally only for a change which touches the platform:
 
@@ -88,13 +87,8 @@ locally only for a change which touches the platform:
 
 The first build downloads the Gradle distribution and the ~1.6 GB IntelliJ SDK.
 
-After changing a class bound to a `.form`, check that the generated
-`$$$setupUI$$$()` still ends up in the constructor you touched; a signature
-change is silently fine until it is not:
-
-```
-javap -p -c build/instrumented/instrumentCode/<class>.class | grep setupUI
-```
+Build UI in code (`FormBuilder`, `JBUI`), not with a `.form` file: the platform
+has moved on from the GUI Designer.
 
 `buildSearchableOptions` starts a headless IDE and walks every configurable, so
 it fails on a settings page which cannot be built, and its output under
@@ -122,7 +116,7 @@ What a sandbox can reach changes over time. Check rather than assume:
   com.intellij.ant.InstrumentIdeaExtensions cannot be found`, because only the
   `.pom` files arrive and the Ant classpath ends up empty. Then, and only
   then, fall back to `./gradlew test -x instrumentCode -x instrumentTestCode`,
-  which leaves the `.form` files unchecked. Not as a shortcut: once a build
+  which leaves the `@NotNull` checks out. Not as a shortcut: once a build
   has instrumented the classes, the tests run from `build/instrumented`, so
   skipping those tasks tests stale classes, and a new test method silently
   does not run. One request settles it:

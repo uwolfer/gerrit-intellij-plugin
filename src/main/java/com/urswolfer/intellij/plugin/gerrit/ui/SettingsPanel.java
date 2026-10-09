@@ -41,6 +41,7 @@ import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ui.EmptyIcon;
+import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
@@ -50,6 +51,7 @@ import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.Box;
 import javax.swing.Icon;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
@@ -60,8 +62,10 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -84,16 +88,21 @@ public class SettingsPanel {
     private static final int MAX_REFRESH_TIMEOUT = 24 * 60;
     private static final int AVATAR_SIZE = 16;
 
-    private JSpinner refreshTimeoutSpinner;
-    private JPanel pane;
-    private JCheckBox notificationOnNewReviewsCheckbox;
-    private JCheckBox automaticRefreshCheckbox;
-    private JCheckBox listAllChangesCheckbox;
-    private JCheckBox pushToGerritCheckbox;
-    private JCheckBox showAvatarsCheckBox;
-    private JCheckBox showCommentsInEditorCheckBox;
-    private JLabel minutesLabel;
-    private JLabel listAllHint;
+    private final JSpinner refreshTimeoutSpinner = new JSpinner();
+    private final JPanel pane;
+    private final JCheckBox notificationOnNewReviewsCheckbox =
+        new JCheckBox("Show notifications for new changes waiting for my review");
+    private final JCheckBox automaticRefreshCheckbox =
+        new JCheckBox("Check for new changes automatically every:");
+    private final JCheckBox listAllChangesCheckbox =
+        new JCheckBox("List all Gerrit changes (instead of changes from the currently open project only)");
+    private final JCheckBox pushToGerritCheckbox = new JCheckBox("Push commits to Gerrit by default");
+    private final JCheckBox showAvatarsCheckBox = new JCheckBox("Show avatars");
+    private final JCheckBox showCommentsInEditorCheckBox =
+        new JCheckBox("Show the comments of the checked out changes in the editor");
+    private final JLabel minutesLabel = new JLabel("minutes");
+    private final JLabel listAllHint = new JLabel(
+        "Enable if you have many Gerrit projects in one directory and get \"too many terms in query\".");
 
     private final Project project;
 
@@ -115,6 +124,10 @@ public class SettingsPanel {
         projectEnabledCheckbox.setVisible(!project.isDefault());
 
         styleHints(listAllHint);
+        // the offset is in pixels already, which JBUI.Borders would scale again
+        listAllHint.setBorder(new EmptyBorder(0, UIUtil.getCheckBoxTextHorizontalOffset(listAllChangesCheckbox), 0, 0));
+        minutesLabel.setLabelFor(refreshTimeoutSpinner);
+        pane = createSettingsPane();
 
         automaticRefreshCheckbox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -124,6 +137,45 @@ public class SettingsPanel {
 
         // A timeout of 0 or less silently stops the automatic refresh.
         refreshTimeoutSpinner.setModel(new SpinnerNumberModel(MIN_REFRESH_TIMEOUT, MIN_REFRESH_TIMEOUT, MAX_REFRESH_TIMEOUT, 1));
+    }
+
+    /** FormBuilder stretches a component over the row, which would make the empty space beside a check box clickable. */
+    private static JComponent atLeft(JComponent component) {
+        return JBUI.Panels.simplePanel().addToLeft(component);
+    }
+
+    private JPanel createSettingsPane() {
+        JPanel changeList = FormBuilder.createFormBuilder()
+            .addComponent(atLeft(listAllChangesCheckbox))
+            .addComponent(listAllHint)
+            .addComponent(atLeft(showAvatarsCheckBox))
+            .getPanel();
+        changeList.setBorder(IdeBorderFactory.createTitledBorder("Change list"));
+
+        JPanel refresh = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        refresh.add(automaticRefreshCheckbox);
+        refresh.add(Box.createHorizontalStrut(JBUI.scale(10)));
+        refresh.add(refreshTimeoutSpinner);
+        minutesLabel.setBorder(JBUI.Borders.emptyLeft(10));
+        refresh.add(minutesLabel);
+        JPanel notifications = FormBuilder.createFormBuilder()
+            .addComponent(refresh)
+            .addComponent(atLeft(notificationOnNewReviewsCheckbox))
+            .getPanel();
+        notifications.setBorder(IdeBorderFactory.createTitledBorder("Notifications"));
+
+        JPanel git = FormBuilder.createFormBuilder()
+            .addComponent(atLeft(pushToGerritCheckbox))
+            .addComponent(atLeft(showCommentsInEditorCheckBox))
+            .getPanel();
+        git.setBorder(IdeBorderFactory.createTitledBorder("Git"));
+
+        return FormBuilder.createFormBuilder()
+            .addComponent(changeList)
+            .addComponent(notifications)
+            .addComponent(git)
+            .addComponentFillVertically(new JPanel(), 0)
+            .getPanel();
     }
 
     static void styleHints(JLabel... hints) {

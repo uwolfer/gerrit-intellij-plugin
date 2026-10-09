@@ -140,3 +140,17 @@ code which a review would otherwise keep questioning.
     a failing lookup would offer a retry which creates a second revert;
   * a retry after logging in again re-sends the request only when the login
     was refused, so that nothing was done before.
+* **Reviewers and CCs of a feature merge change** (`CreateFeatureMergeChangeAction`,
+  `MergeChangeReviewers`, `GerritUtil.addReviewers`):
+  * Gerrit's change creation takes none, so they are added once the change
+    exists, one request each: an account Gerrit rejects is named with its own
+    reason, and the others still go in. Gerrit's web UI posts them in one
+    review, which only reports the failures as a whole;
+  * the names are not checked before the change is created: only Gerrit can
+    say whether an account resolves, and the notification says which did not;
+  * the suggestions are those of the push dialog's fields
+    (`PushAccountCompletionProvider`), which insert the value a push reference
+    can carry, a username first; the comma split is not shared with the push
+    panel, whose class is copied into the Git plugin class loader;
+  * a `ProcessCanceledException` is rethrown; the requests are blocking HTTP
+    calls which never check for a cancellation, so none comes from them.

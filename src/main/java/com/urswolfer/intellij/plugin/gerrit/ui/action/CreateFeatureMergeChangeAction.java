@@ -5,6 +5,7 @@
  */
 package com.urswolfer.intellij.plugin.gerrit.ui.action;
 
+import com.google.gerrit.extensions.api.changes.ReviewerInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ChangeInput;
 import com.google.gerrit.extensions.common.MergeInput;
@@ -19,12 +20,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.ValidationInfo;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.Consumer;
+import com.intellij.util.textCompletion.TextFieldWithCompletion;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.push.PushAccountCompletionProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings("ComponentNotRegistered")
@@ -254,14 +257,36 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         ChangeInput input = createInput(dialog.projectField.getText(), dialog.getMergeSource(),
                 dialog.getSourceBranch(), dialog.targetBranchField.getText(),
                 dialog.subjectField.getText(), dialog.topicField.getText());
+        final List<ReviewerInput> reviewers = MergeChangeReviewers.inputs(
+                dialog.reviewersField.getText(), dialog.ccField.getText());
         gerritUtil.createMergeChange(input, project, new Consumer<ChangeInfo>() {
             @Override
-            public void consume(ChangeInfo changeInfo) {
-                ActionUtil.reloadChanges(project);
-                notificationService.notifyInformation(new NotificationBuilder(project, GerritBundle.message("merge.created.title"),
-                        GerritBundle.message("merge.created.text", String.valueOf(changeInfo._number), StringUtil.escapeXmlEntities(changeInfo.subject))));
+            public void consume(final ChangeInfo changeInfo) {
+                if (reviewers.isEmpty()) {
+                    ActionUtil.reloadChanges(project);
+                    notifyCreated(project, changeInfo, Collections.<String, String>emptyMap());
+                    return;
+                }
+                gerritUtil.addReviewers(changeInfo.id, reviewers, project, new Consumer<Map<String, String>>() {
+                    @Override
+                    public void consume(Map<String, String> failures) {
+                        ActionUtil.reloadChanges(project);
+                        notifyCreated(project, changeInfo, failures);
+                    }
+                });
             }
         });
+    }
+
+    private void notifyCreated(Project project, ChangeInfo changeInfo, Map<String, String> failures) {
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("merge.created.title"),
+                MergeChangeReviewers.createdText(String.valueOf(changeInfo._number), changeInfo.subject, failures));
+        // the change exists either way: a warning, not an error
+        if (failures.isEmpty()) {
+            notificationService.notifyInformation(notification);
+        } else {
+            notificationService.notifyWarning(notification);
+        }
     }
 
     static String defaultSubject(String sourceBranch) {
@@ -278,6 +303,8 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         private final FeatureMergeBranchSelector targetBranchField;
         private final JTextField subjectField = new JTextField();
         private final JTextField topicField = new JTextField();
+        private final TextFieldWithCompletion reviewersField;
+        private final TextFieldWithCompletion ccField;
         private final MergeDefaults defaults;
         private final Project project;
         private final javax.swing.Timer branchRefreshTimer;
@@ -288,6 +315,10 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             this.project = project;
             this.defaults = defaults;
             projectField.setText(defaults.project);
+            reviewersField = new TextFieldWithCompletion(project, new PushAccountCompletionProvider(project), "", true, true, false);
+            ccField = new TextFieldWithCompletion(project, new PushAccountCompletionProvider(project), "", true, true, false);
+            reviewersField.setToolTipText(GerritBundle.message("merge.field.reviewers.tooltip"));
+            ccField.setToolTipText(GerritBundle.message("merge.field.reviewers.tooltip"));
             sourceBranchField = new FeatureMergeBranchSelector(project, defaults.sourceBranch);
             targetBranchField = new FeatureMergeBranchSelector(project, defaults.targetBranch);
             subjectField.setText(defaultSubject(defaults.sourceBranch));
@@ -433,7 +464,9 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             addRow(panel, row++, GerritBundle.message("merge.label.source"), sourceBranchField);
             addRow(panel, row++, GerritBundle.message("merge.label.target"), targetBranchField);
             addRow(panel, row++, GerritBundle.message("merge.label.subject"), subjectField);
-            addRow(panel, row, GerritBundle.message("merge.label.topic"), topicField);
+            addRow(panel, row++, GerritBundle.message("merge.label.topic"), topicField);
+            addRow(panel, row++, GerritBundle.message("merge.label.reviewers"), reviewersField);
+            addRow(panel, row, GerritBundle.message("merge.label.ccs"), ccField);
             return panel;
         }
     }

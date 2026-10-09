@@ -36,6 +36,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.Optional;
 
+/**
+ * Settled, a review should not raise these again (Restore and Revert too):
+ *
+ * <ul>
+ *   <li>"Allow rebase with conflicts" is always offered: the plugin does not ask the server for its version, and one
+ *   which does not know the option ignores it, so a conflict is then reported as a failure;</li>
+ *   <li>Rebase stays enabled for a change which is up to date, as in Gerrit's web UI; only the "on top of the branch"
+ *   option goes.</li>
+ * </ul>
+ */
 public class RebaseAction extends AbstractLoggedInChangeAction {
 
     public RebaseAction() {

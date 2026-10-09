@@ -32,6 +32,18 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * TODO once the minimum IDE has AnAction.getActionUpdateThread (2020.3 has not, 2026.2 has): return
  *  ActionUpdateThread.EDT, which 2026.2 only infers from update() being overridden without UpdateInBackground.
+ *
+ * <p>
+ * Settled, a review should not raise these again:
+ *
+ * <ul>
+ *   <li>the shortcuts are those of Previous/Next Occurrence, as in the bundled GitHub plugin; the actions are also
+ *   registered on each diff editor, so that they come before Next Occurrence there, rather than through an {@code
+ *   ActionPromoter};</li>
+ *   <li>from a shortcut they stay enabled in every Gerrit diff and show a hint at the ends or without comments,
+ *   rather than letting the key go on to the last search;</li>
+ *   <li>they stop at the ends; Gerrit's web UI goes on to the next file, which the diff chain would have to do.</li>
+ * </ul>
  */
 public abstract class GoToCommentAction extends DumbAwareAction {
     public static final String NEXT_ID = "Gerrit.NextComment";

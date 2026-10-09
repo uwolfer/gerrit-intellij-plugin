@@ -35,6 +35,14 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * <ul>
+ *   <li>the dialog proposes the message of Gerrit's web UI, placeholder included, which the web UI also lets
+ *   through;</li>
+ *   <li>the new change is only linked by its id, not looked up: a failing lookup would offer a retry which creates a
+ *   second revert.</li>
+ * </ul>
+ */
 public class RevertAction extends AbstractLoggedInChangeAction {
     private static final Pattern REVERT_SUBJECT = Pattern.compile("^Revert(?:\\^([0-9]{1,6}))? \"(.*)\"$");
 

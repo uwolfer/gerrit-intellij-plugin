@@ -49,6 +49,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Reviewers and CCs (settled):
+ *
+ * <ul>
+ *   <li>Gerrit's change creation takes none, so they are added once the change exists, one request each, so that an
+ *   account Gerrit rejects is named with its own reason and the others still go in;</li>
+ *   <li>the names are not checked beforehand: only Gerrit can say whether an account resolves;</li>
+ *   <li>a {@code ProcessCanceledException} is rethrown; the requests are blocking HTTP calls which never check for a
+ *   cancellation, so none comes from them.</li>
+ * </ul>
+ */
 @SuppressWarnings("ComponentNotRegistered")
 public class CreateFeatureMergeChangeAction extends AnAction implements DumbAware, UpdateInBackground {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();

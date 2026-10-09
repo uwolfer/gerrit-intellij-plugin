@@ -120,8 +120,9 @@ final class DiffComments {
 
 
     /**
-     * Shows the comments again where one is no longer on the line the mapping gives it. Their highlighters move with
-     * the text, so after most edits of the file they are where they belong already, and stay.
+     * Shows the comments again where one is no longer on the line the mapping gives it, or no longer the one shown, as
+     * after comments loaded again meanwhile. Their highlighters move with the text, so after most edits of the file
+     * they are where they belong already, and stay.
      */
     void relayout() {
         if (disposed.getAsBoolean()) return;
@@ -148,6 +149,10 @@ final class DiffComments {
             if (index >= placed.size()) return false;
             RangeHighlighter highlighter = placed.get(index++);
             if (!highlighter.isValid() || document.getLineNumber(highlighter.getStartOffset()) != line) return false;
+            // the same object, not an equal one: a draft published meanwhile has the same id, line and text
+            if (((CommentGutterIconRenderer) highlighter.getGutterIconRenderer()).getComment() != shownComment.comment) {
+                return false;
+            }
             if (!isRangeLaidOut(document, mapping, shownComment, highlighter)) return false;
         }
         return index == placed.size();

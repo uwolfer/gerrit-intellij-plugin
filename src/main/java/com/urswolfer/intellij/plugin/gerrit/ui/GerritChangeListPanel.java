@@ -18,6 +18,7 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
@@ -39,8 +40,11 @@ import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.StatusText;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
+import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * A table with the list of changes.
@@ -75,6 +80,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     /** The columns which can be shown or hidden, in their order in the table. */
     public static final DataKey<List<GerritChangeColumns.ColumnToggle>> COLUMNS = DataKey.create("Gerrit.Columns");
 
+    private final Project project;
     private final SelectedRevisions selectedRevisions;
 
     private final List<ChangeInfo> changes;
@@ -84,11 +90,16 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private boolean rebuildingColumns;
     private LoadChangesProxy loadChangesProxy = null;
     private String listedQuery;
+    /** The load which listed the changes, which pages them while a later one has not answered or failed. */
+    private LoadChangesProxy listedProxy;
+    private Runnable clearFilters;
+    private Runnable retry;
 
     private final JScrollPane scrollPane;
     private final GerritChangeColumns columns;
 
     public GerritChangeListPanel(Project project) {
+        this.project = project;
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.changes = new ArrayList<>();
 
@@ -132,10 +143,12 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     /**
      * @param lookup whether the changes were looked up for commits: the only one found is selected, which shows its
      *               details
+     * @param filtersNarrowed whether a filter is set to something else than at the start, which an empty answer is
+     *               then blamed on
      * @param query  when it is the one of the listed changes, at least as many are loaded again, so that one which was
      *               loaded by scrolling down stays listed and selected
      */
-    public void load(LoadChangesProxy proxy, boolean lookup, String query) {
+    public void load(LoadChangesProxy proxy, boolean lookup, String query, boolean filtersNarrowed) {
         loadChangesProxy = proxy;
         int minimum = query.equals(listedQuery) ? changes.size() : 0;
         proxy.getFirstChanges(minimum, new Consumer<List<ChangeInfo>>() {
@@ -145,10 +158,18 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 if (proxy != loadChangesProxy) {
                     return;
                 }
+                if (proxy.hasFailed()) {
+                    // reported to the user already; the changes listed before it stay, as there is no answer to
+                    // replace them with. The text is for when they go, instead of the one of the load.
+                    // the proxy which loaded them is also the one which loads their next pages
+                    loadChangesProxy = listedProxy;
+                    showFailure(proxy.getFailure());
+                    return;
+                }
                 listedQuery = query;
+                listedProxy = proxy;
                 setChanges(changeInfos);
-                // a commit without a change is the usual reason for an empty lookup, a failed query the other
-                setupEmptyTableHint(lookup ? "No change found for the selected commits. " : "No changes to display. ");
+                setupEmptyTableHint(ChangeListEmptyText.of(lookup, filtersNarrowed));
                 // at its current patch set, which reviews and the other actions go to
                 if (lookup && changeInfos.size() == 1) {
                     table.setSelection(changeInfos);
@@ -193,21 +214,83 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         }.registerCustomShortcutSet(CommonShortcuts.ENTER, table);
     }
 
-    private void setupEmptyTableHint(String lead) {
+    /**
+     * What the list says while there is nothing to show yet, rather than looking empty.
+     */
+    public void showLoading() {
+        table.getEmptyText().setText(GerritBundle.message("list.empty.loading"));
+    }
+
+    /**
+     * @param clearFilters puts the filters back to their defaults and loads again
+     * @param retry        loads again
+     */
+    public void setEmptyTextActions(Runnable clearFilters, Runnable retry) {
+        this.clearFilters = clearFilters;
+        this.retry = retry;
+    }
+
+    private void setupEmptyTableHint(ChangeListEmptyText.Kind kind) {
         StatusText emptyText = table.getEmptyText();
         emptyText.clear();
-        emptyText.appendText(
-            lead +
-            "If you expect changes, there might be a configuration issue. " +
-            "Click "
-        );
-        emptyText.appendText("here", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty");
+        switch (kind) {
+            case NO_MATCH:
+                emptyText.appendText(GerritBundle.message("list.empty.filtered") + " ");
+                emptyText.appendText(GerritBundle.message("list.empty.filtered.clear"),
+                    SimpleTextAttributes.LINK_ATTRIBUTES, runLater(() -> clearFilters));
+                break;
+            case NO_LOOKUP_RESULT:
+                // a commit without a change is the usual reason
+                emptyText.appendText(GerritBundle.message("list.empty.lookup") + " ");
+                appendConfigurationHint(emptyText);
+                break;
+            default:
+                emptyText.appendText(GerritBundle.message("list.empty.none") + " ");
+                appendConfigurationHint(emptyText);
+        }
+    }
+
+    private void showFailure(@Nullable RestApiException failure) {
+        GerritAccount account = GerritProjectAccount.getInstance(project).get();
+        boolean refused = failure != null && account != null && GerritUtil.isRefusal(failure, account);
+        String reason = failure == null ? null : ChangeListEmptyText.reason(failure.getMessage());
+        StatusText emptyText = table.getEmptyText();
+        emptyText.clear();
+        emptyText.appendText((reason != null
+            ? GerritBundle.message("list.empty.failed.reason", reason)
+            : GerritBundle.message("list.empty.failed")) + " ");
+        if (refused) {
+            emptyText.appendText(GerritBundle.message("list.empty.failed.login"), SimpleTextAttributes.LINK_ATTRIBUTES,
+                // saving the credentials announces the change, which loads the list again
+                event -> GerritAccountDialog.logIn(project, account));
+            emptyText.appendText(" ");
+        }
+        emptyText.appendText(GerritBundle.message("list.empty.failed.retry"), SimpleTextAttributes.LINK_ATTRIBUTES,
+            runLater(() -> retry));
+    }
+
+    /**
+     * The actions are set by the tool window after the panel is built; the link is only clicked later.
+     */
+    private static ActionListener runLater(Supplier<Runnable> action) {
+        return event -> {
+            Runnable runnable = action.get();
+            if (runnable != null) {
+                runnable.run();
             }
-        });
-        emptyText.appendText(" for hints.");
+        };
+    }
+
+    private static void appendConfigurationHint(StatusText emptyText) {
+        emptyText.appendText(GerritBundle.message("list.empty.hint") + " ");
+        emptyText.appendText(GerritBundle.message("list.empty.hint.link"), SimpleTextAttributes.LINK_ATTRIBUTES,
+            new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    BrowserUtil.browse("https://github.com/uwolfer/gerrit-intellij-plugin#list-of-changes-is-empty");
+                }
+            });
+        emptyText.appendText(" " + GerritBundle.message("list.empty.hint.end"));
     }
 
     /**
@@ -217,6 +300,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     public void clear() {
         loadChangesProxy = null;
         listedQuery = null;
+        listedProxy = null;
         setChanges(Collections.emptyList());
         // until a load says what there is, or the setup hint what is missing; neither may come if the load fails
         table.getEmptyText().setText("Nothing to show");

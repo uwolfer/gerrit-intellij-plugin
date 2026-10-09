@@ -50,6 +50,7 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     private AnAction selectOkAction;
     private JTextArea selectUserTextArea;
     private Optional<User> value = Optional.empty();
+    private UserPopupAction action;
 
     public abstract String getActionLabel();
     public abstract String getQueryField();
@@ -61,7 +62,16 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
                 new User("Me", "self")
         );
         value = Optional.of(users.get(0));
-        return new UserPopupAction(getActionLabel());
+        action = new UserPopupAction(getActionLabel());
+        return action;
+    }
+
+    @Override
+    void reset() {
+        if (users != null) {
+            value = Optional.of(users.get(0));
+            action.showValue();
+        }
     }
 
     @Override
@@ -89,6 +99,10 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     public final class UserPopupAction extends BasePopupAction {
         public UserPopupAction(String labelText) {
             super(labelText);
+            showValue();
+        }
+
+        private void showValue() {
             updateFilterValueLabel(value.get().label);
         }
 

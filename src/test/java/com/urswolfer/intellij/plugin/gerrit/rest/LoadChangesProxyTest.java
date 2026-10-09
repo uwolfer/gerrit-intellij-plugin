@@ -87,6 +87,16 @@ public class LoadChangesProxyTest {
         Assert.assertTrue(proxy.next(25).isEmpty());
         Assert.assertTrue(last.requests.isEmpty());
         Assert.assertFalse(proxy.hasMore());
+        Assert.assertTrue(proxy.hasFailed());
+    }
+
+    @Test
+    public void testLoadWithoutFailureHasNotFailed() {
+        LoadChangesProxy proxy = new LoadChangesProxy(
+            Arrays.asList(new FakeQuery(change(1, 100))), new GerritUtil(), null);
+
+        Assert.assertEquals(numbers(proxy.next(25)), Arrays.asList(1));
+        Assert.assertFalse(proxy.hasFailed());
     }
 
     @Test

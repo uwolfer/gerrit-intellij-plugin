@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import org.jetbrains.annotations.Nullable;
@@ -51,6 +52,8 @@ public class LoadChangesProxy {
     private final GerritUtil gerritUtil;
     private final Project project;
     private volatile boolean hasMore = true;
+    private volatile boolean failed;
+    private volatile RestApiException failure;
     private final AtomicBoolean loading = new AtomicBoolean(false);
 
     public LoadChangesProxy(List<Changes.QueryRequest> queryRequests,
@@ -121,6 +124,7 @@ public class LoadChangesProxy {
             for (Source source : sources) {
                 ChangeInfo head = source.head(fetchLimit);
                 if (source.failed) {
+                    failed = true;
                     // the failure is already reported; stop rather than report it again for each query
                     sources.forEach(Source::stop);
                     newest = null;
@@ -139,6 +143,18 @@ public class LoadChangesProxy {
         }
         hasMore = sources.stream().anyMatch(source -> source.hasMore || !source.pending.isEmpty());
         return page;
+    }
+
+    /**
+     * Whether a query failed, which was reported to the user already; what was loaded before it is all there is.
+     */
+    public boolean hasFailed() {
+        return failed;
+    }
+
+    @Nullable
+    public RestApiException getFailure() {
+        return failure;
     }
 
     @VisibleForTesting
@@ -178,8 +194,8 @@ public class LoadChangesProxy {
         }
 
         private void fetch(int limit) {
-            List<ChangeInfo> changeInfos =
-                gerritUtil.queryChanges(queryRequest.withLimit(limit).withStart(fetched), project);
+            List<ChangeInfo> changeInfos = gerritUtil.queryChanges(
+                queryRequest.withLimit(limit).withStart(fetched), project, e -> failure = e);
             if (changeInfos == null) {
                 failed = true;
                 return;

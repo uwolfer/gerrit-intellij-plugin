@@ -41,6 +41,8 @@ public class StatusFilter extends AbstractChangesFilter {
             new Status("Abandoned", "abandoned")
     );
 
+    private static final Status DEFAULT = STATUSES.get(1);
+
     private static final Supplier<String> QUERY_FOR_ALL = new Supplier<String>() {
         @Override
         public String get() {
@@ -55,14 +57,24 @@ public class StatusFilter extends AbstractChangesFilter {
     };
 
     private Optional<Status> value = Optional.empty();
+    private StatusPopupAction action;
 
     public StatusFilter() {
-        value = Optional.of(STATUSES.get(1));
+        value = Optional.of(DEFAULT);
     }
 
     @Override
     public AnAction getAction(final Project project) {
-        return new StatusPopupAction("Status");
+        action = new StatusPopupAction("Status");
+        return action;
+    }
+
+    @Override
+    void reset() {
+        value = Optional.of(DEFAULT);
+        if (action != null) {
+            action.showValue();
+        }
     }
 
     @Override
@@ -92,6 +104,10 @@ public class StatusFilter extends AbstractChangesFilter {
     public final class StatusPopupAction extends BasePopupAction {
         public StatusPopupAction(String labelText) {
             super(labelText);
+            showValue();
+        }
+
+        private void showValue() {
             updateFilterValueLabel(value.get().label);
         }
 

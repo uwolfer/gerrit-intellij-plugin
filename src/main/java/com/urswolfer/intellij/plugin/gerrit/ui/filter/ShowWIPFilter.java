@@ -36,6 +36,11 @@ public class ShowWIPFilter extends AbstractChangesFilter {
         return new ShowWIPActionFilter();
     }
 
+    @Override
+    void reset() {
+        value = true;
+    }
+
     private void setValue(boolean value) {
         this.value = value;
         fireFilterChanged();

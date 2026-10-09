@@ -30,6 +30,11 @@ public abstract class AbstractChangesFilter implements ChangesFilter  {
         eventDispatcher.addListener(listener);
     }
 
+    /**
+     * Puts the filter back to what it is set to at the start, without notifying the listeners.
+     */
+    abstract void reset();
+
     protected void fireFilterChanged() {
         eventDispatcher.getMulticaster().filterChanged();
     }

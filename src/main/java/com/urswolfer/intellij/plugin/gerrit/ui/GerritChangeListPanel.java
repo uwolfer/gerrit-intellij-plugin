@@ -19,14 +19,22 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DataProvider;
 import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.DoubleClickListener;
 import com.intellij.ui.PopupHandler;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.SimpleTextAttributes;
+import com.intellij.ui.speedSearch.SpeedSearchSupply;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.intellij.util.ui.ListTableModel;
@@ -45,6 +53,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -89,6 +98,8 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
 
         PopupHandler.installPopupHandler(table, "Gerrit.ListPopup", ActionPlaces.UNKNOWN);
         PopupHandler.installPopupHandler(table.getTableHeader(), "Gerrit.ColumnsPopup", ActionPlaces.UNKNOWN);
+
+        installOpenChangeHandlers();
 
         updateModel(changes);
         table.setStriped(true);
@@ -144,6 +155,42 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
                 }
             }
         });
+    }
+
+    /** Enter and a double-click open the selected change like "Compare with Branch" in the popup does. */
+    private void installOpenChangeHandlers() {
+        Runnable open = () -> {
+            AnAction compare = ActionManager.getInstance().getAction("Gerrit.CompareBranch");
+            if (compare != null && table.getSelectedObject() != null) {
+                ActionUtil.invokeAction(
+                    compare, table, ActionPlaces.UNKNOWN, null, null);
+            }
+        };
+        new DoubleClickListener() {
+            @Override
+            protected boolean onDoubleClick(@NotNull MouseEvent event) {
+                if (table.rowAtPoint(event.getPoint()) < 0) {
+                    return false;
+                }
+                open.run();
+                return true;
+            }
+        }.installOn(table);
+        // replaces the table's own Enter, which moves the selection down
+        new DumbAwareAction() {
+            @Override
+            public void update(@NotNull AnActionEvent e) {
+                // otherwise the key goes on to the table: Enter ends a type-ahead search
+                SpeedSearchSupply search = SpeedSearchSupply.getSupply(table);
+                e.getPresentation().setEnabled(table.getSelectedObject() != null
+                    && (search == null || !search.isPopupActive()));
+            }
+
+            @Override
+            public void actionPerformed(@NotNull AnActionEvent e) {
+                open.run();
+            }
+        }.registerCustomShortcutSet(CommonShortcuts.ENTER, table);
     }
 
     private void setupEmptyTableHint(String lead) {

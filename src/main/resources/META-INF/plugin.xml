@@ -699,7 +699,8 @@
     </action>
 
     <action id="Gerrit.Refresh"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshAction">
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.RefreshAction"
+            use-shortcut-of="Refresh">
       <add-to-group group-id="Gerrit.Toolbar" anchor="first"/>
     </action>
     <action id="Gerrit.Settings"

@@ -18,13 +18,27 @@ package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
 import com.intellij.util.EventDispatcher;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.EventListener;
+import java.util.Map;
 
 /**
  * @author Thomas Forrer
  */
 public abstract class AbstractChangesFilter implements ChangesFilter  {
     private final EventDispatcher<Listener> eventDispatcher = EventDispatcher.create(Listener.class);
+
+    /**
+     * Adds what differs from the default to the state; a filter at its default adds nothing.
+     */
+    public abstract void saveState(@NotNull Map<String, String> state);
+
+    /**
+     * Takes over what {@link #saveState} wrote, or the default for a value which is missing or does not fit any
+     * more. Does not notify the listeners.
+     */
+    public abstract void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment);
 
     public void addListener(Listener listener) {
         eventDispatcher.addListener(listener);
@@ -33,7 +47,9 @@ public abstract class AbstractChangesFilter implements ChangesFilter  {
     /**
      * Puts the filter back to what it is set to at the start, without notifying the listeners.
      */
-    abstract void reset();
+    void reset() {
+        restoreState(Map.of(), FilterEnvironment.UNKNOWN);
+    }
 
     protected void fireFilterChanged() {
         eventDispatcher.getMulticaster().filterChanged();

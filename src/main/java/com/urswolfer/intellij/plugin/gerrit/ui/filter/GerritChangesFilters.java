@@ -16,11 +16,19 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.util.EventDispatcher;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.EventListener;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +55,55 @@ public class GerritChangesFilters implements AbstractChangesFilter.Listener {
             filter.addListener(this);
         }
         defaultQuery = getQuery();
+    }
+
+    /**
+     * What the filters differ from their defaults by; a filter at its default adds nothing.
+     */
+    @NotNull
+    public Map<String, String> saveState() {
+        Map<String, String> state = new HashMap<>();
+        for (AbstractChangesFilter filter : filters) {
+            filter.saveState(state);
+        }
+        return state;
+    }
+
+    /**
+     * Takes over a state saved by {@link #saveState}; a filter whose value is missing or does not fit any more is at
+     * its default. Does not notify the listeners, as the list is not loaded yet when this is called.
+     */
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
+        for (AbstractChangesFilter filter : filters) {
+            filter.restoreState(state, environment);
+        }
+    }
+
+    /**
+     * Takes over what was saved for the project, if the filters are not shown yet.
+     */
+    public void restore(@NotNull Project project) {
+        restoreState(GerritProjectSettings.getInstance(project).getFilters(), environmentOf(project));
+    }
+
+    public void save(@NotNull Project project) {
+        GerritProjectSettings.getInstance(project).setFilters(saveState());
+    }
+
+    private static FilterEnvironment environmentOf(Project project) {
+        return new FilterEnvironment() {
+            @Override
+            public boolean isLoggedIn() {
+                GerritAccount account = GerritProjectAccount.getInstance(project).get();
+                return account != null && !account.login.isEmpty();
+            }
+
+            @NotNull
+            @Override
+            public Map<String, Set<String>> getRemoteBranches() {
+                return BranchFilter.getRemoteBranches(project);
+            }
+        };
     }
 
     public void addListener(Listener listener) {

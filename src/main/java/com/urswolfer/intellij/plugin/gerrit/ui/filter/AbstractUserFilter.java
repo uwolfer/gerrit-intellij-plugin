@@ -30,11 +30,13 @@ import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -45,11 +47,20 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
 
-    private List<User> users;
+    private static final User ALL = new User("All", null);
+    private static final User ME = new User("Me", "self");
+    private static final List<User> USERS = List.of(ALL, ME);
+
     private JBPopup popup;
     private AnAction selectOkAction;
     private JTextArea selectUserTextArea;
-    private Optional<User> value = Optional.empty();
+    private User value = ALL;
+    /**
+     * "Me" which was saved but could not be applied without a login, kept until the user changes this filter: the
+     * login may only be missing for now.
+     */
+    @Nullable
+    private String withoutLogin;
     private UserPopupAction action;
 
     public abstract String getActionLabel();
@@ -57,19 +68,39 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
 
     @Override
     public AnAction getAction(final Project project) {
-        users = List.of(
-                new User("All", null),
-                new User("Me", "self")
-        );
-        value = Optional.of(users.get(0));
         action = new UserPopupAction(getActionLabel());
         return action;
     }
 
     @Override
-    void reset() {
-        if (users != null) {
-            value = Optional.of(users.get(0));
+    public void saveState(@NotNull Map<String, String> state) {
+        if (value.forQuery.isPresent()) {
+            state.put(getQueryField(), value.forQuery.get());
+        } else if (withoutLogin != null) {
+            state.put(getQueryField(), withoutLogin);
+        }
+    }
+
+    @Override
+    public void restoreState(@NotNull Map<String, String> state, @NotNull FilterEnvironment environment) {
+        String saved = state.get(getQueryField());
+        value = ALL;
+        withoutLogin = null;
+        if (saved != null && !saved.trim().isEmpty()) {
+            String query = saved.trim();
+            Optional<User> known = USERS.stream().filter(user -> user.forQuery.equals(Optional.of(query))).findFirst();
+            if (known.isPresent()) {
+                // "self" is an error for Gerrit without a login, which would leave the list empty
+                if (environment.isLoggedIn() || known.get() != ME) {
+                    value = known.get();
+                } else {
+                    withoutLogin = query;
+                }
+            } else {
+                value = new User(query, query);
+            }
+        }
+        if (action != null) {
             action.showValue();
         }
     }
@@ -77,8 +108,8 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     @Override
     @Nullable
     public String getSearchQueryPart() {
-        if (value.isPresent() && value.get().forQuery.isPresent()) {
-            String queryValue = value.get().forQuery.get();
+        if (value.forQuery.isPresent()) {
+            String queryValue = value.forQuery.get();
             queryValue = FulltextFilter.specialEncodeFulltextQuery(queryValue);
             return String.format("%s:%s", getQueryField(), queryValue);
         } else {
@@ -99,16 +130,16 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
     public final class UserPopupAction extends BasePopupAction {
         public UserPopupAction(String labelText) {
             super(labelText);
-            showValue();
+            updateFilterValueLabel(value.label);
         }
 
-        private void showValue() {
-            updateFilterValueLabel(value.get().label);
+        void showValue() {
+            updateFilterValueLabel(value.label);
         }
 
         @Override
         protected void createActions(Consumer<AnAction> actionConsumer) {
-            for (final User user : users) {
+            for (final User user : USERS) {
                 actionConsumer.consume(new DumbAwareAction(user.label) {
                     @Override
                     public void actionPerformed(AnActionEvent e) {
@@ -141,7 +172,8 @@ public abstract class AbstractUserFilter extends AbstractChangesFilter {
         }
 
         private void change(User user) {
-            value = Optional.of(user);
+            value = user;
+            withoutLogin = null;
             updateFilterValueLabel(user.label);
             fireFilterChanged();
         }

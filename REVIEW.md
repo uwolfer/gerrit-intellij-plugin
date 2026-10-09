@@ -154,3 +154,7 @@ code which a review would otherwise keep questioning.
     panel, whose class is copied into the Git plugin class loader;
   * a `ProcessCanceledException` is rethrown; the requests are blocking HTTP
     calls which never check for a cancellation, so none comes from them.
+* **Error texts** (`GerritUtil.getErrorTextFromException`): the class name of
+  a wrapper goes only for a cause with a message; a message-less cause
+  (`ConnectException`) stays wrapped, as its class name is all there is to
+  show, and is not logged as an error.

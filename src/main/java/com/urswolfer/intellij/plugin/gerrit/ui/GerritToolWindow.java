@@ -314,9 +314,9 @@ public class GerritToolWindow implements Disposable {
         if (requestSettingsIfNonExistent && projectAccount.needsChoice()) {
             chooseAccount(project, projectAccount);
         }
-        // the account chosen can be one without an instance yet, such as one taken over from an earlier version
+        // none at all, or the one chosen without an instance yet, such as one taken over from an earlier version
         if (requestSettingsIfNonExistent && !projectAccount.needsChoice() && projectAccount.getHost().isEmpty()) {
-            new LoginDialog(project).show();
+            GerritAccountDialog.logIn(project, projectAccount.get());
         }
         GerritAccount account = projectAccount.get();
         if (!canList(account)) {

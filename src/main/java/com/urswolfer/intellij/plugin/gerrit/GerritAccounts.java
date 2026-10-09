@@ -200,16 +200,6 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
         rethrow(failure);
     }
 
-    /**
-     * @return the account to use where nothing has picked one, which is the only account whenever there is exactly
-     *         one; {@code null} while none is configured
-     */
-    @Nullable
-    public GerritAccount getDefaultAccount() {
-        List<GerritAccount> current = getAccounts();
-        return current.isEmpty() ? null : current.get(0);
-    }
-
     @Nullable
     public GerritAccount findById(@Nullable String id) {
         if (id == null) {
@@ -338,7 +328,7 @@ public final class GerritAccounts implements PersistentStateComponent<GerritAcco
 
     /**
      * Reading the credential store blocks and must not happen on the event dispatch thread; UI code goes through a
-     * modal progress instead, such as {@link GerritProjectAccount#getPasswordWithModalProgress}.
+     * modal progress instead.
      *
      * The whole lookup runs under the lock: a password set or forgotten between reading the older key and writing
      * what it held to the account's own would otherwise be overwritten, or brought back.

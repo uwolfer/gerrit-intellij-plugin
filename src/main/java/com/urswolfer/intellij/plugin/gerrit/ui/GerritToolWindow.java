@@ -73,6 +73,7 @@ public class GerritToolWindow implements Disposable {
     private final GerritUtil gerritUtil = GerritUtil.getInstance();
     private GerritChangeListPanel changeListPanel;
     private final GerritChangesFilters changesFilters = new GerritChangesFilters();
+    private AccountPopupAction accountAction;
     private final RepositoryChangesBrowserProvider repositoryChangesBrowserProvider = new RepositoryChangesBrowserProvider();
 
     private GerritChangeDetailsPanel detailsPanel;
@@ -264,6 +265,7 @@ public class GerritToolWindow implements Disposable {
         if (!GerritProjectSettings.isEnabled(project)) {
             return;
         }
+        accountAction.refresh();
         GerritAccount account = GerritProjectAccount.getInstance(project).get();
         if (!canList(account)) {
             showSetupHint(project);
@@ -311,6 +313,7 @@ public class GerritToolWindow implements Disposable {
             return;
         }
         GerritProjectAccount projectAccount = GerritProjectAccount.getInstance(project);
+        accountAction.refresh();
         if (requestSettingsIfNonExistent && projectAccount.needsChoice()) {
             chooseAccount(project, projectAccount);
         }
@@ -376,6 +379,8 @@ public class GerritToolWindow implements Disposable {
         }
         filterGroup.add(new Separator());
         group.add(filterGroup, Constraints.FIRST);
+        accountAction = new AccountPopupAction(project);
+        group.add(new DefaultActionGroup(accountAction, new Separator()), Constraints.FIRST);
 
         changesFilters.addListener(new GerritChangesFilters.Listener() {
             @Override

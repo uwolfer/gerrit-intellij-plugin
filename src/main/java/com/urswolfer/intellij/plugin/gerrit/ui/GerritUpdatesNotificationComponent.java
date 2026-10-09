@@ -29,6 +29,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.diff.HeadChanges;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
@@ -188,6 +189,7 @@ public final class GerritUpdatesNotificationComponent implements Disposable {
                 @Override
                 public void run() {
                     handleNotification();
+                    HeadChanges.refreshIfCreated(project); // the comments in the editor, which reviewers add to
                     rescheduleRefreshTask(generation);
                 }
             }, refreshTimeout * 60 * 1000);

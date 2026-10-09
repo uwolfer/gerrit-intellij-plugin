@@ -17,7 +17,8 @@
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
 # the settings page, the change list, a push for review with a reviewer picked from
 # the suggestions of the push dialog, a change action from the context menu, comments in
-# a diff in both viewers, the project switched off and on again, and no error logged by the plugin.
+# a diff in both viewers and in the editor of a checked out change, the project switched
+# off and on again, and no error logged by the plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -37,6 +38,22 @@ until_true() { # until_true <what> <command...>: Gerrit and the change list upda
 
 "$HERE/gerrit.sh" start
 "$HERE/ide.sh" start "${1:-}"
+# the robot calls in on the event dispatch thread, where newer IDEs allow no change of the model
+later() { "$R" get "//div[@class='IdeFrameImpl']" "com.intellij.openapi.application.ApplicationManager.getApplication()
+    .invokeLater(function () { $1 })" > /dev/null; }
+# ide_on <branch>: what the IDE knows of the demo project, which it only learns from a refresh
+ide_on() { [ "$("$R" get "//div[@class='IdeFrameImpl']" "(function () {
+    // the robot's class loader has no Git classes, and those of the Git plugin are in modules of their own by now
+    var gerrit = com.intellij.ide.plugins.PluginManagerCore.getPlugin(
+        com.intellij.openapi.extensions.PluginId.getId('com.urswolfer.intellij.plugin.gerrit')).getPluginClassLoader();
+    return com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0]
+        .getService(gerrit.loadClass('git4idea.repo.GitRepositoryManager')).getRepositories().get(0)
+        .getCurrentBranchName();
+})()")" = "$1" ]; }
+refresh_git() {
+    later "com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByPath('$P/.git').refresh(false, true);"
+    until_true "the IDE on $1" ide_on "$1"
+}
 "$R" login
 echo "ok: account on the settings page"
 
@@ -52,6 +69,12 @@ until_true "change list shows the seeded changes" listed
 
 subject=smoke-$(date +%s)
 P=$WORK/projects/demo
+# leaves the change a run which failed in the editor checked out, and nothing else
+if [ "$(git -C "$P" rev-parse --abbrev-ref HEAD)" = smoke-review ]; then
+    git -C "$P" checkout -qf -B master origin/master
+    git -C "$P" branch -qD smoke-review
+    refresh_git master
+fi
 # drops the commit of a run which failed before abandoning it, and nothing else
 own=$({ git -C "$P" status --porcelain --untracked-files=no; git -C "$P" log --format=%s master HEAD --not origin/master; } |
     grep -vE '(^| )smoke-[0-9]+(\.txt)?$' || true)
@@ -214,6 +237,61 @@ until_true "unified: the comments on their lines after a rediff" shows "${placed
 ignore DEFAULT
 until_true "unified: the comments back on their lines" shows "$placed"
 gerrit "/changes/$dchange/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null
+
+# Comments in the editor of a file of a checked out change: on the line of the patch set, as the text is edited
+read -r hnumber hrevision href <<< "$(gerrit '/changes/?q=project:demo+status:open+subject:hello&o=CURRENT_REVISION' |
+    python3 -c 'import json, sys
+c = json.load(sys.stdin)[0]; print(c["_number"], c["current_revision"], c["revisions"][c["current_revision"]]["ref"])')"
+git -C "$P" fetch -q origin "$href"
+git -C "$P" checkout -qf -B smoke-review FETCH_HEAD  # as CheckoutAction leaves it: the patch set, tracking its branch
+git -C "$P" branch -q --set-upstream-to=origin/master
+refresh_git smoke-review
+later "com.intellij.openapi.fileEditor.FileEditorManager.getInstance(
+        com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0])
+    .openFile(com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByPath('$P/hello.txt'), true);"
+E="//div[@class='EditorComponentImpl' and not(ancestor::div[contains(@class,'DiffPanel')])]"
+"$R" wait "$E"
+eshows() { [ "$(icons "$E")" = "$1" ]; }
+until_true "editor: the comment of the patch set on its line" eshows '2 Capitalise World?'
+edit() { "$R" get "$E" "(function () {
+    var e = component.getEditor(), d = e.getDocument();
+    com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(function () {
+        com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(e.getProject(),
+            new java.lang.Runnable({ run: function () { $1 } }));
+    });
+    return d.getTextLength();
+})()" > /dev/null; }
+edit "d.insertString(0, 'one\\ntwo\\n');"
+until_true "editor: the comment moves with lines inserted above" eshows '4 Capitalise World?'
+edit "d.replaceString(d.getLineStartOffset(3), d.getLineEndOffset(3), 'World');"
+until_true "editor: the comment stays on its rewritten line" eshows '4 Capitalise World?'
+hdrafted() { gerrit "/changes/$hnumber/drafts" | python3 -c 'import json, sys
+for c in json.load(sys.stdin).get("hello.txt", []): print(c["patch_set"], c["line"], c["message"])' | grep -qx "$1"; }
+# the icons move with the text at once, but a comment waits for the text to be compared again, a moment after an edit
+form() { comment "$E" 2 ""; sleep 1; [ -n "$("$R" find "//div[@class='CommentForm']")" ]; }
+until_true "editor: the edits compared" form
+"$R" type on-hello
+"$R" key ctrl+ENTER
+until_true "editor: an unchanged line takes a comment on its line of the patch set" hdrafted "2 1 on-hello"
+until_true "editor: the new comment on its line" eshows $'3 on-hello\n4 Capitalise World?'
+comment "$E" 0 ""
+"$R" wait "//div[contains(@visible_text,'not in the patch set')]" 10
+echo "ok: editor: a line added locally gets a hint"
+# back to the text on disk, or the IDE asks which one to keep once the checkout below changes it
+edit "d.setText('hello\\nworld\\n');"
+later "com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().saveAllDocuments();"
+saved() { [ "$("$R" get "$E" "com.intellij.openapi.fileEditor.FileDocumentManager.getInstance()
+    .getUnsavedDocuments().length")" = 0 ]; }
+until_true "editor: the text back as on disk" saved
+for id in $(gerrit "/changes/$hnumber/drafts" | python3 -c 'import json, sys
+print(*(c["id"] for c in json.load(sys.stdin).get("hello.txt", []) if c["message"] == "on-hello"))'); do
+    curl -sSf -u admin:secret -X DELETE "http://localhost:8080/a/changes/$hnumber/revisions/$hrevision/drafts/$id" > /dev/null
+done
+git -C "$P" checkout -qf -B master origin/master
+git -C "$P" branch -qD smoke-review
+later "com.intellij.openapi.vfs.LocalFileSystem.getInstance().refreshAndFindFileByPath('$P').refresh(false, true);"
+until_true "the IDE on master" ide_on master
+until_true "editor: no comments once HEAD left the change" eshows ''
 
 USE="//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']"
 STRIPE="//div[contains(@class,'StripeButton') and @accessiblename='Gerrit']"

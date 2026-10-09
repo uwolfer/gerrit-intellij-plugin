@@ -74,6 +74,7 @@ public class SettingsPanel {
     private JCheckBox listAllChangesCheckbox;
     private JCheckBox pushToGerritCheckbox;
     private JCheckBox showAvatarsCheckBox;
+    private JCheckBox showCommentsInEditorCheckBox;
     private JLabel minutesLabel;
     private JLabel listAllHint;
 
@@ -340,5 +341,13 @@ public class SettingsPanel {
 
     public void setShowAvatars(final boolean showAvatars) {
         showAvatarsCheckBox.setSelected(showAvatars);
+    }
+
+    public boolean getShowCommentsInEditor() {
+        return showCommentsInEditorCheckBox.isSelected();
+    }
+
+    public void setShowCommentsInEditor(final boolean showCommentsInEditor) {
+        showCommentsInEditorCheckBox.setSelected(showCommentsInEditor);
     }
 }

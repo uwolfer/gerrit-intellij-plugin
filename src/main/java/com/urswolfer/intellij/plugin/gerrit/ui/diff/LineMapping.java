@@ -42,6 +42,13 @@ interface LineMapping {
 
     int lineCount(Side side);
 
+    /** Why the caret or the selection is on no line a comment can go on. */
+    default String noPositionHint(boolean selection) {
+        return selection
+            ? "A comment is on one side of the diff: start and end the selection on lines of the same side"
+            : "There is no line of the diff here to comment on";
+    }
+
     /**
      * The editor line of a comment: its own line when the editor shows it, else the nearest one, so that a comment
      * never disappears. A comment beyond the end of the file is shown on its last line, one on the file on its first.

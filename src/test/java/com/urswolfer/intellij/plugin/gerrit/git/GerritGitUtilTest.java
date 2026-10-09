@@ -19,6 +19,7 @@ package com.urswolfer.intellij.plugin.gerrit.git;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vcs.changes.Change;
@@ -46,6 +47,37 @@ public class GerritGitUtilTest {
     private static final FetchInfo FETCH_INFO = new FetchInfo("https://gerrit.example.com/myProject", CHANGE_REF);
     private static final GitRemote SSH_REMOTE = remote("ssh", "ssh://gerrit.example.com:29418/myProject");
     private static final GitRemote HTTP_REMOTE = remote("http", "https://gerrit.example.com/myProject");
+
+    @Test
+    public void testParseCommitMessages() {
+        String a = "a".repeat(40);
+        String b = "b".repeat(40);
+        String output = "\u0001" + a + "\nFirst\n\nChange-Id: I1\n\n\u0001" + b + "\nSecond\n";
+
+        List<Pair<String, String>> commits = GerritGitUtil.parseCommitMessages(output);
+
+        Assert.assertEquals(commits.size(), 2);
+        Assert.assertEquals(commits.get(0).first, a);
+        Assert.assertEquals(commits.get(0).second, "First\n\nChange-Id: I1\n\n");
+        Assert.assertEquals(commits.get(1).first, b);
+        Assert.assertEquals(commits.get(1).second, "Second\n");
+    }
+
+    @Test
+    public void testParseCommitMessagesSkipsWhatGpgSaysFirst() {
+        String a = "a".repeat(40);
+        String output = "gpg: Signature made Thu Oct 8\ngpg: Good signature\n\u0001" + a + "\nFirst\n";
+
+        List<Pair<String, String>> commits = GerritGitUtil.parseCommitMessages(output);
+
+        Assert.assertEquals(commits.size(), 1);
+        Assert.assertEquals(commits.get(0).first, a);
+    }
+
+    @Test
+    public void testParseCommitMessagesOfNone() {
+        Assert.assertTrue(GerritGitUtil.parseCommitMessages("").isEmpty());
+    }
 
     @Test
     public void testFilesAfterLeavesOutDeletedFiles() {

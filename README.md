@@ -10,6 +10,8 @@ changes without leaving your IDE.
 ## Features
 
 * Review changes in the IDE: vote, reply and comment on files and lines
+* See and answer the comments of a checked out change in the editor, on their
+  lines as you edit the file
 * Diff changes against your local clone, with the IDE's syntax highlighting and
   navigation
 * List and query changes, and get notified of new changes waiting for your

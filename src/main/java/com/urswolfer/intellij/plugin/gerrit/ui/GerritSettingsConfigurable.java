@@ -29,6 +29,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
+import com.urswolfer.intellij.plugin.gerrit.ui.diff.EditorComments;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -81,7 +82,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getRefreshTimeout(), settingsPane.getRefreshTimeout()) ||
                 !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()) ||
                 !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
-                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()));
+                !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
+                !Comparing.equal(gerritSettings.getShowCommentsInEditor(), settingsPane.getShowCommentsInEditor()));
     }
 
     /**
@@ -123,6 +125,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             boolean enabledChanged = projectSettings().isEnabled() != settingsPane.getProjectEnabled();
             // a project switched back on has a change list which stopped loading while it was off
             boolean listChanged = isListModified() || enabledChanged && settingsPane.getProjectEnabled();
+            boolean editorCommentsChanged =
+                gerritSettings.getShowCommentsInEditor() != settingsPane.getShowCommentsInEditor();
             applyAccounts();
             projectSettings().setEnabled(settingsPane.getProjectEnabled());
 
@@ -133,6 +137,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             gerritSettings.setPushToGerrit(settingsPane.getPushToGerrit());
             GerritPushExtension.setPushToGerritByDefault(settingsPane.getPushToGerrit());
             gerritSettings.setShowAvatars(settingsPane.getShowAvatars());
+            gerritSettings.setShowCommentsInEditor(settingsPane.getShowCommentsInEditor());
 
             GerritUpdatesNotificationComponent.configurationChanged();
             if (enabledChanged) {
@@ -140,6 +145,11 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 if (settingsPane.getProjectEnabled()) {
                     GerritUpdatesNotificationStartupActivity.start(project);
                 }
+            }
+            if (editorCommentsChanged) { // of every project; the accounts announce themselves
+                EditorComments.settingChanged();
+            } else if (enabledChanged) {
+                EditorComments.settingChanged(project);
             }
             if (listChanged) {
                 ApplicationManager.getApplication().getMessageBus()
@@ -191,6 +201,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setReviewNotifications(gerritSettings.getReviewNotifications());
             settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
             settingsPane.setShowAvatars(gerritSettings.getShowAvatars());
+            settingsPane.setShowCommentsInEditor(gerritSettings.getShowCommentsInEditor());
         }
     }
 

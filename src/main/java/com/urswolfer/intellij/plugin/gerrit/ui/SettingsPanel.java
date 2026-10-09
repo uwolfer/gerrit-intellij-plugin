@@ -18,7 +18,11 @@
 package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.DataManager;
+import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.AnActionButton;
@@ -26,6 +30,7 @@ import com.intellij.ui.CollectionListModel;
 import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.DoubleClickListener;
 import com.intellij.ui.GuiUtils;
+import com.intellij.ui.HyperlinkLabel;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.ToolbarDecorator;
@@ -33,6 +38,7 @@ import com.intellij.ui.components.JBList;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -115,14 +121,7 @@ public class SettingsPanel {
     }
 
     public static void fixUrl(JTextField textField) {
-        String text = textField.getText().trim();
-        if (text.endsWith("/")) {
-            text = text.substring(0, text.length() - 1);
-        }
-        if (!text.isEmpty() && !text.contains("://")) {
-            text = "https://" + text;
-        }
-        textField.setText(text);
+        textField.setText(UrlUtils.normalizeTypedUrl(textField.getText()));
     }
 
     private void updateAutomaticRefresh() {
@@ -191,13 +190,38 @@ public class SettingsPanel {
             })
             .disableUpDownActions()
             .createPanel();
-        accountPane.setBorder(IdeBorderFactory.createTitledBorder("Gerrit Accounts"));
         accountPane.setPreferredSize(new Dimension(-1, JBUI.scale(160)));
-        return accountPane;
+        JPanel pane = new JPanel(new BorderLayout());
+        pane.setBorder(IdeBorderFactory.createTitledBorder("Gerrit Accounts"));
+        pane.add(accountPane, BorderLayout.CENTER);
+        if (PasswordSafe.getInstance().isMemoryOnly()) {
+            pane.add(createMemoryOnlyWarning(), BorderLayout.SOUTH);
+        }
+        return pane;
+    }
+
+    /**
+     * Passwords kept in memory only are gone after a restart, and the accounts with them; the GitHub plugin warns
+     * the same way.
+     */
+    private static JComponent createMemoryOnlyWarning() {
+        HyperlinkLabel warning = new HyperlinkLabel();
+        warning.setHyperlinkText("Passwords will not be saved for future use: ", "Configure password store", "");
+        warning.setIcon(AllIcons.General.Warning);
+        warning.addHyperlinkListener(event -> {
+            Settings settings = Settings.KEY.getData(DataManager.getInstance().getDataContext(warning));
+            // by id: PasswordSafeConfigurable is internal to the platform
+            Configurable passwords = settings != null ? settings.find("application.passwordSafe") : null;
+            if (passwords != null) {
+                settings.select(passwords);
+            }
+        });
+        warning.setBorder(JBUI.Borders.emptyTop(4));
+        return warning;
     }
 
     private void addAccount() {
-        GerritAccountDialog dialog = new GerritAccountDialog(project, null, "");
+        GerritAccountDialog dialog = new GerritAccountDialog(project, null, "", accountModel.getItems());
         if (!dialog.showAndGet()) {
             return;
         }
@@ -217,7 +241,9 @@ public class SettingsPanel {
         if (account == null) {
             return false;
         }
-        GerritAccountDialog dialog = new GerritAccountDialog(project, account, editedPasswords.get(account.id));
+        List<GerritAccount> others = new ArrayList<>(accountModel.getItems());
+        others.remove(account);
+        GerritAccountDialog dialog = new GerritAccountDialog(project, account, editedPasswords.get(account.id), others);
         if (!dialog.showAndGet()) {
             return false;
         }

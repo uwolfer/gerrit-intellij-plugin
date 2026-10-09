@@ -23,6 +23,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -79,7 +80,8 @@ public class LoginDialog extends DialogWrapper {
     protected void doOKAction() {
         final String login = loginPanel.getLogin();
         final String password = loginPanel.getPassword();
-        final String host = loginPanel.getHost();
+        // what is checked is what is saved
+        final String host = UrlUtils.normalizeTypedUrl(loginPanel.getHost());
         GerritAuthData.Basic gerritAuthData = new GerritAuthData.Basic(host, login, password);
         try {
             boolean loggedSuccessfully = GerritUtil.getInstance().checkCredentials(project, gerritAuthData);

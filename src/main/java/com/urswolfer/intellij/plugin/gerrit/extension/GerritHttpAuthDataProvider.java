@@ -202,9 +202,9 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
             URI repositoryUri = UrlUtils.createUriFromGitConfigString(url);
             URI gerritUri = URI.create(gerritUrl);
             if (!schemeKnown) {
-                return portOrDefault(repositoryUri) == portOrDefault(gerritUri)
+                return UrlUtils.portOrDefault(repositoryUri) == UrlUtils.portOrDefault(gerritUri)
                     && (!"https".equalsIgnoreCase(gerritUri.getScheme())
-                        || isReachedOnlyOverHttps(remoteUrls, gerritUrl, portOrDefault(repositoryUri)));
+                        || isReachedOnlyOverHttps(remoteUrls, gerritUrl, UrlUtils.portOrDefault(repositoryUri)));
             }
             return repositoryUri.getScheme() != null
                 && repositoryUri.getScheme().equalsIgnoreCase(gerritUri.getScheme())
@@ -222,7 +222,7 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
                     continue;
                 }
                 URI remoteUri = UrlUtils.createUriFromGitConfigString(remoteUrl);
-                if (portOrDefault(remoteUri) != port) {
+                if (UrlUtils.portOrDefault(remoteUri) != port) {
                     continue;
                 }
                 if ("http".equalsIgnoreCase(remoteUri.getScheme())) {
@@ -233,13 +233,6 @@ public class GerritHttpAuthDataProvider implements GitHttpAuthDataProvider {
             }
         }
         return https;
-    }
-
-    /**
-     * @return the port, or -1 for either default port, which is all a url whose scheme is not known can say
-     */
-    private static int portOrDefault(URI uri) {
-        return uri.getPort() == 80 || uri.getPort() == 443 ? -1 : uri.getPort();
     }
 
     private static int port(URI uri) {

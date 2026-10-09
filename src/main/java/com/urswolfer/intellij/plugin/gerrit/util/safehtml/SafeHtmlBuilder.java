@@ -19,27 +19,17 @@ package com.urswolfer.intellij.plugin.gerrit.util.safehtml;
 /** Safely constructs a {@link SafeHtml}, escaping user provided content. */
 @SuppressWarnings("serial")
 public class SafeHtmlBuilder extends SafeHtml {
-  // ClientImpl escapes with a GWT native method, which is not available here: this code runs in a JVM
   private static final Impl impl = new ServerImpl();
 
-  private final BufferDirect dBuf;
-  private Buffer cb;
-
-  private BufferSealElement sBuf;
-  private AttMap att;
+  private final BufferDirect cb;
 
   public SafeHtmlBuilder() {
-    cb = dBuf = new BufferDirect();
+    cb = new BufferDirect();
   }
 
   /** @return true if this builder has not had an append occur yet. */
   public boolean isEmpty() {
-    return dBuf.isEmpty();
-  }
-
-  /** @return true if this builder has content appended into it. */
-  public boolean hasContent() {
-    return !isEmpty();
+    return cb.isEmpty();
   }
 
   public SafeHtmlBuilder append(boolean in) {
@@ -144,124 +134,12 @@ public class SafeHtmlBuilder extends SafeHtml {
     return this;
   }
 
-  /**
-   * Open an element, appending "{@code <tagName>}" to the buffer.
-   *
-   * <p>After the element is open the attributes may be manipulated until the next {@code append},
-   * {@code openElement}, {@code closeSelf} or {@code closeElement} call.
-   *
-   * @param tagName name of the HTML element to open.
-   */
+  /** Open an element, appending "{@code <tagName>}" to the buffer. */
   public SafeHtmlBuilder openElement(String tagName) {
     assert isElementName(tagName);
     cb.append("<");
     cb.append(tagName);
-    if (sBuf == null) {
-      att = new AttMap();
-      sBuf = new BufferSealElement(this);
-    }
-    att.reset(tagName);
-    cb = sBuf;
-    return this;
-  }
-
-  /**
-   * Get an attribute of the last opened element.
-   *
-   * @param name name of the attribute to read.
-   * @return the attribute value, as a string. The empty string if the attribute has not been
-   *     assigned a value. The returned string is the raw (unescaped) value.
-   */
-  public String getAttribute(String name) {
-    assert isAttributeName(name);
-    assert cb == sBuf;
-    return att.get(name);
-  }
-
-  /**
-   * Set an attribute of the last opened element.
-   *
-   * @param name name of the attribute to set.
-   * @param value value to assign; any existing value is replaced. The value is escaped (if
-   *     necessary) during the assignment.
-   */
-  public SafeHtmlBuilder setAttribute(String name, String value) {
-    assert isAttributeName(name);
-    assert cb == sBuf;
-    att.set(name, value != null ? value : "");
-    return this;
-  }
-
-  /**
-   * Set an attribute of the last opened element.
-   *
-   * @param name name of the attribute to set.
-   * @param value value to assign, any existing value is replaced.
-   */
-  public SafeHtmlBuilder setAttribute(String name, int value) {
-    return setAttribute(name, String.valueOf(value));
-  }
-
-  /**
-   * Append a new value into a whitespace delimited attribute.
-   *
-   * <p>If the attribute is not yet assigned, this method sets the attribute. If the attribute is
-   * already assigned, the new value is appended onto the end, after appending a single space to
-   * delimit the values.
-   *
-   * @param name name of the attribute to append onto.
-   * @param value additional value to append.
-   */
-  public SafeHtmlBuilder appendAttribute(String name, String value) {
-    if (value != null && value.length() > 0) {
-      final String e = getAttribute(name);
-      return setAttribute(name, e.length() > 0 ? e + " " + value : value);
-    }
-    return this;
-  }
-
-  /** Set the height attribute of the current element. */
-  public SafeHtmlBuilder setHeight(int height) {
-    return setAttribute("height", height);
-  }
-
-  /** Set the width attribute of the current element. */
-  public SafeHtmlBuilder setWidth(int width) {
-    return setAttribute("width", width);
-  }
-
-  /** Set the CSS class name for this element. */
-  public SafeHtmlBuilder setStyleName(String style) {
-    assert isCssName(style);
-    return setAttribute("class", style);
-  }
-
-  /**
-   * Add an additional CSS class name to this element.
-   *
-   * <p>If no CSS class name has been specified yet, this method initializes it to the single name.
-   */
-  public SafeHtmlBuilder addStyleName(String style) {
-    assert isCssName(style);
-    return appendAttribute("class", style);
-  }
-
-  private void sealElement0() {
-    assert cb == sBuf;
-    cb = dBuf;
-    att.onto(cb, this);
-  }
-
-  Buffer sealElement() {
-    sealElement0();
     cb.append(">");
-    return cb;
-  }
-
-  /** Close the current element with a self closing suffix ("/ &gt;"). */
-  public SafeHtmlBuilder closeSelf() {
-    sealElement0();
-    cb.append(" />");
     return this;
   }
 
@@ -286,74 +164,6 @@ public class SafeHtmlBuilder extends SafeHtml {
     return this;
   }
 
-  /** Append "&lt;tr&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openTr() {
-    return openElement("tr");
-  }
-
-  /** Append "&lt;/tr&gt;" */
-  public SafeHtmlBuilder closeTr() {
-    return closeElement("tr");
-  }
-
-  /** Append "&lt;td&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openTd() {
-    return openElement("td");
-  }
-
-  /** Append "&lt;/td&gt;" */
-  public SafeHtmlBuilder closeTd() {
-    return closeElement("td");
-  }
-
-  /** Append "&lt;th&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openTh() {
-    return openElement("th");
-  }
-
-  /** Append "&lt;/th&gt;" */
-  public SafeHtmlBuilder closeTh() {
-    return closeElement("th");
-  }
-
-  /** Append "&lt;div&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openDiv() {
-    return openElement("div");
-  }
-
-  /** Append "&lt;/div&gt;" */
-  public SafeHtmlBuilder closeDiv() {
-    return closeElement("div");
-  }
-
-  /** Append "&lt;span&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openSpan() {
-    return openElement("span");
-  }
-
-  /** Append "&lt;/span&gt;" */
-  public SafeHtmlBuilder closeSpan() {
-    return closeElement("span");
-  }
-
-  /** Append "&lt;a&gt;"; attributes may be set if needed */
-  public SafeHtmlBuilder openAnchor() {
-    return openElement("a");
-  }
-
-  /** Append "&lt;/a&gt;" */
-  public SafeHtmlBuilder closeAnchor() {
-    return closeElement("a");
-  }
-
-  /** Append "&lt;param name=... value=... /&gt;". */
-  public SafeHtmlBuilder paramElement(String name, String value) {
-    openElement("param");
-    setAttribute("name", name);
-    setAttribute("value", value);
-    return closeSelf();
-  }
-
   /** @return an immutable {@link SafeHtml} representation of the buffer. */
   public SafeHtml toSafeHtml() {
     return new SafeHtmlString(asString());
@@ -374,14 +184,6 @@ public class SafeHtmlBuilder extends SafeHtml {
     return name.matches("^[a-zA-Z][a-zA-Z0-9_-]*$");
   }
 
-  private static boolean isAttributeName(String name) {
-    return isElementName(name);
-  }
-
-  private static boolean isCssName(String name) {
-    return isElementName(name);
-  }
-
   private abstract static class Impl {
     abstract void escapeStr(SafeHtmlBuilder b, String in);
   }
@@ -391,19 +193,5 @@ public class SafeHtmlBuilder extends SafeHtml {
     void escapeStr(SafeHtmlBuilder b, String in) {
       SafeHtmlBuilder.escapeCS(b, in);
     }
-  }
-
-  private static class ClientImpl extends Impl {
-    @Override
-    void escapeStr(SafeHtmlBuilder b, String in) {
-      b.cb.append(escape(in));
-    }
-
-    private static native String escape(String src) /*-{ return src.replace(/&/g,'&amp;')
-                   .replace(/>/g,'&gt;')
-                   .replace(/</g,'&lt;')
-                   .replace(/"/g,'&quot;')
-                   .replace(/'/g,'&#39;');
-     }-*/;
   }
 }

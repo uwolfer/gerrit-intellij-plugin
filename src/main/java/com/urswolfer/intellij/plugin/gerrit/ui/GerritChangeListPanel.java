@@ -180,7 +180,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         if (projectAccount.needsChoice()) { // set up, only not for this project: telling to set it up would mislead
             StatusText emptyText = table.getEmptyText();
             emptyText.clear();
-            emptyText.appendText("Press the refresh button to choose the Gerrit account of this project, or open ");
+            emptyText.appendText("Choose the Gerrit account of this project from Account above, or open ");
             emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {

@@ -5,4 +5,5 @@ import javax.swing.Icon;
 
 public interface MyIcons {
     Icon Gerrit = IconLoader.getIcon("/icons/gerrit.svg", MyIcons.class);
+    Icon ToolWindow = IconLoader.getIcon("/icons/toolwindow.svg", MyIcons.class);
 }

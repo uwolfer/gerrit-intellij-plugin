@@ -579,7 +579,7 @@
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider"/>
     <vcsConfigurableProvider implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritSettingsConfigurableProvider"/>
 
-    <toolWindow id="Gerrit" icon="MyIcons.Gerrit" anchor="bottom"
+    <toolWindow id="Gerrit" icon="MyIcons.ToolWindow" anchor="bottom"
                 factoryClass="com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory"/>
     <diff.DiffExtension implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritCommentsDiffExtension"/>
     <editorFactoryListener implementation="com.urswolfer.intellij.plugin.gerrit.ui.diff.EditorComments$Installer"/>

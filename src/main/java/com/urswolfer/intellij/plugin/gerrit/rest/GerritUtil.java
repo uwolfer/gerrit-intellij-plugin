@@ -63,6 +63,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritAccountDialog;
+import com.urswolfer.intellij.plugin.gerrit.util.CommitChanges;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -273,6 +274,21 @@ public final class GerritUtil {
         Changes.QueryRequest queryRequest = gerritApi(project).changes().query("is:open+reviewer:self")
             .withOption(ListChangesOption.DETAILED_ACCOUNTS);
         getChanges(queryRequest, project, consumer);
+    }
+
+    /**
+     * Looks the changes up in the background, then hands them to the consumer on the event dispatch thread.
+     */
+    public void getChangesByCommit(String hash, Project project, Consumer<List<ChangeInfo>> consumer) {
+        Changes.QueryRequest queryRequest = gerritApi(project).changes().query(CommitChanges.getQuery(Collections.singletonList(hash)));
+        // a failed lookup is reported and gives no answer, as an empty one would say that the commit has no change
+        accessGerrit(() -> {
+            try {
+                return queryRequest.get();
+            } catch (RestApiException e) {
+                throw new RuntimeException(e);
+            }
+        }, consumer, project, "Failed to look up the Gerrit change of the commit");
     }
 
     public void getChangesForProject(String query, final Project project, final Consumer<LoadChangesProxy> consumer) {

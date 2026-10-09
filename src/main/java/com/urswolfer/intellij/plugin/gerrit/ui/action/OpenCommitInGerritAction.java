@@ -33,6 +33,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindowFactory;
+import com.urswolfer.intellij.plugin.gerrit.util.CommitChanges;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import git4idea.GitUtil;
 import git4idea.repo.GitRepository;
@@ -43,7 +44,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -144,16 +144,8 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
             .collect(Collectors.toSet());
     }
 
-    /**
-     * The hash alone finds a commit even after a submit which rebased or cherry-picked it: Gerrit records the commit
-     * it merges as a patch set of the change.
-     */
     @VisibleForTesting
     static String getQuery(Collection<String> hashes) {
-        Set<String> terms = new LinkedHashSet<>();
-        for (String hash : hashes) {
-            terms.add("commit:" + hash);
-        }
-        return String.join(" OR ", terms);
+        return CommitChanges.getQuery(hashes);
     }
 }

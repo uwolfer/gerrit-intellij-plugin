@@ -43,6 +43,51 @@ public class UrlUtils {
     }
 
     /**
+     * @return the url as typed, without a trailing slash and with https where it names no scheme
+     */
+    public static String normalizeTypedUrl(String url) {
+        String text = url.trim();
+        if (text.endsWith("/")) {
+            text = text.substring(0, text.length() - 1);
+        }
+        if (!text.isEmpty() && !text.contains("://")) {
+            text = "https://" + text;
+        }
+        return text;
+    }
+
+    /**
+     * @return whether the two urls are of the same Gerrit instance: the same host, port and path, whichever scheme,
+     *         as http and https on one host are the same server; a url without a scheme, as typed, counts as https
+     */
+    public static boolean isSameInstance(String url, String otherUrl) {
+        try {
+            URI uri = URI.create(normalizeTypedUrl(url));
+            URI other = URI.create(normalizeTypedUrl(otherUrl));
+            return uri.getHost() != null && uri.getHost().equalsIgnoreCase(other.getHost())
+                && portOrDefault(uri) == portOrDefault(other)
+                && trimSlashes(uri.getPath()).equals(trimSlashes(other.getPath()));
+        } catch (IllegalArgumentException e) { // not a url, so no instance either
+            return false;
+        }
+    }
+
+    /**
+     * @return the port, or -1 for either default port, which is all a url whose scheme is not to be told can say
+     */
+    public static int portOrDefault(URI uri) {
+        return uri.getPort() == 80 || uri.getPort() == 443 ? -1 : uri.getPort();
+    }
+
+    private static String trimSlashes(String path) {
+        String trimmed = path == null ? "" : path;
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    /**
      * Rewrites git's scp-like "user@host:path" to "ssh://user@host/path", which {@link java.net.URI} can take apart.
      * Anything else is returned unchanged.
      */

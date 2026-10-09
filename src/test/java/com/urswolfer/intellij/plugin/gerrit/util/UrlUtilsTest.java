@@ -30,6 +30,21 @@ import java.nio.charset.StandardCharsets;
 public class UrlUtilsTest {
 
     @Test
+    public void testTheSameInstanceUnderAnotherSchemeOrSpelling() {
+        Assert.assertTrue(UrlUtils.isSameInstance("https://review.example.com", "http://Review.Example.com/"));
+        Assert.assertTrue(UrlUtils.isSameInstance("review.example.com", "https://review.example.com"));
+        Assert.assertTrue(UrlUtils.isSameInstance("https://review.example.com:443/r", "https://review.example.com/r/"));
+    }
+
+    @Test
+    public void testAnotherHostPortOrPathIsAnotherInstance() {
+        Assert.assertFalse(UrlUtils.isSameInstance("https://review.example.com", "https://other.example.com"));
+        Assert.assertFalse(UrlUtils.isSameInstance("https://review.example.com", "https://review.example.com:8443"));
+        Assert.assertFalse(UrlUtils.isSameInstance("https://example.com/a", "https://example.com/b"));
+        Assert.assertFalse(UrlUtils.isSameInstance("", "https://example.com"));
+    }
+
+    @Test
     public void testUrlHasSameHostTrue() throws Exception {
         Assert.assertTrue(UrlUtils.urlHasSameHost("https://gerrit.example.com/test.git", "https://gerrit.example.com/"));
     }

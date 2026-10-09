@@ -647,7 +647,10 @@ public final class GerritUtil {
         });
     }
 
-    private boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
+    /**
+     * Tries the credentials, which need not be stored yet, on Gerrit; fails where it refuses them or cannot be asked.
+     */
+    public boolean testConnection(GerritAuthData gerritAuthData) throws RestApiException {
         // we need to test with a temporary client with probably new (unsaved) credentials
         GerritApi tempClient = createClientWithCustomAuthData(gerritAuthData);
         Changes.QueryRequest query = tempClient.changes().query();

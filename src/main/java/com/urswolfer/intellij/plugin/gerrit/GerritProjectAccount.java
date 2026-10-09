@@ -27,6 +27,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.xmlb.annotations.Attribute;
+import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
 import git4idea.repo.GitRemote;
 import git4idea.repo.GitRepository;
@@ -260,16 +261,25 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
     public void saveCredentialsWithModalProgress(String host, String login, String password) {
         GerritAccounts accounts = GerritAccounts.getInstance();
         GerritAccount current = get();
+        // the login can be of an account set up already, which this project did not resolve to or is not bound to;
+        // rewriting the project's account into it would set up the same login twice
+        // the project's own account first, where duplicates are left from an earlier version
+        GerritAccount existing = current != null && current.isSameAs(host, login) ? current
+            : accounts.getAccounts().stream().filter(a -> a.isSameAs(host, login)).findFirst().orElse(null);
         GerritAccount account;
-        boolean bind = false;
-        if (current == null) {
-            account = GerritAccount.create(host, login, "");
-            bind = !accounts.getAccounts().isEmpty(); // the only account needs no binding, one of several does
-        } else { // a copy: background requests read the stored account, and must not see it half-changed
+        if (existing != null) {
+            account = existing.copy();
+        } else if (current != null) {
+            // a copy: background requests read the stored account, and must not see it half-changed
             account = current.copy();
-            account.host = host;
-            account.login = login;
+        } else {
+            account = GerritAccount.create(host, login, "");
         }
+        // the url as typed wins, as it is the one which was just checked: http moved to https, for one
+        account.host = UrlUtils.normalizeTypedUrl(host);
+        account.login = login;
+        // the only account needs no binding, one of several does
+        boolean bind = !account.equals(current) && accounts.getAccounts().stream().anyMatch(a -> !a.equals(account));
         try {
             ProgressManager.getInstance().runProcessWithProgressSynchronously(
                 () -> accounts.put(account, password), "Saving Gerrit Credentials", false, project);

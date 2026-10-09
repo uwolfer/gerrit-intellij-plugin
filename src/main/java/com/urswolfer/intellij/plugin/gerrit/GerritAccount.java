@@ -107,6 +107,14 @@ public final class GerritAccount {
         return id + '\n' + host + '\n' + login;
     }
 
+    /**
+     * @return whether this is the login on the instance, however the url of either is written; the login is compared
+     *         as it is, Gerrit's usernames being case sensitive unless set up otherwise
+     */
+    public boolean isSameAs(String otherHost, String otherLogin) {
+        return UrlUtils.isSameInstance(otherHost, host) && otherLogin.equals(login);
+    }
+
     public String getGitilesUrlOrDefault() {
         return GitilesUrls.getBaseUrl(gitilesUrl, host);
     }

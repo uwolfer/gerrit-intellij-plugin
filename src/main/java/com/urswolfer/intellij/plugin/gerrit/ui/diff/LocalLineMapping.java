@@ -60,8 +60,15 @@ final class LocalLineMapping implements LineMapping {
         stale = true;
     }
 
-    boolean isStale() {
-        return stale;
+    /** For good, or until the text compares again: no line is known, and no comment is shown. */
+    void markUnavailable() {
+        ready = false;
+        stale = false;
+    }
+
+    @Override
+    public boolean fitsText() {
+        return !stale;
     }
 
     /** May take long on a large file, so not on the event dispatch thread. */

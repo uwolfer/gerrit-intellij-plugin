@@ -52,6 +52,23 @@ public class HeadChangesTest {
     }
 
     @Test
+    public void testChangeIdRightAfterTheSubject() {
+        Assert.assertEquals(HeadChanges.changeIdOf("Subject\nChange-Id: " + ID_A + "\n"), ID_A);
+    }
+
+    @Test
+    public void testCommitOfTwoProjectsMatchesTheChangeOfThisRepository() {
+        ChangeInfo other = change(1, ID_A, "master", "a1");
+        ChangeInfo mine = change(2, ID_A, "master", "a1");
+
+        List<Pair<ChangeInfo, String>> matches = HeadChanges.match(Collections.singletonList(commit("a1", ID_A)),
+            Arrays.asList(other, mine), "master", change -> change == mine);
+
+        Assert.assertEquals(matches.size(), 1);
+        Assert.assertSame(matches.get(0).first, mine);
+    }
+
+    @Test
     public void testNoChangeId() {
         Assert.assertNull(HeadChanges.changeIdOf("Subject\n\nChange-Id: I123\n"));
     }

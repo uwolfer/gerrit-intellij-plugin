@@ -112,6 +112,28 @@ public class LocalLineMappingTest {
     }
 
     @Test
+    public void testDoesNotFitTheTextUntilAnEditIsCompared() {
+        LocalLineMapping mapping = mapping(5);
+
+        mapping.markStale();
+        Assert.assertFalse(mapping.fitsText());
+        mapping.set(Collections.emptyList(), 5);
+        Assert.assertTrue(mapping.fitsText());
+    }
+
+    @Test
+    public void testNoLineWhereTheTextCannotBeCompared() {
+        LocalLineMapping mapping = mapping(5);
+        mapping.markStale();
+
+        mapping.markUnavailable();
+
+        Assert.assertTrue(mapping.fitsText(), "laid out, with no comment on any line");
+        Assert.assertEquals(mapping.toEditorLine(Side.RIGHT, 2), -1);
+        Assert.assertNull(CommentPosition.onLine(mapping, 2));
+    }
+
+    @Test
     public void testNoLeftSide() {
         LocalLineMapping mapping = mapping(5);
 

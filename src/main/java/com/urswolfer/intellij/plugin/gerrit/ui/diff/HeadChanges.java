@@ -108,11 +108,15 @@ public final class HeadChanges implements Disposable {
     private final ExecutorService executor =
         AppExecutorUtil.createBoundedApplicationPoolExecutor("Gerrit changes on HEAD", 1);
     private final Map<GitRepository, State> states = new ConcurrentHashMap<>();
-    // the lookup asked for next, one per repository, and the one under way, until its answer is in
-    private final Map<GitRepository, Request> pending = new ConcurrentHashMap<>();
-    private final Map<GitRepository, String> running = new ConcurrentHashMap<>();
+    // the repositories an editor asked about, which follow the moves of HEAD; the others may never have a file open
+    private final Set<GitRepository> watched = ConcurrentHashMap.newKeySet();
     // with the project, so that a retry half an hour away does not keep a closed one
     private final Alarm retries = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, this);
+    // the lookup asked for next, one per repository
+    private final Map<GitRepository, Request> pending = new ConcurrentHashMap<>();
+    // the one under way, until its answer is in; by the request, not its key, as a refresh for the same key may be
+    // under way next, and is not this one's to end
+    private final Map<GitRepository, Request> running = new ConcurrentHashMap<>();
     // when the user last saved or removed a comment of a change, which an answer asked for before does not have
     private final AtomicInteger edits = new AtomicInteger();
     private final Map<Integer, Integer> lastEditOf = new ConcurrentHashMap<>();
@@ -120,10 +124,8 @@ public final class HeadChanges implements Disposable {
     public HeadChanges(Project project) {
         this.project = project;
         MessageBusConnection connection = project.getMessageBus().connect(this);
-        // only a repository an editor asked about: the others may never have a file open
         connection.subscribe(GitRepository.GIT_REPO_CHANGE, repository -> {
-            if (states.containsKey(repository) || pending.containsKey(repository)
-                || running.containsKey(repository)) {
+            if (watched.contains(repository)) {
                 update(repository, false);
             }
         });
@@ -141,7 +143,11 @@ public final class HeadChanges implements Disposable {
             }
         });
         connection.subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, (VcsRepositoryMappingListener)
-            () -> states.keySet().retainAll(GitUtil.getRepositoryManager(project).getRepositories()));
+            () -> {
+                List<GitRepository> repositories = GitUtil.getRepositoryManager(project).getRepositories();
+                states.keySet().retainAll(repositories);
+                watched.retainAll(repositories);
+            });
     }
 
     public static HeadChanges getInstance(Project project) {
@@ -154,9 +160,16 @@ public final class HeadChanges implements Disposable {
         /** Relative to the root of the repository, as Gerrit names it. */
         final String path;
 
-        FileOnHead(HeadChange change, String path) {
+        /**
+         * Whether the change is known to be on HEAD as it is now; until the lookup for HEAD is in, it is the one
+         * found before, which takes no new comment, as HEAD may be another change by now.
+         */
+        final boolean current;
+
+        FileOnHead(HeadChange change, String path, boolean current) {
             this.change = change;
             this.path = path;
+            this.current = current;
         }
     }
 
@@ -169,14 +182,15 @@ public final class HeadChanges implements Disposable {
         /** Where the patch set is a commit on HEAD, which git has without asking Gerrit; null if it is not. */
         @Nullable
         private final GitRepository local;
-        private final Map<String, String> contents = new ConcurrentHashMap<>();
+        private final Map<String, String> contents;
 
         HeadChange(ChangeInfo change, String revisionId, @Nullable GitRepository local, Set<String> files,
-                   Map<String, List<CommentInfo>> comments) {
+                   Map<String, List<CommentInfo>> comments, Map<String, String> contents) {
             this.change = change;
             this.revisionId = revisionId;
             this.local = local;
             this.files = files;
+            this.contents = contents;
             this.comments = new ConcurrentHashMap<>();
             comments.forEach((path, list) ->
                 this.comments.put(path, Collections.synchronizedList(new ArrayList<>(list))));
@@ -188,12 +202,15 @@ public final class HeadChanges implements Disposable {
         final List<HeadChange> changes;
         final long failedAt;
         final int failures;
+        /** The changes of an earlier HEAD on the same branch, kept as the lookup for this one failed. */
+        final boolean provisional;
 
-        State(String key, List<HeadChange> changes, long failedAt, int failures) {
+        State(String key, List<HeadChange> changes, long failedAt, int failures, boolean provisional) {
             this.key = key;
             this.changes = changes;
             this.failedAt = failedAt;
             this.failures = failures;
+            this.provisional = provisional;
         }
 
         long retryAfter() {
@@ -212,13 +229,15 @@ public final class HeadChanges implements Disposable {
         if (repository == null) return null;
         String path = VfsUtilCore.getRelativePath(file, repository.getRoot());
         if (path == null) return null;
+        watched.add(repository);
 
         update(repository, false);
         State state = states.get(repository);
         if (state == null || !state.key.startsWith(reusableKey(repository))) return null;
+        boolean current = state.key.equals(keyOf(repository)) && !state.provisional;
         for (HeadChange change : state.changes) {
             if (change.files.contains(path)) {
-                return new FileOnHead(change, path);
+                return new FileOnHead(change, path, current);
             }
         }
         return null;
@@ -271,6 +290,16 @@ public final class HeadChanges implements Disposable {
      * forgotten, and asked for again once a file of theirs opens.
      */
     public void refresh() {
+        Set<GitRepository> open = openRepositories();
+        states.keySet().retainAll(open);
+        watched.retainAll(open);
+        watched.addAll(open);
+        for (GitRepository repository : open) {
+            update(repository, true);
+        }
+    }
+
+    private Set<GitRepository> openRepositories() {
         Set<GitRepository> open = new HashSet<>();
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
         for (Editor editor : EditorFactory.getInstance().getAllEditors()) {
@@ -281,10 +310,7 @@ public final class HeadChanges implements Disposable {
                 open.add(repository);
             }
         }
-        states.keySet().retainAll(open);
-        for (GitRepository repository : open) {
-            update(repository, true);
-        }
+        return open;
     }
 
     /**
@@ -338,15 +364,17 @@ public final class HeadChanges implements Disposable {
             return;
         }
         State state = states.get(repository);
-        if (!force && (key.equals(running.get(repository)) || state != null && state.key.equals(key)
-            && (state.failedAt == 0 || System.currentTimeMillis() - state.failedAt < state.retryAfter()))) {
+        if (!force && state != null && state.key.equals(key)
+            && (state.failedAt == 0 || System.currentTimeMillis() - state.failedAt < state.retryAfter())) {
             return;
         }
         // in one step, as the repository events come in on another thread than the editors: a request which has not
-        // started yet takes this one in, the latest key and forced if either is
+        // started yet takes this one in, the latest key and forced if either is, and one under way makes it moot
         boolean[] submit = {false};
         pending.compute(repository, (it, waiting) -> {
             if (waiting == null) {
+                Request under = running.get(repository);
+                if (!force && under != null && key.equals(under.key)) return null;
                 submit[0] = true;
                 return new Request(key, force);
             }
@@ -369,48 +397,58 @@ public final class HeadChanges implements Disposable {
 
     /** On the executor. */
     private void run(GitRepository repository) {
-        Request request = pending.remove(repository);
-        if (request == null || project.isDisposed()) return;
+        // under way in the same step it stops waiting, or an update in between would ask for it again
+        Request[] taken = {null};
+        pending.computeIfPresent(repository, (it, request) -> {
+            taken[0] = request;
+            running.put(repository, request);
+            return null;
+        });
+        Request request = taken[0];
+        if (request == null) return;
         String key = request.key;
-        running.put(repository, key);
+        if (project.isDisposed() || !isWanted(project)) { // switched off since it was asked for
+            running.remove(repository, request);
+            return;
+        }
         int editsBefore = edits.get();
         State resolved;
         try {
             resolved = resolve(repository, key, !request.force);
         } catch (Throwable e) { // or the key stays running, and nothing asks for it again
-            running.remove(repository, key);
+            running.remove(repository, request);
             throw e;
         }
         ApplicationManager.getApplication().invokeLater(() -> {
-            running.remove(repository, key);
-            if (!key.equals(keyOf(repository))) { // HEAD moved meanwhile
-                update(repository, false);
-                return;
-            }
-            if (resolved.changes.stream()
-                .anyMatch(change -> lastEditOf.getOrDefault(change.change._number, 0) > editsBefore)) {
-                update(repository, true); // for the comment saved meanwhile, which would vanish until then
-                return;
-            }
-            if (!GitUtil.getRepositoryManager(project).getRepositories().contains(repository)) {
-                return; // no longer a root of the project
-            }
-            states.put(repository, resolved);
-            publish();
-            if (resolved.failedAt != 0) { // nothing else might ask again for a long while
-                retries.addRequest(this::retry, resolved.retryAfter() + 1000);
+            try {
+                apply(repository, request, resolved, editsBefore);
+            } finally { // only once the state is in, or an update from another thread would ask again
+                running.remove(repository, request);
             }
         }, project.getDisposed());
     }
 
-    /** Through the editors, so that only a repository with a file open asks again. */
-    private void retry() {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            EditorComments editorComments = project.getServiceIfCreated(EditorComments.class);
-            if (editorComments != null) {
-                editorComments.update();
-            }
-        }, project.getDisposed());
+    private void apply(GitRepository repository, Request request, State resolved, int editsBefore) {
+        if (!isWanted(project)) return; // switched off meanwhile, which dropped what there was
+        if (!request.key.equals(keyOf(repository))) { // HEAD moved meanwhile; a refresh still is one
+            update(repository, request.force);
+            return;
+        }
+        if (resolved.changes.stream()
+            .anyMatch(change -> lastEditOf.getOrDefault(change.change._number, 0) > editsBefore)) {
+            update(repository, true); // for the comment saved meanwhile, which would vanish until then
+            return;
+        }
+        if (!GitUtil.getRepositoryManager(project).getRepositories().contains(repository)) {
+            return; // no longer a root of the project
+        }
+        states.put(repository, resolved);
+        publish();
+        if (resolved.failedAt != 0) {
+            // nothing else might ask again for a long while; the listeners do, for the files they show, so that it
+            // ends once no file of the repository is open
+            retries.addRequest(this::publish, resolved.retryAfter() + 1000);
+        }
     }
 
     /** Drops what is known, as the comments have moved on by the time they are wanted again. */
@@ -486,7 +524,7 @@ public final class HeadChanges implements Disposable {
                 }
             }
             if (terms.isEmpty()) {
-                return new State(key, Collections.emptyList(), 0, 0);
+                return new State(key, Collections.emptyList(), 0, 0, false);
             }
 
             GerritUtil gerritUtil = GerritUtil.getInstance();
@@ -500,22 +538,20 @@ public final class HeadChanges implements Disposable {
                 change -> gerritGitUtil.getRepositoryForChange(project, change).equals(Optional.of(repository)))) {
                 ChangeInfo change = match.first;
                 String revision = match.second;
-                HeadChange known = reuse && previous != null ? previous.changes.stream()
+                HeadChange known = previous != null ? previous.changes.stream()
                     .filter(it -> it.change._number == change._number && it.revisionId.equals(revision))
                     .findFirst().orElse(null) : null;
-                if (known != null) {
+                if (known != null && reuse) {
                     changes.add(known);
                     continue;
                 }
-                RevisionInfo revisionInfo = change.revisions.get(revision);
-                // Gerrit lists the files of the current patch set only, HEAD may be an earlier one
-                Map<String, FileInfo> files = revisionInfo != null && revisionInfo.files != null ? revisionInfo.files
-                    : gerritUtil.getRevisionFiles(change._number, revision, project);
-                changes.add(new HeadChange(change, revision, onHead.contains(revision) ? repository : null,
-                    filesOf(files),
-                    gerritUtil.loadComments(change._number, revision, project, true, true)));
+                // a patch set never changes, only its comments do
+                Set<String> files = known != null ? known.files : filesOf(change, revision, gerritUtil);
+                changes.add(new HeadChange(change, revision, onHead.contains(revision) ? repository : null, files,
+                    gerritUtil.loadComments(change._number, revision, project, true, true),
+                    known != null ? known.contents : new ConcurrentHashMap<>()));
             }
-            return new State(key, changes, 0, 0);
+            return new State(key, changes, 0, 0, false);
         } catch (ProcessCanceledException e) {
             throw e;
         } catch (VcsException | RestApiException | RuntimeException e) {
@@ -527,9 +563,11 @@ public final class HeadChanges implements Disposable {
             } else {
                 LOG.info(message + ", " + failures + " times in a row: " + e);
             }
-            // a refresh which fails keeps showing what there was rather than nothing
-            return new State(key, again ? previous.changes : Collections.emptyList(), System.currentTimeMillis(),
-                failures);
+            // a refresh which fails keeps showing what there was rather than nothing, and so does one after a commit
+            // or an amend, though without taking comments: HEAD may be another change by now
+            boolean kept = previous != null && previous.key.startsWith(reusableKey(repository));
+            return new State(key, kept ? previous.changes : Collections.emptyList(), System.currentTimeMillis(),
+                failures, kept && (!again || previous.provisional));
         }
     }
 
@@ -550,11 +588,14 @@ public final class HeadChanges implements Disposable {
         for (Pair<String, String> commit : commits) {
             ChangeInfo match = null;
             String revision = null;
+            // the commit is proof enough, but it may have been pushed to another project as well
             for (ChangeInfo change : changes) {
-                if (change.revisions != null && change.revisions.containsKey(commit.first)) {
+                if (change.revisions == null || !change.revisions.containsKey(commit.first)) continue;
+                boolean mine = inRepository.test(change);
+                if (match == null || mine) {
                     match = change;
                     revision = commit.first;
-                    break;
+                    if (mine) break;
                 }
             }
             String changeId = changeIdOf(commit.second);
@@ -578,10 +619,14 @@ public final class HeadChanges implements Disposable {
         return matches;
     }
 
-    /**
-     * The files a patch set leaves in place, changed against its first parent, without the commit message and the
-     * other files Gerrit makes up.
-     */
+    private Set<String> filesOf(ChangeInfo change, String revision, GerritUtil gerritUtil) throws RestApiException {
+        RevisionInfo revisionInfo = change.revisions.get(revision);
+        // Gerrit lists the files of the current patch set only, HEAD may be an earlier one
+        return filesOf(revisionInfo != null && revisionInfo.files != null ? revisionInfo.files
+            : gerritUtil.getRevisionFiles(change._number, revision, project));
+    }
+
+    /** Those of the files Gerrit lists which the patch set leaves in place, without the ones Gerrit makes up. */
     @VisibleForTesting
     static Set<String> filesOf(Map<String, FileInfo> files) {
         Set<String> paths = new HashSet<>();
@@ -597,10 +642,12 @@ public final class HeadChanges implements Disposable {
     @VisibleForTesting
     @Nullable
     static String changeIdOf(String message) {
-        // Gerrit reads the footer, the last paragraph, but not the subject of a message which has nothing else
+        // Gerrit reads the footer, the last paragraph, but not the subject of a message which has no other
         String trimmed = message.trim();
         int footerStart = trimmed.lastIndexOf("\n\n");
-        String footer = footerStart >= 0 ? trimmed.substring(footerStart + 2) : "";
+        int subjectEnd = trimmed.indexOf('\n');
+        String footer = footerStart >= 0 ? trimmed.substring(footerStart + 2)
+            : subjectEnd >= 0 ? trimmed.substring(subjectEnd + 1) : "";
         String changeId = null;
         Matcher matcher = CHANGE_ID.matcher(footer);
         while (matcher.find()) {

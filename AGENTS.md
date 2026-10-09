@@ -110,12 +110,30 @@ What a sandbox can reach changes over time. Check rather than assume:
   com.intellij.ant.InstrumentIdeaExtensions cannot be found`, because only the
   `.pom` files arrive and the Ant classpath ends up empty. Then, and only
   then, fall back to `./gradlew test -x instrumentCode -x instrumentTestCode`,
-  which leaves the `.form` files unchecked. One request settles it:
+  which leaves the `.form` files unchecked. Not as a shortcut: once a build
+  has instrumented the classes, the tests run from `build/instrumented`, so
+  skipping those tasks tests stale classes, and a new test method silently
+  does not run. One request settles it:
 
   ```
   BASE=https://cache-redirector.jetbrains.com/intellij-repository/releases
   curl -sSLo /dev/null -w '%{http_code}\n' \
     $BASE/com/jetbrains/intellij/java/java-compiler-ant-tasks/203.8084.24/java-compiler-ant-tasks-203.8084.24.jar
+  ```
+
+* `runPluginVerifier` looks up the IDE releases on `jb.gg` and downloads the
+  IDE, and it reads the Java version from `java -version`, whose output a
+  sandbox's `JAVA_TOOL_OPTIONS` banner breaks. Where `jb.gg` is blocked, verify
+  against the IDE `.claude/skills/run-ide/scripts/ide.sh start latest`
+  unpacked. The first run fetches the verifier, through the proxy which
+  `JAVA_TOOL_OPTIONS` configures, and then fails on that banner; the second
+  runs offline without it:
+
+  ```
+  export VERIFY_IDE=$(ls -d ~/.cache/gerrit-plugin-run-ide/ides/*/idea-* | tail -1)
+  I=.claude/skills/run-ide/scripts/verify-local.init.gradle
+  ./gradlew buildPlugin runPluginVerifier -x buildSearchableOptions -I $I
+  env -u JAVA_TOOL_OPTIONS ./gradlew --offline runPluginVerifier -x buildSearchableOptions -I $I
   ```
 
 * Sessions often start from a shallow clone without tags, which breaks
@@ -130,6 +148,11 @@ newest one, on a virtual display. It is the only way to watch the push dialog
 integration below actually work. `.claude/skills/run-ide/scripts/smoke.sh
 [latest]` drives the main paths through it, push dialog included, and checks
 each against Gerrit.
+
+Run the IDE once, at the end: after the review loop stops raising new
+findings, as each fix it brings voids an earlier run. `smoke.sh latest` is
+enough; run 2020.3 too only for a reason, such as an API which behaves
+differently there.
 
 ## Bytecode injection and reflection into the platform
 
@@ -192,6 +215,11 @@ pass them through constructors.
 
 `GerritUtil` and `GerritGitUtil` resolve their collaborators per call rather
 than in fields, so the unit tests can construct them outside a running IDE.
+
+## Code review
+
+`REVIEW.md` says what a review should look for, and which decisions it should
+not raise again. Add to it when a review keeps raising a point that was settled.
 
 ## Commit messages
 

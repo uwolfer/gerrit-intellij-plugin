@@ -49,8 +49,9 @@ code change run it again to restart the IDE with the new build.
 
 `ide.sh start latest` runs the newest IDE, `latestIdeaVersion` in
 `gradle.properties`, downloaded on first use; `ide.sh start <dir>` runs any
-unpacked one. Use the newest when touching the push dialog, javassist or
-reflection: that code breaks on new IDEs, not on 2020.3.
+unpacked one. Run the newest unless a change has a reason to need 2020.3: most
+users run it, and the push dialog, javassist and reflection break on new IDEs,
+not on 2020.3.
 
 `smoke.sh [latest|<dir>]` starts Gerrit and that IDE, then walks the plugin's
 main paths and checks each against Gerrit: the account on the settings page,

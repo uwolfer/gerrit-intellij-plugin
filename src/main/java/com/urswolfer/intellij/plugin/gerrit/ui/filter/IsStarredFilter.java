@@ -36,6 +36,11 @@ public class IsStarredFilter extends AbstractChangesFilter {
         return new IsStarredAction();
     }
 
+    @Override
+    void reset() {
+        value = false;
+    }
+
     private void setValue(boolean value) {
         this.value = value;
         fireFilterChanged();

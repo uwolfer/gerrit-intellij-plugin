@@ -101,6 +101,10 @@ public class GerritToolWindow implements Disposable {
 
     public SimpleToolWindowPanel createToolWindowContent(final Project project) {
         changeListPanel = new GerritChangeListPanel(project);
+        changeListPanel.setEmptyTextActions(() -> {
+            changesFilters.reset();
+            reloadChanges(project, true);
+        }, () -> reloadChanges(project, false));
 
         SimpleToolWindowPanel panel = new SimpleToolWindowPanel(true, true) {
             @Override
@@ -337,12 +341,14 @@ public class GerritToolWindow implements Disposable {
         int load = ++changesLoad;
         boolean lookup = changesFilters.isShowingLookup();
         String query = changesFilters.getQuery();
+        boolean narrowed = changesFilters.isNarrowed();
         Consumer<LoadChangesProxy> consumer = proxy -> {
             // loads run concurrently; one started earlier must not replace what a later one shows
             if (load == changesLoad) {
-                changeListPanel.load(proxy, lookup, query);
+                changeListPanel.load(proxy, lookup, query, narrowed);
             }
         };
+        changeListPanel.showLoading();
         if (lookup) {
             // a full hash is unique, and the projects of the repositories are not always known from their remotes
             gerritUtil.getChanges(query, project, consumer);

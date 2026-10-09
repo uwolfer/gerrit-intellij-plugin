@@ -61,3 +61,23 @@ code which a review would otherwise keep questioning.
   view back in an `invokeLater`: the caret scrolls in an event of its own after
   `setText`, so a view put back at once, even after `validate()`, ends at the
   top or the bottom (checked in 2026.2).
+* **The change list when a load fails** (`GerritChangeListPanel.load`):
+  * rows already listed stay when a reload fails, also under a filter which
+    was changed meanwhile; the notification says why, and the failure text
+    waits for the rows to go;
+  * with several queries, one failing drops the page: the load is all or
+    nothing, and the failure is reported once;
+  * `LoadChangesProxy` keeps the failure of whichever query failed last, as a
+    failed load stops them all and reports once;
+  * a load which throws something other than `RestApiException` is a bug, not
+    a state to show; it is not routed to the empty text;
+  * a page which fails while scrolling ends the list, with the notification
+    as the only sign; the refresh button loads it again;
+  * the account of a failed load is the project's current one: a switch
+    drops the load before it reaches the panel;
+  * `GerritChangesFilters.isNarrowed` compares against the query the filters
+    give at the start; a filter whose default differs once its action exists
+    must make `reset` and that default agree;
+  * the hint's link text is composed from three strings, as the rest of the
+    panel is hard-coded English;
+  * "Clear filters" reloads as a changed filter does.

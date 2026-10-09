@@ -52,6 +52,13 @@ public class FulltextFilter extends AbstractChangesFilter {
         return action;
     }
 
+    @Override
+    void reset() {
+        lookup = "";
+        ownValue = "";
+        setText("");
+    }
+
     /**
      * Shows a generated query in the field, without notifying the listeners.
      */

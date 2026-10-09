@@ -325,6 +325,15 @@ public final class GerritUtil {
      */
     @Nullable
     List<ChangeInfo> queryChanges(Changes.QueryRequest queryRequest, Project project) {
+        return queryChanges(queryRequest, project, failure -> {});
+    }
+
+    /**
+     * @param onFailure receives the failure, besides the report to the user
+     */
+    @Nullable
+    List<ChangeInfo> queryChanges(Changes.QueryRequest queryRequest, Project project,
+                                  java.util.function.Consumer<RestApiException> onFailure) {
         while (true) {
             try {
                 return queryRequest.get();
@@ -332,6 +341,7 @@ public final class GerritUtil {
                 if (!(e instanceof HttpStatusException && ((HttpStatusException) e).getStatusCode() == 400
                         && withoutUnsupportedOption(queryRequest, e.getMessage()))) {
                     notifyError(e, "Failed to get Gerrit changes.", project);
+                    onFailure.accept(e);
                     return null;
                 }
             }
@@ -796,8 +806,7 @@ public final class GerritUtil {
      * there was no login to send, as Gerrit answers an anonymous request for what needs one. With a login, a 403 is
      * a missing permission, which no password changes.
      */
-    @VisibleForTesting
-    static boolean isRefusal(Throwable failure, GerritAccount account) {
+    public static boolean isRefusal(Throwable failure, GerritAccount account) {
         HttpStatusException answer = ExceptionUtil.findCause(failure, HttpStatusException.class);
         return answer != null
             && (answer.getStatusCode() == 401 || answer.getStatusCode() == 403 && account.login.isEmpty());

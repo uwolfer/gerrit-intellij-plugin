@@ -42,10 +42,20 @@ public class BranchFilter extends AbstractChangesFilter {
     private final GerritGitUtil gerritGitUtil = GerritGitUtil.getInstance();
 
     private Optional<BranchDescriptor> value = Optional.empty();
+    private BranchPopupAction action;
 
     @Override
     public AnAction getAction(Project project) {
-        return new BranchPopupAction(project, "Branch");
+        action = new BranchPopupAction(project, "Branch");
+        return action;
+    }
+
+    @Override
+    void reset() {
+        value = Optional.empty();
+        if (action != null) {
+            action.showAll();
+        }
     }
 
     @Override
@@ -64,6 +74,10 @@ public class BranchFilter extends AbstractChangesFilter {
         public BranchPopupAction(Project project, String filterName) {
             super(filterName);
             this.project = project;
+            showAll();
+        }
+
+        private void showAll() {
             updateFilterValueLabel("All");
         }
 

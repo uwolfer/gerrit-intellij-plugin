@@ -25,6 +25,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
@@ -38,7 +39,7 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
     private final CommentSide side;
 
     CommentDoneAction(DiffComments comments, Comment fileComment, CommentSide side) {
-        super("Done", null, AllIcons.Actions.Checked);
+        super(GerritBundle.message("diff.done"), null, AllIcons.Actions.Checked);
 
         this.comments = comments;
         this.fileComment = fileComment;

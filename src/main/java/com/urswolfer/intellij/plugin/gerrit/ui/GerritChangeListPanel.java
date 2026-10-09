@@ -305,7 +305,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         listedProxy = null;
         setChanges(Collections.emptyList());
         // until a load says what there is, or the setup hint what is missing; neither may come if the load fails
-        table.getEmptyText().setText("Nothing to show");
+        table.getEmptyText().setText(GerritBundle.message("list.nothing"));
     }
 
     public void showSetupHintWhenRequired(final Project project) {
@@ -313,25 +313,25 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         if (projectAccount.needsChoice()) { // set up, only not for this project: telling to set it up would mislead
             StatusText emptyText = table.getEmptyText();
             emptyText.clear();
-            emptyText.appendText("Choose the Gerrit account of this project from Account above, or open ");
-            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+            emptyText.appendText(GerritBundle.message("list.setup.choose") + " ");
+            emptyText.appendText(GerritBundle.message("list.setup.settings"), SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
                     ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
                 }
             });
-            emptyText.appendText(".");
+            emptyText.appendText(GerritBundle.message("list.setup.end"));
         } else if (projectAccount.getHost().isEmpty() || !projectAccount.isLoginAndPasswordAvailable()) {
             StatusText emptyText = table.getEmptyText();
             emptyText.clear();
-            emptyText.appendText("Open ");
-            emptyText.appendText("settings", SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
+            emptyText.appendText(GerritBundle.message("list.setup.open") + " ");
+            emptyText.appendText(GerritBundle.message("list.setup.settings"), SimpleTextAttributes.LINK_ATTRIBUTES, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent actionEvent) {
                     ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
                 }
             });
-            emptyText.appendText(" to configure this plugin and press the refresh button afterwards.");
+            emptyText.appendText(" " + GerritBundle.message("list.setup.end.configure"));
         }
     }
 

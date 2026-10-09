@@ -132,7 +132,7 @@ public final class GerritAccount {
     @Override
     public String toString() {
         if (host == null || host.isEmpty()) {
-            return login == null || login.isEmpty() ? "New account" : login;
+            return login == null || login.isEmpty() ? GerritBundle.message("account.new") : login;
         }
         return login == null || login.isEmpty() ? host : login + "@" + host;
     }

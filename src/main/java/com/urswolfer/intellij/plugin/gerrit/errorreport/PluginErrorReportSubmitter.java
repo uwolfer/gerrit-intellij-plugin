@@ -26,6 +26,7 @@ import com.intellij.openapi.diagnostic.SubmittedReportInfo;
 import com.intellij.openapi.diagnostic.SubmittedReportInfo.SubmissionStatus;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.Version;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -49,17 +50,14 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
 
     @Override
     public String getReportActionText() {
-        return "Report to Plugin Developer (Please include your email address)";
+        return GerritBundle.message("report.action");
     }
 
     @Override
     public boolean submit(@NotNull IdeaLoggingEvent[] events, String additionalInfo, Component parentComponent, Consumer<? super SubmittedReportInfo> consumer) {
         if (additionalInfo == null || additionalInfo.isEmpty() || !additionalInfo.contains("@")) {
             String emailAddress = Messages.showInputDialog(
-                "It seems you have not included your email address.\n" +
-                "If you enter it below, you will get most probably a message " +
-                "with a solution for your issue or a question which " +
-                "will help to solve it.", "Information Required", null);
+                GerritBundle.message("report.email.text"), GerritBundle.message("report.email.title"), null);
             if (emailAddress != null && !emailAddress.isEmpty()) {
                 additionalInfo = additionalInfo == null
                     ? emailAddress : additionalInfo + '\n' + emailAddress;
@@ -123,7 +121,7 @@ public class PluginErrorReportSubmitter extends ErrorReportSubmitter {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
-                Messages.showErrorDialog(message, "Gerrit Plugin Message");
+                Messages.showErrorDialog(message, GerritBundle.message("report.message.title"));
             }
         });
     }

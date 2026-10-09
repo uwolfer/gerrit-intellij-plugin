@@ -55,6 +55,7 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
@@ -139,8 +140,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
         FileChooserDescriptor fileChooserDescriptor = FileChooserDescriptorFactory.createSingleFolderDescriptor();
         fileChooserDescriptor.setShowFileSystemRoots(true);
         fileChooserDescriptor.setHideIgnored(false);
-        directoryField.addBrowseFolderListener("Destination Directory",
-            "Select the directory the Gerrit project gets cloned into", project, fileChooserDescriptor);
+        directoryField.addBrowseFolderListener(GerritBundle.message("clone.directory.title"),
+            GerritBundle.message("clone.directory.description"), project, fileChooserDescriptor);
 
         // an editor with completion lets the offered Gerrit projects be filtered by typing a part of their name
         urlField = TextFieldWithAutoCompletion.create(project, urlModel.getItems(), false, "");
@@ -187,12 +188,12 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
         // FormBuilder does not stretch combo boxes, so the combo box gets wrapped into a panel which it does stretch;
         // its label needs to be built here, the one of FormBuilder would point at the wrapper instead of the combo box
-        JBLabel urlLabel = new JBLabel("URL:");
+        JBLabel urlLabel = new JBLabel(GerritBundle.message("clone.url.label"));
         urlLabel.setLabelFor(urlComboBox);
 
         mainPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent(urlLabel, JBUI.Panels.simplePanel(urlComboBox))
-            .addLabeledComponent("Directory:", directoryField)
+            .addLabeledComponent(GerritBundle.message("clone.directory.label"), directoryField)
             .addComponentToRightColumn(statusLabel)
             .addComponentFillVertically(new JPanel(), 0)
             .getPanel();
@@ -251,7 +252,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
         Path directory = Paths.get(getDirectory()).toAbsolutePath();
         Path parent = directory.getParent();
         if (parent == null) {
-            notifyCloneError(project, "Destination directory has no parent directory: " + directory);
+            notifyCloneError(project, GerritBundle.message("clone.error.noParent", directory));
             return;
         }
         ValidationInfo destinationValidation = CloneDvcsValidationUtils.createDestination(parent.toString());
@@ -266,7 +267,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
             destinationParent = localFileSystem.refreshAndFindFileByIoFile(parent.toFile());
         }
         if (destinationParent == null) {
-            notifyCloneError(project, "Destination directory does not exist: " + parent);
+            notifyCloneError(project, GerritBundle.message("clone.error.noDestination", parent));
             return;
         }
 
@@ -326,7 +327,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
         }
         projectsRequested = true;
         if (getAccountsWithHost().isEmpty()) {
-            setErrorText("Gerrit is not set up; the repository URL needs to be entered manually.");
+            setErrorText(GerritBundle.message("clone.error.notSetUp"));
             return;
         }
         showSpinner(true);
@@ -346,7 +347,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
                             // the projects of the others are still worth offering, but the missing ones must not
                             // look as though they did not exist
                             setErrorText(unreachable.isEmpty() ? null
-                                : "Couldn't reach " + String.join(", ", unreachable));
+                                : GerritBundle.message("clone.error.unreachable", String.join(", ", unreachable)));
                             showSpinner(false);
                         }
                     });
@@ -356,7 +357,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
                     invokeLaterIfNotDisposed(new Runnable() {
                         @Override
                         public void run() {
-                            setErrorText("Couldn't get the list of Gerrit repositories: " + errorText);
+                            setErrorText(GerritBundle.message("clone.error.list", errorText));
                             showSpinner(false);
                         }
                     });
@@ -461,7 +462,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
                         () -> setupCommitMsgHook(parentDirectory, directoryName, project, account));
                     // the progress dialog cannot be registered with a project closed during the clone
                     ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> awaitCancellably(hook),
-                        "Setting Up Gerrit Commit-Message Hook...", true, project.isDisposed() ? null : project);
+                        GerritBundle.message("clone.progress.hook"), true, project.isDisposed() ? null : project);
                 } else {
                     setupCommitMsgHook(parentDirectory, directoryName, project, account);
                 }
@@ -502,8 +503,8 @@ public class GerritCloneComponent implements VcsCloneComponent {
                                     @Nullable GerritAccount account) {
         if (account == null) {
             notificationService.notifyError(new NotificationBuilder(project,
-                "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
-                "The repository is on none of the Gerrit instances set up."));
+                GerritBundle.message("hook.failed"),
+                GerritBundle.message("clone.error.noAccount")));
             return;
         }
         try {
@@ -512,14 +513,14 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
             NotificationBuilder notification = new NotificationBuilder(
                 project,
-                "Gerrit Checkout done",
-                "Commit-Message Hook has been set up.");
+                GerritBundle.message("clone.done.title"),
+                GerritBundle.message("clone.done"));
             notificationService.notify(notification);
         } catch (Exception e) {
             LOG.info(e);
             NotificationBuilder notification = new NotificationBuilder(
                     project,
-                    "Couldn't set up Gerrit Commit-Message Hook. Please do it manually.",
+                    GerritBundle.message("hook.failed"),
                     gerritUtil.getErrorTextFromException(e));
             notificationService.notifyError(notification);
         }
@@ -527,7 +528,7 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
     private void notifyCloneError(Project project, String message) {
         LOG.info("Gerrit clone failed: " + message);
-        NotificationBuilder notification = new NotificationBuilder(project, "Couldn't clone Gerrit repository", message);
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("clone.error.title"), message);
         notificationService.notifyError(notification);
     }
 

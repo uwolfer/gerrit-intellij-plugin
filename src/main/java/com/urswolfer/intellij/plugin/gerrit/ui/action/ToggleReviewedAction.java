@@ -28,6 +28,7 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.ui.ChangesBrowserBase;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ListedChangeFiles;
@@ -96,7 +97,7 @@ public class ToggleReviewedAction extends AnAction implements DumbAware {
         e.getPresentation().setEnabledAndVisible(enabled);
         if (enabled) {
             boolean mark = ReviewedFilesService.getInstance(project).toggleTarget(selection.change, selection.revisionId, selection.paths);
-            e.getPresentation().setText(mark ? "Mark as Reviewed" : "Mark as Not Reviewed");
+            e.getPresentation().setText(mark ? GerritBundle.message("reviewed.mark") : GerritBundle.message("reviewed.unmark"));
         }
     }
 

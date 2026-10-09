@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 
 import java.util.Optional;
 
@@ -47,7 +48,7 @@ public class RestoreAction extends AbstractLoggedInChangeAction {
             return;
         }
 
-        ChangeMessageDialog dialog = new ChangeMessageDialog(project, "Restore Change", "Restore", "");
+        ChangeMessageDialog dialog = new ChangeMessageDialog(project, GerritBundle.message("restore.title"), GerritBundle.message("restore.ok"), "");
         if (!dialog.showAndGet()) {
             return;
         }

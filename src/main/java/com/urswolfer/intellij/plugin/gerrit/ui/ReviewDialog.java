@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 
 import javax.swing.*;
 import java.util.List;
@@ -32,8 +33,8 @@ public class ReviewDialog extends DialogWrapper {
     public ReviewDialog(Project project, int changeNr, String revision, List<DraftComment> drafts) {
         super(project, true);
         reviewPanel = new ReviewPanel(project, changeNr, revision, drafts);
-        setTitle("Review Change");
-        setOKButtonText("Review");
+        setTitle(GerritBundle.message("review.title"));
+        setOKButtonText(GerritBundle.message("review.ok"));
         init();
     }
 

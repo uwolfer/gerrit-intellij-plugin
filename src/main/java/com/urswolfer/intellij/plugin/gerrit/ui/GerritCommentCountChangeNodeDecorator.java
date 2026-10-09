@@ -29,6 +29,7 @@ import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.SimpleTextAttributes;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
@@ -225,12 +226,12 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
 
         List<CommentInfo> commentsForFile = comments.get(fileName);
         if (commentsForFile != null) {
-            parts.add(String.format("%s comment%s", commentsForFile.size(), commentsForFile.size() == 1 ? "" : "s"));
+            parts.add(GerritBundle.message("changes.comments", commentsForFile.size(), String.valueOf(commentsForFile.size())));
         }
 
         List<CommentInfo> draftsForFile = drafts.get(fileName);
         if (draftsForFile != null) {
-            parts.add(String.format("%s draft%s", draftsForFile.size(), draftsForFile.size() == 1 ? "" : "s"));
+            parts.add(GerritBundle.message("changes.drafts", draftsForFile.size(), String.valueOf(draftsForFile.size())));
         }
 
         return String.join(", ", parts);

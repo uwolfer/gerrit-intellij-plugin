@@ -23,6 +23,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAwareAction;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -59,7 +60,7 @@ public abstract class GoToCommentAction extends DumbAwareAction {
         CommentNavigator navigator = editor != null ? editor.getUserData(CommentNavigator.KEY) : null;
         if (navigator != null && !navigator.go(editor, forward)) {
             HintManager.getInstance().showInformationHint(editor,
-                forward ? "No comment further down" : "No comment further up");
+                forward ? GerritBundle.message("diff.noComment.down") : GerritBundle.message("diff.noComment.up"));
         }
     }
 

@@ -26,6 +26,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +41,7 @@ public class AccountPopupAction extends BasePopupAction {
     private final Project project;
 
     public AccountPopupAction(Project project) {
-        super("Account");
+        super(GerritBundle.message("account.popup"));
         this.project = project;
         refresh();
     }
@@ -83,7 +84,7 @@ public class AccountPopupAction extends BasePopupAction {
             });
         }
         actionConsumer.consume(Separator.getInstance());
-        actionConsumer.consume(new DumbAwareAction("Manage Accounts…") {
+        actionConsumer.consume(new DumbAwareAction(GerritBundle.message("account.popup.manage")) {
             @Override
             public void actionPerformed(@NotNull AnActionEvent e) {
                 ShowSettingsUtil.getInstance().showSettingsDialog(project, GerritSettingsConfigurable.NAME);
@@ -96,7 +97,7 @@ public class AccountPopupAction extends BasePopupAction {
      */
     static String label(@Nullable GerritAccount account) {
         if (account == null) {
-            return "None";
+            return GerritBundle.message("account.popup.none");
         }
         if (account.host.isEmpty()) { // taken over from an earlier version
             return account.toString();

@@ -16,13 +16,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+
 /**
  * @author Urs Wolfer
  */
 public class AttentionFilter extends AbstractUserFilter {
     @Override
     public String getActionLabel() {
-        return "Attention";
+        return GerritBundle.message("filter.attention");
     }
 
     @Override

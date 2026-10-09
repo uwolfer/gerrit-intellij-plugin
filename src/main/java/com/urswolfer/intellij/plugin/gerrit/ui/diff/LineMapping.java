@@ -18,6 +18,7 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
 import com.intellij.diff.util.Side;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -53,8 +54,8 @@ interface LineMapping {
     /** Why the caret or the selection is on no line a comment can go on. */
     default String noPositionHint(boolean selection) {
         return selection
-            ? "A comment is on one side of the diff: start and end the selection on lines of the same side"
-            : "There is no line of the diff here to comment on";
+            ? GerritBundle.message("diff.noPosition.selection")
+            : GerritBundle.message("diff.noPosition");
     }
 
     /**

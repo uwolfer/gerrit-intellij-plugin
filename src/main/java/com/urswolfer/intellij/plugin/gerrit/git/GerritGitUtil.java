@@ -49,6 +49,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.vcs.log.VcsShortCommitDetails;
 import com.intellij.vcsUtil.VcsFileUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
@@ -323,23 +324,21 @@ public final class GerritGitUtil {
     }
 
     private static void notifyNoRemoteForChange(Project project, GitRepository gitRepository) {
-        NotificationBuilder notification = new NotificationBuilder(project, "Error",
-            String.format("Could not fetch commit because no remote url matches Gerrit host.<br/>" +
-                "Git repository: '%s'.", gitRepository.getPresentableUrl()));
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("git.error.title"),
+            GerritBundle.message("git.error.noRemote", gitRepository.getPresentableUrl()));
         NotificationService.getInstance().notifyError(notification);
     }
 
     public void notifyNoFetchInfo(Project project) {
-        NotificationBuilder notification = new NotificationBuilder(project, "Cannot fetch changes",
-            "No fetch information provided. Gerrit 2.9 and 2.10 provide it only with the plugin " +
-                "'download-commands' installed.");
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("git.fetch.noInfo.title"),
+            GerritBundle.message("git.fetch.noInfo"));
         NotificationService.getInstance().notifyError(notification);
     }
 
     public void showAddGitRepositoryNotification(final Project project) {
-        NotificationBuilder notification = new NotificationBuilder(project, "Insufficient dependencies for Gerrit plugin",
-                "Please configure a Git repository.")
-                .action(NotificationAction.createSimpleExpiring("Open Settings",
+        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("git.noRepository.title"),
+                GerritBundle.message("git.noRepository"))
+                .action(NotificationAction.createSimpleExpiring(GerritBundle.message("git.noRepository.settings"),
                     () -> ShowSettingsUtil.getInstance().showSettingsDialog(project,
                         VcsBundle.message("version.control.main.configurable.name"))));
         NotificationService.getInstance().notifyWarning(notification);
@@ -368,7 +367,7 @@ public final class GerritGitUtil {
                             final FetchInfo fetchInfo,
                             final String commitHash,
                             @Nullable final Callable<Void> fetchCallback) {
-        GitVcs.runInBackground(new Task.Backgroundable(project, "Fetching...", false) {
+        GitVcs.runInBackground(new Task.Backgroundable(project, GerritBundle.message("git.progress.fetching"), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 boolean commitIsFetched = checkIfCommitIsFetched(gitRepository, commitHash);
@@ -434,13 +433,13 @@ public final class GerritGitUtil {
         FileDocumentManager.getInstance().saveAllDocuments();
         ChangeListManagerEx.getInstanceEx(project).blockModalNotifications();
 
-        new Task.Backgroundable(project, "Cherry-picking...", false) {
+        new Task.Backgroundable(project, GerritBundle.message("git.progress.cherryPicking"), false) {
             public void run(@NotNull ProgressIndicator indicator) {
                 try {
                     Optional<GitRepository> gitRepositoryOptional = getRepositoryForChange(project, changeInfo);
                     if (!gitRepositoryOptional.isPresent()) {
-                        NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                            String.format("No repository found for Gerrit project: '%s'.", changeInfo.project));
+                        NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("git.error.title"),
+                            GerritBundle.message("git.error.noRepository", changeInfo.project));
                         NotificationService.getInstance().notifyError(notification);
                         return;
                     }
@@ -454,8 +453,8 @@ public final class GerritGitUtil {
                         gitCommit = Optional.empty();
                     }
                     if (!gitCommit.isPresent()) {
-                        NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
-                            String.format("Could not load commit '%s'.", revisionId)));
+                        NotificationService.getInstance().notifyError(new NotificationBuilder(project, GerritBundle.message("git.cherryPick.error.title"),
+                            GerritBundle.message("git.error.loadFailed", revisionId)));
                         return;
                     }
 
@@ -492,32 +491,31 @@ public final class GerritGitUtil {
                     commit.getSubject()).merge();
             if (autoCommit) {
                 // git stops short of the commit on a conflict, so it is up to the user
-                NotificationService.getInstance().notifyWarning(new NotificationBuilder(project, "Cherry-picked with conflicts",
-                        resolved ? "Commit the resolved changes to complete the cherry-pick."
-                                 : "Resolve the conflicts and commit the changes to complete the cherry-pick."));
+                NotificationService.getInstance().notifyWarning(new NotificationBuilder(project, GerritBundle.message("git.cherryPick.conflicts.title"),
+                        resolved ? GerritBundle.message("git.cherryPick.conflicts.resolved")
+                                 : GerritBundle.message("git.cherryPick.conflicts.unresolved")));
             }
             return resolved;
         } else if (untrackedFilesDetector.wasMessageDetected()) {
-            String description = "Some untracked working tree files would be overwritten by cherry-pick.<br/>" +
-                    "Please move, remove or add them before you can cherry-pick. <a href='view'>View them</a>";
+            String description = GerritBundle.message("git.cherryPick.untracked");
 
             GitUntrackedFilesHelper.notifyUntrackedFilesOverwrittenBy(project, repository.getRoot(),
                 untrackedFilesDetector.getRelativeFilePaths(),
                 "cherry-pick", description);
             return false;
         } else if (localChangesOverwrittenDetector.hasHappened()) {
-            NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
-                    "Your local changes would be overwritten by cherry-pick.<br/>Commit your changes or stash them to proceed."));
+            NotificationService.getInstance().notifyError(new NotificationBuilder(project, GerritBundle.message("git.cherryPick.error.title"),
+                    GerritBundle.message("git.cherryPick.localChanges")));
             return false;
         } else if (result.getErrorOutputAsJoinedString().contains("previous cherry-pick is now empty")) {
             // git leaves the empty cherry-pick in progress, and its MERGE_MSG would become the next commit's message
             FileUtil.delete(repository.getRepositoryFiles().getCherryPickHead());
             FileUtil.delete(repository.getRepositoryFiles().getMergeMessageFile());
-            NotificationService.getInstance().notifyInformation(new NotificationBuilder(project, "Nothing to Cherry-Pick",
-                    "The changes are already on the current branch."));
+            NotificationService.getInstance().notifyInformation(new NotificationBuilder(project, GerritBundle.message("git.cherryPick.empty.title"),
+                    GerritBundle.message("git.cherryPick.empty")));
             return false;
         } else {
-            NotificationService.getInstance().notifyError(new NotificationBuilder(project, "Cherry-Pick Error",
+            NotificationService.getInstance().notifyError(new NotificationBuilder(project, GerritBundle.message("git.cherryPick.error.title"),
                     result.getErrorOutputAsHtmlString()));
             return false;
         }
@@ -536,7 +534,7 @@ public final class GerritGitUtil {
 
         private static Params makeParams(String commitHash, String commitAuthor, String commitMessage) {
             Params params = new Params();
-            params.setErrorNotificationTitle("Cherry-picked with conflicts");
+            params.setErrorNotificationTitle(GerritBundle.message("git.cherryPick.conflicts.title"));
             params.setMergeDialogCustomizer(new CherryPickMergeDialogCustomizer(commitHash, commitAuthor, commitMessage));
             return params;
         }
@@ -565,18 +563,17 @@ public final class GerritGitUtil {
 
         @Override
         public String getMultipleFileMergeDescription(Collection<VirtualFile> files) {
-            return "<html>Conflicts during cherry-picking commit <code>" + myCommitHash + "</code> made by " + myCommitAuthor + "<br/>" +
-                    "<code>\"" + myCommitMessage + "\"</code></html>";
+            return GerritBundle.message("git.cherryPick.merge.description", myCommitHash, myCommitAuthor, myCommitMessage);
         }
 
         @Override
         public String getLeftPanelTitle(VirtualFile file) {
-            return "Local changes";
+            return GerritBundle.message("git.cherryPick.merge.left");
         }
 
         @Override
         public String getRightPanelTitle(VirtualFile file, VcsRevisionNumber lastRevisionNumber) {
-            return "<html>Changes from cherry-pick <code>" + myCommitHash + "</code>";
+            return GerritBundle.message("git.cherryPick.merge.right", myCommitHash);
         }
     }
 
@@ -709,7 +706,7 @@ public final class GerritGitUtil {
      */
     public List<FilePath> getFilesOfRevision(Project project, GitRepository repository, String revision) throws VcsException {
         GitCommit commit = loadCommit(project, repository, revision)
-            .orElseThrow(() -> new VcsException("Commit " + revision + " not found."));
+            .orElseThrow(() -> new VcsException(GerritBundle.message("git.error.commitNotFound", revision)));
         // the changes git4idea lists for a merge are those against every parent
         Collection<Change> changes = commit.getParents().size() > 1
             ? GitChangeUtils.getDiff(project, repository.getRoot(), commit.getParents().get(0).asString(), revision, null)

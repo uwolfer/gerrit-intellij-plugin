@@ -46,6 +46,7 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.StatusText;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.avatar.AvatarIcons;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import org.jetbrains.annotations.NotNull;
@@ -91,18 +92,18 @@ public class SettingsPanel {
     private final JSpinner refreshTimeoutSpinner = new JSpinner();
     private final JPanel pane;
     private final JCheckBox notificationOnNewReviewsCheckbox =
-        new JCheckBox("Show notifications for new changes waiting for my review");
+        new JCheckBox(GerritBundle.message("settings.notifications.review"));
     private final JCheckBox automaticRefreshCheckbox =
-        new JCheckBox("Check for new changes automatically every:");
+        new JCheckBox(GerritBundle.message("settings.notifications.refresh"));
     private final JCheckBox listAllChangesCheckbox =
-        new JCheckBox("List all Gerrit changes (instead of changes from the currently open project only)");
-    private final JCheckBox pushToGerritCheckbox = new JCheckBox("Push commits to Gerrit by default");
-    private final JCheckBox showAvatarsCheckBox = new JCheckBox("Show avatars");
+        new JCheckBox(GerritBundle.message("settings.list.all"));
+    private final JCheckBox pushToGerritCheckbox = new JCheckBox(GerritBundle.message("settings.git.push"));
+    private final JCheckBox showAvatarsCheckBox = new JCheckBox(GerritBundle.message("settings.list.avatars"));
     private final JCheckBox showCommentsInEditorCheckBox =
-        new JCheckBox("Show the comments of the checked out changes in the editor");
-    private final JLabel minutesLabel = new JLabel("minutes");
+        new JCheckBox(GerritBundle.message("settings.git.comments"));
+    private final JLabel minutesLabel = new JLabel(GerritBundle.message("settings.notifications.minutes"));
     private final JLabel listAllHint = new JLabel(
-        "Enable if you have many Gerrit projects in one directory and get \"too many terms in query\".");
+        GerritBundle.message("settings.list.all.hint"));
 
     private final Project project;
 
@@ -116,7 +117,7 @@ public class SettingsPanel {
     // only a choice the user made is stored; what the page shows may just be the only account or the remotes' one
     private boolean projectAccountChosen;
     private JPanel wrapper;
-    private final JCheckBox projectEnabledCheckbox = new JCheckBox("Use Gerrit in this project");
+    private final JCheckBox projectEnabledCheckbox = new JCheckBox(GerritBundle.message("settings.project.enabled"));
 
     public SettingsPanel(Project project) {
         this.project = project;
@@ -150,7 +151,7 @@ public class SettingsPanel {
             .addComponent(listAllHint)
             .addComponent(atLeft(showAvatarsCheckBox))
             .getPanel();
-        changeList.setBorder(IdeBorderFactory.createTitledBorder("Change list"));
+        changeList.setBorder(IdeBorderFactory.createTitledBorder(GerritBundle.message("settings.list.title")));
 
         JPanel refresh = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         refresh.add(automaticRefreshCheckbox);
@@ -162,13 +163,13 @@ public class SettingsPanel {
             .addComponent(refresh)
             .addComponent(atLeft(notificationOnNewReviewsCheckbox))
             .getPanel();
-        notifications.setBorder(IdeBorderFactory.createTitledBorder("Notifications"));
+        notifications.setBorder(IdeBorderFactory.createTitledBorder(GerritBundle.message("settings.notifications.title")));
 
         JPanel git = FormBuilder.createFormBuilder()
             .addComponent(atLeft(pushToGerritCheckbox))
             .addComponent(atLeft(showCommentsInEditorCheckBox))
             .getPanel();
-        git.setBorder(IdeBorderFactory.createTitledBorder("Git"));
+        git.setBorder(IdeBorderFactory.createTitledBorder(GerritBundle.message("settings.git.title")));
 
         return FormBuilder.createFormBuilder()
             .addComponent(changeList)
@@ -235,13 +236,13 @@ public class SettingsPanel {
                     append(account.toString(), main);
                 }
                 if (usedHere) {
-                    append("  used by this project", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+                    append("  " + GerritBundle.message("settings.accounts.usedHere"), SimpleTextAttributes.GRAYED_ATTRIBUTES);
                 }
                 if (details != null && details.error != null) {
                     append("  " + details.error, SimpleTextAttributes.ERROR_ATTRIBUTES);
                     if (details.refused) {
                         append("  ");
-                        append("Log in", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
+                        append(GerritBundle.message("settings.accounts.login"), SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
                             (Runnable) () -> editAccount(account));
                     }
                 }
@@ -263,8 +264,8 @@ public class SettingsPanel {
             }
         }.installOn(accountList);
         showAvatarsCheckBox.addActionListener(e -> accountList.repaint());
-        accountList.getEmptyText().setText("No accounts added");
-        accountList.getEmptyText().appendSecondaryText("Add account…", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
+        accountList.getEmptyText().setText(GerritBundle.message("settings.accounts.empty"));
+        accountList.getEmptyText().appendSecondaryText(GerritBundle.message("settings.accounts.add"), SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES,
             e -> addAccount());
         // the shortcut of the toolbar's Add
         String shortcut = KeymapUtil.getFirstKeyboardShortcutText(CommonShortcuts.getNewForDialogs());
@@ -282,7 +283,7 @@ public class SettingsPanel {
             .setAddAction(button -> addAccount())
             .setEditAction(button -> editSelectedAccount())
             .setRemoveAction(button -> removeSelectedAccount())
-            .addExtraAction(new AnActionButton("Use for This Project", AllIcons.Actions.Checked) {
+            .addExtraAction(new AnActionButton(GerritBundle.message("settings.accounts.use"), AllIcons.Actions.Checked) {
                 @Override
                 public void actionPerformed(@NotNull AnActionEvent e) {
                     GerritAccount selected = accountList.getSelectedValue();
@@ -303,7 +304,7 @@ public class SettingsPanel {
             .createPanel();
         accountPane.setPreferredSize(new Dimension(-1, JBUI.scale(160)));
         JPanel pane = new JPanel(new BorderLayout());
-        pane.setBorder(IdeBorderFactory.createTitledBorder("Gerrit Accounts"));
+        pane.setBorder(IdeBorderFactory.createTitledBorder(GerritBundle.message("settings.accounts.title")));
         pane.add(accountPane, BorderLayout.CENTER);
         if (PasswordSafe.getInstance().isMemoryOnly()) {
             pane.add(createMemoryOnlyWarning(), BorderLayout.SOUTH);
@@ -322,7 +323,7 @@ public class SettingsPanel {
      */
     private static JComponent createMemoryOnlyWarning() {
         HyperlinkLabel warning = new HyperlinkLabel();
-        warning.setHyperlinkText("Passwords will not be saved for future use: ", "Configure password store", "");
+        warning.setHyperlinkText(GerritBundle.message("settings.passwords.warning") + " ", GerritBundle.message("settings.passwords.configure"), "");
         warning.setIcon(AllIcons.General.Warning);
         warning.addHyperlinkListener(event -> {
             Settings settings = Settings.KEY.getData(DataManager.getInstance().getDataContext(warning));
@@ -381,8 +382,8 @@ public class SettingsPanel {
         if (account == null) {
             return;
         }
-        if (Messages.showYesNoDialog(pane, "Remove the account for " + account + "?",
-            "Remove Gerrit Account", Messages.getQuestionIcon()) != Messages.YES) {
+        if (Messages.showYesNoDialog(pane, GerritBundle.message("settings.accounts.remove.confirm", account.toString()),
+            GerritBundle.message("settings.accounts.remove.title"), Messages.getQuestionIcon()) != Messages.YES) {
             return;
         }
         removedAccountIds.add(account.id);

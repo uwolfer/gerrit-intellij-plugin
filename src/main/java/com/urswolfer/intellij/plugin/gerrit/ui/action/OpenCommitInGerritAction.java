@@ -80,7 +80,7 @@ public class OpenCommitInGerritAction extends AnAction implements DumbAware {
         e.getPresentation().setEnabled(!tooMany);
         // a menu shows nothing else of a disabled action
         String text = GerritBundle.message("action.Gerrit.OpenCommitInGerrit.text");
-        e.getPresentation().setText(tooMany ? GerritBundle.message("action.Gerrit.OpenCommitInGerrit.tooMany", text, MAX_COMMITS) : text);
+        e.getPresentation().setText(tooMany ? GerritBundle.message("action.Gerrit.OpenCommitInGerrit.tooMany", text, String.valueOf(MAX_COMMITS)) : text);
     }
 
     @Override

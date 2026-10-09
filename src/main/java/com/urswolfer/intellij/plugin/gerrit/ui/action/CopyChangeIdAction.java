@@ -21,6 +21,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 
@@ -47,7 +48,7 @@ public class CopyChangeIdAction extends AbstractChangeAction {
         String stringToCopy = changeDetails.changeId;
         CopyPasteManager.getInstance().setContents(new StringSelection(stringToCopy));
         Project project = anActionEvent.getProject();
-        NotificationBuilder builder = new NotificationBuilder(project, "Copy", "Copied Change-ID to clipboard.");
+        NotificationBuilder builder = new NotificationBuilder(project, GerritBundle.message("copy.title"), GerritBundle.message("copy.changeId"));
         notificationService.notify(builder);
     }
 

@@ -181,12 +181,13 @@ application startup:
 * The copies are not the classes this plugin loaded, so their static setters
   are called by name: `GerritPushOptionsPanel.setPushToGerritByDefault`, also
   whenever the setting changes, `GerritPushOptionsPanel.setEnabledForProject`,
-  which hands over whether a project uses Gerrit at all, and
+  which hands over whether a project uses Gerrit at all,
   `GerritPushExtensionPanel.setAccountCompletion`, which hands over the account
-  suggestions of the reviewers and CC fields. The suggestions need the REST
-  client, which the Git plugin class loader cannot load. Without the project
-  setting, a panel shows the Gerrit options in every project; without the
-  suggestions, plain text fields.
+  suggestions of the reviewers and CC fields, and `PushMessages.setProvider`,
+  which hands over the texts. The suggestions need the REST client, and the
+  texts `GerritBundle`, which the Git plugin class loader cannot load. Without
+  the project setting, a panel shows the Gerrit options in every project;
+  without the suggestions, plain text fields; without the texts, their keys.
 * `GerritPushTargetUpdater` finds the repository rows in the dialog's component
   tree, with `com.intellij.dvcs.push` classes: public, but the dialog's own UI.
 
@@ -210,6 +211,14 @@ Sandboxes):
 ```
 git show v1.2.6-203:build.gradle | grep javassist
 ```
+
+## User-visible texts
+
+Texts shown to the user go through `GerritBundle.message` (`PushMessages.message`
+in the `push` package, whose panels cannot load the bundle), never a literal.
+Pass numbers as `String.valueOf`, double an apostrophe only in a message with
+parameters, and keep a blank at the start or end of a text in the code: a properties
+value loses a leading one, and `.editorconfig` trims a trailing one. `GerritBundleTest` checks the keys and these rules.
 
 ## Services
 

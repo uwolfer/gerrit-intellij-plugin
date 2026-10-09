@@ -16,13 +16,15 @@
 
 package com.urswolfer.intellij.plugin.gerrit.ui.filter;
 
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+
 /**
  * @author Thomas Forrer
  */
 public class ReviewerFilter extends AbstractUserFilter {
     @Override
     public String getActionLabel() {
-        return "Reviewer";
+        return GerritBundle.message("filter.reviewer");
     }
 
     @Override

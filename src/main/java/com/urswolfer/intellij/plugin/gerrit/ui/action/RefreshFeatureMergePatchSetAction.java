@@ -16,6 +16,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.Nullable;
@@ -60,8 +61,8 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
             @Override
             public void consume(ChangeInfo refreshedChange) {
                 ActionUtil.reloadChanges(project);
-                notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Patch Set Refreshed",
-                        "Created a new patch set for change " + refreshedChange._number));
+                notificationService.notifyInformation(new NotificationBuilder(project, GerritBundle.message("refresh.title"),
+                        GerritBundle.message("refresh.text", String.valueOf(refreshedChange._number))));
             }
         });
     }
@@ -88,8 +89,8 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
             targetBranchField = new JTextField(targetBranch);
             projectField.setEditable(false);
             targetBranchField.setEditable(false);
-            setTitle("Refresh Feature Merge Patch Set");
-            setOKButtonText("Refresh");
+            setTitle(GerritBundle.message("refresh.dialog.title"));
+            setOKButtonText(GerritBundle.message("refresh.ok"));
             init();
         }
 
@@ -97,16 +98,16 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
         @Override
         protected ValidationInfo doValidate() {
             return sourceBranchField.getText().trim().isEmpty()
-                    ? new ValidationInfo("Source branch is required", sourceBranchField) : null;
+                    ? new ValidationInfo(GerritBundle.message("merge.validation.source"), sourceBranchField) : null;
         }
 
         @Nullable
         @Override
         protected JComponent createCenterPanel() {
             JPanel panel = new JPanel(new GridBagLayout());
-            addRow(panel, 0, "Gerrit project:", projectField);
-            addRow(panel, 1, "Target branch:", targetBranchField);
-            addRow(panel, 2, "Source branch:", sourceBranchField);
+            addRow(panel, 0, GerritBundle.message("merge.label.project"), projectField);
+            addRow(panel, 1, GerritBundle.message("merge.label.target"), targetBranchField);
+            addRow(panel, 2, GerritBundle.message("merge.label.source"), sourceBranchField);
             return panel;
         }
     }

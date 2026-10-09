@@ -43,6 +43,7 @@ import com.intellij.ui.SimpleColoredComponent;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
 import com.intellij.util.containers.ContainerUtil;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.git.RevisionFetcher;
@@ -266,7 +267,7 @@ public class RepositoryChangesBrowserProvider {
                 changesUpdate++;
                 // the files and patch sets of the change selected before are not this one's, and stay for good when
                 // its details do not come
-                forgetListedChange("Loading...");
+                forgetListedChange(GerritBundle.message("details.loading"));
             }
             selectedChange = changeInfo;
             gerritUtil.getChangeDetailsOrNull(null, changeInfo._number, project, new Consumer<ChangeInfo>() {
@@ -275,7 +276,7 @@ public class RepositoryChangesBrowserProvider {
                     if (changeDetails == null) {
                         // shown only while nothing is listed, so the files of an earlier load stay
                         if (selectedChange != null && selectedChange.id.equals(changeInfo.id)) {
-                            getViewer().setEmptyText("The change could not be loaded");
+                            getViewer().setEmptyText(GerritBundle.message("details.loadFailed"));
                         }
                         return;
                     }
@@ -324,14 +325,14 @@ public class RepositoryChangesBrowserProvider {
             // without a repository there is nothing built, so a reload after the mappings changed tries again; a
             // failing fetch or git call is not retried, as it would report its error again after every action
             builtDiff = null;
-            getViewer().setEmptyText("Loading...");
+            getViewer().setEmptyText(GerritBundle.message("details.loading"));
             baseParent = null;
             listedChange = null;
             listedRevision = null;
             setChangesToDisplay(Collections.<Change>emptyList());
             Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
             if (!gitRepositoryOptional.isPresent()) {
-                getViewer().setEmptyText("Diff cannot be displayed as no local repository was found");
+                getViewer().setEmptyText(GerritBundle.message("browser.noRepository"));
                 return;
             }
             final GitRepository gitRepository = gitRepositoryOptional.get();
@@ -390,9 +391,8 @@ public class RepositoryChangesBrowserProvider {
                     } catch (VcsException e) {
                         LOG.warn("Error getting Git commit details.", e);
                         NotificationBuilder notification = new NotificationBuilder(
-                                project, "Cannot show change",
-                                "Git error occurred while getting commit. Please check if Gerrit is configured as remote " +
-                                        "for the currently used Git repository."
+                                project, GerritBundle.message("browser.gitError.title"),
+                                GerritBundle.message("browser.gitError")
                         );
                         notificationService.notifyError(notification);
                         return null;
@@ -404,7 +404,7 @@ public class RepositoryChangesBrowserProvider {
                             if (update != changesUpdate) {
                                 return;
                             }
-                            getViewer().setEmptyText("No changes");
+                            getViewer().setEmptyText(GerritBundle.message("browser.noChanges"));
                             baseParent = parent;
                             listedChange = change;
                             listedRevision = revisionId;
@@ -421,7 +421,7 @@ public class RepositoryChangesBrowserProvider {
             // ("git show hash" <-> "git log hash -1")
             List<GitCommit> history = GitHistoryUtils.history(project, gitRepositoryRoot, revisionId, "-1");
             if (history.size() != 1) {
-                throw new VcsException(String.format("Expected exactly one commit for %s, got %s.", revisionId, history.size()));
+                throw new VcsException(GerritBundle.message("browser.error.commit", revisionId, String.valueOf(history.size())));
             }
             return history.get(0);
         }

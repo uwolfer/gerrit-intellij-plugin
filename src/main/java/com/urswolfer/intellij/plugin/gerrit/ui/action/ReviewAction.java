@@ -51,7 +51,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
     public ReviewAction(String label, int rating, Icon icon, boolean showDialog) {
         this((rating > 0 ? "+" : "") + rating + (showDialog ? "..." : ""),
-            "Review Change with " + rating + (showDialog ? " adding Comment" : ""), icon, label, rating, showDialog);
+            GerritBundle.message(showDialog ? "review.action.withComment" : "review.action.rating", String.valueOf(rating)), icon, label, rating, showDialog);
     }
 
     private ReviewAction(String text, String description, Icon icon, String label, int rating, boolean showDialog) {
@@ -114,7 +114,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
                     @Override
                     public void consume(Void result) {
                         NotificationBuilder notification = new NotificationBuilder(
-                                project, "Review posted",
+                                project, GerritBundle.message("review.posted.title"),
                                 buildSuccessMessage(changeDetails, reviewInput))
                                 .hideBalloon();
                         notificationService.notifyInformation(notification);
@@ -163,7 +163,7 @@ public class ReviewAction extends AbstractLoggedInChangeAction {
 
     private String buildSuccessMessage(ChangeInfo changeInfo, ReviewInput reviewInput) {
         StringBuilder stringBuilder = new StringBuilder(
-                String.format("Review for change '%s' posted", StringUtil.escapeXmlEntities(changeInfo.subject))
+                GerritBundle.message("review.posted.text", StringUtil.escapeXmlEntities(changeInfo.subject))
         );
         if (reviewInput.labels != null && !reviewInput.labels.isEmpty()) {
             stringBuilder.append(": ");

@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Comparing;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
@@ -174,7 +175,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
                     accounts.update(edited, passwords, removedIds);
                     stored.set(true);
-                }, "Saving Gerrit Credentials", false, project);
+                }, GerritBundle.message("account.progress.saving"), false, project);
                 if (stored.get()) {
                     settingsPane.passwordsStored();
                 }

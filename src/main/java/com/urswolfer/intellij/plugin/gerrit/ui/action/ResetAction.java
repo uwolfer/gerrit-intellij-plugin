@@ -27,6 +27,7 @@ import com.intellij.openapi.vcs.VcsException;
 import com.intellij.util.ObjectUtils;
 import com.intellij.vcs.log.Hash;
 import com.intellij.vcs.log.VcsFullCommitDetails;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -76,11 +77,11 @@ public class ResetAction extends AbstractChangeAction {
         try {
             commit = gerritGitUtil.loadCommit(project, repository, commitHash);
         } catch (VcsException e) {
-            notifyError(project, String.format("Could not load commit '%s': %s", commitHash, e.getMessage()));
+            notifyError(project, GerritBundle.message("reset.error.loadFailedWithReason", commitHash, e.getMessage()));
             return;
         }
         if (!commit.isPresent()) {
-            notifyError(project, String.format("Could not load commit '%s'.", commitHash));
+            notifyError(project, GerritBundle.message("git.error.loadFailed", commitHash));
             return;
         }
 
@@ -110,7 +111,7 @@ public class ResetAction extends AbstractChangeAction {
         settings.setResetMode(selectedMode);
 
         Map<GitRepository, Hash> hashes = Collections.singletonMap(repository, commit.getId());
-        new Task.Backgroundable(project, "Resetting...", true) {
+        new Task.Backgroundable(project, GerritBundle.message("reset.progress"), true) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 GitResetOperation operation = new GitResetOperation(project, hashes, selectedMode, indicator);
@@ -138,6 +139,6 @@ public class ResetAction extends AbstractChangeAction {
     }
 
     private void notifyError(Project project, String message) {
-        notificationService.notifyError(new NotificationBuilder(project, "Reset Error", message));
+        notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("reset.error.title"), message));
     }
 }

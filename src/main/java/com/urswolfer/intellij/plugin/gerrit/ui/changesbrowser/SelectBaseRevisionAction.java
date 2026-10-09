@@ -29,6 +29,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.util.Pair;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.ui.BasePopupAction;
 import com.urswolfer.intellij.plugin.gerrit.util.RevisionInfos;
@@ -46,7 +47,6 @@ import java.util.function.Function;
 @SuppressWarnings("ComponentNotRegistered")
 public class SelectBaseRevisionAction extends BasePopupAction {
 
-    private static final String BASE = "Base";
     private static final Function<Pair<String, RevisionInfo>, String> REVISION_LABEL_FUNCTION = revisionInfo ->
         String.format("%s: %s", revisionInfo.getSecond()._number, revisionInfo.getFirst().substring(0, 7));
 
@@ -57,7 +57,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     private List<Listener> listeners = new ArrayList<>();
 
     public SelectBaseRevisionAction(Project project, Disposable parent) {
-        super("Diff against");
+        super(GerritBundle.message("base.label"));
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         selectedRevisions.addListener(new SelectedRevisions.Listener() {
             @Override
@@ -76,7 +76,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
 
     @Override
     protected void createActions(Consumer<AnAction> anActionConsumer) {
-        anActionConsumer.consume(new DumbAwareUpdateInBackgroundAction("Base") {
+        anActionConsumer.consume(new DumbAwareUpdateInBackgroundAction(GerritBundle.message("base.value")) {
             @Override
             public void actionPerformed(AnActionEvent e) {
                 // while the details of a change load, there is none to diff and Base is what is shown anyway
@@ -169,7 +169,7 @@ public class SelectBaseRevisionAction extends BasePopupAction {
     }
 
     private void updateLabel() {
-        updateFilterValueLabel(selectedValue.map(REVISION_LABEL_FUNCTION).orElse(BASE));
+        updateFilterValueLabel(selectedValue.map(REVISION_LABEL_FUNCTION).orElse(GerritBundle.message("base.value")));
     }
 
     public static interface Listener {

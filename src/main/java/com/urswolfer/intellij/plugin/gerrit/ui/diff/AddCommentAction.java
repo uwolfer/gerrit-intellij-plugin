@@ -29,6 +29,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.Nullable;
@@ -94,7 +95,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         // the comments of the editor may have been replaced since, while a popup of these was open
         LineMapping mapping = comments.currentMapping(editor);
         if (mapping == null) {
-            HintManager.getInstance().showErrorHint(editor, "The comments of the file changed meanwhile, try again");
+            HintManager.getInstance().showErrorHint(editor, GerritBundle.message("diff.error.changed"));
             return;
         }
         CommentPosition position = CommentPosition.read(editor, mapping);
@@ -108,7 +109,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
 
         final CommentForm commentForm =
             new CommentForm(project, editor, mapping, position, commentToEdit, replyToComment);
-        final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, "Comment");
+        final JBPopup balloon = commentBalloonBuilder.getNewCommentBalloon(commentForm, GerritBundle.message("diff.comment"));
         balloon.addListener(new JBPopupListener() {
             @Override
             public void beforeShown(LightweightWindowEvent lightweightWindowEvent) {}

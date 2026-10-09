@@ -22,6 +22,7 @@ import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -78,7 +79,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
 
         GitLocalBranch currentBranch = repository.getCurrentBranch();
         if (currentBranch == null) {
-            notifyError(project, "The current Git branch could not be determined. Check out a feature branch to create a merge request.");
+            notifyError(project, GerritBundle.message("merge.error.noBranch"));
             return;
         }
 
@@ -88,7 +89,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             return;
         }
         if (gerritProject.isEmpty()) {
-            notifyError(project, "Could not determine the Gerrit project from this repository's remotes.");
+            notifyError(project, GerritBundle.message("merge.error.noProject"));
             return;
         }
 
@@ -144,7 +145,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             choices[i] = repositories.get(i).getPresentableUrl();
         }
         int selected = Messages.showChooseDialog(project,
-                "Select the Git repository for the merge change", "Create Feature Merge Change",
+                GerritBundle.message("merge.select.repository"), GerritBundle.message("merge.title"),
                 null, choices, choices[0]);
         return selected < 0 ? null : repositories.get(selected);
     }
@@ -170,7 +171,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
 
         String[] choices = uniqueProjectNames.toArray(new String[uniqueProjectNames.size()]);
         int selected = Messages.showChooseDialog(project,
-                "Select the Gerrit project for the merge change", "Create Feature Merge Change",
+                GerritBundle.message("merge.select.project"), GerritBundle.message("merge.title"),
                 null, choices, choices[0]);
         return selected < 0 ? null : choices[selected];
     }
@@ -183,7 +184,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             String sourceBranch = FeatureMergeBranchResolver.normalizeBranch(
                     upstreamBranch.getNameForRemoteOperations());
             if (sourceBranch.isEmpty()) {
-                openDialogWithTarget(project, gerritProject, "", "The upstream branch could not be resolved. Select the remote feature branch explicitly.",
+                openDialogWithTarget(project, gerritProject, "", GerritBundle.message("merge.error.upstream"),
                         currentBranch.getName());
             } else {
                 openDialogWithTarget(project, gerritProject, sourceBranch, "", currentBranch.getName());
@@ -209,8 +210,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                         : changeInfo.project.trim();
                 if (sourceBranch.isEmpty()) {
                     openDialogWithTarget(project, resolvedProject, "",
-                            "Gerrit could not resolve review checkout " + reviewChangeNumber
-                                    + ". Select the remote feature branch explicitly.", currentBranch.getName());
+                            GerritBundle.message("merge.error.review", String.valueOf(reviewChangeNumber)), currentBranch.getName());
                 } else {
                     openDialogWithTarget(project, resolvedProject, sourceBranch, "", currentBranch.getName());
                 }
@@ -228,7 +228,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             public void consume(String head) {
                 String targetBranch = FeatureMergeBranchResolver.normalizeHead(head);
                 if (targetBranch.isEmpty()) {
-                    notifyError(project, "Gerrit did not return a valid default branch for project '" + gerritProject + "'.");
+                    notifyError(project, GerritBundle.message("merge.error.defaultBranch", gerritProject));
                     return;
                 }
                 String dialogExplanation = sourceExplanation;
@@ -258,8 +258,8 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             @Override
             public void consume(ChangeInfo changeInfo) {
                 ActionUtil.reloadChanges(project);
-                notificationService.notifyInformation(new NotificationBuilder(project, "Gerrit Merge Change Created",
-                        "Created change " + changeInfo._number + ": " + StringUtil.escapeXmlEntities(changeInfo.subject)));
+                notificationService.notifyInformation(new NotificationBuilder(project, GerritBundle.message("merge.created.title"),
+                        GerritBundle.message("merge.created.text", String.valueOf(changeInfo._number), StringUtil.escapeXmlEntities(changeInfo.subject))));
             }
         });
     }
@@ -269,7 +269,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
     }
 
     private void notifyError(Project project, String message) {
-        notificationService.notifyError(new NotificationBuilder(project, "Create Feature Merge Change", message));
+        notificationService.notifyError(new NotificationBuilder(project, GerritBundle.message("merge.title"), message));
     }
 
     private class CreateMergeDialog extends DialogWrapper {
@@ -291,10 +291,10 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
             sourceBranchField = new FeatureMergeBranchSelector(project, defaults.sourceBranch);
             targetBranchField = new FeatureMergeBranchSelector(project, defaults.targetBranch);
             subjectField.setText(defaultSubject(defaults.sourceBranch));
-            subjectField.setToolTipText("The commit message and title shown for the Gerrit change.");
-            topicField.setToolTipText("Optional label used to group related Gerrit changes.");
-            setTitle("Create Feature Merge Change");
-            setOKButtonText("Create");
+            subjectField.setToolTipText(GerritBundle.message("merge.field.subject.tooltip"));
+            topicField.setToolTipText(GerritBundle.message("merge.field.topic.tooltip"));
+            setTitle(GerritBundle.message("merge.title"));
+            setOKButtonText(GerritBundle.message("merge.ok"));
             final Runnable validationListener = new Runnable() {
                 @Override public void run() {
                     refreshOkEnabled();
@@ -367,20 +367,20 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         @Nullable
         @Override
         protected ValidationInfo doValidate() {
-            if (!hasText(projectField)) return new ValidationInfo("Gerrit project is required", projectField);
-            if (!hasText(sourceBranchField.getText())) return new ValidationInfo("Source branch is required", sourceBranchField);
-            if (!hasText(targetBranchField.getText())) return new ValidationInfo("Target branch is required", targetBranchField);
-            if (!hasText(subjectField)) return new ValidationInfo("Subject is required", subjectField);
+            if (!hasText(projectField)) return new ValidationInfo(GerritBundle.message("merge.validation.project"), projectField);
+            if (!hasText(sourceBranchField.getText())) return new ValidationInfo(GerritBundle.message("merge.validation.source"), sourceBranchField);
+            if (!hasText(targetBranchField.getText())) return new ValidationInfo(GerritBundle.message("merge.validation.target"), targetBranchField);
+            if (!hasText(subjectField)) return new ValidationInfo(GerritBundle.message("merge.validation.subject"), subjectField);
             String sourceBranch = FeatureMergeBranchResolver.normalizeBranch(sourceBranchField.getText());
             String targetBranch = FeatureMergeBranchResolver.normalizeBranch(targetBranchField.getText());
             if (sourceBranch.isEmpty()) {
-                return new ValidationInfo("Source branch is not a valid branch ref.", sourceBranchField);
+                return new ValidationInfo(GerritBundle.message("merge.validation.sourceRef"), sourceBranchField);
             }
             if (targetBranch.isEmpty()) {
-                return new ValidationInfo("Target branch is not a valid branch ref.", targetBranchField);
+                return new ValidationInfo(GerritBundle.message("merge.validation.targetRef"), targetBranchField);
             }
             if (FeatureMergeBranchResolver.isDefaultBranch(sourceBranch, targetBranch)) {
-                return new ValidationInfo("Source and target branches must be different.", targetBranchField);
+                return new ValidationInfo(GerritBundle.message("merge.validation.different"), targetBranchField);
             }
             return null;
         }
@@ -429,11 +429,11 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
                 messageConstraints.insets = new Insets(3, 0, 8, 0);
                 panel.add(new JLabel(defaults.sourceExplanation), messageConstraints);
             }
-            addRow(panel, row++, "Gerrit project:", projectField);
-            addRow(panel, row++, "Source branch:", sourceBranchField);
-            addRow(panel, row++, "Target branch:", targetBranchField);
-            addRow(panel, row++, "Subject:", subjectField);
-            addRow(panel, row, "Topic (optional):", topicField);
+            addRow(panel, row++, GerritBundle.message("merge.label.project"), projectField);
+            addRow(panel, row++, GerritBundle.message("merge.label.source"), sourceBranchField);
+            addRow(panel, row++, GerritBundle.message("merge.label.target"), targetBranchField);
+            addRow(panel, row++, GerritBundle.message("merge.label.subject"), subjectField);
+            addRow(panel, row, GerritBundle.message("merge.label.topic"), topicField);
             return panel;
         }
     }

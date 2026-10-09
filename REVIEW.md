@@ -78,9 +78,25 @@ code which a review would otherwise keep questioning.
   * `GerritChangesFilters.isNarrowed` compares against the query the filters
     give at the start; a filter whose default differs once its action exists
     must make `reset` and that default agree;
-  * the hint's link text is composed from three strings, as the rest of the
-    panel is hard-coded English;
+  * the hint's link text is composed from three strings, so that the link can
+    be a fragment of the sentence;
   * "Clear filters" reloads as a changed filter does.
+* **Message bundle** (#530; texts only, no translations yet):
+  * dialog mnemonics (`label(text, 'W', field)`) stay bound to the English
+    letters until a translation exists to choose from;
+  * a few `static final` texts are read when their class loads (the locale
+    needs a restart to change anyway);
+  * keys with the same English text are shared where the meaning is the same,
+    and separate where the role differs (a column and a filter of the same
+    name); what a translator cannot tell apart gets its own key;
+  * a text which has to start or end with a blank keeps it in the code: the
+    properties format drops a leading one and `.editorconfig` trims a trailing
+    one; the test of the bundle refuses both;
+  * brand and product names stay in code and `plugin.xml`: "Gerrit" (tool
+    window, settings page, checkout provider, notification group) and the
+    "Gitiles" override text;
+  * the git-style labels of `CommitMessageFormatter`, the revert message, the
+    "Done" reply and the merge subject are content sent to Gerrit, not UI.
 * **Next and previous comment in a diff** (`GoToCommentAction`,
   `CommentNavigator`, `CommentNavigation`):
   * the actions have the shortcuts of Previous/Next Occurrence, as those of the

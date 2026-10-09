@@ -76,7 +76,7 @@ public class DraftCommentsPanel extends JPanel {
     }
 
     private void updateTitle() {
-        titleLabel.setText(GerritBundle.message("review.drafts.title", rowsPanel.getComponentCount()));
+        titleLabel.setText(GerritBundle.message("review.drafts.title", String.valueOf(rowsPanel.getComponentCount())));
     }
 
     private void discarded(Row row) {

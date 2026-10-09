@@ -20,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.textCompletion.TextCompletionProvider;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import git4idea.push.GitPushOperation;
@@ -27,6 +28,7 @@ import javassist.*;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -61,6 +63,7 @@ public final class GerritPushExtension {
             "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeActionListener",
             "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$ChangeTextActionListener",
             "com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionPanel$SettingsStateActionListener",
+            "com.urswolfer.intellij.plugin.gerrit.push.PushMessages",
             "com.urswolfer.intellij.plugin.gerrit.push.PushOptionValidator",
             "com.urswolfer.intellij.plugin.gerrit.util.UrlUtils",
             "com.urswolfer.intellij.plugin.gerrit.util.Whitespace");
@@ -86,6 +89,7 @@ public final class GerritPushExtension {
 
             copyGerritPluginClassesToGitPlugin(classPool, gitIdeaPluginClassLoader);
             gitPluginClassLoader = gitIdeaPluginClassLoader;
+            handOverMessages(gitIdeaPluginClassLoader);
             setPushToGerritByDefault(GerritSettings.getInstance().getPushToGerrit());
 
             modifyGitBranchPanel(classPool, gitIdeaPluginClassLoader);
@@ -209,6 +213,28 @@ public final class GerritPushExtension {
     static void handOverAccountCompletion(Class<?> panelClass, Function<Project, TextCompletionProvider> completion)
             throws ReflectiveOperationException {
         panelClass.getMethod("setAccountCompletion", Function.class).invoke(null, completion);
+    }
+
+    /**
+     * The texts come from this plugin's resource bundle, which the Git plugin class loader cannot find, so the
+     * copied panels get them as a {@link BiFunction}. Panels which do not get it show the keys, which is no reason
+     * to give up the push dialog integration.
+     */
+    private static void handOverMessages(ClassLoader gitIdeaPluginClassLoader) {
+        try {
+            handOverMessages(
+                Class.forName(PushMessages.class.getName(), true, gitIdeaPluginClassLoader),
+                GerritBundle::message);
+        } catch (ProcessCanceledException e) {
+            throw e;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOG.warn("Failed to hand the texts to Gerrit push UI.", e);
+        }
+    }
+
+    static void handOverMessages(Class<?> messagesClass, BiFunction<String, Object[], String> messages)
+            throws ReflectiveOperationException {
+        messagesClass.getMethod("setProvider", BiFunction.class).invoke(null, messages);
     }
 
     private static void loadClass(ClassPool classPool, ClassLoader targetClassLoader, String className) {

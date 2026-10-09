@@ -20,6 +20,7 @@ import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.Consumer;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
@@ -53,8 +54,8 @@ public class FetchAction {
 
                 Optional<GitRepository> gitRepository = gerritGitUtil.getRepositoryForChange(project, changeDetails);
                 if (!gitRepository.isPresent()) {
-                    NotificationBuilder notification = new NotificationBuilder(project, "Error",
-                        String.format("No repository found for Gerrit project: '%s'.", changeDetails.project));
+                    NotificationBuilder notification = new NotificationBuilder(project, GerritBundle.message("git.error.title"),
+                        GerritBundle.message("git.error.noRepository", changeDetails.project));
                     notificationService.notifyError(notification);
                     return;
                 }

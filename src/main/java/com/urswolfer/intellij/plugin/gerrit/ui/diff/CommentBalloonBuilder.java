@@ -21,6 +21,7 @@ import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.ui.popup.ComponentPopupBuilder;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -31,8 +32,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CommentBalloonBuilder {
     private static final String POPUP_TEXT =
-        String.format("Hit %s to create a comment. It will be published once you post your review.",
-            KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
+        GerritBundle.message("diff.balloon.hint", KeymapUtil.getShortcutsText(CommonShortcuts.CTRL_ENTER.getShortcuts()));
 
 
     public JBPopup getNewCommentBalloon(final CommentForm balloonContent, @NotNull final String title) {

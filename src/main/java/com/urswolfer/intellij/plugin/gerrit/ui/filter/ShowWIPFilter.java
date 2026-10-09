@@ -23,6 +23,7 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -66,7 +67,7 @@ public class ShowWIPFilter extends AbstractChangesFilter {
 
     public final class ShowWIPActionFilter extends ToggleAction implements DumbAware, UpdateInBackground {
         public ShowWIPActionFilter() {
-            super("WIP Changes", "Display WIP changes", AllIcons.Actions.Profile);
+            super(GerritBundle.message("filter.wip"), GerritBundle.message("filter.wip.description"), AllIcons.Actions.Profile);
         }
 
         @Override

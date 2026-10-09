@@ -18,12 +18,14 @@ package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.api.changes.DraftInput;
 import com.google.gerrit.extensions.client.Comment;
+import com.intellij.CommonBundle;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.keymap.KeymapUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.ui.EditorTextField;
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -76,7 +78,7 @@ public class CommentForm extends JPanel {
         reviewTextField = safeHtmlTextEditor.getMessageField();
         add(safeHtmlTextEditor);
 
-        resolvedCheckBox = new JCheckBox("Resolved");
+        resolvedCheckBox = new JCheckBox(GerritBundle.message("diff.resolved"));
 
         addButtons();
 
@@ -112,7 +114,7 @@ public class CommentForm extends JPanel {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
 
-        JButton saveButton = new JButton("Save");
+        JButton saveButton = new JButton(GerritBundle.message("diff.save"));
         buttonPanel.add(saveButton);
         saveButton.addActionListener(new ActionListener() {
             @Override
@@ -125,7 +127,7 @@ public class CommentForm extends JPanel {
 
         buttonPanel.add(Box.createHorizontalGlue());
 
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(CommonBundle.getCancelButtonText());
         buttonPanel.add(cancelButton);
         cancelButton.addActionListener(new ActionListener() {
             @Override

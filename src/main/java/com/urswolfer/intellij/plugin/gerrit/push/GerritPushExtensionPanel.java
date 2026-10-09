@@ -239,7 +239,7 @@ public class GerritPushExtensionPanel extends JPanel {
         mainPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        pushToGerritCheckBox = new JCheckBox("Push to Gerrit");
+        pushToGerritCheckBox = new JCheckBox(PushMessages.message("push.enabled"));
         mainPanel.add(pushToGerritCheckBox);
 
         noNewChangesLabel = new JLabel(AllIcons.General.Warning);
@@ -248,69 +248,63 @@ public class GerritPushExtensionPanel extends JPanel {
 
         indentedSettingPanel = new JPanel(new GridLayoutManager(14, 2));
 
-        privateCheckBox = new JCheckBox("Private (Gerrit 2.15+)");
-        privateCheckBox.setToolTipText("Push a private change or to turn a change private.");
+        privateCheckBox = new JCheckBox(PushMessages.message("push.private"));
+        privateCheckBox.setToolTipText(PushMessages.message("push.private.tooltip"));
         indentedSettingPanel.add(privateCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        unmarkPrivateCheckBox = new JCheckBox("Unmark Private (Gerrit 2.15+)");
-        unmarkPrivateCheckBox.setToolTipText("Unmark an existing change private.");
+        unmarkPrivateCheckBox = new JCheckBox(PushMessages.message("push.unmarkPrivate"));
+        unmarkPrivateCheckBox.setToolTipText(PushMessages.message("push.unmarkPrivate.tooltip"));
         indentedSettingPanel.add(unmarkPrivateCheckBox, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        wipCheckBox = new JCheckBox("WIP (Work-In-Progress Changes) (Gerrit 2.15+)");
-        wipCheckBox.setToolTipText("Push a wip change or to turn a change to wip.");
+        wipCheckBox = new JCheckBox(PushMessages.message("push.wip"));
+        wipCheckBox.setToolTipText(PushMessages.message("push.wip.tooltip"));
         indentedSettingPanel.add(wipCheckBox, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        readyCheckBox = new JCheckBox("Ready (Gerrit 2.15+)");
-        readyCheckBox.setToolTipText("Mark a Work-In-Progress Change as Ready for review");
+        readyCheckBox = new JCheckBox(PushMessages.message("push.ready"));
+        readyCheckBox.setToolTipText(PushMessages.message("push.ready.tooltip"));
         indentedSettingPanel.add(readyCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        publishDraftCommentsCheckBox = new JCheckBox("Publish Draft Comments (Gerrit 2.15+)");
-        publishDraftCommentsCheckBox.setToolTipText("If you have draft comments on the change(s) that are updated by the push, the publish-comments option will cause them to be published.");
+        publishDraftCommentsCheckBox = new JCheckBox(PushMessages.message("push.publishComments"));
+        publishDraftCommentsCheckBox.setToolTipText(PushMessages.message("push.publishComments.tooltip"));
         indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        draftChangeCheckBox = new JCheckBox("Draft-Change (Gerrit older than 2.15)");
-        draftChangeCheckBox.setToolTipText("Publish change as draft (reviewers cannot submit change).");
+        draftChangeCheckBox = new JCheckBox(PushMessages.message("push.draft"));
+        draftChangeCheckBox.setToolTipText(PushMessages.message("push.draft.tooltip"));
         indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        submitChangeCheckBox = new JCheckBox("Submit Change");
-        submitChangeCheckBox.setToolTipText("Changes can be directly submitted on push. This is primarily useful for " +
-                "teams that don't want to do code review but want to use Gerrit’s submit strategies to handle " +
-                "contention on busy branches. Using submit creates a change and submits it immediately, if the caller " +
-                "has submit permission.");
+        submitChangeCheckBox = new JCheckBox(PushMessages.message("push.submit"));
+        submitChangeCheckBox.setToolTipText(PushMessages.message("push.submit.tooltip"));
         indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
         branchTextField = addTextField(
-                "Branch:",
-                "The push destination branch.",
+                PushMessages.message("push.field.branch"),
+                PushMessages.message("push.field.branch.tooltip"),
                 7);
 
         topicTextField = addTextField(
-                "Topic:",
-                "A short topic associated with all of the changes in the same group, such as the local topic branch name. " +
-                        "It must not contain spaces: Gerrit reads it from the push reference.",
+                PushMessages.message("push.field.topic"),
+                PushMessages.message("push.field.topic.tooltip"),
                 8);
 
         hashTagTextField = addTextField(
-                "Hashtag (Gerrit 2.15+):",
-                "Include a hashtag associated with all of the changes in the same group. " +
-                        "It must not contain spaces: Gerrit reads it from the push reference.",
+                PushMessages.message("push.field.hashtag"),
+                PushMessages.message("push.field.hashtag.tooltip"),
                 9);
 
         patchsetDescriptionTextField = addTextField(
-                "Patch Set Description:",
-                "A description of the patch set to be created. Intended to help guide reviewers as a change evolves. The description cannot be changed after the change is pushed. Spaces can be used: the description is encoded before it is added to the push reference. " +
-                        "Gerrit older than 3.4 adds it to the change as a message instead.",
+                PushMessages.message("push.field.description"),
+                PushMessages.message("push.field.description.tooltip"),
                 10);
 
         reviewersTextField = addField(
-                "Reviewers (comma separated):",
-                "Users which will be added as reviewers.",
+                PushMessages.message("push.field.reviewers"),
+                PushMessages.message("push.field.reviewers.tooltip"),
                 11,
                 createAccountField(project));
 
         ccTextField = addField(
-                "CC (comma separated):",
-                "Users which will receive carbon copies of the notification message.",
+                PushMessages.message("push.field.cc"),
+                PushMessages.message("push.field.cc.tooltip"),
                 12,
                 createAccountField(project));
 
@@ -499,7 +493,7 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     private static boolean isUsableBranch(String branchName) {
-        return PushOptionValidator.validateBranch("Branch", branchName) == null
+        return PushOptionValidator.validateBranch(PushMessages.message("push.label.branch"), branchName) == null
                 && PushOptionValidator.isUsableAsBranchName(branchName);
     }
 
@@ -527,10 +521,10 @@ public class GerritPushExtensionPanel extends JPanel {
         if (pushToGerritCheckBox.isSelected()) {
             error = firstError(
                     validateBranch(branchTextField),
-                    validateOption(topicTextField, "Topic"),
-                    validateOption(hashTagTextField, "Hashtag"),
-                    validateUserNames(reviewersTextField, "Reviewer name"),
-                    validateUserNames(ccTextField, "CC user name"));
+                    validateOption(topicTextField, PushMessages.message("push.label.topic")),
+                    validateOption(hashTagTextField, PushMessages.message("push.label.hashtag")),
+                    validateUserNames(reviewersTextField, PushMessages.message("push.label.reviewer")),
+                    validateUserNames(ccTextField, PushMessages.message("push.label.cc")));
         } else {
             for (JComponent field : List.of(branchTextField, topicTextField, hashTagTextField,
                     reviewersTextField, ccTextField)) {
@@ -542,9 +536,9 @@ public class GerritPushExtensionPanel extends JPanel {
 
     private String validateBranch(JTextField textField) {
         String branch = getTrimmedText(textField);
-        String error = PushOptionValidator.validateBranch("Branch", branch);
+        String error = PushOptionValidator.validateBranch(PushMessages.message("push.label.branch"), branch);
         if (error == null && !PushOptionValidator.isUsableAsBranchName(branch)) {
-            error = "Invalid branch name: " + branch;
+            error = PushMessages.message("push.error.branch", branch);
         }
         markInvalid(textField, error != null);
         return error;
@@ -693,9 +687,7 @@ public class GerritPushExtensionPanel extends JPanel {
                         .filter(branch -> branch.startsWith(remote + "/") && !branch.contains(" -> "))
                         .collect(Collectors.toList());
                 if (!containing.isEmpty() && !containing.contains(remote + "/" + check[3])) {
-                    return String.format("<html>Nothing new for Gerrit: %s is already on %s, so Gerrit would answer " +
-                                    "\"no new changes\".<br>To merge it through review, use \"Create Feature Merge " +
-                                    "Change\" or merge with --no-ff.</html>",
+                    return PushMessages.message("push.nothingNew",
                             StringUtil.escapeXmlEntities(nameRepository ? check[0] + ": " + source : source),
                             StringUtil.escapeXmlEntities(containing.get(0)));
                 }
@@ -713,7 +705,7 @@ public class GerritPushExtensionPanel extends JPanel {
         if (GitRefNameValidator.getInstance().checkInput(ref)) {
             return null;
         }
-        return "Invalid destination branch name: " + ref;
+        return PushMessages.message("push.error.ref", ref);
     }
 
     private void setSettingsEnabled(boolean enabled) {

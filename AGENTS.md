@@ -58,6 +58,18 @@ suspend function, a module `plugin.xml` must declare). `AvatarIcons` and
 note in full, conditions included. Mark reflection which only exists to link
 against both versions the same way; `ResetAction` predates the marker.
 
+## Gerrit behaviour: read Gerrit's own code
+
+Where the plugin does what Gerrit's web UI does (votes, attention set,
+comments, change messages), read how `polygerrit-ui` on Gerrit's `master` does
+it before planning, rather than going by a description, a task's included. A
+clone without checkout, read with `git show HEAD:<path>`, takes seconds:
+
+```
+git clone -q --depth 1 --filter=blob:none --no-checkout \
+  https://github.com/GerritCodeReview/gerrit <scratchpad>/gerrit
+```
+
 ## Build and test
 
 ```
@@ -219,7 +231,9 @@ than in fields, so the unit tests can construct them outside a running IDE.
 ## Code review
 
 `REVIEW.md` says what a review should look for, and which decisions it should
-not raise again. Add to it when a review keeps raising a point that was settled.
+not raise again. Add to it as soon as a review raises a settled point a second
+time, also in the middle of a review loop. Point a review at the whole branch,
+not only its last commit.
 
 ## Commit messages
 

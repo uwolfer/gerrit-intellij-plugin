@@ -20,6 +20,18 @@ import com.intellij.DynamicBundle;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.PropertyKey;
 
+/**
+ * Settled, a review should not raise these again:
+ *
+ * <ul>
+ *   <li>dialog mnemonics stay bound to the English letters until a translation exists to choose from;</li>
+ *   <li>keys with the same English text are shared where the meaning is the same, and separate where the role
+ *   differs;</li>
+ *   <li>brand and product names ("Gerrit", "Gitiles") stay in code and {@code plugin.xml}; so does content sent to
+ *   Gerrit, such as the git-style labels of {@code CommitMessageFormatter}, the revert message and the merge
+ *   subject.</li>
+ * </ul>
+ */
 public final class GerritBundle extends DynamicBundle {
     private static final String BUNDLE = "messages.GerritBundle";
     private static final GerritBundle INSTANCE = new GerritBundle();

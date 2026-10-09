@@ -634,6 +634,9 @@ public final class GerritGitUtil {
     }
 
     /**
+     * Parses {@code git log} itself: {@code GitHistoryUtils.history} loads the changed files of every commit, and the
+     * metadata loaders differ between 2020.3 and current IDEs.
+     *
      * @param upstream the ref whose commits are left out, or {@code null} for HEAD alone
      * @return the hash and the message of each commit, from HEAD down, at most {@code max} of them
      */

@@ -234,9 +234,12 @@ than in fields, so the unit tests can construct them outside a running IDE.
 ## Code review
 
 `REVIEW.md` says what a review should look for, and which decisions it should
-not raise again. Add to it as soon as a review raises a settled point a second
-time, also in the middle of a review loop. Point a review at the whole branch,
-not only its last commit.
+not raise again. Add to it only a decision which spans classes, and only once a
+review raises the point a second time, also in the middle of a review loop. A
+decision about one class goes in a comment on that class, never in `REVIEW.md`:
+the file is shared by every branch, and each feature added to it made it the
+place where they conflict. Point a review at the whole branch, not only its
+last commit.
 
 ## Commit messages
 

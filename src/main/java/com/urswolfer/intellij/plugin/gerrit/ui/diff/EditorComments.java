@@ -62,6 +62,18 @@ import java.util.stream.Collectors;
  * Shows the comments of the changes on HEAD in the editors of the files they change, on the lines the patch set had
  * as the user edits them. The text is compared with the patch set in the background, a while after the last edit, and
  * a comparison which an edit overtakes is dropped.
+ *
+ * <p>
+ * Settled, a review should not raise these again:
+ *
+ * <ul>
+ *   <li>after pushing an amended commit as a new patch set the editor stays on the previous one until the next
+ *   refresh: its comments are the ones being addressed;</li>
+ *   <li>after HEAD moves, the earlier result shows until the new one is in, so that a commit does not make the
+ *   comments blink; replies and edits go to the patch set of their comment, only a new comment waits;</li>
+ *   <li>a failed lookup retries with a backoff, through the listeners and so only for files still open; an {@code
+ *   Error} is not retried.</li>
+ * </ul>
  */
 @Service(Service.Level.PROJECT)
 public final class EditorComments implements Disposable {

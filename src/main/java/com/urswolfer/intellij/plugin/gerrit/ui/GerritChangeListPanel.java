@@ -70,6 +70,16 @@ import java.util.function.Supplier;
  *
  * @author Kirill Likhodedov
  * @author Urs Wolfer
+ *
+ * <p>
+ * When a load fails (settled):
+ *
+ * <ul>
+ *   <li>rows already listed stay when a reload fails, and the notification says why;</li>
+ *   <li>with several queries one failing drops the page: the load is all or nothing, reported once;</li>
+ *   <li>a failing page while scrolling ends the list; the refresh button loads it again;</li>
+ *   <li>a load which throws something other than {@code RestApiException} is a bug, not a state to show.</li>
+ * </ul>
  */
 public class GerritChangeListPanel extends JPanel implements DataProvider {
     /**

@@ -1,0 +1,55 @@
+# REVIEW.md
+
+What a code review of this repository should look for, and what it should not
+raise again. AGENTS.md has the conventions; this file has the decisions behind
+code which a review would otherwise keep questioning.
+
+## Look for
+
+* Correctness on both the oldest supported IDE (2020.3) and the newest
+  (`latestIdeaVersion`): an API which one of them lacks or changed.
+* Threading: no network, git or full-file work on the event dispatch thread;
+  model changes only where the platform allows them.
+* Leaks: listeners, alarms and highlighters tied to a disposable, and nothing
+  which keeps a closed project or editor reachable.
+* A comment, draft or action going to the wrong change, patch set or line.
+
+## Settled, do not raise
+
+* **API the minimum IDE lacks, or which is internal or experimental.** The
+  plugin compiles against 2020.3 and does not adopt `@ApiStatus.Internal` or
+  `Experimental` API (AGENTS.md). That rules out, among others, the review in
+  the editor of collaboration-tools (`ReviewInEditorUtil`,
+  `CodeReviewEditorDocumentUtil`, `trackDocumentDiffSync`, component inlays)
+  and `DocumentTracker`, whose `Lock` is internal by now. Where such API would
+  replace our code, the code carries a `TODO once the minimum IDE has` note;
+  that note is the answer, not a finding.
+* **Kotlin or coroutines.** The plugin is Java; suspend functions and flows
+  are out of reach until the minimum IDE moves.
+* **`GerritGitUtil.getCommitMessagesOnHead` parses `git log` itself.**
+  `GitHistoryUtils.history` loads the changed files of every commit, and the
+  metadata loaders differ between 2020.3 and current IDEs.
+* **Comments in the editor** (`EditorComments`, `HeadChanges`,
+  `LocalLineMapping`):
+  * each editor of a document compares it on its own, also in a split view;
+  * the comments of every change on HEAD are loaded together, not per change
+    as an editor asks for them;
+  * after an edit the comments move with the text and are laid out again once
+    the comparison is in, which may take a moment; a new comment waits for it
+    with a hint;
+  * after HEAD moves on the same branch, what was found before shows until the
+    new answer is in, so that a commit or an amend does not make the comments
+    blink;
+  * after pushing an amended commit as a new patch set, the editor stays on the
+    previous patch set until the next refresh: its comments are the ones being
+    addressed;
+  * until HEAD is looked up again after it moved, replies and edits from the
+    icons still go to the patch set of their comment, which is where they
+    belong; only a new comment waits;
+  * a selection made while the comment form is open moves the comment, as in
+    the diff; a click does not;
+  * each failed lookup schedules its own retry, through the listeners and so
+    only for files still open; the backoff bounds how many there are, and an
+    `Error` thrown by a lookup is not retried.
+* **Commit messages of a branch under review.** Work-in-progress commits are
+  squashed, and the message written, before the merge.

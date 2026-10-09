@@ -72,8 +72,14 @@ robot() { # JetBrains' Remote Robot server plugin, which serves the IDE's Swing 
 }
 
 display() {
-    command -v xdotool > /dev/null && command -v import > /dev/null ||
-        { echo "xdotool and import are needed: apt-get install xdotool imagemagick" >&2; exit 1; }
+    # missing from a fresh sandbox, and not worth installing in every session which never runs an IDE
+    if ! command -v xdotool > /dev/null || ! command -v import > /dev/null; then
+        [ "$(id -u)" = 0 ] && command -v apt-get > /dev/null &&
+            { apt-get install -y -q xdotool imagemagick > "$WORK/apt.log" 2>&1 ||
+              { apt-get update -q > /dev/null 2>&1 && apt-get install -y -q xdotool imagemagick >> "$WORK/apt.log" 2>&1; }; }
+        command -v xdotool > /dev/null && command -v import > /dev/null ||
+            { echo "xdotool and import are needed: apt-get install xdotool imagemagick" >&2; exit 1; }
+    fi
     xdotool getdisplaygeometry > /dev/null 2>&1 && return
     # An Xvfb that died, e.g. with the container, leaves its lock behind; after a
     # container restart the pid in it may belong to something else.

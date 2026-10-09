@@ -89,6 +89,31 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>2.2.0</li>
+          <ul>
+            <li>add comments in the editor for a checked out change and in the unified diff viewer, mark them on
+            the scroll bar, and go to the next and previous comment in a diff</li>
+            <li>add change actions: "Rebase", "Restore" and "Revert", and "Open in Gerrit" in the annotate gutter menu</li>
+            <li>add reviewers and CCs to "Create Feature Merge Change"</li>
+            <li>add "Mark as Reviewed / Not Reviewed" and show reviewed files in the changes tree</li>
+            <li>add accounts to the settings with name, avatar and login state, switch the project's account from the
+            tool window, and offer to log in again when Gerrit refuses a login</li>
+            <li>let a project pick which Gerrit instance it talks to, and suggest accounts for reviewers and CC on push</li>
+            <li>add Chinese, Japanese and Korean translations</li>
+            <li>show why the change list is empty, keep its filters and search history, reload it when the tool window
+            is shown, and add keyboard support</li>
+            <li>show and hide list columns from the header menu, and show avatars next to the owner</li>
+            <li>hide automated change messages by default</li>
+            <li>hide files only a rebase changed in patch set diffs</li>
+            <li>edit comments as Markdown and render code fences</li>
+            <li>require Gerrit 2.9 or newer</li>
+            <li>use themed monochrome icons for the tool window and actions</li>
+            <li>fix comments in the editor going astray</li>
+            <li>fix Gerrit being given the wrong credentials by git</li>
+            <li>fix the push to Gerrit default only applying after a restart</li>
+            <li>fix the Gitiles line of a file with a glob name</li>
+            <li>keep the review dialogs responsive on a slow Gerrit</li>
+          </ul>
           <li>2.1.0</li>
           <ul>
             <li>add "Use Gerrit in this project" to the settings, which turns the push dialog options, the tool

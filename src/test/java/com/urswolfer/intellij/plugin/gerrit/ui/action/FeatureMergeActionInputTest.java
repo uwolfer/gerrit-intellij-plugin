@@ -79,15 +79,7 @@ public class FeatureMergeActionInputTest {
     }
 
     @Test
-    public void testRemoteBranchesAreNormalizedToHeadRefs() {
-        Assert.assertEquals(FeatureMergeBranchResolver.normalizeRemoteBranch("FEATURE", "origin"),
-                "refs/heads/FEATURE");
-        Assert.assertEquals(FeatureMergeBranchResolver.normalizeRemoteBranch("origin/feature/topic", "origin"),
-                "refs/heads/feature/topic");
-        Assert.assertEquals(FeatureMergeBranchResolver.normalizeRemoteBranch("refs/remotes/origin/feature/topic", "origin"),
-                "refs/heads/feature/topic");
-        Assert.assertEquals(FeatureMergeBranchResolver.normalizeRemoteBranch("refs/heads/feature/topic", "origin"),
-                "refs/heads/feature/topic");
+    public void testBranchesWithRemoteNamePrefixAreKept() {
         Assert.assertEquals(FeatureMergeBranchResolver.normalizeBranch("origin/FEATURE"),
                 "refs/heads/origin/FEATURE");
     }

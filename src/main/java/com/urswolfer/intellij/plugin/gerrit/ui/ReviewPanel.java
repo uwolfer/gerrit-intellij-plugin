@@ -65,10 +65,6 @@ public class ReviewPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder());
     }
 
-    public void setMessage(final String message) {
-        messageField.setText(message);
-    }
-
     public String getMessage() {
         return messageField.getText().trim();
     }

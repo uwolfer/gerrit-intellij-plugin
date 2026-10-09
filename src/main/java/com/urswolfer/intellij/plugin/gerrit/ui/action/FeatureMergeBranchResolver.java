@@ -30,45 +30,6 @@ final class FeatureMergeBranchResolver {
     private FeatureMergeBranchResolver() {
     }
 
-    /**
-     * Converts a Git remote branch name to the ref accepted by Gerrit.
-     *
-     * This method is for local-operation and fully-qualified forms. A value
-     * returned by getNameForRemoteOperations() must be passed to normalizeBranch
-     * so a legitimate branch whose name starts with the remote name is kept.
-     */
-    static String normalizeRemoteBranch(@Nullable String branchName, @Nullable String remoteName) {
-        String branch = trimToEmpty(branchName);
-        if (branch.isEmpty() || "HEAD".equals(branch)) {
-            return "";
-        }
-
-        if (branch.startsWith(REFS_HEADS_PREFIX)) {
-            return branch.length() == REFS_HEADS_PREFIX.length() ? "" : branch;
-        }
-
-        if (branch.startsWith(REFS_REMOTES_PREFIX)) {
-            String remoteBranch = branch.substring(REFS_REMOTES_PREFIX.length());
-            int separator = remoteBranch.indexOf('/');
-            if (separator < 1 || separator == remoteBranch.length() - 1) {
-                return "";
-            }
-            return REFS_HEADS_PREFIX + remoteBranch.substring(separator + 1);
-        }
-
-        if (remoteName != null && !remoteName.trim().isEmpty()) {
-            String remotePrefix = remoteName.trim() + "/";
-            if (branch.startsWith(remotePrefix) && branch.length() > remotePrefix.length()) {
-                branch = branch.substring(remotePrefix.length());
-            }
-        }
-
-        if (branch.startsWith("refs/")) {
-            return "";
-        }
-        return REFS_HEADS_PREFIX + branch;
-    }
-
     /** Converts a Gerrit branch or an explicitly entered branch to a head ref. */
     static String normalizeBranch(@Nullable String branchName) {
         String branch = trimToEmpty(branchName);

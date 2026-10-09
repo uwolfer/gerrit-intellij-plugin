@@ -253,6 +253,15 @@ E="//div[@class='EditorComponentImpl' and not(ancestor::div[contains(@class,'Dif
 "$R" wait "$E"
 eshows() { [ "$(icons "$E")" = "$1" ]; }
 until_true "editor: the comment of the patch set on its line" eshows '2 Capitalise World?'
+hdrafted() { gerrit "/changes/$hnumber/drafts" | python3 -c 'import json, sys
+for c in json.load(sys.stdin).get("hello.txt", []): print(c["patch_set"], c["line"], c["message"])' | grep -qx "$1"; }
+# a click in the editor while the form is open, as to look something up, leaves the comment on its line
+comment "$E" 0 ""
+"$R" wait "//div[@class='CommentForm']"
+"$R" get "$E" "component.getEditor().getCaretModel().moveToOffset(component.getEditor().getDocument().getLineStartOffset(1))" > /dev/null
+"$R" type clicked-away
+"$R" key ctrl+ENTER
+until_true "editor: a click away leaves the comment on its line" hdrafted "2 1 clicked-away"
 edit() { "$R" get "$E" "(function () {
     var e = component.getEditor(), d = e.getDocument();
     com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(function () {
@@ -262,18 +271,16 @@ edit() { "$R" get "$E" "(function () {
     return d.getTextLength();
 })()" > /dev/null; }
 edit "d.insertString(0, 'one\\ntwo\\n');"
-until_true "editor: the comment moves with lines inserted above" eshows '4 Capitalise World?'
+until_true "editor: the comment moves with lines inserted above" eshows $'3 clicked-away\n4 Capitalise World?'
 edit "d.replaceString(d.getLineStartOffset(3), d.getLineEndOffset(3), 'World');"
-until_true "editor: the comment stays on its rewritten line" eshows '4 Capitalise World?'
-hdrafted() { gerrit "/changes/$hnumber/drafts" | python3 -c 'import json, sys
-for c in json.load(sys.stdin).get("hello.txt", []): print(c["patch_set"], c["line"], c["message"])' | grep -qx "$1"; }
+until_true "editor: the comment stays on its rewritten line" eshows $'3 clicked-away\n4 Capitalise World?'
 # the icons move with the text at once, but a comment waits for the text to be compared again, a moment after an edit
 form() { comment "$E" 2 ""; sleep 1; [ -n "$("$R" find "//div[@class='CommentForm']")" ]; }
 until_true "editor: the edits compared" form
 "$R" type on-hello
 "$R" key ctrl+ENTER
 until_true "editor: an unchanged line takes a comment on its line of the patch set" hdrafted "2 1 on-hello"
-until_true "editor: the new comment on its line" eshows $'3 on-hello\n4 Capitalise World?'
+until_true "editor: the new comment on its line" eshows $'3 clicked-away\n3 on-hello\n4 Capitalise World?'
 comment "$E" 0 ""
 "$R" wait "//div[contains(@visible_text,'not in the patch set')]" 10
 echo "ok: editor: a line added locally gets a hint"
@@ -284,7 +291,7 @@ saved() { [ "$("$R" get "$E" "com.intellij.openapi.fileEditor.FileDocumentManage
     .getUnsavedDocuments().length")" = 0 ]; }
 until_true "editor: the text back as on disk" saved
 for id in $(gerrit "/changes/$hnumber/drafts" | python3 -c 'import json, sys
-print(*(c["id"] for c in json.load(sys.stdin).get("hello.txt", []) if c["message"] == "on-hello"))'); do
+print(*(c["id"] for c in json.load(sys.stdin).get("hello.txt", []) if c["message"] in ("on-hello", "clicked-away")))'); do
     curl -sSf -u admin:secret -X DELETE "http://localhost:8080/a/changes/$hnumber/revisions/$hrevision/drafts/$id" > /dev/null
 done
 git -C "$P" checkout -qf -B master origin/master

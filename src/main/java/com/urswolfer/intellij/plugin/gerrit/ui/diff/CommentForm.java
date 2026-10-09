@@ -148,10 +148,11 @@ public class CommentForm extends JPanel {
         comment.message = getText();
         comment.unresolved = !resolvedCheckBox.isSelected();
 
-        // The editor stays usable while the form is open, so a selection made now counts. Stepping to another file of
-        // the change and back replaces the editor, though, and in a unified diff a selection may now reach from the
-        // old lines into the new ones; then the position from when the form was opened is kept.
-        if (!editor.isDisposed()) {
+        // The editor stays usable while the form is open, so a selection made now counts; a mere click, such as one to
+        // look something up, does not move the comment. Stepping to another file of the change and back replaces the
+        // editor, though, and in a unified diff a selection may now reach from the old lines into the new ones; then
+        // the position from when the form was opened is kept.
+        if (!editor.isDisposed() && editor.getSelectionModel().hasSelection()) {
             CommentPosition current = CommentPosition.read(editor, mapping);
             if (current != null) {
                 position = current;

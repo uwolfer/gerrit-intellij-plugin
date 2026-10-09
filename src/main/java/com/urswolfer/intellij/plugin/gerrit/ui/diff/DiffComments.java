@@ -310,6 +310,9 @@ final class DiffComments {
             }
         }
         RangeHighlighter highlighter = editor.getMarkupModel().addLineHighlighter(line, HighlighterLayer.ERROR + 1, null);
+        highlighter.setErrorStripeMarkColor(CommentGutterIconRenderer.getErrorStripeColor(comment));
+        highlighter.setThinErrorStripeMark(true);
+        highlighter.setErrorStripeTooltip(CommentGutterIconRenderer.getErrorStripeTooltip(comment));
         highlighter.setGutterIconRenderer(new CommentGutterIconRenderer(
             this, editor, addCommentActionBuilder, comment, getSide(shownComment.side), rangeHighlighter));
         return highlighter;
@@ -325,8 +328,11 @@ final class DiffComments {
         if (document.getLineCount() == 0) return null;
         int end = offset(document, range.endLine, range.endCharacter);
         int start = Math.min(offset(document, range.startLine, range.startCharacter), end);
-        return editor.getMarkupModel().addRangeHighlighter(COMMENT_RANGE_ATTRIBUTES, start, end,
-            HighlighterLayer.SELECTION - 1, HighlighterTargetArea.EXACT_RANGE);
+        RangeHighlighter highlighter = editor.getMarkupModel().addRangeHighlighter(COMMENT_RANGE_ATTRIBUTES,
+            start, end, HighlighterLayer.SELECTION - 1, HighlighterTargetArea.EXACT_RANGE);
+        // which would take the mark of the search result colours: the comment has a mark of its own
+        highlighter.setErrorStripeMarkColor(null);
+        return highlighter;
     }
 
     /**

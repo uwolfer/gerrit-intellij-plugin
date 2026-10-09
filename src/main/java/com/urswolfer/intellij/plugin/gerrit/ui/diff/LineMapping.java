@@ -42,6 +42,14 @@ interface LineMapping {
 
     int lineCount(Side side);
 
+    /**
+     * Whether the lines it gives are those of the text now. An editor of the file is edited before the text is compared
+     * again, and in between its comments stay where the edits moved them.
+     */
+    default boolean fitsText() {
+        return true;
+    }
+
     /** Why the caret or the selection is on no line a comment can go on. */
     default String noPositionHint(boolean selection) {
         return selection

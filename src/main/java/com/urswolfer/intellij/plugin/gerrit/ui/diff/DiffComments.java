@@ -196,20 +196,13 @@ final class DiffComments {
         render();
     }
 
-    /**
-     * The comments of a side as loaded again, in place of those there were.
-     *
-     * @param layOut whether the mapping fits the text now; if not, what is shown stays, having moved with the text,
-     *               until {@link #relayout()} once it fits again
-     */
-    void replaceAll(Iterable<? extends Comment> sideComments, CommentSide side, boolean layOut) {
+    /** The comments of a side as loaded again, in place of those there were. */
+    void replaceAll(Iterable<? extends Comment> sideComments, CommentSide side) {
         comments.clear();
         for (Comment comment : sideComments) {
             comments.add(entry(comment, side));
         }
-        if (layOut) {
-            render();
-        }
+        render();
     }
 
     /** The comments loaded for a side; one shown already, as a draft saved while they loaded, is the newer one. */
@@ -270,6 +263,7 @@ final class DiffComments {
     private void render() {
         if (!shown || disposed.getAsBoolean()) return;
         editors.forEach((editor, mapping) -> {
+            if (!mapping.fitsText()) return; // what is shown moves with the text, and is laid out again once it fits
             clear(editor);
             List<RangeHighlighter> placed = new ArrayList<>();
             for (ShownComment shownComment : comments) {

@@ -151,14 +151,15 @@ public final class EditorComments implements Disposable {
         }
         Installed current = installed.get(editor);
         if (current != null && file != null && current.shows(file)) {
-            current.setChange(file.change);
+            current.setChange(file.change, file.current);
             return;
         }
         if (current != null) {
             installed.remove(editor);
             Disposer.dispose(current);
         }
-        if (file != null && !editor.isDisposed()) {
+        // what was found before HEAD moved stays where it is shown, but is not shown anew
+        if (file != null && file.current && !editor.isDisposed()) {
             Installed comments = new Installed((EditorEx) editor, file);
             installed.put(editor, comments);
             Disposer.register(this, comments);
@@ -188,6 +189,8 @@ public final class EditorComments implements Disposable {
         private volatile boolean tooLarge;
         // whether the text could be compared last time, and so a comment can go on it
         private volatile boolean available = true;
+        // the change is known to be on HEAD as it is now, see FileOnHead.current
+        private boolean current = true;
         private volatile ProgressIndicator comparison;
 
         Installed(EditorEx editor, HeadChanges.FileOnHead file) {
@@ -222,15 +225,18 @@ public final class EditorComments implements Disposable {
          * The same patch set as loaded again, with the comments as they are now, which replace those shown: the text
          * compares the same, unless the patch set could not be loaded before.
          */
-        void setChange(HeadChanges.HeadChange change) {
+        void setChange(HeadChanges.HeadChange change, boolean current) {
+            if (this.current != current) {
+                this.current = current;
+                updateAddCommentAction(comments);
+            }
             if (this.change == change) return;
             this.change = change;
             if (patchSet == null) {
                 loadFailedAt = 0;
                 compareLater(0);
             }
-            // laid out by the comparison under way, but one which cannot be done would never
-            comments.replaceAll(commentsOf(change), revision(), !mapping.isStale() || !available);
+            comments.replaceAll(commentsOf(change), revision());
         }
 
         private CommentSide revision() {
@@ -251,20 +257,20 @@ public final class EditorComments implements Disposable {
             DiffComments diffComments = new DiffComments(project, change.change, parent, revision,
                 () -> disposed || editor.isDisposed());
             diffComments.addEditor(editor, mapping);
-            if (available) {
-                installAddCommentAction(diffComments);
-            }
+            updateAddCommentAction(diffComments);
             diffComments.addAll(commentsOf(change), revision);
             return diffComments;
         }
 
-        private void installAddCommentAction(DiffComments diffComments) {
+        /** Only where a comment can go: the text compares, and the change is known to be on HEAD now. */
+        private void updateAddCommentAction(DiffComments diffComments) {
             // no shortcut of its own, as in a diff: a bare letter in the editor of the file is typing
-            editor.putUserData(GerritCommentsDiffExtension.ADD_COMMENT_ACTION, diffComments.getAddCommentActionBuilder()
-                .create(diffComments, editor)
-                .withText("Add Comment")
-                .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
-                .get());
+            editor.putUserData(GerritCommentsDiffExtension.ADD_COMMENT_ACTION, !available || !current ? null
+                : diffComments.getAddCommentActionBuilder()
+                    .create(diffComments, editor)
+                    .withText("Add Comment")
+                    .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
+                    .get());
         }
 
         private void compareLater(int delay) {
@@ -337,7 +343,7 @@ public final class EditorComments implements Disposable {
                 comments.relayout();
                 if (!available) {
                     available = true;
-                    installAddCommentAction(comments);
+                    updateAddCommentAction(comments);
                 }
             }, project.getDisposed());
         }
@@ -353,6 +359,9 @@ public final class EditorComments implements Disposable {
             ApplicationManager.getApplication().invokeLater(() -> {
                 if (!disposed && !editor.isDisposed()) {
                     editor.putUserData(GerritCommentsDiffExtension.ADD_COMMENT_ACTION, null);
+                    // rather none than each on a line which has nothing to do with it any more
+                    mapping.markUnavailable();
+                    comments.relayout();
                 }
             }, project.getDisposed());
         }

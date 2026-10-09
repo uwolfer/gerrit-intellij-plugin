@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Parts based on org.jetbrains.plugins.github.ui.GithubSettingsConfigurable
@@ -168,8 +169,15 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             if (passwords.isEmpty() && removedIds.isEmpty()) {
                 accounts.update(edited, passwords, removedIds);
             } else { // the credential store blocks, which must not happen on the event dispatch thread
-                ProgressManager.getInstance().runProcessWithProgressSynchronously(
-                    () -> accounts.update(edited, passwords, removedIds), "Saving Gerrit Credentials", false, project);
+                // a failure is logged rather than thrown here, and leaves the passwords unstored
+                AtomicBoolean stored = new AtomicBoolean();
+                ProgressManager.getInstance().runProcessWithProgressSynchronously(() -> {
+                    accounts.update(edited, passwords, removedIds);
+                    stored.set(true);
+                }, "Saving Gerrit Credentials", false, project);
+                if (stored.get()) {
+                    settingsPane.passwordsStored();
+                }
             }
         }
         // With one account left there is no choice to store. Otherwise a choice the user made is stored, and so is the

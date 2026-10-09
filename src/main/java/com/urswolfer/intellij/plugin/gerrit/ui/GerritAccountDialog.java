@@ -302,10 +302,9 @@ public class GerritAccountDialog extends DialogWrapper {
         if (failure == CANCELLED) {
             return false;
         }
-        int status = httpStatus(failure);
-        String message = (status == 401 || status == 403) && getLogin().isEmpty()
+        String message = isRefusal(failure) && getLogin().isEmpty()
             ? String.format("%s needs a login.", getHost())
-            : status == 401 || status == 403
+            : isRefusal(failure)
             ? String.format("%s did not accept this login and password.", getHost())
             : isNetworkFailure(failure)
             ? String.format("Can't reach %s: %s", getHost(), reason(failure))
@@ -320,9 +319,14 @@ public class GerritAccountDialog extends DialogWrapper {
     /**
      * The REST client wraps what went wrong, such as a refused connection, in a "Request failed". The innermost
      * cause says more, with its name, as an UnknownHostException has no more than the host as its message; its
-     * first line only, as one about an unexpected answer carries the whole page.
+     * first line only, as one about an unexpected answer carries the whole page. An answer Gerrit gave is its status.
      */
-    private static String reason(Throwable failure) {
+    static String reason(Throwable failure) {
+        HttpStatusException answer = ExceptionUtil.findCause(failure, HttpStatusException.class);
+        if (answer != null) {
+            String text = answer.getStatusText();
+            return "HTTP " + answer.getStatusCode() + (text != null && !text.isEmpty() ? " " + text : "");
+        }
         Throwable innermost = failure;
         while (innermost.getCause() != null) {
             innermost = innermost.getCause();
@@ -342,6 +346,11 @@ public class GerritAccountDialog extends DialogWrapper {
             || ExceptionUtil.findCause(failure, UnknownHostException.class) != null
             || ExceptionUtil.findCause(failure, InterruptedIOException.class) != null // timeouts
             || ExceptionUtil.findCause(failure, SSLException.class) != null;
+    }
+
+    static boolean isRefusal(Throwable failure) {
+        int status = httpStatus(failure);
+        return status == 401 || status == 403;
     }
 
     /**

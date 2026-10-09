@@ -25,6 +25,7 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -196,5 +197,21 @@ public class GerritUtilTest {
                 "is:open+(project:a+OR+project:b)",
                 "is:open+(project:c+OR+project:d)",
                 "is:open+(project:e)"));
+    }
+
+    @Test
+    public void testOnlyARefusedLoginAsksToLogInAgain() {
+        GerritAccount withLogin = GerritAccount.create("https://gerrit.example.com", "jdoe", "");
+        GerritAccount anonymous = GerritAccount.create("https://gerrit.example.com", "", "");
+        // as callGerrit hands it on
+        Assert.assertTrue(GerritUtil.isRefusal(new RuntimeException(status(401)), withLogin));
+        Assert.assertTrue(GerritUtil.isRefusal(status(403), anonymous));
+        Assert.assertFalse(GerritUtil.isRefusal(status(403), withLogin)); // a missing permission
+        Assert.assertFalse(GerritUtil.isRefusal(status(404), withLogin));
+        Assert.assertFalse(GerritUtil.isRefusal(new RuntimeException(new java.net.ConnectException()), withLogin));
+    }
+
+    private static HttpStatusException status(int code) {
+        return new HttpStatusException(code, "", "");
     }
 }

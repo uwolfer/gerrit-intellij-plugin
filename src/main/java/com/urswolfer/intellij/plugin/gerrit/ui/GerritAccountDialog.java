@@ -56,8 +56,10 @@ import java.awt.event.FocusEvent;
 import java.io.InterruptedIOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,12 +76,17 @@ public class GerritAccountDialog extends DialogWrapper {
     private static final Logger LOG = Logger.getInstance(GerritAccountDialog.class);
 
     private static final String STORED_PASSWORD_PLACEHOLDER = "************";
+    private static final String LOGIN_CREDENTIALS_INFO =
+        "* For the best experience, it is suggested that you set a HTTP access password" +
+        " for your account in the Gerrit Web Application (Settings > HTTP Password)." +
+        " If this does not work, you can also try to use your usual Gerrit credentials.";
     private static final Exception CANCELLED = new Exception("The check was cancelled.");
 
     private final Project project;
     @Nullable private final GerritAccount account;
     private final Collection<GerritAccount> otherAccounts;
     private final boolean showsStoredPassword;
+    private final boolean loggingInAgain;
     private final JBTextField hostTextField = new JBTextField();
     private final JBTextField loginTextField = new JBTextField();
     private final JPasswordField passwordField = new JPasswordField();
@@ -98,10 +105,16 @@ public class GerritAccountDialog extends DialogWrapper {
      */
     public GerritAccountDialog(Project project, @Nullable GerritAccount account, @Nullable String password,
                                Collection<GerritAccount> otherAccounts) {
+        this(project, account, password, otherAccounts, false);
+    }
+
+    private GerritAccountDialog(Project project, @Nullable GerritAccount account, @Nullable String password,
+                                Collection<GerritAccount> otherAccounts, boolean loggingInAgain) {
         super(project, true);
         this.project = project;
         this.account = account;
         this.otherAccounts = otherAccounts;
+        this.loggingInAgain = loggingInAgain;
         showsStoredPassword = password == null;
 
         hostTextField.getEmptyText().setText("https://review.example.org");
@@ -147,14 +160,51 @@ public class GerritAccountDialog extends DialogWrapper {
         }
         testButton.addActionListener(e -> testConnection());
 
-        setTitle(account == null ? "Add Gerrit Account" : "Edit Gerrit Account");
+        if (loggingInAgain) {
+            // what failed is the login on this Gerrit; another one is a change of account, for the settings page
+            hostTextField.setEditable(hostTextField.getText().isEmpty());
+            setTitle("Log In to Gerrit");
+            setOKButtonText("Log In");
+        } else {
+            setTitle(account == null ? "Add Gerrit Account" : "Edit Gerrit Account");
+        }
         init();
+    }
+
+    /**
+     * Asks for the credentials of an account again, such as after Gerrit refused them, and saves them on that
+     * account rather than on a new one: the projects which use it, and the rejections git remembers for its old
+     * password, go by its id. Without an account, it sets up the first one.
+     *
+     * @return whether credentials were saved
+     */
+    public static boolean logIn(Project project, @Nullable GerritAccount account) {
+        GerritAccounts accounts = GerritAccounts.getInstance();
+        GerritAccount stored = account != null ? accounts.findById(account.id) : null;
+        if (account != null && stored == null) { // removed since
+            return false;
+        }
+        List<GerritAccount> others = new ArrayList<>(accounts.getAccounts());
+        others.remove(stored);
+        GerritAccountDialog dialog = new GerritAccountDialog(project, stored, "", others, true);
+        if (!dialog.showAndGet()) {
+            return false;
+        }
+        // a copy: background requests read the stored account, and must not see it half-changed
+        GerritAccount updated = stored != null ? stored.copy() : GerritAccount.create("", "", "");
+        updated.host = dialog.getHost();
+        updated.login = dialog.getLogin();
+        updated.cloneBaseUrl = dialog.getCloneBaseUrl();
+        updated.gitilesUrl = dialog.getGitilesUrl();
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            () -> accounts.put(updated, dialog.getPassword()), "Saving Gerrit Credentials", false, project);
+        return true;
     }
 
     @Override
     protected JComponent createCenterPanel() {
         // the columns give the dialog its width: unwrapped, the text would stretch it across the screen
-        JTextArea info = new JTextArea(LoginPanel.LOGIN_CREDENTIALS_INFO, 0, 60);
+        JTextArea info = new JTextArea(LOGIN_CREDENTIALS_INFO, 0, 60);
         info.setLineWrap(true);
         info.setWrapStyleWord(true);
         info.setMargin(new Insets(5, 0, 0, 0));
@@ -192,7 +242,10 @@ public class GerritAccountDialog extends DialogWrapper {
 
     @Override
     public JComponent getPreferredFocusedComponent() {
-        return hostTextField.getText().isEmpty() ? hostTextField : loginTextField;
+        if (hostTextField.getText().isEmpty()) {
+            return hostTextField;
+        }
+        return loggingInAgain && !getLogin().isEmpty() ? passwordField : loginTextField;
     }
 
     @Nullable
@@ -226,11 +279,12 @@ public class GerritAccountDialog extends DialogWrapper {
     }
 
     /**
-     * Another url or login of an account, such as the clone base url, is no reason to ask Gerrit again.
+     * Another url or login of an account, such as the clone base url, is no reason to ask Gerrit again. Logging in
+     * again is: the stored credentials failed.
      */
     private boolean credentialsChanged() {
         // the stored url compared as the field shows it, which an earlier version did not always store that way
-        return account == null || passwordModified
+        return loggingInAgain || account == null || passwordModified
             || !getHost().equalsIgnoreCase(UrlUtils.normalizeTypedUrl(account.host))
             || !getLogin().equals(account.login);
     }

@@ -42,6 +42,7 @@ import com.google.gerrit.extensions.restapi.Url;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
@@ -51,13 +52,17 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.ThrowableComputable;
 import com.intellij.util.Consumer;
+import com.intellij.util.ExceptionUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritAccountDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -661,18 +666,6 @@ public final class GerritUtil {
         return true;
     }
 
-    public boolean checkCredentials(Project project, final GerritAuthData gerritAuthData) {
-        String host = gerritAuthData.getHost();
-        if (host == null || host.isEmpty()) {
-            return false;
-        }
-        Boolean result = accessToGerritWithModalProgress(project, () -> {
-            ProgressManager.getInstance().getProgressIndicator().setText("Trying to login to Gerrit");
-            return testConnection(gerritAuthData);
-        });
-        return result == null ? false : result;
-    }
-
     public FetchInfo getFirstFetchInfo(Project project, ChangeInfo changeDetails) {
         if (changeDetails.revisions == null) {
             return null;
@@ -760,7 +753,8 @@ public final class GerritUtil {
                         });
                     } catch (RuntimeException e) {
                         if (errorMessage != null) {
-                            notifyError(e, errorMessage, project);
+                            notifyError(e, errorMessage, project,
+                                () -> accessGerrit(supplier, consumer, project, errorMessage));
                         } else {
                             throw e;
                         }
@@ -771,8 +765,42 @@ public final class GerritUtil {
     }
 
     private void notifyError(Throwable throwable, String errorMessage, Project project) {
+        notifyError(throwable, errorMessage, project, null);
+    }
+
+    /**
+     * @param retry makes the request again once the user logged in again; not when the project has switched to
+     *              another account meanwhile, which the request would then go to
+     */
+    private void notifyError(Throwable throwable, String errorMessage, Project project, @Nullable Runnable retry) {
         NotificationBuilder notification = new NotificationBuilder(project, errorMessage, getErrorTextFromException(throwable));
+        GerritAccount account = GerritProjectAccount.getInstance(project).get();
+        if (account != null && isRefusal(throwable, account)) {
+            int passwordVersion = GerritAccounts.getInstance().getPasswordVersion(account);
+            notification.action(NotificationAction.create("Log in again…", (event, shown) -> {
+                // credentials saved since, such as from another of these notifications, are tried before asking
+                if (GerritAccounts.getInstance().getPasswordVersion(account) != passwordVersion
+                    || GerritAccountDialog.logIn(project, account)) {
+                    shown.expire();
+                    if (retry != null && account.equals(GerritProjectAccount.getInstance(project).get())) {
+                        retry.run();
+                    }
+                }
+            }));
+        }
         NotificationService.getInstance().notifyError(notification);
+    }
+
+    /**
+     * Whether Gerrit refused the credentials of the account, which logging in again can fix: a 401, and a 403 where
+     * there was no login to send, as Gerrit answers an anonymous request for what needs one. With a login, a 403 is
+     * a missing permission, which no password changes.
+     */
+    @VisibleForTesting
+    static boolean isRefusal(Throwable failure, GerritAccount account) {
+        HttpStatusException answer = ExceptionUtil.findCause(failure, HttpStatusException.class);
+        return answer != null
+            && (answer.getStatusCode() == 401 || answer.getStatusCode() == 403 && account.login.isEmpty());
     }
 
     private GerritApi createClientWithCustomAuthData(GerritAuthData gerritAuthData) {

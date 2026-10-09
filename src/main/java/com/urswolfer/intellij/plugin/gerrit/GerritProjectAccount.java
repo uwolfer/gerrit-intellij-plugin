@@ -89,8 +89,28 @@ public final class GerritProjectAccount implements PersistentStateComponent<Gerr
         this.project = project;
         // the remotes decide while the project is unbound; reading them for every request walks every repository
         MessageBusConnection connection = project.getMessageBus().connect(this);
-        connection.subscribe(GitRepository.GIT_REPO_CHANGE, repository -> generation.incrementAndGet());
-        connection.subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, generation::incrementAndGet);
+        connection.subscribe(GitRepository.GIT_REPO_CHANGE, repository -> remotesMayHaveChanged());
+        connection.subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, this::remotesMayHaveChanged);
+    }
+
+    /**
+     * Takes the remotes as they are now. An account they pick anew is announced like a binding: what was loaded with
+     * the one before must go, rather than take actions and details to the other instance. Git announces no new url of
+     * a remote, as it tells remotes apart by their names alone, so a refresh asks for this as well.
+     */
+    public void remotesMayHaveChanged() {
+        // git announces a change on a pooled thread, which may come while the project closes and has no remotes left
+        if (project.isDisposed()) return;
+        Resolved last = resolved;
+        generation.incrementAndGet();
+        if (last == null) return; // asked for by nothing yet, so nothing was loaded with it
+        if (!identity(get()).equals(identity(last.account))) {
+            project.getMessageBus().syncPublisher(GerritAccountsListener.TOPIC).accountsChanged();
+        }
+    }
+
+    private static String identity(@Nullable GerritAccount account) {
+        return account != null ? account.getIdentity() : "";
     }
 
     @Override

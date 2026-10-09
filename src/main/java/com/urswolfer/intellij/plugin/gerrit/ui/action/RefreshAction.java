@@ -22,6 +22,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritToolWindow;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationComponent;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.HeadChanges;
@@ -47,6 +48,7 @@ public class RefreshAction extends AnAction implements DumbAware, UpdateInBackgr
         if (project == null || gerritToolWindow == null) {
             return;
         }
+        GerritProjectAccount.getInstance(project).remotesMayHaveChanged();
         gerritToolWindow.reloadChanges(project, true);
         GerritUpdatesNotificationComponent.getInstance(project).handleNotification();
         HeadChanges.refreshIfCreated(project);

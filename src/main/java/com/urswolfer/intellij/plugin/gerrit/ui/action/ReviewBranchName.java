@@ -26,7 +26,9 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 /**
- * Names the local branch a change is checked out to: {@code review/<owner>/[<topic>-]<change>/<patch set>}.
+ * Names the local branch a change is checked out to: {@code review/<owner>/[<topic>-]<change>/<patch set>}, or
+ * the name it got before the patch set became a path segment where a branch from back then occupies
+ * {@code review/<owner>/<change>}.
  */
 final class ReviewBranchName {
     // stop after 100 tries because most probably something went wrong
@@ -49,13 +51,30 @@ final class ReviewBranchName {
     /**
      * Picks the branch to check out: {@code base} or the first {@code base_<n>} that either already points at
      * {@code commitHash} or does not exist yet. A branch at another commit may carry local work, so it is skipped.
+     * Where a legacy branch occupies the parent of {@code base}, that branch is taken if it points at
+     * {@code commitHash}, and the legacy name of the patch set replaces {@code base} otherwise.
      *
      * @param headOf the commit hash of an existing local branch, {@code null} if there is no such branch
+     * @param canCreate whether a branch of that name may be created; {@code GitNewBranchNameValidator} only
+     *                  rejects an existing name, not one whose parent is a branch
      * @return {@code null} if no name is usable
      */
     @Nullable
     static Target resolve(String base, String commitHash,
                           Function<String, String> headOf, Predicate<String> canCreate) {
+        String blocking = blockingBranch(base, name -> headOf.apply(name) != null);
+        if (blocking != null) {
+            int separator = base.lastIndexOf('/');
+            if (!blocking.equals(base.substring(0, separator))) {
+                return null;
+            }
+            // the old scheme left the suffix out for the latest patch set
+            if (commitHash.equals(headOf.apply(blocking))) {
+                return new Target(blocking, true);
+            }
+            // the old scheme's name for a patch set, so an old checkout of it is found again
+            base = blocking + "-patch" + base.substring(separator + 1);
+        }
         for (int i = 0; i < MAX_SUFFIX; i++) {
             String name = i == 0 ? base : base + '_' + i;
             String head = headOf.apply(name);

@@ -125,6 +125,40 @@ public class ReviewBranchNameTest {
         Assert.assertNull(ReviewBranchName.blockingBranch("review/jdoe/3/2", branches::contains));
     }
 
+    @Test
+    public void testLegacyBranchMovesThePatchSetBesideIt() {
+        ReviewBranchName.Target target = ReviewBranchName.resolve("review/jdoe/1/2", COMMIT,
+                heads("review/jdoe/1", OTHER_COMMIT), name -> true);
+
+        Assert.assertEquals(target.name, "review/jdoe/1-patch2");
+        Assert.assertFalse(target.exists);
+        Assert.assertEquals(FeatureMergeBranchResolver.reviewChangeNumber(target.name).intValue(), 1);
+    }
+
+    @Test
+    public void testLegacyBranchAtThePatchSetIsReused() {
+        ReviewBranchName.Target target = ReviewBranchName.resolve("review/jdoe/1/2", COMMIT,
+                heads("review/jdoe/1", COMMIT), name -> true);
+
+        Assert.assertEquals(target.name, "review/jdoe/1");
+        Assert.assertTrue(target.exists);
+    }
+
+    @Test
+    public void testLegacyBranchOfThePatchSetIsReused() {
+        ReviewBranchName.Target target = ReviewBranchName.resolve("review/jdoe/1/2", COMMIT,
+                heads("review/jdoe/1", OTHER_COMMIT, "review/jdoe/1-patch2", COMMIT), name -> true);
+
+        Assert.assertEquals(target.name, "review/jdoe/1-patch2");
+        Assert.assertTrue(target.exists);
+    }
+
+    @Test
+    public void testBranchFurtherUpLeavesNoUsableName() {
+        Assert.assertNull(ReviewBranchName.resolve("review/jdoe/1/2", COMMIT,
+                heads("review/jdoe", OTHER_COMMIT), name -> true));
+    }
+
     private static ChangeInfo change(String ownerName, String topic, int number) {
         ChangeInfo change = new ChangeInfo();
         change.owner = new AccountInfo(1000);

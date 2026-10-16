@@ -22,6 +22,7 @@ import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.DumbAware;
@@ -35,6 +36,7 @@ import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
 
 /**
  * @author Urs Wolfer
@@ -52,6 +54,9 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
     private final CommentSide side;
     private final Comment commentToEdit;
     private final Comment replyToComment;
+    // where the form opens, rather than at the caret
+    @Nullable
+    private final JComponent anchor;
 
     /**
      * @param side of the comment edited or replied to; null for a new comment, which goes on the side the caret or
@@ -64,7 +69,8 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
                      CommentBalloonBuilder commentBalloonBuilder,
                      @Nullable CommentSide side,
                      Comment commentToEdit,
-                     Comment replyToComment) {
+                     Comment replyToComment,
+                     @Nullable JComponent anchor) {
         super(label, null, icon);
 
         this.comments = comments;
@@ -73,6 +79,7 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
         this.side = side;
         this.commentToEdit = commentToEdit;
         this.replyToComment = replyToComment;
+        this.anchor = anchor;
     }
 
     @Override
@@ -82,10 +89,23 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(canComment(e.getProject()));
+        e.getPresentation().setEnabled(canComment(e.getProject()) && !isTypedInThread(e));
     }
 
-    boolean canComment(@Nullable Project project) {
+    /**
+     * A new comment by its shortcut, a bare letter by default, typed in the text of a thread under a line, which the
+     * shortcut of the editor around reaches as well: that is no new comment at the caret of the editor.
+     */
+    private boolean isTypedInThread(AnActionEvent e) {
+        return commentToEdit == null && replyToComment == null && isInThread(e);
+    }
+
+    static boolean isInThread(AnActionEvent e) {
+        Component context = e.getData(PlatformDataKeys.CONTEXT_COMPONENT);
+        return context != null && SwingUtilities.getAncestorOfClass(CommentThreadPanel.class, context) != null;
+    }
+
+    static boolean canComment(@Nullable Project project) {
         return project != null && GerritProjectAccount.getInstance(project).isLoginAndPasswordAvailable();
     }
 
@@ -124,7 +144,11 @@ public class AddCommentAction extends AnAction implements DumbAware, UpdateInBac
             }
         });
         commentForm.setBalloon(balloon);
-        balloon.showInBestPositionFor(editor);
+        if (anchor != null && anchor.isShowing()) {
+            balloon.showUnderneathOf(anchor);
+        } else {
+            balloon.showInBestPositionFor(editor);
+        }
     }
 
     private void handleComment(final DraftInput comment, final CommentSide commentSide, final Project project) {

@@ -91,9 +91,13 @@ public final class EditorComments implements Disposable {
         this.project = project;
         MessageBusConnection connection = project.getMessageBus().connect(this);
         connection.subscribe(HeadChanges.Listener.TOPIC, this::update);
-        // with other credentials, or another server, there are other comments, or some at all
+        // with other credentials, or another server, there are other comments, or some at all; and the threads offer
+        // to reply only with an account to reply with
         connection.subscribe(GerritAccountsListener.TOPIC, () -> ApplicationManager.getApplication()
-            .invokeLater(() -> settingChanged(project), project.getDisposed()));
+            .invokeLater(() -> {
+                settingChanged(project);
+                installed.values().forEach(Installed::refreshThreads);
+            }, project.getDisposed()));
         // the repositories are not known yet while the editors of the last session open
         connection.subscribe(VcsRepositoryManager.VCS_REPOSITORY_MAPPING_UPDATED, (VcsRepositoryMappingListener)
             () -> ApplicationManager.getApplication().invokeLater(this::update, project.getDisposed()));
@@ -211,6 +215,12 @@ public final class EditorComments implements Disposable {
             this.path = file.path;
             this.revisionId = file.change.revisionId;
             this.change = file.change;
+        }
+
+        void refreshThreads() {
+            if (comments != null) {
+                comments.refreshThreads();
+            }
         }
 
         boolean shows(HeadChanges.FileOnHead file) {

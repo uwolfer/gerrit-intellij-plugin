@@ -123,7 +123,7 @@ final class CommentNavigator {
         FoldingModel folding = editor.getFoldingModel();
         List<FoldRegion> collapsed = new ArrayList<>();
         for (FoldRegion region : folding.getAllFoldRegions()) {
-            if (!region.isExpanded() && region.getStartOffset() <= offset && offset <= region.getEndOffset()) {
+            if (!region.isExpanded() && DiffComments.hides(region.getStartOffset(), region.getEndOffset(), offset)) {
                 collapsed.add(region);
             }
         }

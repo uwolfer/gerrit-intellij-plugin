@@ -39,7 +39,10 @@ import com.intellij.openapi.actionSystem.Shortcut;
 import com.intellij.openapi.actionSystem.ShortcutSet;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.keymap.KeymapUtil;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.util.Consumer;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.FilePath;
@@ -47,7 +50,10 @@ import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ChangesUtil;
 import com.intellij.openapi.vcs.changes.actions.diff.ChangeDiffRequestProducer;
 import com.intellij.ui.PopupHandler;
+import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
+import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangesListener;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.ui.ReviewedFilesService;
 import com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction;
@@ -55,9 +61,12 @@ import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
 import com.urswolfer.intellij.plugin.gerrit.util.PathUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -91,6 +100,11 @@ public class GerritCommentsDiffExtension extends DiffExtension {
     // descending, as icons are added to the left of existing icons
     private static final Comparator<Comment> COMMENT_ORDERING =
         Comparator.comparingLong((Comment comment) -> comment.updated.getTime()).reversed();
+
+    /** Shows the threads of every diff and editor anew, as the settings and the accounts say now. */
+    public static void settingsChanged() {
+        DiffComments.settingsChanged();
+    }
 
     @Override
     public void onViewerCreated(@NotNull FrameDiffTool.DiffViewer viewer,
@@ -150,6 +164,30 @@ public class GerritCommentsDiffExtension extends DiffExtension {
             addActions(comments, editor);
         }
 
+        // a review publishes the drafts, and another account sees other drafts, or some at all; but only from the
+        // server the diff came from, as another one has another change of the number
+        String host = GerritProjectAccount.getInstance(project).getHost();
+        Runnable reload = () -> {
+            if (Objects.equals(host, GerritProjectAccount.getInstance(project).getHost())) {
+                reloadComments(comments, project, changeInfo, selectedRevisionId, baseRevision.isPresent());
+            }
+        };
+        MessageBusConnection connection = project.getMessageBus().connect(viewerBase);
+        connection.subscribe(GerritAccountsListener.TOPIC, () -> ApplicationManager.getApplication().invokeLater(() -> {
+            comments.refreshThreads(); // the links, also where the comments fail to load
+            reload.run();
+        }, o -> viewerBase.isDisposed()));
+        connection.subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
+            @Override
+            public void changesModified() {
+                ApplicationManager.getApplication().invokeLater(reload, o -> viewerBase.isDisposed());
+            }
+
+            @Override
+            public void changeModified(String changeId, Consumer<ChangeInfo> update) {
+            }
+        });
+
         viewerBase.addListener(new DiffViewerListener() {
             @Override
             protected void onAfterRediff() {
@@ -163,6 +201,41 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         loadComments(comments, project, changeInfo, selectedRevisionId, baseRevision.isPresent());
         // as Gerrit's web UI does for a file opened; "Mark as Not Reviewed" takes it back until the diff is opened again
         ReviewedFilesService.getInstance(project).setReviewed(changeInfo, selectedRevisionId, List.of(relativeFilePath), true);
+    }
+
+    /**
+     * Both sides at once, in place of what is shown; what failed to load stays, and so does what was saved or removed
+     * meanwhile, which the answer may not have yet: the next reload brings it.
+     */
+    private void reloadComments(DiffComments comments, Project project, ChangeInfo changeInfo,
+                                String selectedRevisionId, boolean againstBaseRevision) {
+        if (comments.isDisposed()) return;
+        CommentSide revisionSide = comments.getSide(Side.RIGHT);
+        CommentSide baseSide = comments.getSide(Side.LEFT);
+        Map<Side, List<CommentInfo>> loaded = new EnumMap<>(Side.class);
+        int localChanges = comments.localChanges();
+        Runnable replace = () -> {
+            if (loaded.size() == 2 && comments.localChanges() == localChanges) {
+                comments.replaceAll(loaded.get(Side.LEFT), loaded.get(Side.RIGHT));
+            }
+        };
+        GerritUtil gerritUtil = GerritUtil.getInstance();
+        gerritUtil.getCommentsAgain(changeInfo._number, selectedRevisionId, project, fileComments -> {
+            List<CommentInfo> revisionComments = fileComments.getOrDefault(revisionSide.filePath, new ArrayList<>());
+            loaded.put(Side.RIGHT, filter(revisionComments, revisionSide));
+            if (!againstBaseRevision) {
+                loaded.put(Side.LEFT, filter(revisionComments, baseSide));
+            }
+            replace.run();
+        });
+        if (againstBaseRevision) {
+            gerritUtil.getCommentsAgain(changeInfo._number, baseSide.revisionId, project, fileComments -> {
+                List<CommentInfo> baseComments = fileComments.getOrDefault(baseSide.filePath, new ArrayList<>());
+                baseComments.sort(COMMENT_ORDERING);
+                loaded.put(Side.LEFT, filter(baseComments, baseSide));
+                replace.run();
+            });
+        }
     }
 
     private void loadComments(DiffComments comments, Project project, ChangeInfo changeInfo,

@@ -281,12 +281,16 @@ public class GerritChangeDetailsPanel {
         return approvalInfo.value != null && approvalInfo.value != 0;
     }
 
+    /** As HTML. */
     public static String accountName(AccountInfo account) {
-        String name = !StringUtil.isEmptyOrSpaces(account.name) ? account.name
+        return StringUtil.escapeXmlEntities(accountDisplayName(account));
+    }
+
+    public static String accountDisplayName(AccountInfo account) {
+        return !StringUtil.isEmptyOrSpaces(account.name) ? account.name
             : account.email != null ? account.email
             : account.username != null ? account.username
             : String.valueOf(account._accountId);
-        return StringUtil.escapeXmlEntities(name);
     }
 
     /**

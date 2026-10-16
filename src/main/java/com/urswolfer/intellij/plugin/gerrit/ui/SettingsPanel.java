@@ -101,6 +101,8 @@ public class SettingsPanel {
     private final JCheckBox showAvatarsCheckBox = new JCheckBox(GerritBundle.message("settings.list.avatars"));
     private final JCheckBox showCommentsInEditorCheckBox =
         new JCheckBox(GerritBundle.message("settings.git.comments"));
+    private final JCheckBox showCommentsInlineCheckBox =
+        new JCheckBox(GerritBundle.message("settings.git.comments.inline"));
     private final JLabel minutesLabel = new JLabel(GerritBundle.message("settings.notifications.minutes"));
     private final JLabel listAllHint = new JLabel(
         GerritBundle.message("settings.list.all.hint"));
@@ -168,6 +170,7 @@ public class SettingsPanel {
         JPanel git = FormBuilder.createFormBuilder()
             .addComponent(atLeft(pushToGerritCheckbox))
             .addComponent(atLeft(showCommentsInEditorCheckBox))
+            .addComponent(atLeft(showCommentsInlineCheckBox))
             .getPanel();
         git.setBorder(IdeBorderFactory.createTitledBorder(GerritBundle.message("settings.git.title")));
 
@@ -506,5 +509,13 @@ public class SettingsPanel {
 
     public void setShowCommentsInEditor(final boolean showCommentsInEditor) {
         showCommentsInEditorCheckBox.setSelected(showCommentsInEditor);
+    }
+
+    public boolean getShowCommentsInline() {
+        return showCommentsInlineCheckBox.isSelected();
+    }
+
+    public void setShowCommentsInline(final boolean showCommentsInline) {
+        showCommentsInlineCheckBox.setSelected(showCommentsInline);
     }
 }

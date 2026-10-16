@@ -50,8 +50,9 @@ public class AddCommentInDiffAction extends AnAction implements DumbAware, Updat
     public void update(AnActionEvent e) {
         AddCommentAction addCommentAction = findAddCommentAction(e);
         e.getPresentation().setVisible(addCommentAction != null);
-        e.getPresentation().setEnabled(addCommentAction != null && addCommentAction.canComment(e.getProject())
-            && !isTypedInFileEditor(e));
+        // 2020.3 finds the editor of the diff by its own key, also for the text of a thread under a line
+        e.getPresentation().setEnabled(addCommentAction != null && AddCommentAction.canComment(e.getProject())
+            && !isTypedInFileEditor(e) && !AddCommentAction.isInThread(e));
     }
 
     /**

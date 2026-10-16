@@ -31,6 +31,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtension;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.EditorComments;
+import com.urswolfer.intellij.plugin.gerrit.ui.diff.GerritCommentsDiffExtension;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -85,7 +86,8 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 !Comparing.equal(gerritSettings.getReviewNotifications(), settingsPane.getReviewNotifications()) ||
                 !Comparing.equal(gerritSettings.getPushToGerrit(), settingsPane.getPushToGerrit()) ||
                 !Comparing.equal(gerritSettings.getShowAvatars(), settingsPane.getShowAvatars()) ||
-                !Comparing.equal(gerritSettings.getShowCommentsInEditor(), settingsPane.getShowCommentsInEditor()));
+                !Comparing.equal(gerritSettings.getShowCommentsInEditor(), settingsPane.getShowCommentsInEditor()) ||
+                gerritSettings.getShowCommentsInline() != settingsPane.getShowCommentsInline());
     }
 
     /**
@@ -129,6 +131,11 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             boolean listChanged = isListModified() || enabledChanged && settingsPane.getProjectEnabled();
             boolean editorCommentsChanged =
                 gerritSettings.getShowCommentsInEditor() != settingsPane.getShowCommentsInEditor();
+            // the accounts announce themselves
+            boolean threadsChanged =
+                gerritSettings.getShowCommentsInline() != settingsPane.getShowCommentsInline()
+                    || settingsPane.getShowCommentsInline()
+                    && gerritSettings.getShowAvatars() != settingsPane.getShowAvatars();
             applyAccounts();
             projectSettings().setEnabled(settingsPane.getProjectEnabled());
 
@@ -140,6 +147,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             GerritPushExtension.setPushToGerritByDefault(settingsPane.getPushToGerrit());
             gerritSettings.setShowAvatars(settingsPane.getShowAvatars());
             gerritSettings.setShowCommentsInEditor(settingsPane.getShowCommentsInEditor());
+            gerritSettings.setShowCommentsInline(settingsPane.getShowCommentsInline());
 
             GerritUpdatesNotificationComponent.configurationChanged();
             if (enabledChanged) {
@@ -152,6 +160,9 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
                 EditorComments.settingChanged();
             } else if (enabledChanged) {
                 EditorComments.settingChanged(project);
+            }
+            if (threadsChanged) {
+                GerritCommentsDiffExtension.settingsChanged();
             }
             if (listChanged) {
                 ApplicationManager.getApplication().getMessageBus()
@@ -211,6 +222,7 @@ public class GerritSettingsConfigurable implements SearchableConfigurable {
             settingsPane.setPushToGerrit(gerritSettings.getPushToGerrit());
             settingsPane.setShowAvatars(gerritSettings.getShowAvatars());
             settingsPane.setShowCommentsInEditor(gerritSettings.getShowCommentsInEditor());
+            settingsPane.setShowCommentsInline(gerritSettings.getShowCommentsInline());
         }
     }
 

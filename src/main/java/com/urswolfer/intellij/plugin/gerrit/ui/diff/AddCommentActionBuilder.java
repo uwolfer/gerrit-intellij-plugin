@@ -23,6 +23,7 @@ public class AddCommentActionBuilder {
         private CommentSide side;
         private Comment commentToEdit;
         private Comment replyToComment;
+        private JComponent anchor;
 
         private Builder init(DiffComments comments, Editor editor) {
             this.comments = comments;
@@ -52,9 +53,15 @@ public class AddCommentActionBuilder {
             return this;
         }
 
+        /** The form opens underneath it, rather than at the caret. */
+        Builder below(JComponent anchor) {
+            this.anchor = anchor;
+            return this;
+        }
+
         public AddCommentAction get() {
             return new AddCommentAction(text, icon, comments, editor, commentBalloonBuilder, side, commentToEdit,
-                replyToComment);
+                replyToComment, anchor);
         }
     }
 }

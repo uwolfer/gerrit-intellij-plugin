@@ -17,8 +17,6 @@
 package com.urswolfer.intellij.plugin.gerrit.ui.diff;
 
 import com.google.gerrit.extensions.client.Comment;
-import com.google.gerrit.extensions.common.AccountInfo;
-import com.google.gerrit.extensions.common.CommentInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -35,7 +33,6 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.util.text.DateFormatUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
-import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangeDetailsPanel;
 import com.urswolfer.intellij.plugin.gerrit.util.CommentHelper;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
@@ -85,7 +82,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
     @NotNull
     @Override
     public Icon getIcon() {
-        if (isDraft(fileComment)) {
+        if (CommentThreads.isDraft(fileComment)) {
             return AllIcons.Toolwindows.ToolWindowTodo;
         } else {
             return AllIcons.Toolwindows.ToolWindowMessages;
@@ -124,20 +121,16 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
         return createPopupMenuActionGroup();
     }
 
-    private static boolean isDraft(Comment comment) {
-        return comment instanceof CommentInfo && (((CommentInfo) comment).author == null);
-    }
-
     static Color getErrorStripeColor(Comment comment) {
-        return isDraft(comment) ? DRAFT_STRIPE_COLOR : PUBLISHED_STRIPE_COLOR;
+        return CommentThreads.isDraft(comment) ? DRAFT_STRIPE_COLOR : PUBLISHED_STRIPE_COLOR;
     }
 
     static String getErrorStripeTooltip(Comment comment) {
         String excerpt = StringUtil.shortenTextWithEllipsis(
-                StringUtil.notNullize(comment.message).trim().replaceAll("\\s+", " "), STRIPE_TOOLTIP_LENGTH, 0);
+                CommentThreads.excerpt(comment.message), STRIPE_TOOLTIP_LENGTH, 0);
         return String.format("<b>%s</b>%s: %s",
                 getAuthorName(comment),
-                isDraft(comment) ? " (" + GerritBundle.message("diff.draft") + ")" : "",
+                CommentThreads.isDraft(comment) ? " (" + GerritBundle.message("diff.draft") + ")" : "",
                 StringUtil.escapeXmlEntities(excerpt));
     }
 
@@ -158,7 +151,7 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
     private DefaultActionGroup createPopupMenuActionGroup() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
-        if (isDraft(fileComment)) {
+        if (CommentThreads.isDraft(fileComment)) {
             AddCommentAction commentAction = addCommentActionBuilder
                     .create(comments, editor)
                     .withText(GerritBundle.message("diff.edit"))
@@ -169,21 +162,36 @@ public class CommentGutterIconRenderer extends GutterIconRenderer {
 
             actionGroup.add(new RemoveCommentAction(comments, fileComment, side));
         } else {
-            AddCommentAction commentAction = addCommentActionBuilder
-                    .create(comments, editor)
-                    .withText(GerritBundle.message("diff.reply"))
-                    .withIcon(AllIcons.Actions.Back)
-                    .reply(fileComment, side)
-                    .get();
-            actionGroup.add(commentAction);
+            // to the thread, as from its card: to its last comment, and not while a draft replies to it already
+            CommentThreads.Thread<?> thread = comments.threadOf(fileComment);
+            if (thread != null && thread.hasDraft()) {
+                // the draft, which takes the place of a reply; removed from its own icon only, not from this comment's
+                actionGroup.add(addCommentActionBuilder
+                        .create(comments, editor)
+                        .withText(GerritBundle.message("diff.editDraftReply"))
+                        .withIcon(AllIcons.Toolwindows.ToolWindowMessages)
+                        .update(thread.last(), side)
+                        .get());
+            } else {
+                AddCommentAction commentAction = addCommentActionBuilder
+                        .create(comments, editor)
+                        .withText(GerritBundle.message("diff.reply"))
+                        .withIcon(AllIcons.Actions.Back)
+                        .reply(thread != null ? thread.last() : fileComment, side)
+                        .get();
+                actionGroup.add(commentAction);
+            }
 
-            actionGroup.add(new CommentDoneAction(comments, fileComment, side));
+            if (thread != null && CommentResolveAction.isOffered(thread)) {
+                for (CommentResolveAction.Reply reply : CommentResolveAction.Reply.values()) {
+                    actionGroup.add(new CommentResolveAction(comments, thread.last(), side, reply));
+                }
+            }
         }
         return actionGroup;
     }
 
     private static String getAuthorName(Comment comment) {
-        AccountInfo author = comment instanceof CommentInfo ? ((CommentInfo) comment).author : null;
-        return author == null ? GerritBundle.message("diff.myself") : GerritChangeDetailsPanel.accountName(author);
+        return StringUtil.escapeXmlEntities(CommentThreads.authorName(comment));
     }
 }

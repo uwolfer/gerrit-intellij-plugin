@@ -26,29 +26,61 @@ import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
-import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 
+import org.jetbrains.annotations.Nullable;
+
+import javax.swing.*;
+
 /**
+ * A reply which resolves the thread, as Gerrit's web UI writes it for Ack and Done.
+ *
  * @author Urs Wolfer
  */
 @SuppressWarnings("ComponentNotRegistered") // added with code
-public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBackground {
+public class CommentResolveAction extends AnAction implements DumbAware, UpdateInBackground {
+    /** In the order Gerrit's web UI offers them. */
+    enum Reply {
+        ACK("Acknowledged", null),
+        DONE("Done", AllIcons.Actions.Checked);
+
+        // as Gerrit's web UI writes it, which other reviewers read: not translated
+        final String message;
+        @Nullable
+        private final Icon icon;
+
+        Reply(String message, @Nullable Icon icon) {
+            this.message = message;
+            this.icon = icon;
+        }
+
+        String text() {
+            return this == ACK ? GerritBundle.message("diff.ack") : GerritBundle.message("diff.done");
+        }
+    }
+
+    /** As Gerrit's web UI has it: while the thread is unresolved, and no draft replies to it yet. */
+    static boolean isOffered(CommentThreads.Thread<?> thread) {
+        return thread.isUnresolved() && !thread.hasDraft();
+    }
+
     private final DiffComments comments;
     private final Comment fileComment;
     private final CommentSide side;
+    private final Reply reply;
 
-    CommentDoneAction(DiffComments comments, Comment fileComment, CommentSide side) {
-        super(GerritBundle.message("diff.done"), null, AllIcons.Actions.Checked);
+    CommentResolveAction(DiffComments comments, Comment fileComment, CommentSide side, Reply reply) {
+        super(reply.text(), null, reply.icon);
 
         this.comments = comments;
         this.fileComment = fileComment;
         this.side = side;
+        this.reply = reply;
     }
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        final DraftInput comment = createDoneReply(fileComment);
+        final DraftInput comment = createReply(fileComment, reply);
         final Project project = e.getProject();
         GerritUtil.getInstance().saveDraftComment(comments.getChangeInfo()._number, side.revisionId, comment, project,
             (CommentInfo commentInfo) -> comments.saved(commentInfo, side));
@@ -56,14 +88,13 @@ public class CommentDoneAction extends AnAction implements DumbAware, UpdateInBa
 
     @Override
     public void update(AnActionEvent e) {
-        e.getPresentation().setEnabled(e.getProject() != null
-            && GerritProjectAccount.getInstance(e.getProject()).isLoginAndPasswordAvailable());
+        e.getPresentation().setEnabled(AddCommentAction.canComment(e.getProject()));
     }
 
-    static DraftInput createDoneReply(Comment fileComment) {
+    static DraftInput createReply(Comment fileComment, Reply reply) {
         DraftInput comment = new DraftInput();
         comment.inReplyTo = fileComment.id;
-        comment.message = "Done";
+        comment.message = reply.message;
         comment.line = fileComment.line;
         comment.path = fileComment.path;
         comment.side = fileComment.side;

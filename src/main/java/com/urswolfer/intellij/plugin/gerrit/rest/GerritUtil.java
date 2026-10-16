@@ -625,6 +625,29 @@ public final class GerritUtil {
     }
 
     /**
+     * Published and draft comments, for comments shown already, which the user did not ask for: a failure, as for a
+     * change deleted meanwhile, leaves the consumer uncalled, so that they stay rather than give way to none, and is
+     * only logged.
+     */
+    public void getCommentsAgain(final int changeNr,
+                                 final String revision,
+                                 final Project project,
+                                 final Consumer<Map<String, List<CommentInfo>>> consumer) {
+        accessGerrit(() -> {
+            try {
+                return loadComments(changeNr, revision, project, true, true);
+            } catch (RestApiException e) {
+                LOG.info("Comments of change " + changeNr + " not loaded again", e);
+                return null;
+            }
+        }, (Map<String, List<CommentInfo>> comments) -> {
+            if (comments != null) {
+                consumer.consume(comments);
+            }
+        }, project);
+    }
+
+    /**
      * Runs in the calling thread.
      */
     public Map<String, List<CommentInfo>> loadComments(int changeNr,

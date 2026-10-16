@@ -89,6 +89,12 @@
           href="https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases">
           https://github.com/uwolfer/gerrit-intellij-plugin#pre-releases</a>.</li>
 
+          <li>2.3.0</li>
+          <ul>
+            <li>show comment threads under their lines in diffs and in the editor of a checked out change, with
+            Reply, Ack, Done, Edit and Remove, and a setting to show only the icons</li>
+            <li>fix checking out a change when a branch from an older version of the plugin is in the way</li>
+          </ul>
           <li>2.2.0</li>
           <ul>
             <li>add comments in the editor for a checked out change and in the unified diff viewer, mark them on

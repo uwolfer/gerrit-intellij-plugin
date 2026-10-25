@@ -34,5 +34,6 @@ public class GerritUpdatesNotificationStartupActivity implements StartupActivity
     static void start(@NotNull Project project) {
         GerritUpdatesNotificationComponent.getInstance(project).projectOpened();
         GerritCommitMsgHookCheck.checkOnStartup(project);
+        GerritNewsNotification.showOnce(project);
     }
 }

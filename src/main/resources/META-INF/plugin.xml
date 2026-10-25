@@ -605,6 +605,8 @@
   <extensions defaultExtensionNs="com.intellij">
     <notificationGroup id="gerrit" displayType="BALLOON"
                        bundle="messages.GerritBundle" key="notification.group.gerrit"/>
+    <notificationGroup id="gerrit.news" displayType="BALLOON"
+                       bundle="messages.GerritBundle" key="notification.group.gerrit.news"/>
 
     <postStartupActivity implementation="com.urswolfer.intellij.plugin.gerrit.ui.GerritUpdatesNotificationStartupActivity"/>
     <checkoutProvider implementation="com.urswolfer.intellij.plugin.gerrit.extension.GerritCheckoutProvider"/>

@@ -30,6 +30,7 @@ import java.util.List;
 public final class NotificationBuilder {
     private static final String GERRIT_NOTIFICATION_GROUP = "gerrit";
 
+    private final String groupId;
     private final Project project;
     private final String title;
     private final String message;
@@ -39,6 +40,11 @@ public final class NotificationBuilder {
     private boolean showBalloon = true;
 
     public NotificationBuilder(Project project, String title, String message) {
+        this(GERRIT_NOTIFICATION_GROUP, project, title, message);
+    }
+
+    public NotificationBuilder(String groupId, Project project, String title, String message) {
+        this.groupId = groupId;
         this.project = project;
         this.title = title;
         this.message = message;
@@ -65,7 +71,7 @@ public final class NotificationBuilder {
     }
 
     protected Notification get() {
-        Notification notification = new Notification(GERRIT_NOTIFICATION_GROUP, title, message, type);
+        Notification notification = new Notification(groupId, title, message, type);
         for (AnAction action : actions) {
             notification.addAction(action);
         }

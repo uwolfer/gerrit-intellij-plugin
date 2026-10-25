@@ -220,6 +220,11 @@ Pass numbers as `String.valueOf`, double an apostrophe only in a message with
 parameters, and keep a blank at the start or end of a text in the code: a properties
 value loses a leading one, and `.editorconfig` trims a trailing one. `GerritBundleTest` checks the keys and these rules.
 
+A new or changed text comes with its translations, in the same commit: every
+`GerritBundle_<locale>.properties` next to `GerritBundle.properties`. A missing key falls
+back to English, which the test accepts, so nothing else fails. Reuse the terms the
+translation already has for Reply, Rebase, WIP and the like.
+
 ## Services
 
 Collaborators are platform services: `@Service(Service.Level.APP)` or

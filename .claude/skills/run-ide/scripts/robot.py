@@ -24,12 +24,15 @@ StripeButton became SquareStripeButton in newer IDEs).
                                        project, which uses Gerrit (default: the seeded Gerrit)
   robot.py settings                    the Gerrit settings page of the project
   robot.py focus                       the IDE frame, for keys to reach it
+  robot.py notifications               expires the balloons and notifications shown, which take clicks meant for
+                                       what lies below
   robot.py tree [WORD]                 visible components, indented; only lines with WORD
   robot.py find XPATH                  id, class and screen bounds of each showing match
   robot.py wait XPATH [SECONDS]        until XPATH matches (default 30 s)
   robot.py click XPATH [--right|--double]   the first match; (XPATH)[2] for the second
   robot.py check XPATH on|off          a check box, clicked only when it is not in that state yet
-  robot.py item XPATH TEXT [--right|--double]   the row of a tree, list or table showing TEXT
+  robot.py item XPATH TEXT [--right|--double]   the row of a tree, list or table showing TEXT: a whole cell's
+                                       text, as `rows` prints it
   robot.py type TEXT                   into the focused component
   robot.py key KEY...                  e.g. ENTER, ESCAPE, ctrl+alt+S, shift+TAB
   robot.py get XPATH EXPR              a JavaScript expression over `component`, as text
@@ -184,7 +187,7 @@ javax.swing.SwingUtilities.invokeAndWait(function () {  // the model may be chan
     at = items().filter(function (item) { return item[0] == %s; })[0];
     if (at != null) { component.scrollRectToVisible(at[1]); ''' + RAISE + ''' }
 });
-if (at == null) throw 'no item';
+if (at == null) throw 'no item; there are: ' + items().map(function (item) { return item[0]; }).join(' | ');
 // smooth scrolling takes a moment; a row wider than the view is clicked in its visible part
 var shown = component.getVisibleRect().intersection(at[1]);
 for (var t = 0; t < 20 && shown.height < at[1].height; t++) {
@@ -279,6 +282,14 @@ def main(args):
         run('''javax.swing.SwingUtilities.invokeAndWait(function () {
             component.toFront(); component.requestFocus(); });''', one(FRAME))
         time.sleep(0.5)
+    elif command == 'notifications':
+        retrieve('''(function () {
+            var project = com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0];
+            var shown = com.intellij.notification.NotificationsManager.getNotificationsManager()
+                .getNotificationsOfType(Packages.com.intellij.notification.Notification, project);
+            for (var i = 0; i < shown.length; i++) shown[i].expire();
+            return shown.length;
+        })()''', one(FRAME))
     elif command == 'login':
         login(*rest)
     elif command == 'settings':

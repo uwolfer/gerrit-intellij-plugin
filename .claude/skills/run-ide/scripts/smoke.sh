@@ -17,9 +17,9 @@
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
 # the settings page, the change list, a push for review with a reviewer picked from
 # the suggestions of the push dialog, a change action from the context menu, comments in
-# a diff in both viewers and the shortcuts from one to the next, comments in the editor of
-# a checked out change, the project switched off and on again, and no error logged by the
-# plugin.
+# a diff in both viewers and the shortcuts from one to the next, the files, diff and
+# comments of a project the IDE has no clone of, comments in the editor of a checked out
+# change, the project switched off and on again, and no error logged by the plugin.
 # Leaves the IDE running, and only abandoned changes and a toggled star behind, so that
 # runs do not push the seeded changes off the change list.
 # Usage: smoke.sh [latest|<unpacked IDE dir>]
@@ -147,13 +147,7 @@ git -C "$W" commit -qa --amend --no-edit; git -C "$W" push -q origin HEAD:refs/f
 dchange=demo~master~$(git -C "$W" log -1 --format=%B | sed -n 's/^Change-Id: //p')
 git -C "$P" worktree remove -f "$W"
 # the balloons of the push lie over the files of the change, and take the clicks meant for them
-"$R" get "//div[@class='IdeFrameImpl']" "(function () {
-    var project = com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0];
-    var shown = com.intellij.notification.NotificationsManager.getNotificationsManager()
-        .getNotificationsOfType(Packages.com.intellij.notification.Notification, project);
-    for (var i = 0; i < shown.length; i++) shown[i].expire();
-    return shown.length;
-})()" > /dev/null
+"$R" notifications
 "$R" click "$G//div[@accessiblename='Refresh']"
 dlisted() { grep -q "$dsubject" <<< "$("$R" rows "$T")"; }
 until_true "change list shows the diff change" dlisted
@@ -291,6 +285,45 @@ ignore DEFAULT
 until_true "unified: the comments back on their lines" shows "$placed"
 gerrit "/changes/$dchange/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null
 
+# setting <check box> on|off <what>: on the Gerrit settings page, saved
+setting() {
+    "$R" settings
+    "$R" check "$1" "$2"
+    "$R" click "//div[@class='JButton' and @accessiblename='OK']"
+    closed() { [ -z "$("$R" find "//div[@accessiblename='Gerrit Accounts']")" ]; }
+    until_true "settings saved: $3" closed
+}
+
+# A change of project library, which the IDE has no clone of: its files and their diff come from Gerrit
+ALL="//div[@class='JCheckBox' and contains(@accessiblename,'List all Gerrit changes')]"
+setting "$ALL" on "all changes listed"
+"$R" click "$G//div[@accessiblename='Refresh']"
+llisted() { grep -q 'Greet strangers' <<< "$("$R" rows "$T")"; }
+until_true "change list shows the change of a project without a clone" llisted
+"$R" item "$T" 'Greet strangers'
+lfiles() { local rows; rows=$("$R" rows "$F"); grep -q 'Greeter.java' <<< "$rows" && grep -q 'CHANGES.txt' <<< "$rows" &&
+    grep -q 'obsolete.txt' <<< "$rows" && grep -q 'logo.png' <<< "$rows"; }
+until_true "files of the change from Gerrit" lfiles
+# Revert and the like would write the file of the same path in the project open; the toolbar updates a moment later
+norevert() { [ -z "$("$R" find "$G//div[@accessiblename='Revert Selected Changes']")" ]; }
+until_true "no Revert on files without a local copy" norevert
+"$R" item "$F" "$("$R" rows "$F" | grep -m1 'Greeter.java$')" --double
+"$R" wait "$D//div[@class='EditorComponentImpl']"
+viewer Side-by-side
+lshows() { [ "$(icons "$SR")" = '5 A blank name too?' ]; }
+until_true "the comment of the patch set in the diff from Gerrit" lshows
+lchange=library~master~$(gerrit '/changes/?q=project:library+status:open' | python3 -c 'import json, sys
+print(json.load(sys.stdin)[0]["change_id"])')
+comment "$SR" 7 from-gerrit
+ldrafted() { gerrit "/changes/$lchange/drafts" | python3 -c 'import json, sys
+for c in json.load(sys.stdin).get("src/lib/Greeter.java", []): print(c["line"], c["message"])' | grep -qx '8 from-gerrit'; }
+until_true "a comment in the diff from Gerrit on its line" ldrafted
+for id in $(gerrit "/changes/$lchange/drafts" | python3 -c 'import json, sys
+print(*(c["id"] for c in json.load(sys.stdin).get("src/lib/Greeter.java", [])))'); do
+    curl -sSf -u admin:secret -X DELETE "http://localhost:8080/a/changes/$lchange/revisions/current/drafts/$id" > /dev/null
+done
+setting "$ALL" off "only the project's changes listed"
+
 # Comments in the editor of a file of a checked out change: on the line of the patch set, as the text is edited
 read -r hnumber hrevision href <<< "$(gerrit '/changes/?q=project:demo+status:open+subject:hello&o=CURRENT_REVISION' |
     python3 -c 'import json, sys
@@ -355,13 +388,7 @@ until_true "editor: no comments once HEAD left the change" eshows ''
 
 USE="//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']"
 STRIPE="//div[contains(@class,'StripeButton') and @accessiblename='Gerrit']"
-use_gerrit() {
-    "$R" settings
-    "$R" check "$USE" "$1"
-    "$R" click "//div[@class='JButton' and @accessiblename='OK']"
-    closed() { [ -z "$("$R" find "//div[@accessiblename='Gerrit Accounts']")" ]; }
-    until_true "settings saved with Gerrit $1" closed
-}
+use_gerrit() { setting "$USE" "$1" "Gerrit $1"; }
 use_gerrit off
 hidden() { [ -z "$("$R" find "$STRIPE")" ]; }
 until_true "no Gerrit tool window in a project switched off" hidden

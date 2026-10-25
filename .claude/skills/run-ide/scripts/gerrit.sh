@@ -15,12 +15,14 @@
 # limitations under the License.
 #
 # Runs a throwaway Gerrit on http://localhost:8080, seeded on its first start with
-# project demo. Logins: admin/secret and reviewer/reviewer.
+# project demo, which the IDE has a clone of, and project library, which it has not.
+# Logins: admin/secret and reviewer/reviewer.
 # Usage: gerrit.sh start|stop
 set -eEuo pipefail  # -E: the ERR trap in seed also fires inside rest
 
 WORK=${RUN_IDE_WORK:-${XDG_CACHE_HOME:-$HOME/.cache}/gerrit-plugin-run-ide}
 GERRIT_VERSION=${GERRIT_VERSION:-3.14.4}
+SEED=$GERRIT_VERSION-2  # a new seed sets an existing site up from scratch
 SITE=$WORK/gerrit/site
 URL=http://localhost:8080
 
@@ -100,6 +102,37 @@ seed() {
     git reset -q --hard HEAD~1
     printf 'bye\n' > bye.txt; git add bye.txt; git commit -qm 'Add bye'
     git push -q origin HEAD:refs/for/master%r=reviewer
+
+    seed_library
+}
+
+# A project without a clone, whose change lists a file of each kind: modified, renamed, deleted, and an added image
+seed_library() {
+    local repo=$SITE/seed-library
+    rest PUT /projects/library '{"create_empty_commit":true}'
+    git clone -q "http://admin:secret@localhost:8080/a/library" "$repo"
+    cd "$repo"
+    git config user.name Administrator; git config user.email admin@example.com
+    curl -sSfLo .git/hooks/commit-msg "$URL/tools/hooks/commit-msg"; chmod +x .git/hooks/commit-msg
+
+    mkdir -p src/lib
+    printf 'package lib;\n\npublic class Greeter {\n    public String greet(String name) {\n        return "Hello " + name;\n    }\n}\n' \
+        > src/lib/Greeter.java
+    printf 'notes\n' > NOTES.txt; printf 'obsolete\n' > obsolete.txt
+    git add -A; git commit -qm 'Add greeter'
+    git push -q origin HEAD:refs/for/master
+    rest POST "/changes/library~master~$(change_id)/revisions/current/review" '{"labels":{"Code-Review":2}}'
+    rest POST "/changes/library~master~$(change_id)/submit"
+
+    sed -i 's/return "Hello " + name;/if (name.isEmpty()) {\n            return "Hello stranger";\n        }\n        return "Hello, " + name + "!";/' \
+        src/lib/Greeter.java
+    git mv NOTES.txt CHANGES.txt; git rm -q obsolete.txt
+    base64 -d > logo.png <<< 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+    git add -A; git commit -qm 'Greet strangers'
+    git push -q origin HEAD:refs/for/master
+    curl -sS --fail-with-body -u reviewer:reviewer -H 'Content-Type: application/json' \
+        -d '{"comments":{"src/lib/Greeter.java":[{"line":5,"message":"A blank name too?","unresolved":true}]}}' \
+        "$URL/a/changes/library~master~$(change_id)/revisions/current/review" >&2
 }
 
 # After a container restart gerrit.pid may name an unrelated process, which
@@ -116,7 +149,7 @@ start() {
             echo "another server answers on $URL, stop it first" >&2; exit 1
         fi
     fi
-    [ "$(cat "$SITE/.ready" 2> /dev/null)" = "$GERRIT_VERSION" ] || { init; fresh=1; }
+    [ "$(cat "$SITE/.ready" 2> /dev/null)" = "$SEED" ] || { init; fresh=1; }
     "$SITE/bin/gerrit.sh" start > "$WORK/gerrit/start.log" 2>&1 || true
     for _ in $(seq 180); do
         curl -sf -o /dev/null "$URL/config/server/version" && break
@@ -126,7 +159,7 @@ start() {
     curl -sSf -o /dev/null "$URL/config/server/version" ||
         { tail -5 "$WORK/gerrit/start.log" "$SITE/logs/error_log" >&2; exit 1; }
     # last in the list, or set -e would not apply inside the subshell
-    [ -z "$fresh" ] || { ( seed ); echo "$GERRIT_VERSION" > "$SITE/.ready"; }
+    [ -z "$fresh" ] || { ( seed ); echo "$SEED" > "$SITE/.ready"; }
     echo "Gerrit $GERRIT_VERSION on $URL"
 }
 

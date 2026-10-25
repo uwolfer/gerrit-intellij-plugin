@@ -21,6 +21,7 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.diff.chains.DiffRequestChain;
 import com.intellij.diff.editor.ChainDiffVirtualFile;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -482,7 +483,11 @@ public class RepositoryChangesBrowserProvider {
             if (update != changesUpdate) {
                 return;
             }
-            listedFromGerrit = fromGerrit;
+            if (listedFromGerrit != fromGerrit) {
+                listedFromGerrit = fromGerrit;
+                // the toolbar asks for its actions again only once something counts as activity
+                ActivityTracker.getInstance().inc();
+            }
             getViewer().setEmptyText(GerritBundle.message("browser.noChanges"));
             baseParent = parent;
             listedChange = change;

@@ -126,8 +126,7 @@ public class ToggleReviewedAction extends AnAction implements DumbAware {
         Optional<GitRepository> repository = GerritGitUtil.getInstance().getRepositoryForChange(project, change);
         List<String> paths = new ArrayList<>();
         for (Change selected : listed.getSelectedChanges()) {
-            paths.add(PathUtils.ensureSlashSeparators(
-                PathUtils.getRelativeOrAbsolutePath(repository, ChangesUtil.getFilePath(selected).getPath())));
+            paths.add(PathUtils.getGerritPath(repository, ChangesUtil.getFilePath(selected)));
         }
         return paths.isEmpty() ? null : new Selection(change, revisionId, paths);
     }

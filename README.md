@@ -93,15 +93,14 @@ project.
 * Or add a remote named like the Gerrit project, with the Gerrit web URL as its
   URL.
 
-### Error-message when clicking a change: "No repository found for Gerrit project"
+### Error-message on checkout or cherry-pick: "No repository found for Gerrit project"
 
 With "List all Gerrit changes (instead of changes from the currently open
 project only)", the list also shows changes of projects that are not part of
-your IDE project. You can vote on and submit these, but showing the files and
-diff of a change, checking it out and cherry-picking it fetch the change into
-the local clone of its project. Clone the project and add it to your IDE
-project to see its diff. Reviewing without a local clone is tracked in
-[#76](https://github.com/uwolfer/gerrit-intellij-plugin/issues/76).
+your IDE project. You can vote on and submit these, and review them: the files
+of such a change, their diff and its comments come from Gerrit. Checking a
+change out, cherry-picking it and fetching it need the local clone of its
+project; clone the project and add it to your IDE project for these.
 
 ### Error-message when clicking a change: "Cannot fetch changes"
 

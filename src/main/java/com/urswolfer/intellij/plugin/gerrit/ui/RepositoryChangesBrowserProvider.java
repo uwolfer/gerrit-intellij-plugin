@@ -18,17 +18,25 @@ package com.urswolfer.intellij.plugin.gerrit.ui;
 
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.RevisionInfo;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.intellij.diff.chains.DiffRequestChain;
 import com.intellij.diff.editor.ChainDiffVirtualFile;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonShortcuts;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.actionSystem.Separator;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx;
 import com.intellij.openapi.fileEditor.impl.EditorWindow;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vcs.VcsException;
@@ -52,6 +60,7 @@ import com.urswolfer.intellij.plugin.gerrit.ui.action.ToggleReviewedAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.ChangesWithCommitMessageProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.CommitDiffBuilder;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.RebaseFilter;
+import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.RemoteChanges;
 import com.urswolfer.intellij.plugin.gerrit.ui.changesbrowser.SelectBaseRevisionAction;
 import com.urswolfer.intellij.plugin.gerrit.ui.diff.GoToCommentAction;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritUserDataKeys;
@@ -62,6 +71,7 @@ import git4idea.changes.GitChangeUtils;
 import git4idea.history.GitHistoryUtils;
 import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.Frame;
 import java.awt.Window;
@@ -72,7 +82,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -140,6 +149,8 @@ public class RepositoryChangesBrowserProvider {
         private Window diffWindow;
         private DiffRequestChain diffChain;
         private boolean showingDiff;
+        // read where the toolbar updates its actions, which is a background thread in newer IDEs
+        private volatile boolean listedFromGerrit;
 
         public GerritRepositoryChangesBrowser(Project project, Disposable parent) {
             super(project);
@@ -251,13 +262,43 @@ public class RepositoryChangesBrowserProvider {
 
         @Override
         protected @NotNull List<AnAction> createPopupMenuActions() {
-            return ContainerUtil.concat(super.createPopupMenuActions(),
+            return ContainerUtil.concat(onlyForLocalFiles(super.createPopupMenuActions()),
                 Collections.singletonList(ActionManager.getInstance().getAction(ToggleReviewedAction.ID)));
         }
 
         @Override
         protected @NotNull List<AnAction> createToolbarActions() {
-            return ContainerUtil.prepend(super.createToolbarActions(), selectBaseRevisionAction, new Separator());
+            return ContainerUtil.prepend(onlyForLocalFiles(super.createToolbarActions()),
+                selectBaseRevisionAction, new Separator());
+        }
+
+        /**
+         * The platform's actions on the files of a commit, such as Revert and Get, work with their local copies. The
+         * files listed from Gerrit have none, and their relative paths would let them write the file of the same path
+         * in the project open.
+         */
+        private List<AnAction> onlyForLocalFiles(List<AnAction> actions) {
+            ActionManager actionManager = ActionManager.getInstance();
+            List<AnAction> groups = Arrays.asList(actionManager.getAction("Vcs.RepositoryChangesBrowserToolbar"),
+                actionManager.getAction("Vcs.RepositoryChangesBrowserMenu"));
+            return ContainerUtil.map(actions, action -> action instanceof DefaultActionGroup && groups.contains(action)
+                ? new LocalFilesGroup((DefaultActionGroup) action) : action);
+        }
+
+        private final class LocalFilesGroup extends ActionGroup implements DumbAware {
+            private final DefaultActionGroup group;
+
+            private LocalFilesGroup(DefaultActionGroup group) {
+                this.group = group;
+            }
+
+            @Override
+            public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
+                if (e == null) { // newer IDEs report the group when asked so: what it holds, not what is shown
+                    return group.getChildActionsOrStubs();
+                }
+                return listedFromGerrit ? EMPTY_ARRAY : group.getChildren(e);
+            }
         }
 
         protected void setSelectedChange(ChangeInfo changeInfo) {
@@ -298,8 +339,10 @@ public class RepositoryChangesBrowserProvider {
         }
 
         private List<String> diffToDisplay() {
+            // once the project has a repository, or no longer has one, the diff comes from elsewhere
             return Arrays.asList(selectedChange.id, selectedRevisions.get(selectedChange),
-                baseRevision.map(revision -> revision.getFirst()).orElse(null));
+                baseRevision.map(revision -> revision.getFirst()).orElse(null),
+                String.valueOf(gerritGitUtil.getRepositoryForChange(project, selectedChange).isPresent()));
         }
 
         private void clearSelectedChange() {
@@ -322,32 +365,30 @@ public class RepositoryChangesBrowserProvider {
             if (selectedChange == null) { // "Diff against: Base" can still be picked once the change is gone
                 return;
             }
-            // without a repository there is nothing built, so a reload after the mappings changed tries again; a
-            // failing fetch or git call is not retried, as it would report its error again after every action
-            builtDiff = null;
+            // a failing fetch or git call is not retried, as it would report its error again after every action; a
+            // failing request to Gerrit only shows in the list, and is retried on a reload
             getViewer().setEmptyText(GerritBundle.message("details.loading"));
             baseParent = null;
             listedChange = null;
             listedRevision = null;
             setChangesToDisplay(Collections.<Change>emptyList());
-            Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, selectedChange);
-            if (!gitRepositoryOptional.isPresent()) {
-                getViewer().setEmptyText(GerritBundle.message("browser.noRepository"));
-                return;
-            }
-            final GitRepository gitRepository = gitRepositoryOptional.get();
 
             final ChangeInfo change = selectedChange;
-            Map<String, RevisionInfo> revisions = change.revisions;
             final String revisionId = selectedRevisions.get(change);
-            RevisionInfo currentRevision = revisions.get(revisionId);
-            RevisionFetcher revisionFetcher = new RevisionFetcher(project, gitRepository)
-                .addRevision(revisionId, currentRevision);
             // the diff is built in the background, while the user may pick another revision, base or change
             final Optional<Pair<String, RevisionInfo>> base = baseRevision;
             final int update = ++changesUpdate;
             builtDiff = diffToDisplay();
             builtUpdate = update;
+            Optional<GitRepository> gitRepositoryOptional = gerritGitUtil.getRepositoryForChange(project, change);
+            if (!gitRepositoryOptional.isPresent()) {
+                showRemoteChanges(change, revisionId, base, update);
+                return;
+            }
+            final GitRepository gitRepository = gitRepositoryOptional.get();
+
+            RevisionFetcher revisionFetcher = new RevisionFetcher(project, gitRepository)
+                .addRevision(revisionId, change.revisions.get(revisionId));
             if (base.isPresent()) {
                 revisionFetcher.addRevision(base.get().first, base.get().getSecond());
             }
@@ -398,22 +439,55 @@ public class RepositoryChangesBrowserProvider {
                         return null;
                     }
 
-                    ApplicationManager.getApplication().invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (update != changesUpdate) {
-                                return;
-                            }
-                            getViewer().setEmptyText(GerritBundle.message("browser.noChanges"));
-                            baseParent = parent;
-                            listedChange = change;
-                            listedRevision = revisionId;
-                            setChangesToDisplay(new ArrayList<>(totalDiff));
-                        }
-                    });
+                    ApplicationManager.getApplication().invokeLater(
+                        () -> showChanges(change, revisionId, totalDiff, parent, false, update));
                     return null;
                 }
             });
+        }
+
+        /**
+         * As Gerrit lists the files, for a project without a local repository; a file is read from Gerrit once a
+         * diff shows it.
+         */
+        private void showRemoteChanges(ChangeInfo change, String revisionId, Optional<Pair<String, RevisionInfo>> base,
+                                       int update) {
+            String baseRevisionId = base.map(revision -> revision.getFirst()).orElse(null);
+            new Task.Backgroundable(project, GerritBundle.message("progress.access"), true) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    RemoteChanges remoteChanges;
+                    try {
+                        remoteChanges = RemoteChanges.load(project, change._number, revisionId, baseRevisionId);
+                    } catch (ProcessCanceledException e) {
+                        throw e;
+                    } catch (RestApiException | RuntimeException e) { // also an answer which is not what was asked
+                        LOG.warn("Failed to get the files of change " + change._number + " from Gerrit", e);
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            if (update == changesUpdate) {
+                                builtDiff = null;
+                                getViewer().setEmptyText(GerritBundle.message("browser.filesLoadFailed"));
+                            }
+                        });
+                        return;
+                    }
+                    ApplicationManager.getApplication().invokeLater(() -> showChanges(
+                        change, revisionId, remoteChanges.changes, remoteChanges.parent, true, update));
+                }
+            }.queue();
+        }
+
+        private void showChanges(ChangeInfo change, String revisionId, Collection<Change> changes,
+                                 @Nullable Integer parent, boolean fromGerrit, int update) {
+            if (update != changesUpdate) {
+                return;
+            }
+            listedFromGerrit = fromGerrit;
+            getViewer().setEmptyText(GerritBundle.message("browser.noChanges"));
+            baseParent = parent;
+            listedChange = change;
+            listedRevision = revisionId;
+            setChangesToDisplay(new ArrayList<>(changes));
         }
 
         private GitCommit getCommit(VirtualFile gitRepositoryRoot, String revisionId) throws VcsException {

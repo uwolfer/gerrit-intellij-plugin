@@ -48,18 +48,23 @@ public class ChangesWithCommitMessageProvider implements CommitDiffBuilder.Chang
 
     public static Change commitMessageChange(GitCommit gitCommit) {
         String content = new CommitMessageFormatter(gitCommit).getLongCommitMessage();
-        FilePath commitMsg = new RemoteFilePath("/COMMIT_MSG", false) {
+        return new Change(null, new SimpleContentRevision(
+            content,
+            gerritFilePath("/COMMIT_MSG"),
+            gitCommit.getId().asString()
+        ));
+    }
+
+    /**
+     * @param path one of Gerrit's own files, such as /COMMIT_MSG, which have no extension to tell their type by
+     */
+    static FilePath gerritFilePath(String path) {
+        return new RemoteFilePath(path, false) {
             @NotNull
             @Override
             public FileType getFileType() {
                 return PlainTextFileType.INSTANCE;
             }
         };
-
-        return new Change(null, new SimpleContentRevision(
-            content,
-            commitMsg,
-            gitCommit.getId().asString()
-        ));
     }
 }

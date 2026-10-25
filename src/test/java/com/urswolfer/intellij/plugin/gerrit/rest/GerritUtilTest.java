@@ -19,11 +19,11 @@ package com.urswolfer.intellij.plugin.gerrit.rest;
 import com.google.gerrit.extensions.api.changes.Changes;
 import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.DiffInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
+import com.google.gerrit.extensions.common.FileInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.common.RevisionInfo;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import org.testng.Assert;
@@ -38,6 +38,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,26 +47,51 @@ import java.util.Set;
 public class GerritUtilTest {
 
     @Test
+    public void testRevisionTextOfDiffLeavesOutBaseSide() {
+        // the diff of /COMMIT_MSG against a base patch set, its last line empty as it ends with a line break
+        DiffInfo diff = new DiffInfo();
+        diff.content = Arrays.asList(
+            entry(Arrays.asList("Parent:     ebc9925c (Initial library)"), null, null),
+            entry(null, Arrays.asList("AuthorDate: 2026-10-23 20:40:11 +0000"),
+                Arrays.asList("AuthorDate: 2026-10-23 20:41:00 +0000")),
+            entry(Arrays.asList("", "Subject", ""), null, null));
+        Assert.assertEquals(GerritUtil.revisionText(diff),
+            "Parent:     ebc9925c (Initial library)\nAuthorDate: 2026-10-23 20:41:00 +0000\n\nSubject\n");
+    }
+
+    private static DiffInfo.ContentEntry entry(List<String> ab, List<String> a, List<String> b) {
+        DiffInfo.ContentEntry entry = new DiffInfo.ContentEntry();
+        entry.ab = ab;
+        entry.a = a;
+        entry.b = b;
+        return entry;
+    }
+
+    @Test
     public void testFilePathsIncludeOldPathOfRenameOnly() {
-        // as Gerrit 3.14 answers, but for the copy, which Gerrit lists the same way
-        JsonObject files = JsonParser.parseString("{"
-            + "\"/COMMIT_MSG\":{\"lines_inserted\":1,\"lines_deleted\":1,\"size_delta\":0,\"size\":269},"
-            + "\"c2.txt\":{\"status\":\"R\",\"old_path\":\"c.txt\",\"size_delta\":0,\"size\":51},"
-            + "\"dir/b.txt\":{\"status\":\"D\",\"lines_deleted\":1,\"size_delta\":-3,\"size\":0},"
-            + "\"copy.txt\":{\"status\":\"C\",\"old_path\":\"source.txt\",\"size_delta\":5,\"size\":5}"
-            + "}").getAsJsonObject();
+        Map<String, FileInfo> files = new LinkedHashMap<>();
+        files.put("/COMMIT_MSG", file(null, null));
+        files.put("c2.txt", file('R', "c.txt"));
+        files.put("dir/b.txt", file('D', null));
+        files.put("copy.txt", file('C', "source.txt"));
         Assert.assertEquals(GerritUtil.filePaths(files),
             new HashSet<>(Arrays.asList("/COMMIT_MSG", "c2.txt", "c.txt", "dir/b.txt", "copy.txt")));
     }
 
     @Test
     public void testFilePathsSkipUnexpectedEntries() {
-        JsonObject files = JsonParser.parseString("{"
-            + "\"a.txt\":null,"
-            + "\"b.txt\":{\"status\":null,\"old_path\":\"x.txt\"},"
-            + "\"c.txt\":{\"status\":\"R\",\"old_path\":{}}"
-            + "}").getAsJsonObject();
+        Map<String, FileInfo> files = new LinkedHashMap<>();
+        files.put("a.txt", null);
+        files.put("b.txt", file(null, "x.txt"));
+        files.put("c.txt", file('R', null));
         Assert.assertEquals(GerritUtil.filePaths(files), new HashSet<>(Arrays.asList("a.txt", "b.txt", "c.txt")));
+    }
+
+    private static FileInfo file(Character status, String oldPath) {
+        FileInfo file = new FileInfo();
+        file.status = status;
+        file.oldPath = oldPath;
+        return file;
     }
 
     @Test

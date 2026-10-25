@@ -21,6 +21,7 @@ package com.urswolfer.intellij.plugin.gerrit.util;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.FileUtil;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import git4idea.repo.GitRepository;
@@ -48,14 +49,6 @@ public final class PathUtils {
     }
 
     /**
-     * @return a relative path for all files under the project root, or the absolute path for other files
-     */
-    public static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo change) {
-        return getRelativeOrAbsolutePath(
-            GerritGitUtil.getInstance().getRepositoryForChange(project, change), absoluteFilePath);
-    }
-
-    /**
      * @param gitRepository the repository of the change, as resolved by {@link GerritGitUtil#getRepositoryForChange}
      * @return a relative path for all files under the project root, or the absolute path for other files
      */
@@ -65,6 +58,26 @@ public final class PathUtils {
             return absoluteFilePath;
         }
         return relativePath;
+    }
+
+    /**
+     * @return the path of the file in the Gerrit project, with forward slashes
+     */
+    public static String getGerritPath(Project project, FilePath file, ChangeInfo change) {
+        return getGerritPath(GerritGitUtil.getInstance().getRepositoryForChange(project, change), file);
+    }
+
+    /**
+     * @param gitRepository the repository of the change, as resolved by {@link GerritGitUtil#getRepositoryForChange}
+     * @return the path of the file in the Gerrit project, with forward slashes
+     */
+    public static String getGerritPath(Optional<GitRepository> gitRepository, FilePath file) {
+        // a file listed from Gerrit, as of a project without a local repository, has no local path but Gerrit's;
+        // also once the project got a repository, while what was listed before is still shown
+        if (file.isNonLocal()) {
+            return ensureSlashSeparators(file.getPath());
+        }
+        return ensureSlashSeparators(getRelativeOrAbsolutePath(gitRepository, file.getPath()));
     }
 
     /**

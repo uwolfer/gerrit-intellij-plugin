@@ -122,12 +122,12 @@ public class GerritCommentsDiffExtension extends DiffExtension {
         }
 
         FilePath filePath = ChangesUtil.getFilePath(change);
-        String relativeFilePath = getRelativeOrAbsolutePath(project, filePath.getPath(), changeInfo);
+        String relativeFilePath = PathUtils.getGerritPath(project, filePath, changeInfo);
         // a file renamed since the base patch set has its old name there, and so have its comments; the parent side
         // of a patch set is not like that, Gerrit files its comments under the name in the patch set
         FilePath beforePath = ChangesUtil.getBeforePath(change);
         String baseFilePath = baseRevision.isPresent() && beforePath != null
-            ? getRelativeOrAbsolutePath(project, beforePath.getPath(), changeInfo)
+            ? PathUtils.getGerritPath(project, beforePath, changeInfo)
             : relativeFilePath;
         CommentSide revisionSide = CommentSide.onRevision(relativeFilePath, selectedRevisionId);
         CommentSide baseSide = baseRevision.isPresent()
@@ -293,9 +293,5 @@ public class GerritCommentsDiffExtension extends DiffExtension {
 
     private static List<CommentInfo> filter(List<CommentInfo> comments, CommentSide side) {
         return comments.stream().filter(side::shows).collect(Collectors.toList());
-    }
-
-    private static String getRelativeOrAbsolutePath(Project project, String absoluteFilePath, ChangeInfo changeInfo) {
-        return PathUtils.ensureSlashSeparators(PathUtils.getRelativeOrAbsolutePath(project, absoluteFilePath, changeInfo));
     }
 }

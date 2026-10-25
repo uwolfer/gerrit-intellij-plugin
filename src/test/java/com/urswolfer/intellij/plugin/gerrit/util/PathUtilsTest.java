@@ -16,8 +16,11 @@
 
 package com.urswolfer.intellij.plugin.gerrit.util;
 
+import com.intellij.openapi.vcs.RemoteFilePath;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import java.util.Optional;
 
 public class PathUtilsTest {
 
@@ -37,5 +40,13 @@ public class PathUtilsTest {
         Assert.assertTrue(PathUtils.leavesRepositoryRoot(".."));
         // conservative: a ".." segment anywhere makes the plugin fall back to the absolute path
         Assert.assertTrue(PathUtils.leavesRepositoryRoot("src/../main/Foo.java"));
+    }
+
+    @Test
+    public void testGerritPathOfFileListedFromGerrit() {
+        Assert.assertEquals(PathUtils.getGerritPath(Optional.empty(), new RemoteFilePath("src/Foo.java", false)),
+            "src/Foo.java");
+        Assert.assertEquals(PathUtils.getGerritPath(Optional.empty(), new RemoteFilePath("/COMMIT_MSG", false)),
+            "/COMMIT_MSG");
     }
 }

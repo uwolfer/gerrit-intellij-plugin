@@ -37,6 +37,8 @@ import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.AccountInfo;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ChangeInput;
+import com.google.gerrit.extensions.common.CommitInfo;
+import com.google.gerrit.extensions.common.DiffInfo;
 import com.google.gerrit.extensions.common.MergePatchSetInput;
 import com.google.gerrit.extensions.common.CommentInfo;
 import com.google.gerrit.extensions.common.FetchInfo;
@@ -45,9 +47,8 @@ import com.google.gerrit.extensions.common.RevisionInfo;
 import com.google.gerrit.extensions.restapi.BinaryResult;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.Url;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.reflect.TypeToken;
 import com.intellij.notification.NotificationAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
@@ -62,7 +63,9 @@ import com.intellij.util.Consumer;
 import com.intellij.util.ExceptionUtil;
 import com.urswolfer.gerrit.client.rest.GerritAuthData;
 import com.urswolfer.gerrit.client.rest.GerritRestApi;
+import com.urswolfer.gerrit.client.rest.RestClient;
 import com.urswolfer.gerrit.client.rest.http.HttpStatusException;
+import com.urswolfer.gerrit.client.rest.http.util.BinaryResultUtils;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
@@ -83,6 +86,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -117,6 +121,8 @@ public final class GerritUtil {
      * often rejects one longer than 8 KB already; the query options make up the rest of the URL.
      */
     private static final int MAX_QUERY_LENGTH = 4000;
+
+    private static final Type FILES_TYPE = new TypeToken<Map<String, FileInfo>>() {}.getType();
 
     // The client puts Gerrit's answer on a line of its own after "Content:", hence DOTALL.
     private static final Pattern UNSUPPORTED_OPTION = Pattern.compile(
@@ -703,7 +709,26 @@ public final class GerritUtil {
      */
     public byte[] getFileContent(int changeNr, String revision, String path, Project project)
             throws RestApiException, IOException {
-        BinaryResult content = gerritApi(project).changes().id(changeNr).revision(revision).file(path).content();
+        return getFileContent(changeNr, revision, path, null, project);
+    }
+
+    /**
+     * Runs in the calling thread.
+     *
+     * @param parent the 1-based number of the parent commit to read the file from, or null for the patch set
+     */
+    public byte[] getFileContent(int changeNr, String revision, String path, @Nullable Integer parent, Project project)
+            throws RestApiException, IOException {
+        BinaryResult content;
+        if (parent == null) {
+            content = gerritApi(project).changes().id(changeNr).revision(revision).file(path).content();
+        } else {
+            // FileApi.content() cannot ask for a parent
+            String url = String.format("/changes/%s/revisions/%s/files/%s/content?parent=%s",
+                changeNr, Url.encode(revision), Url.encode(path), parent);
+            content = BinaryResultUtils.createBinaryResult(
+                gerritApi(project).restClient().request(url, null, RestClient.HttpVerb.GET));
+        }
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try {
             content.writeTo(bytes);
@@ -715,6 +740,58 @@ public final class GerritUtil {
     }
 
     /**
+     * The text of a file of a patch set as Gerrit's diff shows it, which for Gerrit's own files, such as /COMMIT_MSG,
+     * differs from their content: comments on the commit message count their lines after a header Gerrit adds. Runs
+     * in the calling thread.
+     */
+    public String getDiffText(int changeNr, String revision, String path, Project project) throws RestApiException {
+        return revisionText(gerritApi(project).changes().id(changeNr).revision(revision).file(path).diff());
+    }
+
+    @VisibleForTesting
+    static String revisionText(DiffInfo diff) {
+        List<String> lines = new ArrayList<>();
+        if (diff.content != null) {
+            for (DiffInfo.ContentEntry entry : diff.content) {
+                if (entry.ab != null) lines.addAll(entry.ab);
+                if (entry.b != null) lines.addAll(entry.b);
+            }
+        }
+        return String.join("\n", lines);
+    }
+
+    /**
+     * The files of a patch set as Gerrit lists them against another patch set of the change. Runs in the calling
+     * thread.
+     */
+    public Map<String, FileInfo> getFiles(int changeNr, String revision, String baseRevision, Project project)
+            throws RestApiException {
+        // RevisionApi.files(base) is not implemented by the REST client
+        String url = String.format("/changes/%s/revisions/%s/files?base=%s",
+            changeNr, Url.encode(revision), Url.encode(baseRevision));
+        RestClient restClient = gerritApi(project).restClient();
+        Map<String, FileInfo> files = restClient.getGson().fromJson(restClient.getRequest(url), FILES_TYPE);
+        return files != null ? files : Collections.emptyMap();
+    }
+
+    /**
+     * The files of a patch set as Gerrit lists them against one of its parents. Runs in the calling thread.
+     *
+     * @param parent the 1-based number of the parent
+     */
+    public Map<String, FileInfo> getFiles(int changeNr, String revision, int parent, Project project)
+            throws RestApiException {
+        return gerritApi(project).changes().id(changeNr).revision(revision).files(parent);
+    }
+
+    /**
+     * Runs in the calling thread.
+     */
+    public CommitInfo getCommit(int changeNr, String revision, Project project) throws RestApiException {
+        return gerritApi(project).changes().id(changeNr).revision(revision).commit(false);
+    }
+
+    /**
      * The files Gerrit lists between two revisions of a change, a renamed one under its old path too. Runs in the
      * calling thread.
      *
@@ -722,15 +799,8 @@ public final class GerritUtil {
      */
     @Nullable
     public Set<String> getFilePaths(int changeNr, String revision, String baseRevision, Project project) {
-        // RevisionApi.files(base) is not implemented by the REST client
-        String url = String.format("/changes/%s/revisions/%s/files?base=%s",
-            changeNr, Url.encode(revision), Url.encode(baseRevision));
         try {
-            JsonElement files = gerritApi(project).restClient().getRequest(url);
-            if (files != null && files.isJsonObject()) {
-                return filePaths(files.getAsJsonObject());
-            }
-            LOG.warn("Unexpected answer for the files between revisions " + baseRevision + " and " + revision);
+            return filePaths(getFiles(changeNr, revision, baseRevision, project));
         } catch (RestApiException | JsonParseException e) {
             LOG.warn("Failed to get the files between revisions " + baseRevision + " and " + revision, e);
         }
@@ -738,24 +808,17 @@ public final class GerritUtil {
     }
 
     @VisibleForTesting
-    static Set<String> filePaths(JsonObject files) {
+    static Set<String> filePaths(Map<String, FileInfo> files) {
         Set<String> paths = new HashSet<>();
-        for (Map.Entry<String, JsonElement> file : files.entrySet()) {
+        for (Map.Entry<String, FileInfo> file : files.entrySet()) {
             paths.add(file.getKey());
-            if (file.getValue().isJsonObject()) {
-                JsonObject info = file.getValue().getAsJsonObject();
-                // the source of a copy stays in place, and is listed on its own when it differs
-                if (isString(info.get("status"), "R") && isString(info.get("old_path"), null)) {
-                    paths.add(info.get("old_path").getAsString());
-                }
+            FileInfo info = file.getValue();
+            // the source of a copy stays in place, and is listed on its own when it differs
+            if (info != null && Character.valueOf('R').equals(info.status) && info.oldPath != null) {
+                paths.add(info.oldPath);
             }
         }
         return paths;
-    }
-
-    private static boolean isString(@Nullable JsonElement element, @Nullable String value) {
-        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()
-            && (value == null || value.equals(element.getAsString()));
     }
 
     public void saveDraftComment(final int changeNr,

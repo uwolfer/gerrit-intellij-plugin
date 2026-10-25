@@ -24,6 +24,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.vcs.FilePath;
 import com.intellij.openapi.vcs.changes.Change;
 import com.intellij.openapi.vcs.changes.ContentRevision;
 import com.intellij.ui.JBColor;
@@ -120,9 +121,9 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
      */
     @Override
     public void decorate(Project project, Change change, SimpleColoredComponent component, ChangeInfo selectedChange) {
-        String affectedFilePath = getAffectedFilePath(change);
-        if (affectedFilePath != null) {
-            String fileName = getFileName(project, affectedFilePath);
+        FilePath affectedFile = getAffectedFile(change);
+        if (affectedFile != null) {
+            String fileName = getFileName(project, affectedFile);
             boolean reviewed = reviewedFiles.isReviewed(fileName);
             if (reviewed) {
                 component.append(" " + REVIEWED_TICK, REVIEWED_TICK_ATTRIBUTES);
@@ -205,20 +206,16 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return generation != loadGeneration || project.isDisposed() || disposed;
     }
 
-    private String getAffectedFilePath(Change change) {
+    private FilePath getAffectedFile(Change change) {
         ContentRevision afterRevision = change.getAfterRevision();
         if (afterRevision != null) {
-            return afterRevision.getFile().getPath();
+            return afterRevision.getFile();
         }
         ContentRevision beforeRevision = change.getBeforeRevision();
         if (beforeRevision != null) {
-            return beforeRevision.getFile().getPath();
+            return beforeRevision.getFile();
         }
         return null;
-    }
-
-    private String getFileName(Project project, String affectedFilePath) {
-        return PathUtils.ensureSlashSeparators(getRelativeOrAbsolutePath(project, affectedFilePath));
     }
 
     private String getNodeSuffix(String fileName) {
@@ -237,11 +234,11 @@ public class GerritCommentCountChangeNodeDecorator implements GerritChangeNodeDe
         return String.join(", ", parts);
     }
 
-    private String getRelativeOrAbsolutePath(Project project, String absoluteFilePath) {
+    private String getFileName(Project project, FilePath file) {
         if (selectedRepository == null) {
             selectedRepository = GerritGitUtil.getInstance().getRepositoryForChange(project, selectedChange);
         }
-        return PathUtils.getRelativeOrAbsolutePath(selectedRepository, absoluteFilePath);
+        return PathUtils.getGerritPath(selectedRepository, file);
     }
 
     private Map<String, List<CommentInfo>> loadComments(ChangeInfo change, String revisionId) {

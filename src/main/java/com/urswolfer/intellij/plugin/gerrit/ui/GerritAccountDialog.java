@@ -216,27 +216,17 @@ public class GerritAccountDialog extends DialogWrapper {
         SettingsPanel.styleHints(cloneBaseUrlHint, gitilesUrlHint);
 
         JPanel panel = FormBuilder.createFormBuilder()
-            .addLabeledComponent(label(GerritBundle.message("account.label.url"), 'W', hostTextField), hostTextField)
-            .addLabeledComponent(label(GerritBundle.message("account.label.login"), 'L', loginTextField), loginTextField)
-            .addLabeledComponent(label(GerritBundle.message("account.label.password"), 'P', passwordField), passwordField)
+            .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.url"), hostTextField), hostTextField)
+            .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.login"), loginTextField), loginTextField)
+            .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.password"), passwordField), passwordField)
             .addComponentToRightColumn(testButton)
-            .addLabeledComponent(label(GerritBundle.message("account.label.cloneBaseUrl"), 'U', cloneBaseUrlTextField), cloneBaseUrlTextField)
+            .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.cloneBaseUrl"), cloneBaseUrlTextField), cloneBaseUrlTextField)
             .addComponentToRightColumn(cloneBaseUrlHint)
-            .addLabeledComponent(label(GerritBundle.message("account.label.gitilesUrl"), 'G', gitilesUrlTextField), gitilesUrlTextField)
+            .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.gitilesUrl"), gitilesUrlTextField), gitilesUrlTextField)
             .addComponentToRightColumn(gitilesUrlHint)
             .addComponentFillVertically(info, 0)
             .getPanel();
         return panel;
-    }
-
-    /**
-     * Bound to its field, so that the mnemonic moves there and the field is announced under the label's name.
-     */
-    private static JBLabel label(String text, char mnemonic, JComponent field) {
-        JBLabel label = new JBLabel(text);
-        label.setDisplayedMnemonic(mnemonic);
-        label.setLabelFor(field);
-        return label;
     }
 
     @Override

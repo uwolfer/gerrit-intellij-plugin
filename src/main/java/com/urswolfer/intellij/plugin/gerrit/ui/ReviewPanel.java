@@ -56,10 +56,11 @@ public class ReviewPanel extends JPanel {
         southPanel.setLayout(southLayout);
         add(southPanel, BorderLayout.SOUTH);
 
-        notifyCheckBox = new JCheckBox(GerritBundle.message("review.notify"), true);
+        notifyCheckBox = Mnemonics.button(new JCheckBox(), GerritBundle.message("review.notify"));
+        notifyCheckBox.setSelected(true);
         southPanel.add(notifyCheckBox);
 
-        submitCheckBox = new JCheckBox(GerritBundle.message("review.submit"));
+        submitCheckBox = Mnemonics.button(new JCheckBox(), GerritBundle.message("review.submit"));
         southPanel.add(submitCheckBox);
 
         setBorder(BorderFactory.createEmptyBorder());

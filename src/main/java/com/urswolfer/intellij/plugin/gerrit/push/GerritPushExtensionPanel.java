@@ -31,6 +31,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.textCompletion.TextCompletionProvider;
 import com.intellij.util.textCompletion.TextFieldWithCompletion;
+import com.intellij.util.ui.DialogUtil;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import git4idea.GitUtil;
@@ -239,7 +240,7 @@ public class GerritPushExtensionPanel extends JPanel {
         mainPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        pushToGerritCheckBox = new JCheckBox(PushMessages.message("push.enabled"));
+        pushToGerritCheckBox = checkBox(PushMessages.message("push.enabled"));
         mainPanel.add(pushToGerritCheckBox);
 
         noNewChangesLabel = new JLabel(AllIcons.General.Warning);
@@ -248,31 +249,31 @@ public class GerritPushExtensionPanel extends JPanel {
 
         indentedSettingPanel = new JPanel(new GridLayoutManager(14, 2));
 
-        privateCheckBox = new JCheckBox(PushMessages.message("push.private"));
+        privateCheckBox = checkBox(PushMessages.message("push.private"));
         privateCheckBox.setToolTipText(PushMessages.message("push.private.tooltip"));
         indentedSettingPanel.add(privateCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        unmarkPrivateCheckBox = new JCheckBox(PushMessages.message("push.unmarkPrivate"));
+        unmarkPrivateCheckBox = checkBox(PushMessages.message("push.unmarkPrivate"));
         unmarkPrivateCheckBox.setToolTipText(PushMessages.message("push.unmarkPrivate.tooltip"));
         indentedSettingPanel.add(unmarkPrivateCheckBox, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        wipCheckBox = new JCheckBox(PushMessages.message("push.wip"));
+        wipCheckBox = checkBox(PushMessages.message("push.wip"));
         wipCheckBox.setToolTipText(PushMessages.message("push.wip.tooltip"));
         indentedSettingPanel.add(wipCheckBox, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        readyCheckBox = new JCheckBox(PushMessages.message("push.ready"));
+        readyCheckBox = checkBox(PushMessages.message("push.ready"));
         readyCheckBox.setToolTipText(PushMessages.message("push.ready.tooltip"));
         indentedSettingPanel.add(readyCheckBox, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        publishDraftCommentsCheckBox = new JCheckBox(PushMessages.message("push.publishComments"));
+        publishDraftCommentsCheckBox = checkBox(PushMessages.message("push.publishComments"));
         publishDraftCommentsCheckBox.setToolTipText(PushMessages.message("push.publishComments.tooltip"));
         indentedSettingPanel.add(publishDraftCommentsCheckBox, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        draftChangeCheckBox = new JCheckBox(PushMessages.message("push.draft"));
+        draftChangeCheckBox = checkBox(PushMessages.message("push.draft"));
         draftChangeCheckBox.setToolTipText(PushMessages.message("push.draft.tooltip"));
         indentedSettingPanel.add(draftChangeCheckBox, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
-        submitChangeCheckBox = new JCheckBox(PushMessages.message("push.submit"));
+        submitChangeCheckBox = checkBox(PushMessages.message("push.submit"));
         submitChangeCheckBox.setToolTipText(PushMessages.message("push.submit.tooltip"));
         indentedSettingPanel.add(submitChangeCheckBox, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null));
 
@@ -333,13 +334,31 @@ public class GerritPushExtensionPanel extends JPanel {
         add(Box.createHorizontalGlue());
     }
 
+    // a copy of what ui.Mnemonics does, which the class loader of the Git plugin cannot load
+    private static JCheckBox checkBox(String text) {
+        JCheckBox checkBox = new JCheckBox();
+        checkBox.setText(mnemonicText(text));
+        DialogUtil.registerMnemonic(checkBox, '&');
+        return checkBox;
+    }
+
+    // TODO once the minimum IDE keeps the ampersand in bundle texts (2020.3 has not, 2026.2 has): drop this, and
+    //  normalize in Mnemonics with it. 2020.3 hands out the text with the marker turned into the platform's character.
+    private static String mnemonicText(String text) {
+        return text.replace(UIUtil.MNEMONIC, '&');
+    }
+
     private JTextField addTextField(String label, String toolTipText, int row) {
         return addField(label, toolTipText, row, new JTextField());
     }
 
     private <T extends JComponent> T addField(String label, String toolTipText, int row, T field) {
+        JLabel labelComponent = new JLabel(mnemonicText(label));
+        DialogUtil.registerMnemonic(labelComponent, field, '&');
+        // registerMnemonic leaves the label unbound on 2026.2, and Alt+letter then does not reach the field
+        labelComponent.setLabelFor(field);
         indentedSettingPanel.add(
-                new JLabel(label),
+                labelComponent,
                 new GridConstraints(row, 0, 1, 1,
                         GridConstraints.ANCHOR_WEST,
                         GridConstraints.FILL_NONE,

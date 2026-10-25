@@ -28,6 +28,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.push.PushAccountCompletionProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -509,7 +510,7 @@ public class CreateFeatureMergeChangeAction extends AnAction implements DumbAwar
         labelConstraints.gridy = row;
         labelConstraints.anchor = GridBagConstraints.WEST;
         labelConstraints.insets = new Insets(3, 0, 3, 8);
-        panel.add(new JLabel(label), labelConstraints);
+        panel.add(Mnemonics.label(new JLabel(), label, field), labelConstraints);
         GridBagConstraints fieldConstraints = new GridBagConstraints();
         fieldConstraints.gridx = 1;
         fieldConstraints.gridy = row;

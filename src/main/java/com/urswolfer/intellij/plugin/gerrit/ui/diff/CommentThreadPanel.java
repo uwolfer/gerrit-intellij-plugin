@@ -36,6 +36,7 @@ import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.ui.avatar.AvatarIcons;
 import com.urswolfer.intellij.plugin.gerrit.util.TextToHtml;
 import org.jetbrains.annotations.NotNull;
@@ -344,7 +345,8 @@ final class CommentThreadPanel extends JPanel implements DataProvider {
     private JComponent footer() {
         Comment last = thread.last();
         boolean unresolved = thread.isUnresolved();
-        JBLabel state = new JBLabel(GerritBundle.message(unresolved ? "diff.unresolved" : "diff.resolved"));
+        // "diff.resolved" is the text of the comment form's check box as well, which carries a mnemonic
+        JBLabel state = new JBLabel(Mnemonics.plain(GerritBundle.message(unresolved ? "diff.unresolved" : "diff.resolved")));
         state.setForeground(UIUtil.getContextHelpForeground());
         if (thread.hasDraft() || !actions.canComment()) {
             return links(0, state);

@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -110,6 +111,7 @@ public class GerritPushExtensionPanel extends JPanel {
      * Gerrit plugin, as types of the platform and the JDK which both class loaders share.
      */
     private static volatile Function<Project, TextCompletionProvider> accountCompletion;
+    private static volatile BiFunction<Project, String, String> gerritRemote;
 
     /** A new default has to win over the boxes clicked so far, as it did when only a restart changed it. */
     static void forgetClickedBoxes() {
@@ -130,6 +132,10 @@ public class GerritPushExtensionPanel extends JPanel {
     }
 
     @SuppressWarnings("unused") // called by reflection, on the copy in the Git plugin class loader
+    public static void setGerritRemote(BiFunction<Project, String, String> gerritRemote) {
+        GerritPushExtensionPanel.gerritRemote = gerritRemote;
+    }
+
     public static void setAccountCompletion(Function<Project, TextCompletionProvider> accountCompletion) {
         GerritPushExtensionPanel.accountCompletion = accountCompletion;
     }
@@ -600,7 +606,9 @@ public class GerritPushExtensionPanel extends JPanel {
         String error = validateSettings();
         for (Map.Entry<GerritPushTargetUpdater, String> entry : pushTargets.entrySet()) {
             String branch;
+            String remote = entry.getKey().getInitialRemoteName();
             if (pushToGerritCheckBox.isSelected()) {
+                remote = getGerritRemote(entry.getKey(), remote);
                 String ref = getRef(entry.getValue(), true);
                 String refError = validateRef(ref);
                 if (refError != null) {
@@ -616,13 +624,20 @@ public class GerritPushExtensionPanel extends JPanel {
                 branch = init ? null : entry.getKey().getInitialBranch();
             }
             if (init) {
-                entry.getKey().initBranch(branch);
+                entry.getKey().initBranch(branch, remote);
             } else {
-                entry.getKey().updateBranch(branch);
+                entry.getKey().updateBranch(branch, remote);
             }
         }
         validationLabel.setText(error == null ? "" : error);
         updateNoNewChangesHint();
+    }
+
+    private String getGerritRemote(GerritPushTargetUpdater target, String fallback) {
+        BiFunction<Project, String, String> lookup = gerritRemote;
+        Project project = getProject();
+        String remote = lookup == null || project == null ? null : lookup.apply(project, target.getRepositoryName());
+        return remote == null ? fallback : remote;
     }
 
     /**

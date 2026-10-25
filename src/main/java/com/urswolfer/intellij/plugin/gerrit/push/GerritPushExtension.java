@@ -16,6 +16,7 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
+import com.intellij.dvcs.DvcsUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
@@ -23,7 +24,10 @@ import com.intellij.util.textCompletion.TextCompletionProvider;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
+import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
+import git4idea.GitUtil;
 import git4idea.push.GitPushOperation;
+import git4idea.repo.GitRepository;
 import javassist.*;
 
 import java.util.Arrays;
@@ -96,6 +100,7 @@ public final class GerritPushExtension {
 
             handOverEnabledForProject(gitIdeaPluginClassLoader);
             handOverAccountCompletion(gitIdeaPluginClassLoader);
+            handOverGerritRemote(gitIdeaPluginClassLoader);
         } catch (Exception e) {
             LOG.error("Failed to inject Gerrit push UI.", e);
         } catch (Error e) {
@@ -213,6 +218,39 @@ public final class GerritPushExtension {
     static void handOverAccountCompletion(Class<?> panelClass, Function<Project, TextCompletionProvider> completion)
             throws ReflectiveOperationException {
         panelClass.getMethod("setAccountCompletion", Function.class).invoke(null, completion);
+    }
+
+    /**
+     * The remote which leads to the Gerrit of the project is looked up with {@link GerritRemotes}, which needs the
+     * account of the project, a service of this plugin: the copied panel gets it as a {@link BiFunction} from the
+     * project and the name of the repository to the name of the remote. A panel which does not get it leaves the
+     * remote the IDE proposes.
+     */
+    private static void handOverGerritRemote(ClassLoader gitIdeaPluginClassLoader) {
+        try {
+            handOverGerritRemote(
+                Class.forName(GerritPushExtensionPanel.class.getName(), true, gitIdeaPluginClassLoader),
+                GerritPushExtension::findGerritRemote);
+        } catch (ProcessCanceledException e) {
+            throw e;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            LOG.warn("Failed to hand the Gerrit remote to Gerrit push UI.", e);
+        }
+    }
+
+    static void handOverGerritRemote(Class<?> panelClass, BiFunction<Project, String, String> gerritRemote)
+            throws ReflectiveOperationException {
+        panelClass.getMethod("setGerritRemote", BiFunction.class).invoke(null, gerritRemote);
+    }
+
+    private static String findGerritRemote(Project project, String repositoryName) {
+        for (GitRepository repository : GitUtil.getRepositoryManager(project).getRepositories()) {
+            if (DvcsUtil.getShortRepositoryName(repository).equals(repositoryName)) {
+                GerritRemotes.GerritProject gerritProject = GerritRemotes.getGerritProject(repository, null);
+                return gerritProject == null ? null : gerritProject.remote.getName();
+            }
+        }
+        return null;
     }
 
     /**

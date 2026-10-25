@@ -22,6 +22,7 @@ import com.intellij.dvcs.push.RepositoryNodeListener;
 import com.intellij.dvcs.push.ui.PushLog;
 import com.intellij.dvcs.push.ui.RepositoryNode;
 import com.intellij.dvcs.push.ui.RepositoryWithBranchPanel;
+import com.intellij.dvcs.push.ui.VcsLinkedTextComponent;
 import com.intellij.util.ui.UIUtil;
 import git4idea.push.GitPushTarget;
 import org.jetbrains.annotations.NotNull;
@@ -52,9 +53,11 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     private final RepositoryNode repositoryNode;
     private final RepositoryWithBranchPanel repositoryPanel;
     private final String initialBranch;
-    private final String remoteName;
+    private final String initialRemoteName;
+    private final VcsLinkedTextComponent remoteLink;
 
     private String branch;
+    private String remoteName;
 
     private GerritPushTargetUpdater(JTree tree,
                                     RepositoryNode repositoryNode,
@@ -65,7 +68,10 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
         this.repositoryNode = repositoryNode;
         this.repositoryPanel = repositoryPanel;
         this.initialBranch = initialBranch;
+        this.initialRemoteName = remoteName;
         this.remoteName = remoteName;
+        // the remote chooser of the Git plugin's target panel is a public component, but only the user picks a remote
+        this.remoteLink = UIUtil.findComponentOfType(repositoryPanel.getTargetPanel(), VcsLinkedTextComponent.class);
     }
 
     /**
@@ -129,6 +135,10 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
         return remoteName;
     }
 
+    public String getInitialRemoteName() {
+        return initialRemoteName;
+    }
+
     /**
      * The name the push dialog shows for the repository, see {@code DvcsUtil#getShortRepositoryName}.
      */
@@ -146,10 +156,10 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     /**
      * Starts following the checked state of this repository and writes the first ref into its row.
      */
-    public void initBranch(String branch) {
+    public void initBranch(String branch, String remote) {
         //noinspection unchecked
         repositoryPanel.addRepoNodeListener(this);
-        updateBranch(branch);
+        updateBranch(branch, remote);
     }
 
     /**
@@ -161,10 +171,17 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
      * row gets the ref once the user checks it, see {@link #onSelectionChanged(boolean)}.
      */
     public void updateBranch(String branch) {
+        updateBranch(branch, remoteName);
+    }
+
+    public void updateBranch(String branch, String remote) {
         if (branch == null) {
             return;
         }
         this.branch = branch;
+        if (remote != null && remoteLink != null) {
+            this.remoteName = remote;
+        }
         if (repositoryNode.isChecked()) {
             updateBranchTextField();
         }
@@ -173,6 +190,9 @@ public class GerritPushTargetUpdater implements RepositoryNodeListener<PushTarge
     private void updateBranchTextField() {
         if (branch == null) {
             return;
+        }
+        if (remoteLink != null && !remoteLink.getText().equals(remoteName)) {
+            remoteLink.updateLinkText(remoteName);
         }
         repositoryNode.forceUpdateUiModelWithTypedText(branch);
         repositoryNode.fireOnChange();

@@ -71,6 +71,8 @@ public class GerritSettingsTest {
         expected.put("ShowCommentsInEditor", "true");
         expected.put("ShowCommentsInline", "true");
         expected.put("HiddenColumns", "");
+        expected.put("SortColumn", "");
+        expected.put("SortDescending", "false");
         Assert.assertEquals(written, expected);
     }
 
@@ -87,6 +89,8 @@ public class GerritSettingsTest {
         expected.add("ShowCommentsInEditor");
         expected.add("ShowCommentsInline");
         expected.add("HiddenColumns");
+        expected.add("SortColumn");
+        expected.add("SortDescending");
         Assert.assertEquals(written.keySet(), expected);
         Assert.assertEquals(written.get("AutomaticRefresh"), "true");
         Assert.assertEquals(written.get("RefreshTimeout"), "15");
@@ -125,6 +129,21 @@ public class GerritSettingsTest {
         Assert.assertTrue(read.isColumnHidden("Label Code-Review"));
         Assert.assertFalse(read.isColumnHidden("Branch"));
         Assert.assertFalse(read.isColumnHidden(""));
+    }
+
+    @Test
+    public void testSortIsKeptAcrossTheFile() throws Exception {
+        GerritSettings.SettingsState state = new GerritSettings.SettingsState();
+        GerritSettings settings = new GerritSettings();
+        settings.loadState(state);
+        Assert.assertEquals(settings.getSortColumn(), "", "the order of Gerrit until a column is sorted");
+        settings.setSort("Label Priority", true);
+
+        GerritSettings read = new GerritSettings();
+        read.loadState(XmlSerializer.deserialize(serialize(state), GerritSettings.SettingsState.class));
+
+        Assert.assertEquals(read.getSortColumn(), "Label Priority");
+        Assert.assertTrue(read.isSortDescending());
     }
 
     /**

@@ -76,6 +76,9 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
         @Property(alwaysWrite = true) @Attribute("CloneBaseUrl") public String cloneBaseUrl = "";
         /** Separated by commas, which no column name and no Gerrit label name holds. */
         @Property(alwaysWrite = true) @Attribute("HiddenColumns") public String hiddenColumns = "";
+        /** The id of the column the list is sorted by; none for the order Gerrit lists the changes in. */
+        @Property(alwaysWrite = true) @Attribute("SortColumn") public String sortColumn = "";
+        @Property(alwaysWrite = true) @Attribute("SortDescending") public boolean sortDescending = false;
     }
 
     /**
@@ -216,6 +219,19 @@ public final class GerritSettings implements PersistentStateComponent<GerritSett
         Set<String> columns = new TreeSet<>(Arrays.asList(state.hiddenColumns.split(",")));
         columns.remove("");
         return columns;
+    }
+
+    public String getSortColumn() {
+        return state.sortColumn;
+    }
+
+    public boolean isSortDescending() {
+        return state.sortDescending;
+    }
+
+    public void setSort(String column, boolean descending) {
+        state.sortColumn = column;
+        state.sortDescending = descending;
     }
 
     public boolean getShowAvatars() {

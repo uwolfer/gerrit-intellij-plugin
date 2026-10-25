@@ -166,6 +166,7 @@ public class GerritToolWindow implements Disposable {
             scheduleReload(project);
         });
         settings.subscribe(GerritChangeColumns.CHANGED, changeListPanel::rebuildColumns);
+        settings.subscribe(GerritChangeColumns.SORTED, changeListPanel::applySort);
         MessageBusConnection projectBus = project.getMessageBus().connect(this);
         projectBus.subscribe(GerritChangesListener.TOPIC, new GerritChangesListener() {
             @Override

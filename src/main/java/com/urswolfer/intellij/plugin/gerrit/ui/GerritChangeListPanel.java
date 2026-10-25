@@ -38,6 +38,8 @@ import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.speedSearch.SpeedSearchSupply;
 import com.intellij.ui.table.TableView;
 import com.intellij.util.Consumer;
+import com.intellij.util.containers.ContainerUtil;
+import com.intellij.util.ui.ColumnInfo;
 import com.intellij.util.ui.ListTableModel;
 import com.intellij.util.ui.StatusText;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
@@ -52,6 +54,9 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.RowSorterEvent;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -97,7 +102,12 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private final TableView<ChangeInfo> table;
     private final List<Runnable> selectionClearedListeners = new ArrayList<>();
     private boolean replacingChanges;
-    private boolean rebuildingColumns;
+    /**
+     * The rows are rebuilt, sorted or added to, which moves the selection but leaves the same change selected. A flag
+     * rather than skipping the change reported last: a rebuild empties the selection in between, which the listeners
+     * that clear the details would take for the change being gone.
+     */
+    private boolean keepingSelection;
     private LoadChangesProxy loadChangesProxy = null;
     private String listedQuery;
     /** The load which listed the changes, which pages them while a later one has not answered or failed. */
@@ -105,7 +115,6 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private Runnable clearFilters;
     private Runnable retry;
 
-    private final JScrollPane scrollPane;
     private final GerritChangeColumns columns;
 
     public GerritChangeListPanel(Project project) {
@@ -113,7 +122,43 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         this.selectedRevisions = SelectedRevisions.getInstance(project);
         this.changes = new ArrayList<>();
 
-        this.table = new TableView<ChangeInfo>();
+        this.table = new TableView<ChangeInfo>() {
+            @Override
+            protected TableRowSorter<TableModel> createRowSorter(TableModel model) {
+                return new DefaultColumnInfoBasedRowSorter(model) {
+                    /*
+                     * Swing only switches between ascending and descending, which leaves no way back to Gerrit's order.
+                     * Only a click is remembered: a new model drops the sort of the old one, also when its column is
+                     * gone from the new one, which keeps the sort for when the column comes back.
+                     */
+                    @Override
+                    public void toggleSortOrder(int column) {
+                        if (!isSortable(column)) {
+                            return;
+                        }
+                        RowSorter.SortKey key = ContainerUtil.getFirstItem(getSortKeys());
+                        if (key != null && key.getColumn() == column && key.getSortOrder() == SortOrder.DESCENDING) {
+                            setSortKeys(null);
+                        } else {
+                            super.toggleSortOrder(column);
+                        }
+                        columns.setSortKey(ContainerUtil.getFirstItem(getSortKeys()));
+                    }
+                };
+            }
+
+            @Override
+            public void sorterChanged(RowSorterEvent e) {
+                // also called while rows are added or the model replaced, which restore the selection afterwards
+                boolean keeping = keepingSelection;
+                keepingSelection = true;
+                try {
+                    super.sorterChanged(e);
+                } finally {
+                    keepingSelection = keeping;
+                }
+            }
+        };
         this.columns = new GerritChangeColumns(project, table);
         table.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
@@ -122,11 +167,12 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
 
         installOpenChangeHandlers();
 
-        updateModel(changes);
+        // addChanges adds to the model, which has to list this.changes from the start
+        initModel();
         table.setStriped(true);
 
         setLayout(new BorderLayout());
-        scrollPane = ScrollPaneFactory.createScrollPane(table);
+        JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
         scrollPane.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener() {
             @Override
             public void adjustmentValueChanged(AdjustmentEvent e) {
@@ -354,8 +400,8 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
                 int i = lsm.getMaxSelectionIndex();
-                if (i >= 0 && !e.getValueIsAdjusting() && !rebuildingColumns) {
-                    listener.consume(changes.get(i));
+                if (i >= 0 && !e.getValueIsAdjusting() && !keepingSelection) {
+                    listener.consume(table.getRow(i));
                 }
             }
         });
@@ -371,7 +417,7 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             @Override
             public void valueChanged(final ListSelectionEvent e) {
                 ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting() && !replacingChanges && !rebuildingColumns) {
+                if (lsm.isSelectionEmpty() && !e.getValueIsAdjusting() && !replacingChanges && !keepingSelection) {
                     listener.run();
                 }
             }
@@ -433,17 +479,43 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
         return changes.stream().filter(change -> change.id.equals(changeId)).findFirst();
     }
 
+    /**
+     * A sorted list takes them in among the changes listed already.
+     */
     public void addChanges(@NotNull List<ChangeInfo> changes) {
-        this.changes.addAll(changes);
-        // did not find another way to update the scrollbar after adding more changes...
-        scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getValue() - 1);
+        // ListTableModel of 2020.3 announces an empty list as an insert of no rows, which a row sorter rejects.
+        // TODO once the minimum IDE has ListTableModel.addRows skip an empty list (2020.3 has not, 2026.2 has): drop this
+        if (changes.isEmpty()) {
+            return;
+        }
+        keepingSelection = true;
+        try {
+            // the model lists this.changes, so they are added there as well
+            table.getListTableModel().addRows(changes);
+        } finally {
+            keepingSelection = false;
+        }
     }
 
     private void initModel() {
         // a right-click on the header leaves the column under it as the dragged one, as the menu takes the release;
         // the header would go on painting that column of the old model, at index -1, until the next click on it
         table.getTableHeader().setDraggedColumn(null);
-        table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(columns.create(changes), changes, 0));
+        ColumnInfo[] shown = columns.create(changes);
+        RowSorter.SortKey sortKey = columns.getSortKey();
+        table.setModelAndUpdateColumns(new ListTableModel<ChangeInfo>(shown, changes,
+            sortKey != null ? sortKey.getColumn() : -1, sortKey != null ? sortKey.getSortOrder() : SortOrder.ASCENDING));
+    }
+
+    /**
+     * Sorts by what was clicked in any list, which is already done in the one where it was clicked.
+     */
+    public void applySort() {
+        RowSorter<? extends TableModel> sorter = table.getRowSorter();
+        if (sorter != null) {
+            RowSorter.SortKey key = columns.getSortKey();
+            sorter.setSortKeys(key == null ? null : Collections.singletonList(key));
+        }
     }
 
     /**
@@ -452,18 +524,14 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
      */
     public void rebuildColumns() {
         ChangeInfo selected = table.getSelectedObject();
-        rebuildingColumns = true;
+        keepingSelection = true;
         try {
             initModel();
             if (selected != null) {
                 table.setSelection(Collections.singletonList(selected));
             }
         } finally {
-            rebuildingColumns = false;
+            keepingSelection = false;
         }
-    }
-
-    private void updateModel(List<ChangeInfo> changes) {
-        table.getListTableModel().addRows(changes);
     }
 }

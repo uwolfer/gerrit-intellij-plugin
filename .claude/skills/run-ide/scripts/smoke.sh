@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 # The plugin's main paths through one IDE, each checked against Gerrit: the account on
-# the settings page, the change list, a push for review with a reviewer picked from
+# the settings page, no sign-in through the browser, which smoke-sso.sh runs, the change list, a push for review with a reviewer picked from
 # the suggestions of the push dialog, a change action from the context menu, comments in
 # a diff in both viewers and the shortcuts from one to the next, the files, diff and
 # comments of a project the IDE has no clone of, comments in the editor of a checked out
@@ -57,6 +57,24 @@ refresh_git() {
 }
 "$R" login
 echo "ok: account on the settings page"
+
+# The sign-in through the browser, which smoke-sso.sh runs, is not there where the IDE cannot run it: before 2026.2,
+# whose descriptor never loads it, and with the browser switched off, as it is here
+none=$("$R" get "//div[@class='IdeFrameImpl']" "(function () {
+    var gerrit = com.intellij.ide.plugins.PluginManagerCore.getPlugin(
+        com.intellij.openapi.extensions.PluginId.getId('com.urswolfer.intellij.plugin.gerrit')).getPluginClassLoader();
+    return gerrit.loadClass('com.urswolfer.intellij.plugin.gerrit.signin.BrowserSignIn').getMethod('find').invoke(null) == null;
+})()")
+[ "$none" = true ] || { echo "not: no browser sign-in in this IDE" >&2; false; }
+"$R" settings
+"$R" item "//div[@accessiblename='Gerrit Accounts']//div[@class='JBList']" 'admin@http://localhost:8080' --double
+ACCOUNT_DIALOG="//div[@class='MyDialog' and contains(@accessiblename,'Gerrit Account')]"
+"$R" wait "$ACCOUNT_DIALOG//div[@class='JButton' and @accessiblename='Test']"
+[ -z "$("$R" find "$ACCOUNT_DIALOG//div[@class='JButton' and @accessiblename='Sign In with Browser…']")" ] ||
+    { echo "not: no Sign In with Browser button" >&2; false; }
+"$R" click "$ACCOUNT_DIALOG//div[@class='JButton' and @accessiblename='Cancel']"
+"$R" click "//div[@class='JButton' and @accessiblename='Cancel']"
+echo "ok: no browser sign-in in this IDE"
 
 G="//div[@accessiblename='Gerrit Tool Window']"
 [ -n "$("$R" find "$G")" ] ||  # the button toggles, and the IDE may have restored the window open

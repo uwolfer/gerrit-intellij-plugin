@@ -22,6 +22,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.io.HttpRequests;
 import com.intellij.util.net.ssl.CertificateManager;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -53,6 +54,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -60,7 +62,8 @@ import java.util.concurrent.Executor;
 
 /**
  * Downloads avatar images once per URL, the way the GitHub plugin's avatar loader does. Avatars are public, so the
- * request carries no Gerrit credentials, and goes through the IDE's proxy and certificate settings.
+ * request carries no Gerrit credentials, only the cookies of a sign-in to a proxy in front of the host, and goes
+ * through the IDE's proxy and certificate settings.
  */
 @Service(Service.Level.APP)
 public final class AvatarLoader {
@@ -91,19 +94,21 @@ public final class AvatarLoader {
      */
     @NotNull
     public CompletableFuture<Image> request(@NotNull String url) {
+        // what came back before a sign-in to a proxy in front of the host was its sign-in page, no avatar
+        String key = url + '\n' + SignInCookies.getInstance().getVersion(url);
         synchronized (cache) {
-            CompletableFuture<Image> known = cache.get(url);
+            CompletableFuture<Image> known = cache.get(key);
             if (known != null) {
                 return known;
             }
             CompletableFuture<Image> loading = CompletableFuture.supplyAsync(() -> loadOnce(url), executor);
-            cache.put(url, loading);
+            cache.put(key, loading);
             loading.whenComplete((image, error) -> {
                 // a failure which another try may change is not kept; one which it will not, as an image which is
                 // too large or not one, is, so that it is not downloaded again every time
                 if (error != null) {
                     synchronized (cache) {
-                        cache.remove(url, loading);
+                        cache.remove(key, loading);
                     }
                 }
             });
@@ -145,7 +150,16 @@ public final class AvatarLoader {
         // the URL is the Gerrit server's to name, so what comes back is not trusted to be small
         byte[] bytes = HttpRequests.request(url).connectTimeout(10_000).readTimeout(15_000)
             .tuner(AvatarLoader::tune)
-            .connect(request -> readLimited(request.getInputStream()));
+            .connect(request -> {
+                // the sign-in page of a proxy in front of the host, such as before its cookies could be read, rather than
+                // no avatar for good
+                String type = request.getConnection().getContentType();
+                if (type != null && type.toLowerCase(Locale.ROOT).startsWith("text/html")
+                    && SignInCookies.getInstance().isSignedIn(url)) {
+                    throw new IOException("A web page instead of an avatar from " + url);
+                }
+                return readLimited(request.getInputStream());
+            });
         BufferedImage image = decode(bytes);
         if (image == null) { // not an image format Java reads, which another attempt does not change
             return null;
@@ -178,6 +192,12 @@ public final class AvatarLoader {
             throw new RefusedException("Not an HTTP avatar: " + connection.getURL());
         }
         ((HttpURLConnection) connection).setAuthenticator(PROXY_ONLY);
+        // those of a sign-in through the browser to a proxy in front of Gerrit, for an avatar Gerrit serves itself;
+        // HttpRequests tunes each connection of a redirect anew, so they stay on that host
+        String cookies = SignInCookies.getInstance().cookieHeader(connection.getURL().toString());
+        if (!cookies.isEmpty()) {
+            connection.setRequestProperty("Cookie", cookies);
+        }
         if (connection instanceof HttpsURLConnection) {
             ((HttpsURLConnection) connection).setSSLSocketFactory(UnaskedTrust.SOCKET_FACTORY);
         }

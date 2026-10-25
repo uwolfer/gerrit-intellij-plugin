@@ -27,6 +27,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountAuthData;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -89,7 +90,11 @@ public final class GerritApiProvider implements Disposable {
         return apiByIdentity.computeIfAbsent(identity, key -> create(new GerritAccountAuthData(id)));
     }
 
+    /**
+     * With the cookies of a sign-in through the browser to the host, which every client needs, the ones for
+     * credentials not stored yet included.
+     */
     public GerritRestApi create(GerritAuthData gerritAuthData) {
-        return gerritRestApiFactory.create(gerritAuthData, clientBuilderExtensions);
+        return gerritRestApiFactory.create(SignInCookies.getInstance().withCookies(gerritAuthData), clientBuilderExtensions);
     }
 }

@@ -25,6 +25,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.JBUI;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -98,7 +99,9 @@ public final class AvatarIcons {
         if (avatar == null) {
             return null;
         }
-        AvatarIcon icon = icons.computeIfAbsent(avatar.url, url -> new AvatarIcon(size));
+        // one which came before a sign-in to a proxy in front of the host is gone, as the sign-in page was no image
+        String key = avatar.url + '\n' + SignInCookies.getInstance().getVersion(avatar.url);
+        AvatarIcon icon = icons.computeIfAbsent(key, ignored -> new AvatarIcon(size));
         if (icon.needsRequest()) {
             request(avatar.url, icon, pixels);
         }

@@ -48,6 +48,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectSettings;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.ChangesFilter;
 import com.urswolfer.intellij.plugin.gerrit.ui.filter.GerritChangesFilters;
 import git4idea.GitUtil;
@@ -87,11 +88,13 @@ public class GerritToolWindow implements Disposable {
     private volatile boolean listSettingsChanged;
     /**
      * What the changes listed were loaded with: the account, the clone base url its query names the projects by, and
-     * its password version. Another account clears the list; the others only load it again.
+     * the versions of its password and of the sign-in to its host. Another account clears the list; the others only
+     * load it again.
      */
     private String listedIdentity = "";
     private String listedCloneBaseUrl = "";
     private int listedPasswordVersion;
+    private int listedSignInVersion;
     private final ListRefreshOnShow refreshOnShow = new ListRefreshOnShow();
     private volatile boolean disposed;
 
@@ -316,7 +319,8 @@ public class GerritToolWindow implements Disposable {
             return;
         }
         if (force || otherAccount || !account.cloneBaseUrl.equals(listedCloneBaseUrl)
-            || GerritAccounts.getInstance().getPasswordVersion(account) != listedPasswordVersion) {
+            || GerritAccounts.getInstance().getPasswordVersion(account) != listedPasswordVersion
+            || SignInCookies.getInstance().getVersion(account.host) != listedSignInVersion) {
             reloadChanges(project, false);
         }
     }
@@ -370,6 +374,7 @@ public class GerritToolWindow implements Disposable {
         }
         listedCloneBaseUrl = account.cloneBaseUrl;
         listedPasswordVersion = GerritAccounts.getInstance().getPasswordVersion(account);
+        listedSignInVersion = SignInCookies.getInstance().getVersion(account.host);
         int load = ++changesLoad;
         refreshOnShow.loadStarted(nowMillis());
         boolean lookup = changesFilters.isShowingLookup();

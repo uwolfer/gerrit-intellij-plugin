@@ -254,7 +254,8 @@ def login(url='http://localhost:8080', user='admin', password='secret'):
         main(['type', value])
     main(['click', "%s//div[@class='JButton' and @accessiblename='OK']" % dialog])
     until(lambda: not find(dialog), 30, 'the account dialog to close')
-    # the account just added or edited is the selected one; the project uses it from now on
+    # the project uses it from now on; selected by name, as with several accounts the edited one may not stay selected
+    main(['item', ACCOUNTS, account])
     main(['click', "//div[@class='ActionButton' and @accessiblename='Use for This Project']"])
     main(['check', "//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']", 'on'])
     page = "//div[@accessiblename='Gerrit Accounts']"

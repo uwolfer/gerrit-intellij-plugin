@@ -32,9 +32,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -140,6 +142,104 @@ public class GerritBundleTest {
             }
         }
         Assert.assertEquals(wrong, new ArrayList<String>());
+    }
+
+    /**
+     * Two controls of one form on the same Alt letter leave one of them unreachable, and nothing else fails. The
+     * push options share their dialog with the buttons of the IDE, which take P for Push.
+     */
+    @Test
+    public void testMnemonicsOfAFormAreUnique() throws IOException {
+        Properties english = load("GerritBundle.properties");
+        List<String> wrong = new ArrayList<>(mnemonicsBroken(english, null));
+        for (String file : translations()) {
+            for (String problem : mnemonicsBroken(load(file), english)) {
+                wrong.add(file + ": " + problem);
+            }
+        }
+        Assert.assertEquals(wrong, new ArrayList<String>());
+    }
+
+    /**
+     * A translation which marks another letter than the English text shares a form with the English texts it lacks,
+     * and falls back to, so it keeps the letters. East Asian texts put the marker in parentheses after the word.
+     *
+     * @param english null for the English bundle itself
+     */
+    private List<String> mnemonicsBroken(Properties bundle, Properties english) {
+        List<String> wrong = new ArrayList<>();
+        List<List<String>> forms = List.of(
+            List.of("push.enabled", "push.private", "push.unmarkPrivate", "push.wip", "push.ready",
+                "push.publishComments", "push.draft", "push.submit", "push.field.branch", "push.field.topic",
+                "push.field.hashtag", "push.field.description", "push.field.reviewers", "push.field.cc"),
+            List.of("review.notify", "review.submit"),
+            List.of("diff.resolved", "diff.save"),
+            List.of("settings.project.enabled", "settings.notifications.review", "settings.notifications.refresh",
+                "settings.list.all", "settings.git.push", "settings.list.avatars", "settings.git.comments",
+                "settings.git.comments.inline"),
+            List.of("rebase.onBranch", "rebase.other", "rebase.conflicts"),
+            List.of("rebase.onTarget", "rebase.other", "rebase.conflicts"),
+            List.of("merge.label.project", "merge.label.source", "merge.label.target", "merge.label.subject",
+                "merge.label.topic", "merge.label.reviewers", "merge.label.ccs"),
+            List.of("assignee.label"),
+            List.of("account.label.url", "account.label.login", "account.label.password",
+                "account.label.cloneBaseUrl", "account.label.gitilesUrl"),
+            List.of("clone.url.label", "clone.directory.label"),
+            // the menu of the change list, in which an action takes its mnemonic from an underscore
+            List.of("action.Gerrit.CompareBranch.text", "action.Gerrit.CheckoutAction.text",
+                "action.Gerrit.InspectChange.text", "action.Gerrit.CherryPickCommit.text",
+                "action.Gerrit.CherryPick.text", "action.Gerrit.Reset.text", "action.Gerrit.Star.text",
+                "action.Gerrit.AddReviewers.text", "action.Gerrit.SetAssignee.text", "action.Gerrit.Publish.text",
+                "action.Gerrit.Delete.text", "group.Gerrit.Review.text", "action.Gerrit.Reply.text",
+                "action.Gerrit.Submit.text", "action.Gerrit.Abandon.text", "action.Gerrit.Rebase.text",
+                "action.Gerrit.Restore.text", "action.Gerrit.Revert.text", "action.Gerrit.Copy.text",
+                "action.Gerrit.CopyUrl.text", "action.Gerrit.RefreshFeatureMergePatchSet.text",
+                "action.Gerrit.OpenInBrowser.text"));
+        for (List<String> form : forms) {
+            Map<Character, String> letters = new TreeMap<>();
+            for (String key : form) {
+                String text = bundle.getProperty(key);
+                if (english != null && text == null) {
+                    continue; // falls back to English
+                }
+                Assert.assertNotNull(text, key + " is not in the bundle");
+                char marker = key.startsWith("action.") || key.startsWith("group.") ? '_' : '&';
+                Matcher matcher = Pattern.compile(Pattern.quote(String.valueOf(marker)) + "([A-Za-z])").matcher(text);
+                if (!matcher.find()) {
+                    wrong.add(key + ": no mnemonic, marked with " + marker);
+                    continue;
+                }
+                char letter = Character.toLowerCase(matcher.group(1).charAt(0));
+                String holder = letters.put(letter, key);
+                if (holder != null) {
+                    wrong.add(key + ": the mnemonic " + letter + " is taken by " + holder);
+                }
+                if (english != null) {
+                    Matcher original = Pattern.compile(Pattern.quote(String.valueOf(marker)) + "([A-Za-z])")
+                        .matcher(english.getProperty(key));
+                    if (original.find() && Character.toLowerCase(original.group(1).charAt(0)) != letter) {
+                        wrong.add(key + ": the mnemonic " + letter + " is not the " + original.group(1) + " of English");
+                    }
+                }
+                // Push, Push tags, Run Git hooks, Edit all targets and Force push
+                if ("pthaf".indexOf(letter) >= 0 && key.startsWith("push.")) {
+                    wrong.add(key + ": " + letter + " belongs to the push dialog of the IDE");
+                }
+            }
+        }
+        return wrong;
+    }
+
+    private List<String> translations() throws IOException {
+        List<String> files = new ArrayList<>();
+        try (Stream<Path> paths = Files.list(Paths.get("src/main/resources/messages"))) {
+            paths.map(path -> path.getFileName().toString())
+                .filter(name -> name.matches("GerritBundle_[A-Za-z_]+\\.properties"))
+                .sorted()
+                .forEach(files::add);
+        }
+        Assert.assertFalse(files.isEmpty(), "no translation found, is the test run from the project directory?");
+        return files;
     }
 
     private static Set<String> placeholders(String value) {

@@ -55,11 +55,12 @@ not on 2020.3.
 
 `smoke.sh [latest|<dir>]` starts Gerrit and that IDE, then walks the plugin's
 main paths and checks each against Gerrit: the account on the settings page,
-the change list, a push for review with a reviewer through the push dialog, Star
-from the context menu, comments on removed, added and unchanged lines of a diff
-in the side-by-side and the unified viewer and the shortcuts which go from one
-to the next there, comments in the editor of a checked
-out change as its text is edited, and the project switched off and on again,
+the change list, a push for review with a reviewer through the push dialog,
+driven by its Alt mnemonics (those of the review dialog and the comment form
+too), Star from the context menu, comments on removed, added and unchanged
+lines of a diff in the side-by-side and the unified viewer and the shortcuts
+which go from one to the next there, comments in the editor of a checked out
+change as its text is edited, and the project switched off and on again,
 without the tool window and the push options in between, and fails on an error
 the plugin logged. It takes about a minute once everything is downloaded, and on
 failure prints a screenshot path.

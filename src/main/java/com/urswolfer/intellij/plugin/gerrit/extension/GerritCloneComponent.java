@@ -60,6 +60,7 @@ import com.urswolfer.intellij.plugin.gerrit.git.GerritCommitMsgHook;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
@@ -188,12 +189,13 @@ public class GerritCloneComponent implements VcsCloneComponent {
 
         // FormBuilder does not stretch combo boxes, so the combo box gets wrapped into a panel which it does stretch;
         // its label needs to be built here, the one of FormBuilder would point at the wrapper instead of the combo box
-        JBLabel urlLabel = new JBLabel(GerritBundle.message("clone.url.label"));
-        urlLabel.setLabelFor(urlComboBox);
+        JBLabel urlLabel = Mnemonics.label(new JBLabel(), GerritBundle.message("clone.url.label"), urlComboBox);
+        JBLabel directoryLabel = Mnemonics.textFieldLabel(new JBLabel(),
+            GerritBundle.message("clone.directory.label"), directoryField.getTextField());
 
         mainPanel = FormBuilder.createFormBuilder()
             .addLabeledComponent(urlLabel, JBUI.Panels.simplePanel(urlComboBox))
-            .addLabeledComponent(GerritBundle.message("clone.directory.label"), directoryField)
+            .addLabeledComponent(directoryLabel, directoryField)
             .addComponentToRightColumn(statusLabel)
             .addComponentFillVertically(new JPanel(), 0)
             .getPanel();

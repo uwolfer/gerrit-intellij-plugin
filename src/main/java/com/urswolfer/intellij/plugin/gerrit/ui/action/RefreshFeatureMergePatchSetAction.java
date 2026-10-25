@@ -17,6 +17,7 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.util.Consumer;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationBuilder;
 import com.urswolfer.intellij.plugin.gerrit.util.NotificationService;
 import org.jetbrains.annotations.Nullable;
@@ -118,7 +119,7 @@ public class RefreshFeatureMergePatchSetAction extends AbstractLoggedInChangeAct
         labelConstraints.gridy = row;
         labelConstraints.anchor = GridBagConstraints.WEST;
         labelConstraints.insets = new Insets(3, 0, 3, 8);
-        panel.add(new JLabel(label), labelConstraints);
+        panel.add(Mnemonics.label(new JLabel(), label, field), labelConstraints);
         GridBagConstraints fieldConstraints = new GridBagConstraints();
         fieldConstraints.gridx = 1;
         fieldConstraints.gridy = row;

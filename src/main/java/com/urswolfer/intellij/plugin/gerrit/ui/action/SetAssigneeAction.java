@@ -32,6 +32,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritChangesListener;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -129,7 +130,7 @@ public class SetAssigneeAction extends AbstractLoggedInChangeAction {
         @Override
         protected JComponent createCenterPanel() {
             JPanel panel = new JPanel(new BorderLayout(0, 4));
-            panel.add(new JBLabel(GerritBundle.message("assignee.label")), BorderLayout.NORTH);
+            panel.add(Mnemonics.label(new JBLabel(), GerritBundle.message("assignee.label"), assigneeField), BorderLayout.NORTH);
             panel.add(assigneeField, BorderLayout.CENTER);
             return panel;
         }

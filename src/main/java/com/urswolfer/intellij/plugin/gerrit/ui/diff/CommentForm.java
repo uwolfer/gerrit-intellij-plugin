@@ -26,6 +26,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.ui.EditorTextField;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.ui.SafeHtmlTextEditor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -78,7 +79,7 @@ public class CommentForm extends JPanel {
         reviewTextField = safeHtmlTextEditor.getMessageField();
         add(safeHtmlTextEditor);
 
-        resolvedCheckBox = new JCheckBox(GerritBundle.message("diff.resolved"));
+        resolvedCheckBox = Mnemonics.button(new JCheckBox(), GerritBundle.message("diff.resolved"));
 
         addButtons();
 
@@ -114,7 +115,7 @@ public class CommentForm extends JPanel {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
 
-        JButton saveButton = new JButton(GerritBundle.message("diff.save"));
+        JButton saveButton = Mnemonics.button(new JButton(), GerritBundle.message("diff.save"));
         buttonPanel.add(saveButton);
         saveButton.addActionListener(new ActionListener() {
             @Override

@@ -91,6 +91,7 @@ until_true "double-click opens the compare dialog" compare
 "$R" key ESCAPE
 until_true "compare dialog closed" gone
 
+checked() { [ "$("$R" get "$1" 'component.isSelected()')" = "$2" ]; }
 subject=smoke-$(date +%s)
 P=$WORK/projects/demo
 # leaves the change a run which failed in the editor checked out, and nothing else
@@ -109,7 +110,26 @@ echo "$subject" > "$P/$subject.txt"; git -C "$P" add "$subject.txt"; git -C "$P"
 "$R" key ctrl+shift+K
 "$R" wait "//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']"
 "$R" check "//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']" on
-"$R" click "//div[@class='EditorComponentImpl' and contains(@tooltiptext,'added as reviewers')]"
+# the Alt mnemonics of the push options: each toggles or focuses its control, and the push target follows
+GERRIT_BOX="//div[@class='JCheckBox' and @accessiblename='Push to Gerrit']"
+WIP_BOX="//div[@class='JCheckBox' and contains(@accessiblename,'WIP')]"
+target_has() { grep -q -- "$1" <<< "$("$R" rows "//div[@class='CheckboxTree']")"; }
+target_lacks() { ! target_has "$1"; }
+"$R" key alt+W
+until_true "Alt+W ticks WIP" checked "$WIP_BOX" true
+until_true "WIP in the push target" target_has '%wip'
+"$R" key alt+W
+until_true "Alt+W unticks WIP" checked "$WIP_BOX" false
+"$R" key alt+G
+until_true "Alt+G unticks Push to Gerrit" checked "$GERRIT_BOX" false
+"$R" key alt+G
+until_true "Alt+G ticks Push to Gerrit" checked "$GERRIT_BOX" true
+"$R" key alt+O
+"$R" type smoke-topic
+until_true "Alt+O focuses the topic field" target_has 'topic=smoke-topic'
+"$R" key ctrl+A DELETE
+until_true "topic cleared again" target_lacks 'topic='
+"$R" key alt+I  # the reviewers field, which the typing below goes into
 "$R" type Revi  # of the surname: Gerrit suggests "Rita Reviewer", and ENTER inserts her username
 "$R" wait "//div[contains(@class,'List') and contains(@visible_text,'Rita')]"  # JBList, LookupList in 2026.2
 "$R" key ENTER
@@ -128,6 +148,124 @@ was=$(starred)  # Star toggles, and earlier runs leave it either way
 "$R" click "//div[@class='ActionMenuItem' and @accessiblename='Star']"
 toggled() { local now; now=$(starred) && [ "$now" != "$was" ]; }
 until_true "Star from the context menu" toggled
+
+# The mnemonics of the menus and dialogs. A dialog is closed with Cancel whatever it holds, so nothing is posted.
+cancel() { "$R" click "(//div[@class='JButton' and @accessiblename='Cancel'])[last()]"; }
+focused() { # focused <label xpath>: the focus is in the field of the label, not on an icon in it
+    [ "$("$R" get "$1" '(function () {
+        var owner = java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        return javax.swing.SwingUtilities.isDescendingFrom(owner, component.getLabelFor())
+            && String(owner.getClass().getName()).indexOf("IconButton") < 0;
+    })()')" = true ]; }
+# label_keys <dialog> <class> <letter:label>...: each Alt+letter puts the focus in the field of its label
+label_keys() {
+    local what=$1 class=$2; shift 2
+    local pair
+    for pair in "$@"; do
+        "$R" key "alt+${pair%%:*}"
+        until_true "$what: Alt+${pair%%:*} focuses ${pair#*:}" focused "//div[@class='$class' and @accessiblename='${pair#*:}']"
+    done
+}
+# box_keys <what> <class> <letter:text>...: each Alt+letter toggles its check box
+toggles() { local before; before=$("$R" get "$1" 'component.isSelected()'); "$R" key "alt+$2"; sleep 0.5
+    [ "$("$R" get "$1" 'component.isSelected()')" != "$before" ]; }
+box_keys() {
+    local what=$1 class=$2; shift 2
+    local pair
+    for pair in "$@"; do
+        until_true "$what: Alt+${pair%%:*} toggles ${pair#*:}" toggles "//div[@class='$class' and contains(@accessiblename,'${pair#*:}')]" "${pair%%:*}"
+    done
+}
+
+# the menu of the change list: each item has its own mnemonic, and a key opens it
+menu() { "$R" item "$T" 'Add bye' --right; "$R" wait "//div[@class='ActionMenuItem' and @accessiblename='Star']"; }
+menu_mnemonics() { "$R" get "//div[@class='ActionMenuItem' and @accessiblename='Star']" "(function () {
+    var out = [], items = component.getParent().getComponents();
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].getMnemonic && items[i].getMnemonic() != 0)
+            out.push(String.fromCharCode(items[i].getMnemonic()) + ' ' + items[i].getText());
+    }
+    return out.join('\\n');
+})()"; }
+expected_menu=$'M Compare with Branch\nC Checkout\nN Inspect Code...\nP Cherry-Pick\nK Cherry-Pick (No Commit)\nH Reset Current Branch to Here...\nS Star\nV Add Reviewers\nI Set Assignee...\nL Publish Draft\nD Delete Draft\nE Reply...\nU Submit\nA Abandon\nB Rebase\nT Restore\nR Revert\nY Copy Change-ID\nG Copy Change URL\nF Refresh Feature Merge Patch Set\nO Open in Gerrit'
+menu_ok() { [ "$(menu_mnemonics)" = "$expected_menu" ]; }
+menu
+until_true "menu of the change list: a mnemonic on each item, none twice" menu_ok
+"$R" key ESCAPE
+was=$(starred); menu; "$R" key S
+until_true "menu: S toggles Star" toggled
+was=$(starred); menu; "$R" key S  # and back, for the next run
+until_true "menu: S toggles Star back" toggled
+
+# Reply opens the review dialog with no vote
+menu; "$R" key E
+NOTIFY_BOX="//div[@class='JCheckBox' and @accessiblename='Send Notification Mails']"
+SUBMIT_BOX="//div[@class='JCheckBox' and @accessiblename='Submit Change']"
+"$R" wait "$NOTIFY_BOX"
+until_true "review dialog: Send Notification Mails starts ticked" checked "$NOTIFY_BOX" true
+"$R" key alt+N
+until_true "review dialog: Alt+N unticks Send Notification Mails" checked "$NOTIFY_BOX" false
+"$R" key alt+C
+until_true "review dialog: Alt+C ticks Submit Change" checked "$SUBMIT_BOX" true
+cancel
+
+# Rebase; the change is on the tip, so the first option is off and its T cannot be tried
+menu; "$R" key B
+"$R" wait "//div[@class='JBCheckBox' and contains(@accessiblename,'conflicts')]"
+"$R" key alt+S
+until_true "rebase dialog: Alt+S picks the specific base" checked "//div[@class='JBRadioButton' and contains(@accessiblename,'specific')]" true
+"$R" key alt+C
+until_true "rebase dialog: Alt+C ticks Allow rebase with conflicts" checked "//div[@class='JBCheckBox' and contains(@accessiblename,'conflicts')]" true
+cancel
+
+# Set Assignee: the focus leaves the field, and Alt+A brings it back
+menu; "$R" key I
+ASSIGNEE="//div[@class='JBLabel' and contains(@accessiblename,'Assignee')]"
+"$R" wait "$ASSIGNEE"
+"$R" key TAB
+"$R" key alt+A
+until_true "assignee dialog: Alt+A focuses the assignee field" focused "$ASSIGNEE"
+cancel
+
+# Add Reviewers has a field and no label, so only its menu key is tried
+menu; "$R" key V
+"$R" wait "//div[@class='MyDialog' and @accessiblename='Add Reviewers to Change']"
+echo "ok: menu: V opens Add Reviewers"
+cancel
+
+# the settings page
+"$R" settings
+"$R" wait "//div[@class='JCheckBox' and @accessiblename='Use Gerrit in this project']"
+box_keys "settings" JCheckBox p:"Use Gerrit in this" l:"List all Gerrit" v:"Show avatars" e:"Check for new" \
+    r:"Show notifications" b:"Push commits" c:"Show the comments" f:"Show comments in full"
+# the account dialog, opened on the account of the seeded Gerrit
+"$R" item "//div[@accessiblename='Gerrit Accounts']//div[@class='JBList']" 'admin@http://localhost:8080' --double
+"$R" wait "//div[@class='JBLabel' and @accessiblename='Web URL:']"
+label_keys "account dialog" JBLabel w:"Web URL:" l:"Login:" p:"Password:" u:"Clone base URL:" g:"Gitiles URL:"
+cancel
+"$R" click "//div[@class='JButton' and @accessiblename='Cancel']"
+
+# the clone dialog: Directory takes a mnemonic though a browse icon sits in its field
+gerrit_clone() { "$R" get "//div[@class='IdeFrameImpl']" "com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(function () {
+    var l = com.intellij.openapi.vcs.CheckoutProvider.EXTENSION_POINT_NAME.getExtensionList();
+    for (var i = 0; i < l.size(); i++) {
+        if (String(l.get(i).getVcsName()) == 'Gerrit')
+            l.get(i).doCheckout(com.intellij.openapi.project.ProjectManager.getInstance().getOpenProjects()[0], null);
+    }
+})" > /dev/null; }
+gerrit_clone
+"$R" wait "//div[@class='JBLabel' and @accessiblename='Directory:']"
+"$R" click "//div[@class='TextFieldWithAutoCompletion']"
+label_keys "clone dialog" JBLabel d:"Directory:"
+label_keys "clone dialog" JBLabel u:"URL:"
+cancel
+
+# Create Feature Merge Change
+"$R" click "//div[@class='ActionButton' and @accessiblename='Create Feature Merge Change']"
+"$R" wait "//div[@class='JLabel' and @accessiblename='Gerrit project:']"
+label_keys "feature merge dialog" JLabel p:"Gerrit project:" s:"Source branch:" t:"Target branch:" u:"Subject:" \
+    i:"Topic (optional):" r:"Reviewers (comma separated, optional):" c:"CC (comma separated, optional):"
+cancel
 
 # Comments in a diff, on a change of its own whose patch sets differ in removed, added and unchanged lines, and in
 # one which only its trailing space tells apart
@@ -283,6 +421,18 @@ ignore TRIM_WHITESPACES
 until_true "unified: the comments on their lines after a rediff" shows "${placed/6 new-right/5 new-right}"
 ignore DEFAULT
 until_true "unified: the comments back on their lines" shows "$placed"
+# the Alt mnemonics of the comment form: Resolved ticks, Save posts the draft as resolved
+comment "$U" 0 ""
+RESOLVED_BOX="//div[@class='JCheckBox' and @accessiblename='Resolved']"
+"$R" wait "$RESOLVED_BOX"
+"$R" type alt-s-comment  # while the focus is in the text, which Alt+R leaves where it is
+until_true "comment form: Resolved starts unticked" checked "$RESOLVED_BOX" false
+"$R" key alt+R
+until_true "comment form: Alt+R ticks Resolved" checked "$RESOLVED_BOX" true
+"$R" key alt+S
+resolved_draft() { gerrit "/changes/$dchange/drafts" | python3 -c 'import json, sys
+sys.exit(not any(c["message"] == "alt-s-comment" and not c.get("unresolved") for l in json.load(sys.stdin).values() for c in l))'; }
+until_true "comment form: Alt+S saves the draft as resolved" resolved_draft
 gerrit "/changes/$dchange/abandon" -X POST -H 'Content-Type: application/json' -d '{}' > /dev/null
 
 # setting <check box> on|off <what>: on the Gerrit settings page, saved

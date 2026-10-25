@@ -16,8 +16,18 @@
 
 package com.urswolfer.intellij.plugin.gerrit.push;
 
+import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import java.awt.Component;
+import java.awt.Container;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class GerritPushExtensionPanelTest {
 
@@ -59,6 +69,58 @@ public class GerritPushExtensionPanelTest {
             Assert.assertTrue(panel(true, "clicked-before").getPushToGerritCheckBox().isSelected());
         } finally {
             GerritPushOptionsPanel.setPushToGerritByDefault(before);
+        }
+    }
+
+    @Test
+    public void testEveryOptionHasItsOwnMnemonic() {
+        assertMnemonics(panel(false, "mnemonics"));
+    }
+
+    /** What the IDE hands the panels: the texts of GerritBundle, whose marker 2020.3 has already replaced. */
+    @Test
+    public void testMnemonicsOfTheTextsOfTheBundle() {
+        PushMessages.setProvider(GerritBundle::message);
+        try {
+            assertMnemonics(panel(false, "bundle-mnemonics"));
+        } finally {
+            PushMessages.setProvider(null);
+        }
+    }
+
+    private static void assertMnemonics(GerritPushExtensionPanel panel) {
+        List<Component> components = new ArrayList<>();
+        collect(panel, components);
+        Set<Integer> seen = new HashSet<>();
+        int options = 0;
+        for (Component component : components) {
+            int mnemonic = 0;
+            if (component instanceof JCheckBox) {
+                mnemonic = ((JCheckBox) component).getMnemonic();
+            } else if (component instanceof JLabel && ((JLabel) component).getText() != null
+                    && !((JLabel) component).getText().isEmpty()) {
+                mnemonic = ((JLabel) component).getDisplayedMnemonic();
+            } else {
+                continue;
+            }
+            options++;
+            String text = component instanceof JCheckBox ? ((JCheckBox) component).getText() : ((JLabel) component).getText();
+            Assert.assertFalse(text.contains("&") || text.contains("\u001B"), "marker left in: " + text);
+            Assert.assertNotEquals(mnemonic, 0, "no mnemonic: " + component);
+            Assert.assertTrue(seen.add(mnemonic), "mnemonic used twice: " + (char) mnemonic);
+            if (component instanceof JLabel) {
+                Assert.assertNotNull(((JLabel) component).getLabelFor(), "no field for " + component);
+            }
+        }
+        Assert.assertEquals(options, 14); // 8 check boxes and 6 labelled fields
+    }
+
+    private static void collect(Container container, List<Component> into) {
+        for (Component child : container.getComponents()) {
+            into.add(child);
+            if (child instanceof Container) {
+                collect((Container) child, into);
+            }
         }
     }
 

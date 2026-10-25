@@ -67,7 +67,7 @@ public class GerritPushExtensionTest {
         } finally {
             GerritPushExtension.handOverMessages(PushMessages.class, null);
         }
-        Assert.assertEquals(PushMessages.message("push.enabled"), "Push to Gerrit");
+        Assert.assertEquals(PushMessages.message("push.enabled"), "Push to &Gerrit");
     }
 
     @Test

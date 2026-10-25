@@ -29,6 +29,7 @@ import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
+import com.urswolfer.intellij.plugin.gerrit.ui.Mnemonics;
 import com.urswolfer.intellij.plugin.gerrit.util.Whitespace;
 import org.jetbrains.annotations.Nullable;
 
@@ -93,15 +94,18 @@ public class RebaseAction extends AbstractLoggedInChangeAction {
 
     private static class RebaseDialog extends DialogWrapper {
         private final JBRadioButton onTip;
-        private final JBRadioButton onOther = new JBRadioButton(GerritBundle.message("rebase.other"));
+        private final JBRadioButton onOther = Mnemonics.button(new JBRadioButton(), GerritBundle.message("rebase.other"));
         private final JBTextField baseField = new JBTextField(30);
-        private final JBCheckBox allowConflicts = new JBCheckBox(GerritBundle.message("rebase.conflicts"));
+        private final JBCheckBox allowConflicts = Mnemonics.button(new JBCheckBox(), GerritBundle.message("rebase.conflicts"));
 
         RebaseDialog(Project project, @Nullable String branch, boolean canRebaseOnTip) {
             super(project, true);
             setTitle(GerritBundle.message("rebase.title"));
             setOKButtonText(GerritBundle.message("rebase.ok"));
-            onTip = new JBRadioButton(branch != null ? GerritBundle.message("rebase.onBranch", branch) : GerritBundle.message("rebase.onTarget"), canRebaseOnTip);
+            onTip = branch != null
+                ? Mnemonics.button(new JBRadioButton(), "rebase.onBranch", branch)
+                : Mnemonics.button(new JBRadioButton(), GerritBundle.message("rebase.onTarget"));
+            onTip.setSelected(canRebaseOnTip);
             onTip.setEnabled(canRebaseOnTip);
             onOther.setSelected(!canRebaseOnTip);
             ButtonGroup group = new ButtonGroup();

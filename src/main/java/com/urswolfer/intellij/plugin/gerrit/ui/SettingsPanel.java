@@ -92,17 +92,17 @@ public class SettingsPanel {
     private final JSpinner refreshTimeoutSpinner = new JSpinner();
     private final JPanel pane;
     private final JCheckBox notificationOnNewReviewsCheckbox =
-        new JCheckBox(GerritBundle.message("settings.notifications.review"));
+        Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.notifications.review"));
     private final JCheckBox automaticRefreshCheckbox =
-        new JCheckBox(GerritBundle.message("settings.notifications.refresh"));
+        Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.notifications.refresh"));
     private final JCheckBox listAllChangesCheckbox =
-        new JCheckBox(GerritBundle.message("settings.list.all"));
-    private final JCheckBox pushToGerritCheckbox = new JCheckBox(GerritBundle.message("settings.git.push"));
-    private final JCheckBox showAvatarsCheckBox = new JCheckBox(GerritBundle.message("settings.list.avatars"));
+        Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.list.all"));
+    private final JCheckBox pushToGerritCheckbox = Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.git.push"));
+    private final JCheckBox showAvatarsCheckBox = Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.list.avatars"));
     private final JCheckBox showCommentsInEditorCheckBox =
-        new JCheckBox(GerritBundle.message("settings.git.comments"));
+        Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.git.comments"));
     private final JCheckBox showCommentsInlineCheckBox =
-        new JCheckBox(GerritBundle.message("settings.git.comments.inline"));
+        Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.git.comments.inline"));
     private final JLabel minutesLabel = new JLabel(GerritBundle.message("settings.notifications.minutes"));
     private final JLabel listAllHint = new JLabel(
         GerritBundle.message("settings.list.all.hint"));
@@ -119,7 +119,7 @@ public class SettingsPanel {
     // only a choice the user made is stored; what the page shows may just be the only account or the remotes' one
     private boolean projectAccountChosen;
     private JPanel wrapper;
-    private final JCheckBox projectEnabledCheckbox = new JCheckBox(GerritBundle.message("settings.project.enabled"));
+    private final JCheckBox projectEnabledCheckbox = Mnemonics.button(new JCheckBox(), GerritBundle.message("settings.project.enabled"));
 
     public SettingsPanel(Project project) {
         this.project = project;

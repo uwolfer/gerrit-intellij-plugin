@@ -28,6 +28,7 @@ import com.google.gerrit.extensions.common.LabelInfo;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.NaturalComparator;
 import com.intellij.util.Consumer;
 import com.intellij.util.messages.Topic;
 import com.intellij.util.text.DateFormatUtil;
@@ -50,10 +51,12 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 /**
  * The columns of the list of changes, and which of them the user shows.
@@ -63,6 +66,8 @@ import java.util.TreeSet;
 public final class GerritChangeColumns {
     /** The columns are a setting of the IDE, so the lists of all open projects follow a toggle in one of them. */
     public static final Topic<Runnable> CHANGED = Topic.create("Gerrit list columns", Runnable.class);
+    /** So is the sort, which the lists apply to the model they have rather than build a new one, as on a toggle. */
+    public static final Topic<Runnable> SORTED = Topic.create("Gerrit list sort", Runnable.class);
 
     private static final int AVATAR_SIZE = 16;
     private static final int AVATAR_GAP = 4;
@@ -73,6 +78,7 @@ public final class GerritChangeColumns {
     private final GerritSelectRevisionInfoColumn selectRevisionInfoColumn;
     private final AvatarIcons avatarIcons;
     private List<ColumnToggle> toggles = Collections.emptyList();
+    private List<String> shownIds = Collections.emptyList();
 
     /**
      * @param table what the columns are measured for, and repainted when an avatar arrives
@@ -87,6 +93,31 @@ public final class GerritChangeColumns {
     /** The columns which can be shown or hidden, in their order in the table. */
     List<ColumnToggle> getToggles() {
         return toggles;
+    }
+
+    /**
+     * The sort the user chose, as a key of the columns {@link #create} returned last; none for the order Gerrit lists
+     * the changes in, and while the sorted column is hidden, which keeps the sort for when it is shown again.
+     */
+    @Nullable
+    RowSorter.SortKey getSortKey() {
+        int column = shownIds.indexOf(gerritSettings.getSortColumn());
+        if (column < 0) {
+            return null;
+        }
+        return new RowSorter.SortKey(column, gerritSettings.isSortDescending() ? SortOrder.DESCENDING : SortOrder.ASCENDING);
+    }
+
+    /**
+     * @param key of the columns {@link #create} returned last; none for the order Gerrit lists the changes in
+     */
+    void setSortKey(@Nullable RowSorter.SortKey key) {
+        if (key == null || key.getSortOrder() == SortOrder.UNSORTED) {
+            gerritSettings.setSort("", false);
+        } else {
+            gerritSettings.setSort(shownIds.get(key.getColumn()), key.getSortOrder() == SortOrder.DESCENDING);
+        }
+        ApplicationManager.getApplication().getMessageBus().syncPublisher(SORTED).run();
     }
 
     /**
@@ -124,36 +155,39 @@ public final class GerritChangeColumns {
         Columns columns = new Columns();
         columns.add(new GerritChangeColumnStarredInfo(), "Starred", GerritBundle.message("column.starred"));
         columns.add(
-            new GerritChangeColumnInfo("#", number.item) {
+            new GerritChangeColumnInfo("#", number.item, BY_NUMBER) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getNumber(change);
                 }
             },
-            GerritBundle.message("column.number"), gerritSettings.getShowChangeNumberColumn(), gerritSettings::setShowChangeNumberColumn
+            "Number", GerritBundle.message("column.number"),
+            gerritSettings.getShowChangeNumberColumn(), gerritSettings::setShowChangeNumberColumn
         );
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.id.header"), hash.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.id.header"), hash.item, BY_HASH) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getHash(change);
                 }
             },
-            GerritBundle.message("column.id"), gerritSettings.getShowChangeIdColumn(), gerritSettings::setShowChangeIdColumn
+            "Change ID", GerritBundle.message("column.id"),
+            gerritSettings.getShowChangeIdColumn(), gerritSettings::setShowChangeIdColumn
         );
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.topic"), topic.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.topic"), topic.item, byText(GerritChangeColumns::getTopic)) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getTopic(change);
                 }
             },
-            GerritBundle.message("column.topic"), gerritSettings.getShowTopicColumn(), gerritSettings::setShowTopicColumn
+            "Topic", GerritBundle.message("column.topic"),
+            gerritSettings.getShowTopicColumn(), gerritSettings::setShowTopicColumn
         );
 
         // never hidden, so that the table always has a column
-        columns.shown.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.subject"), subject.item) {
+        columns.always(
+            new GerritChangeColumnInfo(GerritBundle.message("column.subject"), subject.item, byText(change -> change.subject)) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return change.subject;
@@ -169,10 +203,12 @@ public final class GerritChangeColumns {
                 public String getMaxStringValue() {
                     return null; // allow to use remaining space
                 }
-            }
+            },
+            "Subject"
         );
+        // by the text it shows, which is built for each comparison: cheap next to the pages a list loads
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.status"), status.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.status"), status.item, byText(GerritChangeColumns::getStatus)) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getStatus(change);
@@ -184,7 +220,7 @@ public final class GerritChangeColumns {
         boolean showAvatars = gerritSettings.getShowAvatars()
             && changes.stream().anyMatch(change -> AvatarIcons.hasAvatar(change.owner));
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.owner"), author.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.owner"), author.item, BY_OWNER) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getOwner(change);
@@ -218,19 +254,19 @@ public final class GerritChangeColumns {
         boolean listAllChanges = gerritSettings.getListAllChanges();
         // until it is shown or hidden once, it is shown where changes of more than one project are likely
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.project"), projectName.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.project"), projectName.item, byText(GerritChangeColumns::getProject)) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getProject(change);
                 }
             },
-            GerritBundle.message("column.project"),
+            "Project", GerritBundle.message("column.project"),
             showProjectColumn == ShowProjectColumn.ALWAYS
                 || (showProjectColumn == ShowProjectColumn.AUTO && (listAllChanges || hasProjectMultipleRepos())),
             visible -> gerritSettings.setShowProjectColumn(visible ? ShowProjectColumn.ALWAYS : ShowProjectColumn.NEVER)
         );
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.branch"), branch.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.branch"), branch.item, byText(GerritChangeColumns::getBranch)) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getBranch(change);
@@ -239,7 +275,7 @@ public final class GerritChangeColumns {
             "Branch", GerritBundle.message("column.branch")
         );
         columns.add(
-            new GerritChangeColumnInfo(GerritBundle.message("column.updated"), time.item) {
+            new GerritChangeColumnInfo(GerritBundle.message("column.updated"), time.item, BY_UPDATED) {
                 @Override
                 public String valueOf(ChangeInfo change) {
                     return getTime(change);
@@ -259,32 +295,42 @@ public final class GerritChangeColumns {
             );
         }
         // never hidden: a patch set chosen in it would stay selected with nothing showing which
-        columns.shown.add(selectRevisionInfoColumn);
+        columns.always(selectRevisionInfoColumn, null);
 
         toggles = Collections.unmodifiableList(columns.toggles);
+        shownIds = Collections.unmodifiableList(columns.shownIds);
         return columns.shown.toArray(new ColumnInfo[0]);
     }
 
+    /**
+     * The id of a column is what it is remembered by, hidden or sorted by: a label is told apart from a column of the
+     * same name, and it stays the English name, which the translated one must not replace.
+     */
     private final class Columns {
         private final List<ColumnInfo> shown = new ArrayList<>();
+        private final List<String> shownIds = new ArrayList<>();
         private final List<ColumnToggle> toggles = new ArrayList<>();
 
-        /**
-         * @param id what the hidden column is remembered by: a label is told apart from a column of the same name,
-         *           and it stays the English name, which the translated one must not replace
-         */
         private void add(ColumnInfo column, String id, String name) {
-            add(column, name, !gerritSettings.isColumnHidden(id), visible -> gerritSettings.setColumnHidden(id, !visible));
+            add(column, id, name, !gerritSettings.isColumnHidden(id), visible -> gerritSettings.setColumnHidden(id, !visible));
         }
 
-        private void add(ColumnInfo column, String name, boolean visible, Consumer<Boolean> setVisible) {
+        private void add(ColumnInfo column, String id, String name, boolean visible, Consumer<Boolean> setVisible) {
             toggles.add(new ColumnToggle(name, visible, newVisible -> {
                 setVisible.consume(newVisible);
                 ApplicationManager.getApplication().getMessageBus().syncPublisher(CHANGED).run();
             }));
             if (visible) {
-                shown.add(column);
+                always(column, id);
             }
+        }
+
+        /**
+         * @param id none for a column which does not sort, so that no sort is restored to it
+         */
+        private void always(ColumnInfo column, @Nullable String id) {
+            shown.add(column);
+            shownIds.add(id);
         }
     }
 
@@ -398,8 +444,18 @@ public final class GerritChangeColumns {
         return String.join(", ", status);
     }
 
-    private static String getOwner(ChangeInfo change) {
-        return change.owner.name;
+    /**
+     * As Gerrit's web UI names an account: Gerrit leaves the name out of one which has none, as often with bots.
+     */
+    @VisibleForTesting
+    static String getOwner(ChangeInfo change) {
+        AccountInfo owner = change.owner;
+        if (owner.name != null && !owner.name.isEmpty()) {
+            return owner.name;
+        }
+        return owner.username != null ? owner.username
+            : owner.email != null ? owner.email
+            : String.valueOf(owner._accountId);
     }
 
     private static String getAccountTooltip(AccountInfo accountInfo) {
@@ -437,14 +493,96 @@ public final class GerritChangeColumns {
         }
     }
 
+    /*
+     * The values are compared, not the texts the columns show: "Today" is not before "Yesterday". The sorter keeps
+     * changes which compare equal in the order they were loaded, which is the one of Gerrit, also when it reverses.
+     */
+
+    @VisibleForTesting
+    static final Comparator<ChangeInfo> BY_STARRED =
+        Comparator.comparing((ChangeInfo change) -> Boolean.TRUE.equals(change.starred)).reversed();
+
+    @VisibleForTesting
+    static final Comparator<ChangeInfo> BY_NUMBER = Comparator.comparingInt(change -> change._number);
+
+    /** Hex, in which a run of digits is no number. */
+    @VisibleForTesting
+    static final Comparator<ChangeInfo> BY_HASH = Comparator.comparing(GerritChangeColumns::getHash);
+
+    @VisibleForTesting
+    static final Comparator<ChangeInfo> BY_OWNER = byText(GerritChangeColumns::getOwner);
+
+    @VisibleForTesting
+    static final Comparator<ChangeInfo> BY_UPDATED =
+        Comparator.comparing(change -> change.updated, Comparator.nullsLast(Comparator.naturalOrder()));
+
+    /** The changes without a text go after the others, or before them in reverse: they have nothing to be in order by. */
+    @VisibleForTesting
+    static Comparator<ChangeInfo> byText(Function<ChangeInfo, String> text) {
+        return Comparator.comparing(change -> {
+            String value = text.apply(change);
+            return value == null || value.isEmpty() ? null : value;
+        }, Comparator.nullsLast(NaturalComparator.INSTANCE));
+    }
+
+    @VisibleForTesting
+    static Comparator<ChangeInfo> byLabel(String label) {
+        return Comparator.comparingInt(change -> getVote(getLabel(change, label)));
+    }
+
+    /**
+     * The vote the icon of the label shows, ranked: a rejection and an approval, the lowest and the highest value of
+     * the label, are told by the account which voted them, the others carry their value unless it is -1 or +1.
+     */
+    @VisibleForTesting
+    static int getVote(@Nullable LabelInfo labelInfo) {
+        if (labelInfo == null) {
+            return 0;
+        }
+        if (labelInfo.rejected != null) {
+            return Integer.MIN_VALUE;
+        }
+        if (labelInfo.approved != null) {
+            return Integer.MAX_VALUE;
+        }
+        if (labelInfo.disliked != null) {
+            return labelInfo.value != null ? labelInfo.value : -1;
+        }
+        if (labelInfo.recommended != null) {
+            return labelInfo.value != null ? labelInfo.value : 1;
+        }
+        return 0;
+    }
+
+    private static String getSortTooltip(@Nullable String name) {
+        String sort = GerritBundle.message("column.sort.tooltip");
+        return name == null ? sort : GerritBundle.message("column.tooltip.named", name, sort);
+    }
+
     private abstract static class GerritChangeColumnInfo extends ColumnInfo<ChangeInfo, String> {
 
         @NotNull
         private final String maxString;
+        @NotNull
+        private final Comparator<ChangeInfo> comparator;
 
-        public GerritChangeColumnInfo(@NotNull String name, @NotNull String maxString) {
+        public GerritChangeColumnInfo(@NotNull String name, @NotNull String maxString,
+                                      @NotNull Comparator<ChangeInfo> comparator) {
             super(name);
             this.maxString = maxString;
+            this.comparator = comparator;
+        }
+
+        @NotNull
+        @Override
+        public Comparator<ChangeInfo> getComparator() {
+            return comparator;
+        }
+
+        @Nullable
+        @Override
+        public String getTooltipText() {
+            return getSortTooltip(null);
         }
 
         @Override
@@ -462,9 +600,12 @@ public final class GerritChangeColumns {
 
         private final String label;
 
+        private final Comparator<ChangeInfo> comparator;
+
         public GerritChangeColumnIconLabelInfo(String shortLabel, String label) {
             super(shortLabel);
             this.label = label;
+            this.comparator = byLabel(label);
         }
 
         @Nullable
@@ -478,7 +619,13 @@ public final class GerritChangeColumns {
         @Nullable
         @Override
         public String getTooltipText() {
-            return label;
+            return getSortTooltip(label);
+        }
+
+        @NotNull
+        @Override
+        public Comparator<ChangeInfo> getComparator() {
+            return comparator;
         }
 
         @Nullable
@@ -548,6 +695,18 @@ public final class GerritChangeColumns {
 
         public GerritChangeColumnStarredInfo() {
             super("");
+        }
+
+        @NotNull
+        @Override
+        public Comparator<ChangeInfo> getComparator() {
+            return BY_STARRED;
+        }
+
+        @Nullable
+        @Override
+        public String getTooltipText() {
+            return getSortTooltip(GerritBundle.message("column.starred"));
         }
 
         @Nullable

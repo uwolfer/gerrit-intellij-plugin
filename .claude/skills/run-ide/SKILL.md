@@ -68,7 +68,10 @@ failure prints a screenshot path.
 
 Project `demo` has one merged change and two open ones. "Add hello" has two
 patch sets, a Code-Review +1 and an inline comment from `reviewer`; "Add bye"
-has `reviewer` added. Logins are `admin`/`secret` and `reviewer`/`reviewer`.
+has `reviewer` added. Project `library` has no clone in the IDE: its open
+change "Greet strangers" modifies, renames, deletes and adds an image, and has
+an inline comment from `reviewer`. The change list shows it with "List all
+Gerrit changes" on. Logins are `admin`/`secret` and `reviewer`/`reviewer`.
 The IDE opens a clone of `demo` with the commit-msg hook installed, so a commit
 made there with `git` can be pushed for review from the IDE. If seeding fails,
 the next start sets the site up from scratch.
@@ -108,6 +111,11 @@ What `smoke.sh` works around, worth knowing for anything new:
   project: set it with `check XPATH on` rather than clicking it.
 * Keys go to the focused frame: `focus` before `key` after anything else had
   the focus.
+* `item` matches a cell's whole text, as `rows` prints it, and lists the rows
+  it found when none matches.
+* Balloons, such as those about the sandbox's `JAVA_TOOL_OPTIONS` and the
+  script launcher on new IDEs, cover the right of the window and take the
+  clicks meant for it: `notifications` expires them.
 * A dialog or popup the IDE shows of its own accord takes the keys and clicks
   until it is gone. `ide.vmoptions` turns off the ones seen so far, such as the
   theme tour of a first 2025.3+ start, with its registry key.
@@ -127,6 +135,9 @@ click 1`, `xdotool key ctrl+alt+s`); the account then goes in by hand:
 
 Gerrit 3.14 has no assignee endpoint (`PUT /changes/N/assignee` is a 404), so
 "Set Assignee" can only be checked for its dialog and error balloon here.
+
+After a step tried by hand, `ide.sh errors` tells what it logged, while the
+step that did it is still known.
 
 ## Noise that is not the plugin's
 

@@ -70,6 +70,11 @@ git clone -q --depth 1 --filter=blob:none --no-checkout \
   https://github.com/GerritCodeReview/gerrit <scratchpad>/gerrit
 ```
 
+Then ask the seeded Gerrit of `.claude/skills/run-ide` each endpoint the plan
+relies on, with `curl`: what an endpoint returns is not always what its
+documentation or the web UI suggest. `/content` of `/COMMIT_MSG` lacks the
+header which Gerrit numbers the lines of its comments by, for one.
+
 ## Build and test
 
 ```

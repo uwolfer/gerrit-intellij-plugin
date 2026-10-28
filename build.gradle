@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    implementation ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:1.0.0') {
+    implementation ('com.urswolfer.gerrit.client.rest:gerrit-rest-java-client:1.1.0') {
         exclude group: 'com.google.code.gson', module: 'gson'
         exclude group: 'com.google.guava', module: 'guava'
         exclude group: 'commons-logging', module: 'commons-logging'

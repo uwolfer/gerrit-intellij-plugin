@@ -29,6 +29,7 @@ import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.scale.JBUIScale;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.UIUtil;
@@ -38,12 +39,15 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
+import com.urswolfer.intellij.plugin.gerrit.signin.BrowserSignIn;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInPages;
 import com.urswolfer.intellij.plugin.gerrit.util.GitilesUrls;
 import com.urswolfer.intellij.plugin.gerrit.util.UrlUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.net.ssl.SSLException;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
@@ -51,6 +55,7 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
+import java.awt.FlowLayout;
 import java.awt.Insets;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -92,6 +97,9 @@ public class GerritAccountDialog extends DialogWrapper {
     private final JBTextField cloneBaseUrlTextField = new JBTextField();
     private final JBTextField gitilesUrlTextField = new JBTextField();
     private final JButton testButton = new JButton(GerritBundle.message("account.test"));
+    /** Only where the IDE can sign in through a browser. */
+    @Nullable private final BrowserSignIn browserSignIn = BrowserSignIn.find();
+    private final JButton signInButton = new JButton(GerritBundle.message("account.signIn"));
 
     private boolean passwordModified;
     /** What a check accepted last, so that OK after a successful Test does not ask Gerrit again. */
@@ -158,6 +166,7 @@ public class GerritAccountDialog extends DialogWrapper {
             });
         }
         testButton.addActionListener(e -> testConnection());
+        signInButton.addActionListener(e -> signIn());
 
         if (loggingInAgain) {
             // what failed is the login on this Gerrit; another one is a change of account, for the settings page
@@ -219,7 +228,7 @@ public class GerritAccountDialog extends DialogWrapper {
             .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.url"), hostTextField), hostTextField)
             .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.login"), loginTextField), loginTextField)
             .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.password"), passwordField), passwordField)
-            .addComponentToRightColumn(testButton)
+            .addComponentToRightColumn(buttons())
             .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.cloneBaseUrl"), cloneBaseUrlTextField), cloneBaseUrlTextField)
             .addComponentToRightColumn(cloneBaseUrlHint)
             .addLabeledComponent(Mnemonics.label(new JBLabel(), GerritBundle.message("account.label.gitilesUrl"), gitilesUrlTextField), gitilesUrlTextField)
@@ -227,6 +236,17 @@ public class GerritAccountDialog extends DialogWrapper {
             .addComponentFillVertically(info, 0)
             .getPanel();
         return panel;
+    }
+
+    private JComponent buttons() {
+        if (browserSignIn == null) {
+            return testButton;
+        }
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        buttons.add(testButton);
+        buttons.add(Box.createHorizontalStrut(JBUIScale.scale(5)));
+        buttons.add(signInButton);
+        return buttons;
     }
 
     @Override
@@ -291,7 +311,9 @@ public class GerritAccountDialog extends DialogWrapper {
         if (failure == CANCELLED) {
             return false;
         }
-        String message = isRefusal(failure) && getLogin().isEmpty()
+        String signInPage = SignInPages.describe(failure);
+        String message = signInPage != null ? signInPage
+            : isRefusal(failure) && getLogin().isEmpty()
             ? GerritBundle.message("account.failure.needsLogin", getHost())
             : isRefusal(failure)
             ? GerritBundle.message("account.failure.refused", getHost())
@@ -311,6 +333,10 @@ public class GerritAccountDialog extends DialogWrapper {
      * first line only, as one about an unexpected answer carries the whole page. An answer Gerrit gave is its status.
      */
     static String reason(Throwable failure) {
+        String signInPage = SignInPages.describe(failure);
+        if (signInPage != null) {
+            return signInPage;
+        }
         HttpStatusException answer = ExceptionUtil.findCause(failure, HttpStatusException.class);
         if (answer != null) {
             String text = answer.getStatusText();
@@ -363,6 +389,20 @@ public class GerritAccountDialog extends DialogWrapper {
         } else if (failure != CANCELLED) {
             Messages.showErrorDialog(getContentPanel(),
                 GerritBundle.message("account.test.loginFailed", host, reason(failure)), GerritBundle.message("account.failure.title"));
+        }
+    }
+
+    /**
+     * Tests right away what the sign-in got: that is what tells whether it worked.
+     */
+    private void signIn() {
+        SettingsPanel.fixUrl(hostTextField);
+        if (getHost().isEmpty()) {
+            Messages.showErrorDialog(getContentPanel(), GerritBundle.message("account.test.noUrl"), GerritBundle.message("account.test.failure"));
+            return;
+        }
+        if (browserSignIn != null && browserSignIn.signIn(project, getContentPanel(), getHost())) {
+            testConnection();
         }
     }
 

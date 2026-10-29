@@ -594,12 +594,22 @@
        on how to target different products -->
   <depends>com.intellij.modules.lang</depends>
   <depends>Git4Idea</depends>
+  <!-- the sign-in through the IDE's browser, see BrowserSignIn: 2026.2 made the browser a plugin of its own, before
+       which an IDE never loads the file -->
+  <depends optional="true" config-file="gerrit-jcef.xml">com.intellij.modules.jcef</depends>
 
   <resource-bundle>messages.GerritBundle</resource-bundle>
+
+  <extensionPoints>
+    <extensionPoint qualifiedName="com.urswolfer.intellij.plugin.gerrit.browserSignIn"
+                    interface="com.urswolfer.intellij.plugin.gerrit.signin.BrowserSignIn" dynamic="true"/>
+  </extensionPoints>
 
   <applicationListeners>
     <listener class="com.urswolfer.intellij.plugin.gerrit.push.GerritPushExtensionStarter"
               topic="com.intellij.ide.AppLifecycleListener"/>
+    <listener class="com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies$Cleanup"
+              topic="com.urswolfer.intellij.plugin.gerrit.GerritAccountsListener"/>
   </applicationListeners>
 
   <extensions defaultExtensionNs="com.intellij">

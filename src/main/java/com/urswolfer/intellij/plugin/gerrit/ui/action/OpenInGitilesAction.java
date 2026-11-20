@@ -20,6 +20,7 @@ import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.UpdateInBackground;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -62,16 +63,39 @@ import java.util.List;
 /**
  * Opens a file, a revision of a file or a commit of a Gerrit project in Gitiles, wherever the IDE offers one.
  *
- * Not {@link com.intellij.openapi.actionSystem.UpdateInBackground}: the selection of the log is read straight from
- * its Swing table.
+ * The files of the project view and the editors update in the background: newer IDEs report the data they derive by
+ * rules when it is requested on the EDT. {@link Revision}, for the log and the histories, stays on the EDT, as the
+ * selection of the log is read straight from its Swing table.
+ * <p>
+ * TODO once the minimum IDE has AnAction.getActionUpdateThread (2020.3 has not, 2026.2 has): override it instead,
+ *  ActionUpdateThread.BGT in {@link Files} and EDT in {@link Revision}, and drop UpdateInBackground, which 2026.2
+ *  deprecates for removal. The two classes then are one again.
  *
  * @author Urs Wolfer
  */
-public class OpenInGitilesAction extends AnAction implements DumbAware {
+public abstract class OpenInGitilesAction extends AnAction implements DumbAware {
 
     public OpenInGitilesAction() {
         super(MyIcons.Gerrit);
     }
+
+    /** The files of the working copy, from the project view and the editors. */
+    public static final class Files extends OpenInGitilesAction implements UpdateInBackground {
+        @Override
+        protected boolean forRevisions() {
+            return false;
+        }
+    }
+
+    /** The commits and file revisions of the log and the histories. */
+    public static final class Revision extends OpenInGitilesAction {
+        @Override
+        protected boolean forRevisions() {
+            return true;
+        }
+    }
+
+    protected abstract boolean forRevisions();
 
     @Override
     public void update(@NotNull AnActionEvent e) {
@@ -106,7 +130,7 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
     }
 
     @Nullable
-    private static Target getTarget(AnActionEvent e) {
+    private Target getTarget(AnActionEvent e) {
         Project project = e.getProject();
         if (project == null || !GerritProjectSettings.isEnabled(project)) {
             return null;
@@ -116,6 +140,10 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
             return null;
         }
         GitRepositoryManager repositoryManager = GitUtil.getRepositoryManager(project);
+
+        if (!forRevisions()) {
+            return getWorkingCopyTarget(e, baseUrl, project, repositoryManager);
+        }
 
         // the file history also carries the log of its commits, but the file is what was selected there
         VcsFileRevision fileRevision = e.getData(VcsDataKeys.VCS_FILE_REVISION);
@@ -128,6 +156,12 @@ public class OpenInGitilesAction extends AnAction implements DumbAware {
             return getCommitTarget(baseUrl, repositoryManager, log);
         }
 
+        return null;
+    }
+
+    @Nullable
+    private static Target getWorkingCopyTarget(AnActionEvent e, String baseUrl, Project project,
+                                               GitRepositoryManager repositoryManager) {
         VirtualFile file = e.getData(CommonDataKeys.VIRTUAL_FILE);
         if (file != null) {
             return getWorkingCopyTarget(baseUrl, project, repositoryManager, file, e.getData(CommonDataKeys.EDITOR));

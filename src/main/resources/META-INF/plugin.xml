@@ -744,13 +744,18 @@
     </action>
 
     <action id="Gerrit.OpenInGitiles"
-            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInGitilesAction">
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInGitilesAction$Files">
       <!-- within the "Open In" submenu of the editor, editor tab and project view -->
       <override-text place="EditorTabPopup" text="Gitiles"/>
       <override-text place="ProjectViewPopup" use-text-of-place="EditorTabPopup"/>
       <override-text place="EditorPopup" use-text-of-place="EditorTabPopup"/>
       <override-text place="FavoritesPopup" use-text-of-place="EditorTabPopup"/>
       <add-to-group group-id="RevealGroup"/>
+    </action>
+
+    <!-- apart from the files, as it updates on the EDT: see the class -->
+    <action id="Gerrit.OpenRevisionInGitiles"
+            class="com.urswolfer.intellij.plugin.gerrit.ui.action.OpenInGitilesAction$Revision">
       <add-to-group group-id="Vcs.Log.ContextMenu" anchor="last"/>
       <add-to-group group-id="VcsHistoryActionsGroup" anchor="last"/>
       <add-to-group group-id="VcsSelectionHistoryDialog.Popup" anchor="last"/>

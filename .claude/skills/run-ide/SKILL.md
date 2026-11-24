@@ -55,15 +55,35 @@ not on 2020.3.
 
 `smoke.sh [latest|<dir>]` starts Gerrit and that IDE, then walks the plugin's
 main paths and checks each against Gerrit: the account on the settings page,
-the change list, a push for review with a reviewer through the push dialog,
-driven by its Alt mnemonics (those of the review dialog and the comment form
-too), Star from the context menu, comments on removed, added and unchanged
-lines of a diff in the side-by-side and the unified viewer and the shortcuts
-which go from one to the next there, comments in the editor of a checked out
-change as its text is edited, and the project switched off and on again,
+no sign-in through the browser, the change list, a push for review with a
+reviewer through the push dialog, driven by its Alt mnemonics (those of the
+review dialog and the comment form too), Star from the context menu, comments on
+removed, added and unchanged lines of a diff in the side-by-side and the unified
+viewer and the shortcuts which go from one to the next there, comments in the
+editor of a checked out change as its text is edited, and the project switched
+off and on again,
 without the tool window and the push options in between, and fails on an error
 the plugin logged. It takes about a minute once everything is downloaded, and on
 failure prints a screenshot path.
+
+`smoke-sso.sh [latest|<dir>]` checks the sign-in through the IDE's browser,
+which only 2026.2 and later have, against `sso-proxy.py`: a stand-in for a
+single sign-on proxy on `localhost:8090` in front of the seeded Gerrit, whose
+sign-in page on `127.0.0.1:8091` takes `sso-user`, `sso-pass` and the code
+`123456`. Its header lists what it answers besides, such as the log of what
+each side received. The script walks what the account dialog says about the
+sign-in page, a wrong code, the sign-in, the change list and Star through the
+proxy, the sign-in again from the notification once the proxy forgot it, and a
+restart, and checks that neither the Gerrit password nor the proxy's cookie went
+anywhere it should not. It leaves the project on the account behind the proxy,
+which `smoke.sh` switches back, and the proxy running: `pkill -f sso-proxy.py`.
+
+The embedded browser is off in the sandbox unless `RUN_IDE_JCEF=1` is set for
+`ide.sh start`, which `smoke-sso.sh` does. As root, the IDE shows "Embedded
+Browser is suspended" in place of every page unless allowed to, and
+`JBCefApp.isSupported()` still says yes; `ide.sh` allows it. The robot does not
+reach into a page: `xdotool` types into it, and the proxy's log tells what
+happened rather than a screenshot, whose browser area can lag behind.
 
 ## The seeded Gerrit
 
@@ -139,6 +159,11 @@ Gerrit 3.14 has no assignee endpoint (`PUT /changes/N/assignee` is a 404), so
 
 After a step tried by hand, `ide.sh errors` tells what it logged, while the
 step that did it is still known.
+
+The sandbox's credential store is KeePass, which writes its file when the IDE
+saves its settings: a password or cookie stored just before `ide.sh stop` can be
+gone after the restart unless `ApplicationManager.getApplication().saveSettings()`
+ran first.
 
 ## Noise that is not the plugin's
 

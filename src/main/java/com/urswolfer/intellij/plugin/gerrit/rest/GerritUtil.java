@@ -73,6 +73,9 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritSettings;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.git.GerritGitUtil;
+import com.urswolfer.intellij.plugin.gerrit.signin.BrowserSignIn;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInPages;
 import com.urswolfer.intellij.plugin.gerrit.ui.GerritAccountDialog;
 import com.urswolfer.intellij.plugin.gerrit.util.CommitChanges;
 import com.urswolfer.intellij.plugin.gerrit.util.GerritRemotes;
@@ -927,6 +930,11 @@ public final class GerritUtil {
     }
 
     public String getErrorTextFromException(Throwable t) {
+        // wrapped in a "Request failed" which says nothing
+        String signInPage = SignInPages.describe(t);
+        if (signInPage != null) {
+            return signInPage;
+        }
         // new RuntimeException(cause) takes cause.toString() as its message, which starts with the class name; a cause
         // without a message of its own is kept wrapped, as the class name is all there is to show
         while (t.getCause() != null && t.getCause() != t && t.getCause().getMessage() != null
@@ -1017,6 +1025,26 @@ public final class GerritUtil {
                 // credentials saved since, such as from another of these notifications, are tried before asking
                 if (GerritAccounts.getInstance().getPasswordVersion(account) != passwordVersion
                     || GerritAccountDialog.logIn(project, account)) {
+                    shown.expire();
+                    if (retry != null && account.equals(GerritProjectAccount.getInstance(project).get())) {
+                        retry.run();
+                    }
+                }
+            }));
+        }
+        BrowserSignIn signIn = SignInPages.find(throwable) != null ? BrowserSignIn.find() : null;
+        if (account != null && signIn != null) {
+            int signInVersion = SignInCookies.getInstance().getVersion(account.host);
+            notification.action(NotificationAction.create(GerritBundle.message("notification.signIn"), (event, shown) -> {
+                // its url may have been corrected since
+                GerritAccount current = GerritAccounts.getInstance().findById(account.id);
+                if (current == null) { // removed since
+                    return;
+                }
+                // a sign-in since, such as from another of these notifications, is tried before showing the page
+                if (current.host.equals(account.host)
+                    && SignInCookies.getInstance().getVersion(current.host) != signInVersion
+                    || signIn.signIn(project, null, current.host)) {
                     shown.expire();
                     if (retry != null && account.equals(GerritProjectAccount.getInstance(project).get())) {
                         retry.run();

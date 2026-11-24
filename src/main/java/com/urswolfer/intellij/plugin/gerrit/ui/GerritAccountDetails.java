@@ -26,6 +26,7 @@ import com.urswolfer.intellij.plugin.gerrit.GerritAccount;
 import com.urswolfer.intellij.plugin.gerrit.GerritAccounts;
 import com.urswolfer.intellij.plugin.gerrit.GerritBundle;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritApiProvider;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -112,9 +113,11 @@ final class GerritAccountDetails {
         }
     }
 
-    // a marker no typed password can be, rather than the stored one, which only the background thread reads
+    // a marker no typed password can be, rather than the stored one, which only the background thread reads; and the
+    // sign-in through the browser to a proxy in front of the host, which what failed before it may not fail after
     private static String credentials(GerritAccount account, @Nullable String editedPassword) {
-        return account.host + '\n' + account.login + '\n' + (editedPassword == null ? "\0" : "\1" + editedPassword);
+        return account.host + '\n' + account.login + '\n' + (editedPassword == null ? "\0" : "\1" + editedPassword)
+            + '\n' + SignInCookies.getInstance().getVersion(account.host);
     }
 
     /**

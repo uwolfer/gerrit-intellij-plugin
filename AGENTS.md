@@ -58,6 +58,14 @@ suspend function, a module `plugin.xml` must declare). `AvatarIcons` and
 note in full, conditions included. Mark reflection which only exists to link
 against both versions the same way; `ResetAction` predates the marker.
 
+A feature may also be left out of older IDEs altogether, where it needs a
+platform plugin they lack, as long as they run exactly what they ran before.
+The sign-in through the browser is the example: its classes are in one package
+which only `gerrit-jcef.xml` names, which an optional `<depends>` on
+`com.intellij.modules.jcef` (a plugin since 2026.2) loads, and the main code
+reaches it through the extension point `BrowserSignIn`. `BrowserSignInGateTest`
+fails on any other class which names that package or the browser's classes.
+
 ## Gerrit behaviour: read Gerrit's own code
 
 Where the plugin does what Gerrit's web UI does (votes, attention set,

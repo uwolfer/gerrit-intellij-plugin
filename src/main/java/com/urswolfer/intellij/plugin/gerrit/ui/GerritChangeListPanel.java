@@ -48,6 +48,9 @@ import com.urswolfer.intellij.plugin.gerrit.GerritProjectAccount;
 import com.urswolfer.intellij.plugin.gerrit.SelectedRevisions;
 import com.urswolfer.intellij.plugin.gerrit.rest.GerritUtil;
 import com.urswolfer.intellij.plugin.gerrit.rest.LoadChangesProxy;
+import com.urswolfer.intellij.plugin.gerrit.signin.BrowserSignIn;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInCookies;
+import com.urswolfer.intellij.plugin.gerrit.signin.SignInPages;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -311,7 +314,10 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
     private void showFailure(@Nullable RestApiException failure) {
         GerritAccount account = GerritProjectAccount.getInstance(project).get();
         boolean refused = failure != null && account != null && GerritUtil.isRefusal(failure, account);
-        String reason = failure == null ? null : ChangeListEmptyText.reason(failure.getMessage());
+        boolean signInPage = SignInPages.find(failure) != null;
+        BrowserSignIn signIn = signInPage && account != null ? BrowserSignIn.find() : null;
+        String reason = failure == null ? null : signInPage ? GerritBundle.message("list.empty.failed.signInPage")
+            : ChangeListEmptyText.reason(failure.getMessage());
         StatusText emptyText = table.getEmptyText();
         emptyText.clear();
         emptyText.appendText((reason != null
@@ -321,6 +327,24 @@ public class GerritChangeListPanel extends JPanel implements DataProvider {
             emptyText.appendText(GerritBundle.message("list.empty.failed.login"), SimpleTextAttributes.LINK_ATTRIBUTES,
                 // saving the credentials announces the change, which loads the list again
                 event -> GerritAccountDialog.logIn(project, account));
+            emptyText.appendText(" ");
+        }
+        if (signIn != null) {
+            int signInVersion = SignInCookies.getInstance().getVersion(account.host);
+            emptyText.appendText(GerritBundle.message("list.empty.failed.signIn"), SimpleTextAttributes.LINK_ATTRIBUTES,
+                // a sign-in since, such as from the notification, is tried before showing the page
+                event -> {
+                    GerritAccount current = GerritProjectAccount.getInstance(project).get();
+                    if (!account.equals(current)) { // the list is another's now
+                        return;
+                    }
+                    // its url may have been corrected since
+                    if ((current.host.equals(account.host)
+                        && SignInCookies.getInstance().getVersion(current.host) != signInVersion
+                        || signIn.signIn(project, null, current.host)) && retry != null) {
+                        retry.run();
+                    }
+                });
             emptyText.appendText(" ");
         }
         emptyText.appendText(GerritBundle.message("list.empty.failed.retry"), SimpleTextAttributes.LINK_ATTRIBUTES,

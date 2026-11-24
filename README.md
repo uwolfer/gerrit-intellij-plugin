@@ -153,6 +153,19 @@ it:
 Here the login is `git-username.gmail.com` and the password is everything after
 the `=`.
 
+### Gerrit behind a single sign-on proxy, such as Azure Application Proxy
+
+Such a proxy answers with its sign-in page until the browser has its cookie,
+and the plugin reports that Gerrit's REST API answered with a web page. From
+version 2026.2 of the IDE on, <kbd>Sign In with Browser…</kbd> in the account
+dialog, and in the notification, signs in on that page inside the IDE and keeps
+the proxy's cookie in the IDE's password storage. The login and HTTP password
+of the account still go to Gerrit. Once the proxy forgets the sign-in, the
+plugin offers to sign in again. Older versions of the IDE, and an IDE whose
+embedded browser is switched off, cannot sign in this way. Git itself does not
+get the cookie: clone and fetch need a way to Gerrit that does not go through
+the proxy, such as the VPN or SSH.
+
 ## How it works
 
 * **IDE integration:** a [tool window](https://plugins.jetbrains.com/docs/intellij/tool-windows.html)

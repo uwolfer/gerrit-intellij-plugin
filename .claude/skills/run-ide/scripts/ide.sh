@@ -17,6 +17,7 @@
 # Starts the plugin in an IDE on a virtual display, with the seeded demo project open.
 # Without an argument it runs the SDK the plugin compiles against, from Gradle's cache;
 # `latest` downloads latestIdeaVersion from gradle.properties, which CI verifies against.
+# RUN_IDE_JCEF=1 switches on the embedded browser, which is off otherwise.
 # Usage: ide.sh start [latest|<unpacked IDE dir>] | stop | errors
 set -euo pipefail
 
@@ -130,6 +131,13 @@ sandbox() {
         # the SDK from Maven keeps its defaults under bin/linux, an unpacked IDE under bin
         { cat "$(ls "$ide"/bin/idea64.vmoptions "$ide"/bin/linux/idea64.vmoptions 2> /dev/null | head -1)"
             echo; cat "$HERE/ide.vmoptions"; } > "$dir/idea.vmoptions"
+    fi
+    # The embedded browser is off unless RUN_IDE_JCEF is set, for the sign-in through it. As root, which
+    # the sandbox is, the IDE suspends the browser unless allowed to, while JBCefApp.isSupported() still
+    # says yes, and Chromium's own sandbox does not run. The last -D of a name wins.
+    if [ -n "${RUN_IDE_JCEF:-}" ]; then
+        printf '%s\n' -Dide.browser.jcef.enabled=true -Dide.browser.jcef.sandbox.enable=false \
+            -Dide.browser.jcef.run-under-superuser.allowed=true >> "$dir/idea.vmoptions"
     fi
     # There is no keyring service in the sandbox: the default provider fails to load
     # libsecret and logs an error which names whichever plugin stored the password.
